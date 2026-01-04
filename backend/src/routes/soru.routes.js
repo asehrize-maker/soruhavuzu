@@ -650,7 +650,7 @@ router.get('/rapor', authenticate, authorize(['admin']), async (req, res, next) 
         COUNT(CASE WHEN s.durum = 'beklemede' THEN 1 END) as bekleyen,
         COUNT(CASE WHEN s.durum = 'devam_ediyor' THEN 1 END) as devam_eden,
         COUNT(CASE WHEN s.durum = 'red_edildi' THEN 1 END) as reddedilen,
-        ROUND(AVG(EXTRACT(EPOCH FROM (s.tamamlanma_tarihi - s.olusturulma_tarihi))/3600)::numeric, 2) as ortalama_sure_saat
+        ROUND(AVG(EXTRACT(EPOCH FROM (s.guncellenme_tarihi - s.olusturulma_tarihi))/3600)::numeric, 2) as ortalama_sure_saat
       FROM branslar b
       LEFT JOIN ekipler e ON b.ekip_id = e.id
       LEFT JOIN sorular s ON b.id = s.brans_id 
@@ -691,7 +691,7 @@ router.get('/rapor', authenticate, authorize(['admin']), async (req, res, next) 
         k.kullanici_adi,
         b.brans_adi,
         COUNT(s.id) as tamamlanan_soru,
-        ROUND(AVG(EXTRACT(EPOCH FROM (s.tamamlanma_tarihi - s.dizgiye_gonderilme_tarihi))/3600)::numeric, 2) as ortalama_sure_saat,
+        ROUND(AVG(EXTRACT(EPOCH FROM (s.guncellenme_tarihi - s.dizgiye_gonderilme_tarihi))/3600)::numeric, 2) as ortalama_sure_saat,
         COUNT(CASE WHEN s.durum = 'red_edildi' THEN 1 END) as reddedilen
       FROM kullanicilar k
       LEFT JOIN branslar b ON k.brans_id = b.id
