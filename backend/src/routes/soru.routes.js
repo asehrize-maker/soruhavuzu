@@ -495,15 +495,15 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
     const genelStats = await pool.query(`
       SELECT 
         COUNT(*) as toplam_soru,
-        COUNT(*) FILTER (WHERE durum = 'beklemede') as beklemede,
-        COUNT(*) FILTER (WHERE durum = 'dizgide') as dizgide,
-        COUNT(*) FILTER (WHERE durum = 'tamamlandi') as tamamlandi,
-        COUNT(*) FILTER (WHERE durum = 'revize_gerekli') as revize_gerekli,
-        COUNT(*) FILTER (WHERE zorluk_seviyesi = 'kolay') as kolay,
-        COUNT(*) FILTER (WHERE zorluk_seviyesi = 'orta') as orta,
-        COUNT(*) FILTER (WHERE zorluk_seviyesi = 'zor') as zor,
-        COUNT(*) FILTER (WHERE fotograf_url IS NOT NULL) as fotografli,
-        COUNT(*) FILTER (WHERE latex_kodu IS NOT NULL AND latex_kodu != '') as latexli
+        COUNT(CASE WHEN durum = 'beklemede' THEN 1 END) as beklemede,
+        COUNT(CASE WHEN durum = 'dizgide' THEN 1 END) as dizgide,
+        COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlandi,
+        COUNT(CASE WHEN durum = 'revize_gerekli' THEN 1 END) as revize_gerekli,
+        COUNT(CASE WHEN zorluk_seviyesi = 'kolay' THEN 1 END) as kolay,
+        COUNT(CASE WHEN zorluk_seviyesi = 'orta' THEN 1 END) as orta,
+        COUNT(CASE WHEN zorluk_seviyesi = 'zor' THEN 1 END) as zor,
+        COUNT(CASE WHEN fotograf_url IS NOT NULL THEN 1 END) as fotografli,
+        COUNT(CASE WHEN latex_kodu IS NOT NULL AND latex_kodu != '' THEN 1 END) as latexli
       FROM sorular
     `);
 
@@ -514,9 +514,9 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
         b.brans_adi,
         e.ekip_adi,
         COUNT(s.id) as soru_sayisi,
-        COUNT(*) FILTER (WHERE s.durum = 'beklemede') as beklemede,
-        COUNT(*) FILTER (WHERE s.durum = 'dizgide') as dizgide,
-        COUNT(*) FILTER (WHERE s.durum = 'tamamlandi') as tamamlandi
+        COUNT(CASE WHEN s.durum = 'beklemede' THEN 1 END) as beklemede,
+        COUNT(CASE WHEN s.durum = 'dizgide' THEN 1 END) as dizgide,
+        COUNT(CASE WHEN s.durum = 'tamamlandi' THEN 1 END) as tamamlandi
       FROM branslar b
       LEFT JOIN ekipler e ON b.ekip_id = e.id
       LEFT JOIN sorular s ON b.id = s.brans_id
@@ -533,7 +533,7 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
         k.rol,
         b.brans_adi,
         COUNT(s.id) as olusturulan_soru,
-        COUNT(*) FILTER (WHERE s.durum = 'tamamlandi') as tamamlanan
+        COUNT(CASE WHEN s.durum = 'tamamlandi' THEN 1 END) as tamamlanan
       FROM kullanicilar k
       LEFT JOIN branslar b ON k.brans_id = b.id
       LEFT JOIN sorular s ON k.id = s.olusturan_kullanici_id
@@ -567,7 +567,7 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
       SELECT 
         DATE(olusturulma_tarihi) as tarih,
         COUNT(*) as soru_sayisi,
-        COUNT(*) FILTER (WHERE durum = 'tamamlandi') as tamamlanan
+        COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlanan
       FROM sorular
       WHERE olusturulma_tarihi >= CURRENT_DATE - INTERVAL '30 days'
       GROUP BY DATE(olusturulma_tarihi)
@@ -577,9 +577,9 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
     // Kullanıcı sayıları
     const kullaniciSayilari = await pool.query(`
       SELECT 
-        COUNT(*) FILTER (WHERE rol = 'admin') as admin_sayisi,
-        COUNT(*) FILTER (WHERE rol = 'soru_yazici') as soru_yazici_sayisi,
-        COUNT(*) FILTER (WHERE rol = 'dizgici') as dizgici_sayisi,
+        COUNT(CASE WHEN rol = 'admin' THEN 1 END) as admin_sayisi,
+        COUNT(CASE WHEN rol = 'soru_yazici' THEN 1 END) as soru_yazici_sayisi,
+        COUNT(CASE WHEN rol = 'dizgici' THEN 1 END) as dizgici_sayisi,
         COUNT(*) as toplam_kullanici
       FROM kullanicilar
     `);
