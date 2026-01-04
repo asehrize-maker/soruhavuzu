@@ -10,10 +10,13 @@ const router = express.Router();
 router.get('/kullanicilar', authenticate, async (req, res, next) => {
   try {
     const result = await pool.query(
-      `SELECT id, ad_soyad, email, rol, brans_adi, ekip_adi
-       FROM kullanicilar
-       WHERE id != $1
-       ORDER BY ad_soyad ASC`,
+      `SELECT k.id, k.ad_soyad, k.email, k.rol, 
+              b.brans_adi, e.ekip_adi
+       FROM kullanicilar k
+       LEFT JOIN branslar b ON k.brans_id = b.id
+       LEFT JOIN ekipler e ON k.ekip_id = e.id
+       WHERE k.id != $1
+       ORDER BY k.ad_soyad ASC`,
       [req.user.id]
     );
 
@@ -40,7 +43,7 @@ router.get('/konusmalar', authenticate, async (req, res, next) => {
         END as kullanici_id,
         k.ad_soyad,
         k.rol,
-        k.brans_adi,
+        b.brans_adi,
         km.mesaj as son_mesaj,
         km.olusturulma_tarihi,
         km.gonderen_id = $1 as ben_gonderdim,
@@ -52,6 +55,7 @@ router.get('/konusmalar', authenticate, async (req, res, next) => {
           ELSE km.gonderen_id 
         END = k.id
       )
+      LEFT JOIN branslar b ON k.brans_id = b.id
       WHERE km.gonderen_id = $1 OR km.alici_id = $1
       ORDER BY CASE 
           WHEN km.gonderen_id = $1 THEN km.alici_id 
