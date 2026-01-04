@@ -36,7 +36,10 @@ export const authenticate = async (req, res, next) => {
 
 export const authorize = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.rol)) {
+    // Eğer roles[0] bir array ise, onu kullan
+    const allowedRoles = Array.isArray(roles[0]) ? roles[0] : roles;
+    
+    if (!allowedRoles.includes(req.user.rol)) {
       throw new AppError('Bu işlem için yetkiniz yok', 403);
     }
     next();
