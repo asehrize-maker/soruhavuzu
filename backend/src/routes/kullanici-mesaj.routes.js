@@ -25,6 +25,7 @@ router.get('/kullanicilar', authenticate, async (req, res, next) => {
       data: result.rows
     });
   } catch (error) {
+    console.error('Kullanıcılar listesi hatası:', error);
     next(error);
   }
 });
@@ -32,6 +33,22 @@ router.get('/kullanicilar', authenticate, async (req, res, next) => {
 // Konuşma listesini getir (her kullanıcıyla son mesaj)
 router.get('/konusmalar', authenticate, async (req, res, next) => {
   try {
+    // Tablo var mı kontrol et
+    const tableCheck = await pool.query(
+      `SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'kullanici_mesajlari'
+      )`
+    );
+    
+    if (!tableCheck.rows[0].exists) {
+      return res.json({
+        success: true,
+        data: []
+      });
+    }
+
     const result = await pool.query(
       `SELECT DISTINCT ON (CASE 
           WHEN km.gonderen_id = $1 THEN km.alici_id 

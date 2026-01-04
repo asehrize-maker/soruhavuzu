@@ -37,9 +37,10 @@ export default function Mesajlar() {
   const loadKonusmalar = async () => {
     try {
       const response = await kullaniciMesajAPI.getKonusmalar();
-      setKonusmalar(response.data.data);
+      setKonusmalar(response.data.data || []);
     } catch (error) {
       console.error('Konuşmalar yüklenemedi:', error);
+      setKonusmalar([]); // Boş array set et
     } finally {
       setLoading(false);
     }
@@ -48,9 +49,10 @@ export default function Mesajlar() {
   const loadKullanicilar = async () => {
     try {
       const response = await kullaniciMesajAPI.getKullanicilar();
-      setKullanicilar(response.data.data);
+      setKullanicilar(response.data.data || []);
     } catch (error) {
       console.error('Kullanıcılar yüklenemedi:', error);
+      setKullanicilar([]); // Boş array set et
     }
   };
 
