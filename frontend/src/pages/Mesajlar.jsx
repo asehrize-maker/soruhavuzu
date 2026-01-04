@@ -138,16 +138,16 @@ export default function Mesajlar() {
   }
 
   return (
-    <div className="h-[calc(100vh-180px)]">
-      <div className="mb-6">
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 200px)' }}>
+      <div className="mb-4 flex-shrink-0">
         <h1 className="text-3xl font-bold text-gray-900">Mesajlar</h1>
         <p className="mt-2 text-gray-600">Ekip üyeleriyle mesajlaşın</p>
       </div>
 
-      <div className="grid grid-cols-12 gap-6 h-full">
+      <div className="grid grid-cols-12 gap-6 flex-1 min-h-0">
         {/* Sol Panel - Konuşmalar */}
-        <div className="col-span-4 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col">
-          <div className="p-4 border-b border-gray-200">
+        <div className="col-span-4 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col h-full overflow-hidden">
+          <div className="p-4 border-b border-gray-200 flex-shrink-0">
             <button
               onClick={() => setShowYeniKonusma(!showYeniKonusma)}
               className="w-full btn btn-primary flex items-center justify-center"
@@ -252,11 +252,11 @@ export default function Mesajlar() {
         </div>
 
         {/* Sağ Panel - Mesajlaşma */}
-        <div className="col-span-8 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col">
+        <div className="col-span-8 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col h-full overflow-hidden">
           {secilenKullanici ? (
             <>
               {/* Header */}
-              <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-white">
+              <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-white flex-shrink-0">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-semibold">
                     {secilenKullanici.ad_soyad?.charAt(0).toUpperCase()}
@@ -276,7 +276,7 @@ export default function Mesajlar() {
               </div>
 
               {/* Mesajlar */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50" style={{ minHeight: 0 }}>
                 {mesajlar.length === 0 ? (
                   <div className="flex items-center justify-center h-full text-gray-400">
                     <div className="text-center">
@@ -332,7 +332,7 @@ export default function Mesajlar() {
               </div>
 
               {/* Mesaj Gönderme Formu */}
-              <form onSubmit={handleMesajGonder} className="p-4 border-t border-gray-200 bg-white">
+              <form onSubmit={handleMesajGonder} className="p-4 border-t border-gray-200 bg-white flex-shrink-0">
                 <div className="flex items-end space-x-2">
                   <textarea
                     value={yeniMesaj}
