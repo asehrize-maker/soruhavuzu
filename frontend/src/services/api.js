@@ -85,6 +85,7 @@ export const soruAPI = {
   updateDurum: (id, data) => api.put(`/sorular/${id}/durum`, data),
   getStats: () => api.get('/sorular/stats/genel'),
   getDetayliStats: () => api.get('/sorular/stats/detayli'),
+  getRapor: (params) => api.get('/sorular/rapor', { params }),
 };
 
 // Bildirim API

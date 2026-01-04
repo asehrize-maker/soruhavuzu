@@ -614,4 +614,133 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
   }
 });
 
+// Rapor verilerini getir (haftalık/aylık)
+router.get('/rapor', authenticate, authorize(['admin']), async (req, res, next) => {
+  try {
+    const { baslangic, bitis, tip } = req.query;
+    
+    if (!baslangic || !bitis) {
+      throw new AppError('Başlangıç ve bitiş tarihi gerekli', 400);
+    }
+
+    // Genel istatistikler (tarih aralığına göre)
+    const genelQuery = `
+      SELECT 
+        COUNT(*) as toplam_soru,
+        COUNT(*) FILTER (WHERE durum = 'tamamlandi') as tamamlanan,
+        COUNT(*) FILTER (WHERE durum = 'beklemede') as bekleyen,
+        COUNT(*) FILTER (WHERE durum = 'devam_ediyor') as devam_eden,
+        COUNT(*) FILTER (WHERE durum = 'red_edildi') as reddedilen,
+        COUNT(*) FILTER (WHERE fotograf_url IS NOT NULL) as fotografli,
+        COUNT(*) FILTER (WHERE latex_kodu IS NOT NULL) as latexli,
+        COUNT(*) FILTER (WHERE zorluk_seviyesi = 'kolay') as kolay,
+        COUNT(*) FILTER (WHERE zorluk_seviyesi = 'orta') as orta,
+        COUNT(*) FILTER (WHERE zorluk_seviyesi = 'zor') as zor
+      FROM sorular
+      WHERE olusturulma_tarihi >= $1 AND olusturulma_tarihi <= $2
+    `;
+
+    // Branş bazında detaylı rapor
+    const bransQuery = `
+      SELECT 
+        b.brans_adi,
+        e.ekip_adi,
+        COUNT(s.id) as toplam_soru,
+        COUNT(*) FILTER (WHERE s.durum = 'tamamlandi') as tamamlanan,
+        COUNT(*) FILTER (WHERE s.durum = 'beklemede') as bekleyen,
+        COUNT(*) FILTER (WHERE s.durum = 'devam_ediyor') as devam_eden,
+        COUNT(*) FILTER (WHERE s.durum = 'red_edildi') as reddedilen,
+        ROUND(AVG(EXTRACT(EPOCH FROM (s.tamamlanma_tarihi - s.olusturulma_tarihi))/3600), 2) as ortalama_sure_saat
+      FROM branslar b
+      LEFT JOIN ekipler e ON b.ekip_id = e.id
+      LEFT JOIN sorular s ON b.id = s.brans_id 
+        AND s.olusturulma_tarihi >= $1 
+        AND s.olusturulma_tarihi <= $2
+      GROUP BY b.id, b.brans_adi, e.ekip_adi
+      ORDER BY toplam_soru DESC
+    `;
+
+    // Kullanıcı performans raporu (soru yazıcılar)
+    const kullaniciQuery = `
+      SELECT 
+        k.ad_soyad,
+        k.kullanici_adi,
+        b.brans_adi,
+        COUNT(s.id) as olusturulan_soru,
+        COUNT(*) FILTER (WHERE s.durum = 'tamamlandi') as tamamlanan,
+        COUNT(*) FILTER (WHERE s.durum = 'red_edildi') as reddedilen,
+        ROUND(
+          (COUNT(*) FILTER (WHERE s.durum = 'tamamlandi')::float / 
+          NULLIF(COUNT(s.id), 0) * 100), 2
+        ) as basari_orani
+      FROM kullanicilar k
+      LEFT JOIN branslar b ON k.brans_id = b.id
+      LEFT JOIN sorular s ON k.id = s.olusturan_kullanici_id 
+        AND s.olusturulma_tarihi >= $1 
+        AND s.olusturulma_tarihi <= $2
+      WHERE k.rol = 'soru_yazici'
+      GROUP BY k.id, k.ad_soyad, k.kullanici_adi, b.brans_adi
+      ORDER BY olusturulan_soru DESC
+    `;
+
+    // Dizgici performans raporu
+    const dizgiQuery = `
+      SELECT 
+        k.ad_soyad,
+        k.kullanici_adi,
+        b.brans_adi,
+        COUNT(s.id) as tamamlanan_soru,
+        ROUND(AVG(EXTRACT(EPOCH FROM (s.tamamlanma_tarihi - s.dizgiye_gonderilme_tarihi))/3600), 2) as ortalama_sure_saat,
+        COUNT(*) FILTER (WHERE s.durum = 'red_edildi') as reddedilen
+      FROM kullanicilar k
+      LEFT JOIN branslar b ON k.brans_id = b.id
+      LEFT JOIN sorular s ON k.id = s.dizgici_id 
+        AND s.dizgiye_gonderilme_tarihi >= $1 
+        AND s.dizgiye_gonderilme_tarihi <= $2
+        AND s.durum IN ('tamamlandi', 'red_edildi')
+      WHERE k.rol = 'dizgici'
+      GROUP BY k.id, k.ad_soyad, k.kullanici_adi, b.brans_adi
+      ORDER BY tamamlanan_soru DESC
+    `;
+
+    // Günlük trend (rapor dönemi boyunca)
+    const trendQuery = `
+      SELECT 
+        DATE(olusturulma_tarihi) as tarih,
+        COUNT(*) as olusturulan,
+        COUNT(*) FILTER (WHERE durum = 'tamamlandi') as tamamlanan
+      FROM sorular
+      WHERE olusturulma_tarihi >= $1 AND olusturulma_tarihi <= $2
+      GROUP BY DATE(olusturulma_tarihi)
+      ORDER BY tarih
+    `;
+
+    const [genel, branslar, kullanicilar, dizgiciler, trend] = await Promise.all([
+      pool.query(genelQuery, [baslangic, bitis]),
+      pool.query(bransQuery, [baslangic, bitis]),
+      pool.query(kullaniciQuery, [baslangic, bitis]),
+      pool.query(dizgiQuery, [baslangic, bitis]),
+      pool.query(trendQuery, [baslangic, bitis])
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        donem: {
+          baslangic,
+          bitis,
+          tip: tip || 'ozel'
+        },
+        genel: genel.rows[0],
+        branslar: branslar.rows,
+        kullanicilar: kullanicilar.rows,
+        dizgiciler: dizgiciler.rows,
+        trend: trend.rows
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
