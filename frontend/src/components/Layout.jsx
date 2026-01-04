@@ -70,7 +70,35 @@ export default function Layout() {
                 <Link to="/" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
                   Ana Sayfa
                 </Link>
-                <Link to="/sorular" className="text-gray-              {/* Bildirimler */}
+                <Link to="/sorular" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
+                  Sorular
+                </Link>
+                <Link to="/mesajlar" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
+                  💬 Mesajlar
+                </Link>
+                {user?.rol === 'dizgici' && (
+                  <Link to="/dizgi-yonetimi" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
+                    Dizgi Yönetimi
+                  </Link>
+                )}
+                {user?.rol === 'admin' && (
+                  <>
+                    <Link to="/ekipler" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
+                      Ekipler
+                    </Link>
+                    <Link to="/branslar" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
+                      Branşlar
+                    </Link>
+                    <Link to="/kullanicilar" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
+                      Kullanıcılar
+                    </Link>
+                  </>
+                )}
+              </nav>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              {/* Bildirimler */}
               <Link
                 to="/mesajlar"
                 className="relative p-2 text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition"
@@ -99,33 +127,7 @@ export default function Layout() {
                   </span>
                 )}
               </button>
-                  Sorular
-                </Link>
-                <Link to="/mesajlar" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                  💬 Mesajlar
-                </Link>
-                {user?.rol === 'dizgici' && (
-                  <Link to="/dizgi-yonetimi" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                    Dizgi Yönetimi
-                  </Link>
-                )}
-                {user?.rol === 'admin' && (
-                  <>
-                    <Link to="/ekipler" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                      Ekipler
-                    </Link>
-                    <Link to="/branslar" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                      Branşlar
-                    </Link>
-                    <Link to="/kullanicilar" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                      Kullanıcılar
-                    </Link>
-                  </>
-                )}
-              </nav>
-            </div>
 
-            <div className="flex items-center space-x-4">
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-900">{user?.ad_soyad}</p>
                 <div className="flex items-center justify-end space-x-2">
