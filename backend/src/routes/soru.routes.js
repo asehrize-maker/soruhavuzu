@@ -5,6 +5,7 @@ import pool from '../config/database.js';
 import cloudinary from '../config/cloudinary.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { createNotification } from './bildirim.routes.js';
 
 const router = express.Router();
 
@@ -155,7 +156,7 @@ router.post('/', [
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const { soru_metni, zorluk_seviyesi, brans_id } = req.body;
+    const { soru_metni, zorluk_seviyesi, brans_id, latex_kodu } = req.body;
     let fotograf_url = null;
     let fotograf_public_id = null;
 
@@ -174,9 +175,9 @@ router.post('/', [
     }
 
     const result = await pool.query(
-      `INSERT INTO sorular (soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, olusturan_kullanici_id) 
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi || null, brans_id, req.user.id]
+      `INSERT INTO sorular (soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, latex_kodu, olusturan_kullanici_id) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi || null, brans_id, latex_kodu || null, req.user.id]
     );
 
     res.status(201).json({
@@ -388,7 +389,8 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
         COUNT(*) as toplam,
         COUNT(*) FILTER (WHERE durum = 'beklemede') as beklemede,
         COUNT(*) FILTER (WHERE durum = 'dizgide') as dizgide,
-        COUNT(*) FILTER (WHERE durum = 'tamamlandi') as tamamlandi
+        COUNT(*) FILTER (WHERE durum = 'tamamlandi') as tamamlandi,
+        COUNT(*) FILTER (WHERE durum = 'revize_gerekli') as revize_gerekli
       FROM sorular
       ${whereClause}
     `, params);
@@ -397,6 +399,86 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
       success: true,
       data: result.rows[0]
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Soru durumunu güncelle (Dizgici)
+router.put('/:id/durum', authenticate, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { durum, revize_notu } = req.body;
+
+    const validDurumlar = ['beklemede', 'dizgide', 'tamamlandi', 'revize_gerekli'];
+    if (!validDurumlar.includes(durum)) {
+      throw new AppError('Geçersiz durum', 400);
+    }
+
+    // Soruyu kontrol et
+    const soruResult = await pool.query(
+      'SELECT * FROM sorular WHERE id = $1',
+      [id]
+    );
+
+    if (soruResult.rows.length === 0) {
+      throw new AppError('Soru bulunamadı', 404);
+    }
+
+    const soru = soruResult.rows[0];
+
+    // Durum bazlı kontroller
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      let updateQuery = 'UPDATE sorular SET durum = $1';
+      let params = [durum];
+      let paramCount = 2;
+
+      // Dizgiye alındıysa dizgici_id ve tarihleri güncelle
+      if (durum === 'dizgide' && soru.durum === 'beklemede') {
+        updateQuery += `, dizgici_id = $${paramCount++}, dizgi_baslama_tarihi = CURRENT_TIMESTAMP`;
+        params.push(req.user.id);
+      }
+
+      // Tamamlandıysa dizgi bitiş tarihini kaydet
+      if (durum === 'tamamlandi') {
+        updateQuery += `, dizgi_bitis_tarihi = CURRENT_TIMESTAMP`;
+      }
+
+      // Revize isteniyorsa notu kaydet
+      if (durum === 'revize_gerekli') {
+        updateQuery += `, revize_notu = $${paramCount++}`;
+        params.push(revize_notu || '');
+        
+        // Soru yazıcıya bildirim gönder
+        await createNotification(
+          soru.olusturan_kullanici_id,
+          'Revize Talebi',
+          `Soru #${id} için revize talep edildi: ${revize_notu || 'Detay yok'}`,
+          'revize',
+          `/sorular/${id}`
+        );
+      }
+
+      updateQuery += ` WHERE id = $${paramCount} RETURNING *`;
+      params.push(id);
+
+      const result = await client.query(updateQuery, params);
+
+      await client.query('COMMIT');
+
+      res.json({
+        success: true,
+        data: result.rows[0]
+      });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   } catch (error) {
     next(error);
   }

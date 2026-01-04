@@ -82,7 +82,21 @@ export const soruAPI = {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
   delete: (id) => api.delete(`/sorular/${id}`),
-  dizgiAl: (id) => api.post(`/sorular/${id}/dizgi-al`),
-  dizgiTamamla: (id, data) => api.post(`/sorular/${id}/dizgi-tamamla`, data),
+  updateDurum: (id, data) => api.put(`/sorular/${id}/durum`, data),
   getStats: () => api.get('/sorular/stats/genel'),
+};
+
+// Bildirim API
+export const bildirimAPI = {
+  getAll: () => api.get('/bildirimler'),
+  getOkunmamiSayisi: () => api.get('/bildirimler/okunmamis-sayisi'),
+  markAsRead: (id) => api.put(`/bildirimler/${id}/okundu`),
+  markAllAsRead: () => api.put('/bildirimler/hepsini-okundu-isaretle'),
+};
+
+// Mesaj API
+export const mesajAPI = {
+  getBySoruId: (soruId) => api.get(`/mesajlar/soru/${soruId}`),
+  send: (data) => api.post('/mesajlar', data),
+  delete: (id) => api.delete(`/mesajlar/${id}`),
 };

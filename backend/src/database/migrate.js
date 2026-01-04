@@ -1,4 +1,5 @@
 import pool from '../config/database.js';
+import { createAdvancedFeatures } from './migrations/002_gelismis_ozellikler.js';
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -80,6 +81,10 @@ const createTables = async () => {
 
     await client.query('COMMIT');
     console.log('✅ Tüm tablolar başarıyla oluşturuldu');
+    
+    // Gelişmiş özellikler migration'ını çalıştır
+    await createAdvancedFeatures();
+    
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('❌ Tablo oluşturma hatası:', error);

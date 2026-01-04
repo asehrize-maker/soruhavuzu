@@ -10,6 +10,8 @@ import userRoutes from './src/routes/user.routes.js';
 import ekipRoutes from './src/routes/ekip.routes.js';
 import bransRoutes from './src/routes/brans.routes.js';
 import soruRoutes from './src/routes/soru.routes.js';
+import bildirimRoutes from './src/routes/bildirim.routes.js';
+import mesajRoutes from './src/routes/mesaj.routes.js';
 
 // Middleware
 import { errorHandler } from './src/middleware/errorHandler.js';
@@ -39,6 +41,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/ekipler', ekipRoutes);
 app.use('/api/branslar', bransRoutes);
 app.use('/api/sorular', soruRoutes);
+app.use('/api/bildirimler', bildirimRoutes);
+app.use('/api/mesajlar', mesajRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
