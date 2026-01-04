@@ -167,13 +167,7 @@ export default function Kullanicilar() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-smEdit(kullanici)}
-                      className="text-blue-600 hover:text-blue-800 mr-4"
-                    >
-                      Düzenle
-                    </button>
-                    <button
-                      onClick={() => handle text-gray-900">
+                    <div className="text-sm text-gray-900">
                       {kullanici.brans_adi || '-'}
                     </div>
                   </td>
@@ -190,12 +184,24 @@ export default function Kullanicilar() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <button
+                      onClick={() => handleEdit(kullanici)}
+                      className="text-blue-600 hover:text-blue-800 mr-4"
+                    >
+                      Düzenle
+                    </button>
+                    <button
                       onClick={() => handleDelete(kullanici.id)}
                       className="text-red-600 hover:text-red-800"
                     >
                       Sil
                     </button>
                   </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Modal */}
       {showModal && editingUser && (
@@ -287,12 +293,6 @@ export default function Kullanicilar() {
               </div>
             </form>
           </div>
-        </div>
-      )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       )}
     </div>
