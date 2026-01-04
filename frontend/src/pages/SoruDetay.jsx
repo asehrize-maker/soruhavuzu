@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { soruAPI } from '../services/api';
-import MesajKutusu from '../components/MesajKutusu';
 
 export default function SoruDetay() {
   const { id } = useParams();
@@ -11,7 +10,6 @@ export default function SoruDetay() {
   const [soru, setSoru] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dizgiNotu, setDizgiNotu] = useState('');
-  const [showMesajlar, setShowMesajlar] = useState(false);
 
   useEffect(() => {
     loadSoru();
@@ -78,10 +76,7 @@ export default function SoruDetay() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Sol Panel - Soru Detayları */}
-        <div className="lg:col-span-2 space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
           {/* Header */}
           <div className="flex justify-between items-start">
             <div>
@@ -204,55 +199,6 @@ export default function SoruDetay() {
           </div>
         </div>
       )}
-        </div>
-
-        {/* Sağ Panel - Mesajlaşma */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-6">
-            <div className="card p-0 overflow-hidden">
-              <button
-                onClick={() => setShowMesajlar(!showMesajlar)}
-                className="w-full px-4 py-3 bg-primary-600 text-white font-semibold flex items-center justify-between hover:bg-primary-700 transition"
-              >
-                <span className="flex items-center">
-                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
-                  </svg>
-                  Mesajlaşma
-                </span>
-                <svg
-                  className={`w-5 h-5 transition-transform ${showMesajlar ? 'rotate-180' : ''}`}
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-
-              {showMesajlar && (
-                <div className="h-[600px]">
-                  <MesajKutusu
-                    soruId={id}
-                    soruSahibi={{ ad_soyad: soru.olusturan_ad }}
-                    dizgici={{ ad_soyad: soru.dizgici_ad }}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Hızlı Bilgi */}
-            {!showMesajlar && (
-              <div className="card mt-4 bg-blue-50 border-blue-200">
-                <h4 className="font-semibold text-blue-900 mb-2">💬 İpucu</h4>
-                <p className="text-sm text-blue-800">
-                  Soru hakkında dizgici veya soru yazıcı ile mesajlaşabilirsiniz.
-                  Mesajlaşma butonuna tıklayın.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

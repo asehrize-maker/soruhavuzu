@@ -470,11 +470,3 @@ export default function SoruEkle() {
     </div>
   );
 }
-          >
-            {loading ? 'Ekleniyor...' : 'Soru Ekle'}
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}
