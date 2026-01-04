@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { soruAPI, bransAPI } from '../services/api';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 
 export default function SoruEkle() {
   const navigate = useNavigate();
@@ -11,6 +13,9 @@ export default function SoruEkle() {
   const [showTemplates, setShowTemplates] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const latexRef = useRef(null);
+  const previewRef = useRef(null);
+  const soruPreviewRef = useRef(null);
+  const [showSoruPreview, setShowSoruPreview] = useState(false);
   const [formData, setFormData] = useState({
     soru_metni: '',
     latex_kodu: '',
@@ -45,6 +50,72 @@ export default function SoruEkle() {
       loadBranslar();
     }
   }, [user]);
+
+  // LaTeX render for preview
+  useEffect(() => {
+    if (showPreview && formData.latex_kodu && previewRef.current) {
+      renderLatexPreview();
+    }
+  }, [showPreview, formData.latex_kodu]);
+
+  // Soru metni LaTeX preview
+  useEffect(() => {
+    if (showSoruPreview && formData.soru_metni && soruPreviewRef.current) {
+      renderSoruPreview();
+    }
+  }, [showSoruPreview, formData.soru_metni]);
+
+  const renderLatexContent = (content) => {
+    let html = content;
+    
+    // Display math ($$...$$) önce işlenmeli (inline'dan önce)
+    html = html.replace(/\$\$([^\$]+)\$\$/g, (match, latex) => {
+      try {
+        return katex.renderToString(latex, {
+          throwOnError: false,
+          displayMode: true,
+        });
+      } catch (e) {
+        return `<span class="text-red-500">${match}</span>`;
+      }
+    });
+    
+    // Inline math ($...$) işleme
+    html = html.replace(/\$([^\$]+)\$/g, (match, latex) => {
+      try {
+        return katex.renderToString(latex, {
+          throwOnError: false,
+          displayMode: false,
+        });
+      } catch (e) {
+        return `<span class="text-red-500">${match}</span>`;
+      }
+    });
+    
+    return html;
+  };
+
+  const renderSoruPreview = () => {
+    if (!soruPreviewRef.current) return;
+    
+    try {
+      soruPreviewRef.current.innerHTML = renderLatexContent(formData.soru_metni);
+    } catch (error) {
+      console.error('LaTeX rendering error:', error);
+      soruPreviewRef.current.textContent = formData.soru_metni;
+    }
+  };
+
+  const renderLatexPreview = () => {
+    if (!previewRef.current) return;
+    
+    try {
+      previewRef.current.innerHTML = renderLatexContent(formData.latex_kodu);
+    } catch (error) {
+      console.error('LaTeX rendering error:', error);
+      previewRef.current.textContent = formData.latex_kodu;
+    }
+  };
 
   const loadBranslar = async () => {
     try {
@@ -162,19 +233,45 @@ export default function SoruEkle() {
           <form onSubmit={handleSubmit} className="card space-y-6">
             {/* Soru Metni */}
             <div>
-              <label htmlFor="soru_metni" className="block text-sm font-medium text-gray-700 mb-1">
-                Soru Metni *
-              </label>
+              <div className="flex justify-between items-center mb-2">
+                <label htmlFor="soru_metni" className="block text-sm font-medium text-gray-700">
+                  Soru Metni * 
+                  <span className="text-xs text-gray-500 ml-2">(LaTeX destekli)</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowSoruPreview(!showSoruPreview)}
+                  className="text-xs px-3 py-1 bg-primary-50 text-primary-600 hover:bg-primary-100 rounded"
+                >
+                  {showSoruPreview ? '✕ Önizlemeyi Kapat' : '👁️ Önizleme'}
+                </button>
+              </div>
               <textarea
                 id="soru_metni"
                 name="soru_metni"
                 rows="6"
                 required
-                className="input"
-                placeholder="Sorunun yazılı kısmını buraya yazın..."
+                className="input font-mono"
+                placeholder="Örnek: Bir dairenin alanı $A = \\pi r^2$ formülü ile hesaplanır. Çevresi ise $$C = 2\\pi r$$ olarak bulunur."
                 value={formData.soru_metni}
                 onChange={handleChange}
               />
+              
+              {/* Soru Metni Önizleme */}
+              {showSoruPreview && formData.soru_metni && (
+                <div className="mt-3 p-4 bg-gradient-to-br from-green-50 to-blue-50 rounded-lg border-2 border-green-200 shadow-sm">
+                  <p className="text-sm font-semibold text-green-700 mb-3 flex items-center">
+                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                      <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                    </svg>
+                    Soru Önizlemesi
+                  </p>
+                  <div ref={soruPreviewRef} className="prose prose-sm max-w-none bg-white p-4 rounded border border-green-100 text-base leading-relaxed">
+                    {/* KaTeX renders here */}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* LaTeX Editör */}
@@ -247,14 +344,26 @@ export default function SoruEkle() {
                 <button
                   type="button"
                   onClick={() => insertLatex('_{}')}
-                  className="px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-100"
-                  title="Alt simge"
-                >
-                  x₁
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertLatex('\\sum_{i=1}^{n}')}
+                  className="px-2 py-1 text-white rounded-lg border-2 border-primary-200 shadow-sm">
+                  <p className="text-sm font-semibold text-primary-700 mb-3 flex items-center">
+                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                      <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                    </svg>
+                    Matematiksel Önizleme
+                  </p>
+                  <div ref={previewRef} className="prose prose-sm max-w-none bg-gray-50 p-4 rounded border border-gray-200">
+                    {/* KaTeX renders here */}
+                  </div>
+                  <div className="mt-3 flex items-start space-x-2 text-xs text-gray-600 bg-blue-50 p-2 rounded">
+                    <svg className="w-4 h-4 text-blue-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <p>
+                      Satır içi formüller için <code className="bg-white px-1 rounded">$formül$</code> kullanın.
+                      Blok formüller için <code className="bg-white px-1 rounded">$$formül$$</code> kullanın.
+                    </p>
+                  </divlick={() => insertLatex('\\sum_{i=1}^{n}')}
                   className="px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-100"
                   title="Toplam"
                 >
