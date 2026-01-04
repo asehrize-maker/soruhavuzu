@@ -91,8 +91,8 @@ router.get('/', authenticate, async (req, res, next) => {
   }
 });
 
-// Soru detayı
-router.get('/:id', authenticate, async (req, res, next) => {
+// Soru detayı (sadece numeric ID'ler)
+router.get('/:id(\\d+)', authenticate, async (req, res, next) => {
   try {
     const { id } = req.params;
     
@@ -190,7 +190,7 @@ router.post('/', [
 });
 
 // Soru güncelle
-router.put('/:id', [
+router.put('/:id(\\d+)', [
   authenticate,
   upload.single('fotograf'),
   body('soru_metni').trim().notEmpty().withMessage('Soru metni gerekli')
@@ -257,7 +257,7 @@ router.put('/:id', [
 });
 
 // Soruyu dizgiye al (Dizgici)
-router.post('/:id/dizgi-al', authenticate, authorize('dizgici', 'admin'), async (req, res, next) => {
+router.post('/:id(\\d+)/dizgi-al', authenticate, authorize('dizgici', 'admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -284,7 +284,7 @@ router.post('/:id/dizgi-al', authenticate, authorize('dizgici', 'admin'), async 
 });
 
 // Dizgiyi tamamla (Dizgici)
-router.post('/:id/dizgi-tamamla', [
+router.post('/:id(\\d+)/dizgi-tamamla', [
   authenticate,
   authorize('dizgici', 'admin'),
   body('notlar').optional()
@@ -337,7 +337,7 @@ router.post('/:id/dizgi-tamamla', [
 });
 
 // Soru sil
-router.delete('/:id', authenticate, async (req, res, next) => {
+router.delete('/:id(\\d+)', authenticate, async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -405,7 +405,7 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
 });
 
 // Soru durumunu güncelle (Dizgici)
-router.put('/:id/durum', authenticate, async (req, res, next) => {
+router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
   try {
     const { id } = req.params;
     const { durum, revize_notu } = req.body;
