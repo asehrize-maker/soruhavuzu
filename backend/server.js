@@ -14,6 +14,9 @@ import soruRoutes from './src/routes/soru.routes.js';
 // Middleware
 import { errorHandler } from './src/middleware/errorHandler.js';
 
+// Database migration
+import createTables from './src/database/migrate.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -45,7 +48,20 @@ app.get('/api/health', (req, res) => {
 // Error handler
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server ${PORT} portunda çalışıyor`);
-  console.log(`📝 API: http://localhost:${PORT}/api`);
-});
+// Veritabanı tablolarını oluştur ve sunucuyu başlat
+const startServer = async () => {
+  try {
+    // Migration'ı çalıştır (tablolar oluştur)
+    await createTables();
+    
+    app.listen(PORT, () => {
+      console.log(`🚀 Server ${PORT} portunda çalışıyor`);
+      console.log(`📝 API: http://localhost:${PORT}/api`);
+    });
+  } catch (error) {
+    console.error('❌ Sunucu başlatma hatası:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
