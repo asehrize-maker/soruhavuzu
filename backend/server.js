@@ -1,0 +1,51 @@
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Routes
+import authRoutes from './src/routes/auth.routes.js';
+import userRoutes from './src/routes/user.routes.js';
+import ekipRoutes from './src/routes/ekip.routes.js';
+import bransRoutes from './src/routes/brans.routes.js';
+import soruRoutes from './src/routes/soru.routes.js';
+
+// Middleware
+import { errorHandler } from './src/middleware/errorHandler.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Middleware
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/ekipler', ekipRoutes);
+app.use('/api/branslar', bransRoutes);
+app.use('/api/sorular', soruRoutes);
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', message: 'Soru Havuzu API çalışıyor' });
+});
+
+// Error handler
+app.use(errorHandler);
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server ${PORT} portunda çalışıyor`);
+  console.log(`📝 API: http://localhost:${PORT}/api`);
+});
