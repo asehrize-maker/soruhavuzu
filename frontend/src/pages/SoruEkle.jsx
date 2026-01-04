@@ -10,6 +10,7 @@ export default function SoruEkle() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     soru_metni: '',
+    latex_kodu: '',
     zorluk_seviyesi: '',
     brans_id: user?.brans_id || '',
   });
@@ -58,6 +59,9 @@ export default function SoruEkle() {
       const submitData = new FormData();
       submitData.append('soru_metni', formData.soru_metni);
       submitData.append('brans_id', formData.brans_id);
+      if (formData.latex_kodu) {
+        submitData.append('latex_kodu', formData.latex_kodu);
+      }
       if (formData.zorluk_seviyesi) {
         submitData.append('zorluk_seviyesi', formData.zorluk_seviyesi);
       }
@@ -97,6 +101,24 @@ export default function SoruEkle() {
             value={formData.soru_metni}
             onChange={handleChange}
           />
+        </div>
+
+        <div>
+          <label htmlFor="latex_kodu" className="block text-sm font-medium text-gray-700 mb-1">
+            LaTeX Kodu (Matematik formülleri için)
+          </label>
+          <textarea
+            id="latex_kodu"
+            name="latex_kodu"
+            rows="5"
+            className="input font-mono text-sm"
+            placeholder="Örnek: $$\int_{0}^{\pi} \sin(x) dx = 2$$"
+            value={formData.latex_kodu}
+            onChange={handleChange}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Matematik formüllerini LaTeX formatında yazabilirsiniz.
+          </p>
         </div>
 
         {user?.rol === 'admin' && (

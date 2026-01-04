@@ -53,11 +53,13 @@ export default function Sorular() {
       beklemede: 'badge badge-warning',
       dizgide: 'badge badge-info',
       tamamlandi: 'badge badge-success',
+      revize_gerekli: 'badge badge-error',
     };
     const labels = {
       beklemede: 'Beklemede',
       dizgide: 'Dizgide',
       tamamlandi: 'Tamamlandı',
+      revize_gerekli: 'Revize Gerekli',
     };
     return <span className={badges[durum]}>{labels[durum]}</span>;
   };
@@ -88,6 +90,7 @@ export default function Sorular() {
               <option value="beklemede">Beklemede</option>
               <option value="dizgide">Dizgide</option>
               <option value="tamamlandi">Tamamlandı</option>
+              <option value="revize_gerekli">Revize Gerekli</option>
             </select>
           </div>
 

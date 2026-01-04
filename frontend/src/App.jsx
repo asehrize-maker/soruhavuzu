@@ -9,6 +9,7 @@ import SoruEkle from './pages/SoruEkle';
 import Ekipler from './pages/Ekipler';
 import Branslar from './pages/Branslar';
 import Kullanicilar from './pages/Kullanicilar';
+import DizgiYonetimi from './pages/DizgiYonetimi';
 import Layout from './components/Layout';
 
 function PrivateRoute({ children }) {
@@ -36,6 +37,7 @@ function App() {
         <Route path="sorular" element={<Sorular />} />
         <Route path="sorular/yeni" element={<SoruEkle />} />
         <Route path="sorular/:id" element={<SoruDetay />} />
+        <Route path="dizgi-yonetimi" element={<DizgiYonetimi />} />
         
         <Route path="ekipler" element={
           <AdminRoute>
