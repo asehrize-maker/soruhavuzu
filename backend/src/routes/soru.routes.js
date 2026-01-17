@@ -213,7 +213,12 @@ router.post('/', [
     console.log('Has fotograf:', req.files?.fotograf ? 'Evet' : 'Hayır');
     console.log('Has dosya:', req.files?.dosya ? 'Evet' : 'Hayır');
 
-    const { soru_metni, zorluk_seviyesi, brans_id, latex_kodu } = req.body;
+    const {
+      soru_metni, zorluk_seviyesi, brans_id, latex_kodu, kazanim,
+      secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap,
+      fotograf_konumu
+    } = req.body;
+
     let fotograf_url = null;
     let fotograf_public_id = null;
     let dosya_url = null;
@@ -306,12 +311,20 @@ router.post('/', [
       dosya_boyutu
     });
 
-    const { kazanim } = req.body;
-
     const result = await pool.query(
-      `INSERT INTO sorular (soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, latex_kodu, kazanim, olusturan_kullanici_id, dosya_url, dosya_public_id, dosya_adi, dosya_boyutu) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
-      [soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi || null, brans_id, latex_kodu || null, kazanim || null, req.user.id, dosya_url, dosya_public_id, dosya_adi, dosya_boyutu]
+      `INSERT INTO sorular (
+        soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, 
+        latex_kodu, kazanim, olusturan_kullanici_id, 
+        dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
+        secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap, fotograf_konumu
+      ) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) RETURNING *`,
+      [
+        soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi || null, brans_id,
+        latex_kodu || null, kazanim || null, req.user.id,
+        dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
+        secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust'
+      ]
     );
 
     console.log('Soru başarıyla eklendi, ID:', result.rows[0].id);
@@ -338,7 +351,11 @@ router.put('/:id(\\d+)', [
     }
 
     const { id } = req.params;
-    const { soru_metni, zorluk_seviyesi } = req.body;
+    const {
+      soru_metni, zorluk_seviyesi,
+      secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap,
+      fotograf_konumu
+    } = req.body;
 
     // Soru sahibi kontrolü
     const checkResult = await pool.query('SELECT * FROM sorular WHERE id = $1', [id]);
@@ -348,6 +365,12 @@ router.put('/:id(\\d+)', [
     }
 
     const soru = checkResult.rows[0];
+
+    // İncelemeye giden sorularda değişiklik yapılamamalı (Admin hariç)
+    // 'dizgide' veya 'tamamlandi' durumundaysa ve kullanıcı admin değilse engelle
+    if (req.user.rol !== 'admin' && (soru.durum === 'dizgide' || soru.durum === 'tamamlandi')) {
+      throw new AppError('İnceleme aşamasındaki veya tamamlanmış sorular düzenlenemez.', 403);
+    }
 
     if (req.user.rol !== 'admin' && soru.olusturan_kullanici_id !== req.user.id) {
       throw new AppError('Bu soruyu düzenleme yetkiniz yok', 403);
@@ -393,9 +416,17 @@ router.put('/:id(\\d+)', [
     const result = await pool.query(
       `UPDATE sorular 
        SET soru_metni = $1, fotograf_url = $2, fotograf_public_id = $3, 
-           zorluk_seviyesi = $4, kazanim = $5, durum = $6, guncellenme_tarihi = CURRENT_TIMESTAMP
-       WHERE id = $7 RETURNING *`,
-      [soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, req.body.kazanim || null, yeniDurum, id]
+           zorluk_seviyesi = $4, kazanim = $5, durum = $6, 
+           secenek_a = $7, secenek_b = $8, secenek_c = $9, secenek_d = $10, secenek_e = $11, 
+           dogru_cevap = $12, fotograf_konumu = $13,
+           guncellenme_tarihi = CURRENT_TIMESTAMP
+       WHERE id = $14 RETURNING *`,
+      [
+        soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, req.body.kazanim || null, yeniDurum,
+        secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null,
+        dogru_cevap || null, fotograf_konumu || 'ust',
+        id
+      ]
     );
 
     // Eğer revize durumundan güncellendiyse ve dizgici atanmışsa, dizgiciye bildirim gönder

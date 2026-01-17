@@ -4,6 +4,7 @@ import { createUserMessages } from './migrations/003_kullanici_mesajlari.js';
 import { createMultipleBranslar } from './migrations/004_coklu_brans.js';
 import { addDosyaFields } from './migrations/005_dosya_ekleme.js';
 import { updateDurumConstraint } from './migrations/006_durum_constraint.js';
+import { addSoruDetaylari } from './migrations/007_soru_detaylari.js';
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -100,6 +101,9 @@ const createTables = async () => {
 
     // Durum constraint'i güncelle
     await updateDurumConstraint();
+
+    // Soru detayları (seçenekler ve görsel konumu) migration'ını çalıştır
+    await addSoruDetaylari();
 
   } catch (error) {
     await client.query('ROLLBACK');
