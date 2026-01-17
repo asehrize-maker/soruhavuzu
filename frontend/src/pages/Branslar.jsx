@@ -423,6 +423,50 @@ export default function Branslar() {
           </div>
         </div>
       )}
+      {/* Other Branches Section */}
+      {branslar.filter(b => !MAIN_BRANCHES.some(mb =>
+        b.brans_adi.toUpperCase().trim() === mb.name.toUpperCase().trim() ||
+        (mb.name === 'TÜRKÇE' && b.brans_adi.toUpperCase().includes('TURKCE')) ||
+        (mb.name === 'İNGİLİZCE' && b.brans_adi.toUpperCase().includes('INGILIZCE'))
+      )).length > 0 && (
+          <div className="mt-12 pt-8 border-t border-gray-200">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Diğer Branşlar</h2>
+            <p className="text-sm text-gray-500 mb-4">Sistem dışı veya manuel eklenmiş diğer branşlar.</p>
+            <div className="bg-white shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+              <ul className="divide-y divide-gray-200">
+                {branslar.filter(b => !MAIN_BRANCHES.some(mb =>
+                  b.brans_adi.toUpperCase().trim() === mb.name.toUpperCase().trim() ||
+                  (mb.name === 'TÜRKÇE' && b.brans_adi.toUpperCase().includes('TURKCE')) ||
+                  (mb.name === 'İNGİLİZCE' && b.brans_adi.toUpperCase().includes('INGILIZCE'))
+                )).map(branch => (
+                  <li key={branch.id} className="px-4 py-4 flex items-center justify-between hover:bg-gray-50">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{branch.brans_adi}</p>
+                      <p className="text-xs text-gray-500">
+                        {ekipler.find(e => e.id === branch.ekip_id)?.ekip_adi || 'Ekip Yok'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (confirm(`"${branch.brans_adi}" branşını silmek istediğinize emin misiniz? Bu işlem geri alınamaz!`)) {
+                          try {
+                            await bransAPI.delete(branch.id);
+                            loadData();
+                          } catch (e) {
+                            alert('Silme başarısız: ' + (e.response?.data?.error || e.message));
+                          }
+                        }
+                      }}
+                      className="text-red-600 hover:text-red-900 text-sm font-medium"
+                    >
+                      Sil
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
     </div>
   );
 }
