@@ -143,10 +143,6 @@ export default function SoruDetay() {
     setEditData({ soru_metni: '', zorluk_seviyesi: '' });
   };
 
-  // Düzenleme izni kontrolü - admin veya kendi sorusu ve (beklemede veya revize_gerekli durumunda)
-  const canEdit = (user?.rol === 'admin' || soru.olusturan_kullanici_id === user?.id) &&
-    (soru.durum === 'beklemede' || soru.durum === 'revize_gerekli');
-
   if (loading) {
     return (
       <div className="text-center py-12">
@@ -156,6 +152,10 @@ export default function SoruDetay() {
   }
 
   if (!soru) return null;
+
+  // Düzenleme izni kontrolü - admin veya kendi sorusu ve (beklemede veya revize_gerekli durumunda)
+  const canEdit = (user?.rol === 'admin' || soru.olusturan_kullanici_id === user?.id) &&
+    (soru.durum === 'beklemede' || soru.durum === 'revize_gerekli');
 
   const getDurumBadge = (durum) => {
     const badges = {
