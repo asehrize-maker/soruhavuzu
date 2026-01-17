@@ -24,6 +24,7 @@ export default function Branslar() {
   const [newUser, setNewUser] = useState({ ad_soyad: '', email: '', sifre: '' });
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [activeTab, setActiveTab] = useState('add'); // 'add' (existing) or 'create' (new)
+  const [selectedRole, setSelectedRole] = useState('soru_yazici');
 
   useEffect(() => {
     loadData();
@@ -118,17 +119,20 @@ export default function Branslar() {
       setShowModal(true);
       setSelectedTeacherId('');
       setNewUser({ ad_soyad: '', email: '', sifre: '' });
+      setNewUser({ ad_soyad: '', email: '', sifre: '' });
+      setSelectedRole('soru_yazici');
       setActiveTab('add');
     }
   };
 
   const getBranchTeachers = (branchId) => {
-    return users.filter(u => u.rol === 'soru_yazici' && u.brans_id === branchId);
+    return users.filter(u => ['soru_yazici', 'dizgici', 'incelemeci'].includes(u.rol) && u.brans_id === branchId);
   };
 
   const getAvailableTeachers = (currentBranchId) => {
-    // Show teachers who are NOT in this branch
-    return users.filter(u => u.rol === 'soru_yazici' && u.brans_id !== currentBranchId);
+    // Show valid users who are NOT in this branch (or have different branch)
+    // We allow moving users between branches
+    return users.filter(u => ['soru_yazici', 'dizgici', 'incelemeci'].includes(u.rol) && u.brans_id !== currentBranchId);
   };
 
   const handleAssignTeacher = async () => {
@@ -143,6 +147,7 @@ export default function Branslar() {
         ...userToUpdate,
         brans_id: selectedBranch.id,
         brans_ids: userToUpdate.brans_ids || [],
+        rol: selectedRole // Update role as well
       };
 
       await userAPI.update(selectedTeacherId, updateData);
@@ -168,7 +173,8 @@ export default function Branslar() {
 
       const registerData = {
         ...newUser,
-        rol: 'soru_yazici',
+        ...newUser,
+        rol: selectedRole,
         brans_id: selectedBranch.id,
         ekip_id: defaultTeamId // Use default team if available
       };
@@ -302,12 +308,25 @@ export default function Branslar() {
                                 onChange={(e) => setSelectedTeacherId(e.target.value)}
                                 className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                               >
-                                <option value="">Öğretmen Seçiniz...</option>
+                                <option value="">Kullanıcı Seçiniz...</option>
                                 {getAvailableTeachers(selectedBranch.id).map(teacher => (
                                   <option key={teacher.id} value={teacher.id}>
-                                    {teacher.ad_soyad} {teacher.brans_adi ? `(${teacher.brans_adi})` : '(Branşsız)'}
+                                    {teacher.ad_soyad} ({teacher.brans_adi ? teacher.brans_adi : 'Branşsız'} - {teacher.rol === 'soru_yazici' ? 'Yazar' : teacher.rol === 'dizgici' ? 'Dizgici' : teacher.rol === 'incelemeci' ? 'İncelemeci' : teacher.rol})
                                   </option>
                                 ))}
+                              </select>
+                            </div>
+
+                            <div className="space-y-2">
+                              <label className="block text-sm font-medium text-gray-700">Rol Ata</label>
+                              <select
+                                value={selectedRole}
+                                onChange={(e) => setSelectedRole(e.target.value)}
+                                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                              >
+                                <option value="soru_yazici">Soru Yazarı</option>
+                                <option value="dizgici">Dizgici</option>
+                                <option value="incelemeci">İncelemeci</option>
                               </select>
                             </div>
                             <button
@@ -356,6 +375,18 @@ export default function Branslar() {
                                 placeholder="En az 6 karakter"
                               />
                             </div>
+                            <div className="space-y-2">
+                              <label className="block text-sm font-medium text-gray-700">Rol Ata</label>
+                              <select
+                                value={selectedRole}
+                                onChange={(e) => setSelectedRole(e.target.value)}
+                                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                              >
+                                <option value="soru_yazici">Soru Yazarı</option>
+                                <option value="dizgici">Dizgici</option>
+                                <option value="incelemeci">İncelemeci</option>
+                              </select>
+                            </div>
                             <button
                               type="submit"
                               disabled={assigningLoading}
@@ -374,7 +405,7 @@ export default function Branslar() {
                           <svg className="w-5 h-5 mr-2 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                           </svg>
-                          Bu Branştaki Öğretmenler ({getBranchTeachers(selectedBranch.id).length})
+                          Bu Branştaki Personel ({getBranchTeachers(selectedBranch.id).length})
                         </h4>
 
                         <div className="space-y-2">
@@ -389,7 +420,9 @@ export default function Branslar() {
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-900">{teacher.ad_soyad}</p>
-                                    <p className="text-xs text-gray-500">{teacher.email}</p>
+                                    <p className="text-xs text-gray-500">
+                                      {teacher.email} • <span className="text-blue-600 font-semibold">{teacher.rol === 'soru_yazici' ? 'Yazar' : teacher.rol === 'dizgici' ? 'Dizgici' : teacher.rol === 'incelemeci' ? 'İncelemeci' : teacher.rol}</span>
+                                    </p>
                                   </div>
                                 </div>
                                 <button
