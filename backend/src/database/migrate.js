@@ -5,6 +5,7 @@ import { createMultipleBranslar } from './migrations/004_coklu_brans.js';
 import { addDosyaFields } from './migrations/005_dosya_ekleme.js';
 import { updateDurumConstraint } from './migrations/006_durum_constraint.js';
 import { addSoruDetaylari } from './migrations/007_soru_detaylari.js';
+import { addSoruIncelemeVeVersiyon } from './migrations/008_soru_inceleme_versiyon.js';
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -104,6 +105,9 @@ const createTables = async () => {
 
     // Soru detayları (seçenekler ve görsel konumu) migration'ını çalıştır
     await addSoruDetaylari();
+
+    // Soru inceleme ve versiyon sistemi
+    await addSoruIncelemeVeVersiyon();
 
   } catch (error) {
     await client.query('ROLLBACK');
