@@ -8,6 +8,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [detayliStats, setDetayliStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedStat, setSelectedStat] = useState(null);
 
   useEffect(() => {
     loadStats();
@@ -58,11 +59,68 @@ export default function Dashboard() {
       <div className="space-y-6">
 
 
-        {/* Ana İstatistikler */}
+        {/* Ana İstatistikler (Genel İstatistikler) */}
         <div>
+          {/* İstatistik Modal */}
+          {selectedStat && (
+            <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+              <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setSelectedStat(null)}></div>
+                <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                  <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div className="sm:flex sm:items-start">
+                      <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                        <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                          {selectedStat.title} - Branş Dağılımı
+                        </h3>
+                        <div className="mt-4 grid grid-cols-1 gap-4">
+                          {['TÜRKÇE', 'FEN BİLİMLERİ', 'SOSYAL BİLGİLER', 'MATEMATİK', 'İNGİLİZCE'].map((bransAdi) => {
+                            // Find branch in logic (Case insensitive match or partial match)
+                            // Assuming names in DB are capitalize or normal case, converting to upper for match
+                            const statKey = selectedStat.key; // e.g., 'tamamlandi'
+                            // Helper to find count
+                            const findCount = () => {
+                              if (!detayliStats?.branslar) return 0;
+                              const branch = detayliStats.branslar.find(b =>
+                                b.brans_adi.toUpperCase().includes(bransAdi) ||
+                                (bransAdi === 'TÜRKÇE' && b.brans_adi.toUpperCase().includes('TURKCE'))
+                              );
+                              return branch ? (statKey === 'toplam_soru' ? branch.soru_sayisi : branch[statKey]) : 0;
+                            };
+                            const count = findCount();
+
+                            return (
+                              <div key={bransAdi} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                <span className="font-medium text-gray-700">{bransAdi}</span>
+                                <span className="font-bold text-gray-900">{count}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button
+                      type="button"
+                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                      onClick={() => setSelectedStat(null)}
+                    >
+                      Kapat
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <h2 className="text-xl font-bold text-gray-900 mb-4">📊 Genel İstatistikler</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="card bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+            <div
+              onClick={() => setSelectedStat({ key: 'toplam_soru', title: 'Toplam Soru' })}
+              className="card bg-gradient-to-br from-blue-500 to-blue-600 text-white cursor-pointer transform transition hover:scale-105"
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-medium opacity-90">Toplam Soru</h3>
@@ -75,7 +133,10 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="card bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
+            <div
+              onClick={() => setSelectedStat({ key: 'beklemede', title: 'Beklemede' })}
+              className="card bg-gradient-to-br from-yellow-500 to-yellow-600 text-white cursor-pointer transform transition hover:scale-105"
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-medium opacity-90">Beklemede</h3>
@@ -87,7 +148,10 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="card bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+            <div
+              onClick={() => setSelectedStat({ key: 'dizgide', title: 'Dizgide' })}
+              className="card bg-gradient-to-br from-orange-500 to-orange-600 text-white cursor-pointer transform transition hover:scale-105"
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-medium opacity-90">Dizgide</h3>
@@ -99,7 +163,10 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="card bg-gradient-to-br from-green-500 to-green-600 text-white">
+            <div
+              onClick={() => setSelectedStat({ key: 'tamamlandi', title: 'Tamamlandı' })}
+              className="card bg-gradient-to-br from-green-500 to-green-600 text-white cursor-pointer transform transition hover:scale-105"
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-medium opacity-90">Tamamlandı</h3>
