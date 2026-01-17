@@ -104,193 +104,198 @@ export default function Layout() {
     navigate('/login');
   };
 
-  const getRolBadge = (rol) => {
-    const badges = {
-      admin: 'bg-purple-100 text-purple-800',
-      soru_yazici: 'bg-blue-100 text-blue-800',
-      dizgici: 'bg-green-100 text-green-800',
-    };
-    const labels = {
-      admin: 'Admin',
-      soru_yazici: 'Soru Yazıcı',
-      dizgici: 'Dizgici',
-    };
-    return (
-      <span className={`px-2 py-1 rounded text-xs font-medium ${badges[rol]}`}>
-        {labels[rol]}
-      </span>
+  const menuItems = [
+    { path: '/', label: user?.rol === 'admin' ? 'Genel Bakış' : 'Ana Sayfa', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+    { path: '/sorular', label: 'Soru Havuzu', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
+    { path: '/mesajlar', label: 'Mesajlar', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z' },
+  ];
+
+  if (user?.rol === 'dizgici') {
+    menuItems.push({ path: '/dizgi-yonetimi', label: 'Dizgi Yönetimi', icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z' });
+  }
+
+  if (user?.rol === 'admin') {
+    menuItems.push(
+      { path: '/ekipler', label: 'Ekipler', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
+      { path: '/branslar', label: 'Branşlar', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
+      { path: '/kullanicilar', label: 'Kullanıcılar', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
+      { path: '/duyurular', label: 'Duyurular', icon: 'M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z' },
+      { path: '/raporlar', label: 'Raporlar', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' }
     );
+  }
+
+  // Sidebar'daki aktif link kontrolü için
+  const isActive = (path) => {
+    return window.location.pathname === path;
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-8">
-              <Link to="/" className="text-2xl font-bold text-primary-600">
-                Soru Havuzu
-              </Link>
+    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
+      {/* Sidebar */}
+      <aside className="w-64 bg-[#1e293b] text-white flex flex-col flex-shrink-0 shadow-xl relative z-20">
+        {/* Logo Area */}
+        <div className="p-6 flex flex-col items-center border-b border-gray-700 bg-[#0f172a]">
+          <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-3 shadow-lg">
+            SH
+          </div>
+          <h1 className="text-xl font-bold tracking-wider">SORU HAVUZU</h1>
+        </div>
 
-              <nav className="hidden md:flex space-x-4">
-                <Link to="/" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                  {user?.rol === 'admin' ? 'İstatistikler' : 'Ana Sayfa'}
-                </Link>
-                <Link to="/sorular" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                  Sorular
-                </Link>
-                <Link to="/mesajlar" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                  Mesajlar
-                </Link>
-                {user?.rol === 'dizgici' && (
-                  <Link to="/dizgi-yonetimi" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                    Dizgi Yönetimi
-                  </Link>
-                )}
-                {user?.rol === 'admin' && (
-                  <>
-                    <Link to="/ekipler" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                      Ekipler
-                    </Link>
-                    <Link to="/branslar" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                      Branşlar
-                    </Link>
-                    <Link to="/kullanicilar" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                      Kullanıcılar
-                    </Link>
-                    <Link to="/duyurular" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                      Duyurular
-                    </Link>
-                    <Link to="/raporlar" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                      Raporlar
-                    </Link>
-                  </>
-                )}
-              </nav>
+        {/* User Info Area */}
+        <div className="px-6 py-6 bg-[#1e293b] border-b border-gray-700">
+          <div className="text-left">
+            <h2 className="text-sm font-bold text-gray-200 uppercase tracking-wide">{user?.ad_soyad}</h2>
+            <div className="mt-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-900 text-blue-100 border border-blue-700">
+              {user?.rol === 'admin' ? 'Yönetici' : user?.rol === 'soru_yazici' ? 'Öğretmen' : 'Dizgici'}
             </div>
-
-            <div className="flex items-center space-x-4">
-              {/* Bildirimler */}
-
-
-              <div className="relative" ref={bildirimPanelRef}>
-                <button
-                  onClick={toggleBildirimPanel}
-                  className="relative p-2 text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition"
-                  title="Bildirimler"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
-                  {okunmamisBildirimSayisi > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                      {okunmamisBildirimSayisi > 9 ? '9+' : okunmamisBildirimSayisi}
-                    </span>
-                  )}
-                </button>
-
-                {/* Bildirim Dropdown Panel */}
-                {showBildirimPanel && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden">
-                    <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                      <h3 className="font-semibold text-gray-900">Bildirimler</h3>
-                      {okunmamisBildirimSayisi > 0 && (
-                        <button
-                          onClick={handleTumunuOkunduIsaretle}
-                          className="text-xs text-primary-600 hover:text-primary-800"
-                        >
-                          Tümünü okundu işaretle
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="max-h-96 overflow-y-auto">
-                      {bildirimLoading ? (
-                        <div className="p-4 text-center text-gray-500">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mx-auto"></div>
-                        </div>
-                      ) : bildirimler.length === 0 ? (
-                        <div className="p-8 text-center text-gray-500">
-                          <svg className="w-12 h-12 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                          </svg>
-                          <p>Henüz bildirim yok</p>
-                        </div>
-                      ) : (
-                        bildirimler.map((bildirim) => (
-                          <div
-                            key={bildirim.id}
-                            onClick={() => handleBildirimOkundu(bildirim)}
-                            className={`px-4 py-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition ${!bildirim.okundu ? 'bg-blue-50' : ''
-                              }`}
-                          >
-                            <div className="flex items-start space-x-3">
-                              <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${bildirim.tip === 'revize' ? 'bg-orange-500' :
-                                bildirim.tip === 'info' ? 'bg-blue-500' :
-                                  bildirim.tip === 'success' ? 'bg-green-500' :
-                                    'bg-gray-400'
-                                }`}></div>
-                              <div className="flex-1 min-w-0">
-                                <p className={`text-sm font-medium ${!bildirim.okundu ? 'text-gray-900' : 'text-gray-600'}`}>
-                                  {bildirim.baslik}
-                                </p>
-                                <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
-                                  {bildirim.mesaj}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                  {new Date(bildirim.olusturulma_tarihi).toLocaleString('tr-TR', {
-                                    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-                                  })}
-                                </p>
-                              </div>
-                              {!bildirim.okundu && (
-                                <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">{user?.ad_soyad}</p>
-                <div className="flex items-center justify-end space-x-2">
-                  {getRolBadge(user?.rol)}
-                  {user?.brans_adi && (
-                    <span className="text-xs text-gray-500">{user.brans_adi}</span>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="btn btn-secondary text-sm"
-              >
-                Çıkış
-              </button>
-            </div>
+            {user?.brans_adi && (
+              <p className="text-xs text-gray-400 mt-1">{user.brans_adi}</p>
+            )}
           </div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="flex-1 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Outlet />
-        </div>
-      </main>
+        {/* Navigation Links */}
+        <nav className="flex-1 overflow-y-auto py-4 space-y-1 px-3 custom-scrollbar">
+          {menuItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${isActive(item.path)
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                }`}
+            >
+              <svg
+                className={`mr-3 h-5 w-5 flex-shrink-0 transition-colors duration-200 ${isActive(item.path) ? 'text-white' : 'text-gray-400 group-hover:text-white'
+                  }`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+              </svg>
+              {item.label}
+            </Link>
+          ))}
+        </nav>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <p className="text-center text-sm text-gray-500">
-            © 2026 Soru Havuzu Sistemi. Tüm hakları saklıdır.
-          </p>
+        {/* Logout Button */}
+        <div className="p-4 border-t border-gray-700 bg-[#0f172a]">
+          <button
+            onClick={handleLogout}
+            className="group flex items-center w-full px-4 py-2 text-sm font-medium text-red-400 rounded-md hover:bg-red-900/20 hover:text-red-300 transition-colors"
+          >
+            <svg className="mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Güvenli Çıkış
+          </button>
         </div>
-      </footer>
+      </aside>
+
+      {/* Main Content Wrapper */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50">
+        {/* Top Header (Notifications & Mobile Toggle) */}
+        <header className="bg-white shadow-sm h-16 flex items-center justify-between px-8 z-10">
+          {/* Left spacer or breadcrumb */}
+          <div className="text-gray-500 text-sm">
+            {/* Breadcrumb eklenebilir */}
+          </div>
+
+          {/* Right Actions */}
+          <div className="flex items-center space-x-4">
+            {/* Notification Bell */}
+            <div className="relative" ref={bildirimPanelRef}>
+              <button
+                onClick={toggleBildirimPanel}
+                className="relative p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                title="Bildirimler"
+              >
+                <span className="sr-only">Bildirimleri Gör</span>
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                {okunmamisBildirimSayisi > 0 && (
+                  <span className="absolute top-1 right-1 block h-2.5 w-2.5 rounded-full ring-2 ring-white bg-red-500 animate-pulse"></span>
+                )}
+              </button>
+
+              {/* Bildirim Dropdown Panel */}
+              {showBildirimPanel && (
+                <div className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden origin-top-right transform transition-all">
+                  <div className="px-5 py-4 bg-gray-50/50 border-b border-gray-100 flex justify-between items-center backdrop-blur-sm">
+                    <h3 className="font-semibold text-gray-800">Bildirimler</h3>
+                    {okunmamisBildirimSayisi > 0 && (
+                      <button
+                        onClick={handleTumunuOkunduIsaretle}
+                        className="text-xs font-medium text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded-md transition-colors"
+                      >
+                        Tümünü Okundu İşaretle
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+                    {bildirimLoading ? (
+                      <div className="p-8 text-center text-gray-500">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                      </div>
+                    ) : bildirimler.length === 0 ? (
+                      <div className="p-12 text-center text-gray-400">
+                        <div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                          </svg>
+                        </div>
+                        <p className="text-gray-500 font-medium">Bildiriminiz bulunmuyor</p>
+                      </div>
+                    ) : (
+                      bildirimler.map((bildirim) => (
+                        <div
+                          key={bildirim.id}
+                          onClick={() => handleBildirimOkundu(bildirim)}
+                          className={`group border-b border-gray-50 cursor-pointer transition-all hover:bg-blue-50/50 p-4 ${!bildirim.okundu ? 'bg-blue-50/30' : ''}`}
+                        >
+                          <div className="flex items-start space-x-4">
+                            <div className={`mt-1.5 w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm ${bildirim.tip === 'revize' ? 'bg-orange-500 shadow-orange-200' :
+                                bildirim.tip === 'info' ? 'bg-blue-500 shadow-blue-200' :
+                                  bildirim.tip === 'success' ? 'bg-green-500 shadow-green-200' :
+                                    'bg-gray-400'
+                              }`}></div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-semibold mb-0.5 ${!bildirim.okundu ? 'text-gray-900' : 'text-gray-600'}`}>
+                                {bildirim.baslik}
+                              </p>
+                              <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 group-hover:text-gray-700">
+                                {bildirim.mesaj}
+                              </p>
+                              <p className="text-[10px] text-gray-400 mt-2 font-medium">
+                                {new Date(bildirim.olusturulma_tarihi).toLocaleString('tr-TR', {
+                                  day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
+                            {!bildirim.okundu && (
+                              <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 animate-pulse mt-1.5"></div>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto bg-gray-50 p-6 md:p-8">
+          <div className="max-w-7xl mx-auto">
+            <Outlet />
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
