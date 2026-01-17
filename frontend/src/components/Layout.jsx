@@ -172,20 +172,7 @@ export default function Layout() {
 
             <div className="flex items-center space-x-4">
               {/* Bildirimler */}
-              <Link
-                to="/mesajlar"
-                className="relative p-2 text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition"
-                title="Mesajlar"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                </svg>
-                {okunmamisMesajSayisi > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                    {okunmamisMesajSayisi > 9 ? '9+' : okunmamisMesajSayisi}
-                  </span>
-                )}
-              </Link>
+
 
               <div className="relative" ref={bildirimPanelRef}>
                 <button
@@ -240,9 +227,9 @@ export default function Layout() {
                           >
                             <div className="flex items-start space-x-3">
                               <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${bildirim.tip === 'revize' ? 'bg-orange-500' :
-                                  bildirim.tip === 'info' ? 'bg-blue-500' :
-                                    bildirim.tip === 'success' ? 'bg-green-500' :
-                                      'bg-gray-400'
+                                bildirim.tip === 'info' ? 'bg-blue-500' :
+                                  bildirim.tip === 'success' ? 'bg-green-500' :
+                                    'bg-gray-400'
                                 }`}></div>
                               <div className="flex-1 min-w-0">
                                 <p className={`text-sm font-medium ${!bildirim.okundu ? 'text-gray-900' : 'text-gray-600'}`}>
