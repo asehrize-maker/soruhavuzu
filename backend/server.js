@@ -30,18 +30,16 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 // CORS Ayarları
+// CORS Ayarları
 const frontendUrl = process.env.FRONTEND_URL;
-// Trailing slash temizle
-const cleanFrontendUrl = frontendUrl ? frontendUrl.replace(/\/$/, '') : '';
+console.log('🔒 CORS Setup - Env FRONTEND_URL:', frontendUrl); // Log the actual env var to debug typo
 
 app.use(cors({
-  origin: [
-    cleanFrontendUrl,
-    'http://localhost:5173',
-    'https://soruhavuzu.onrender.com'
-  ].filter(Boolean),
-  credentials: true
+  origin: '*', // Hata almamak için herkesi kabul et (Debug modu)
+  // credentials: true, // '*' kullanırken credentials true OLAMAZ
 }));
+
+console.log('🌍 CORS: Allowing ALL origins (*). Credentials disabled.');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
