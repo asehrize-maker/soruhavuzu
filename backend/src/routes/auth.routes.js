@@ -29,6 +29,18 @@ router.post('/register', [
       throw new AppError('Bu email zaten kullanılıyor', 400);
     }
 
+    // İlk kullanıcı kontrolü
+    const userCountResult = await pool.query('SELECT count(*) FROM kullanicilar');
+    const userCount = parseInt(userCountResult.rows[0].count);
+
+    let finalRole = rol;
+    if (userCount === 0) {
+      finalRole = 'admin';
+    } else if (rol === 'admin') {
+      // İlk kullanıcı değilse ve admin olmaya çalışıyorsa engelle
+      finalRole = 'soru_yazici';
+    }
+
     // Şifre hash
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(sifre, salt);
@@ -37,7 +49,7 @@ router.post('/register', [
     const result = await pool.query(
       `INSERT INTO kullanicilar (ad_soyad, email, sifre, rol, ekip_id, brans_id) 
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, ad_soyad, email, rol`,
-      [ad_soyad, email, hashedPassword, rol, ekip_id || null, brans_id || null]
+      [ad_soyad, email, hashedPassword, finalRole, ekip_id || null, brans_id || null]
     );
 
     const user = result.rows[0];
