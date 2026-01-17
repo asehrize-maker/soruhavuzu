@@ -97,8 +97,12 @@ router.get('/', authenticate, async (req, res, next) => {
       params.push(req.user.id);
     } else if (req.user.rol === 'dizgici') {
       // Dizgici atandığı tüm branşlardaki soruları görür
-      query += ` AND b.id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount++})`;
-      params.push(req.user.id);
+      // Hem yeni kullanici_branslari tablosunu hem de eski brans_id alanını kontrol et
+      query += ` AND (
+        b.id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount++})
+        OR b.id = (SELECT brans_id FROM kullanicilar WHERE id = $${paramCount++})
+      )`;
+      params.push(req.user.id, req.user.id);
     }
 
     if (durum) {
@@ -461,8 +465,11 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
       whereClause = 'WHERE olusturan_kullanici_id = $1';
       params.push(req.user.id);
     } else if (req.user.rol === 'dizgici') {
-      whereClause = 'WHERE brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1)';
-      params.push(req.user.id);
+      whereClause = `WHERE (
+        brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1)
+        OR brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $2)
+      )`;
+      params.push(req.user.id, req.user.id);
     }
 
     const result = await pool.query(`

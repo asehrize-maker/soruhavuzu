@@ -83,6 +83,8 @@ export const soruAPI = {
   }),
   delete: (id) => api.delete(`/sorular/${id}`),
   updateDurum: (id, data) => api.put(`/sorular/${id}/durum`, data),
+  dizgiAl: (id) => api.post(`/sorular/${id}/dizgi-al`),
+  dizgiTamamla: (id, data) => api.post(`/sorular/${id}/dizgi-tamamla`, data),
   getStats: () => api.get('/sorular/stats/genel'),
   getDetayliStats: () => api.get('/sorular/stats/detayli'),
   getRapor: (params) => api.get('/sorular/rapor', { params }),
