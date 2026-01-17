@@ -222,13 +222,11 @@ export default function Dashboard() {
               <p className="text-2xl font-bold text-indigo-700 mt-2">{detayliStats.sistem.toplam_ekip || 0}</p>
             </div>
 
-            <div
-              onClick={() => setSelectedStat({ key: 'brans_listesi', title: 'Kayıtlı Branşlar' })}
-              className="card bg-pink-50 border-l-4 border-pink-500 cursor-pointer hover:bg-pink-100 transition-colors"
-            >
+            <div className="card bg-pink-50 border-l-4 border-pink-500">
               <h3 className="text-sm font-medium text-pink-900">Toplam Branş</h3>
-              <p className="text-2xl font-bold text-pink-700 mt-2">{detayliStats.sistem.toplam_brans || 0}</p>
-              <p className="text-xs text-pink-600 mt-1">Detaylar için tıklayın</p>
+              <p className="text-2xl font-bold text-pink-700 mt-2">
+                {detayliStats?.branslar ? new Set(detayliStats.branslar.map(b => b.brans_adi.trim().toUpperCase())).size : 0}
+              </p>
             </div>
 
             <div className="card bg-teal-50 border-l-4 border-teal-500">
