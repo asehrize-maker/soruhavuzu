@@ -135,13 +135,13 @@ export default function Layout() {
 
               <nav className="hidden md:flex space-x-4">
                 <Link to="/" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                  {user?.rol === 'admin' ? '📊 İstatistikler' : 'Ana Sayfa'}
+                  {user?.rol === 'admin' ? 'İstatistikler' : 'Ana Sayfa'}
                 </Link>
                 <Link to="/sorular" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
                   Sorular
                 </Link>
                 <Link to="/mesajlar" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                  💬 Mesajlar
+                  Mesajlar
                 </Link>
                 {user?.rol === 'dizgici' && (
                   <Link to="/dizgi-yonetimi" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
@@ -160,10 +160,10 @@ export default function Layout() {
                       Kullanıcılar
                     </Link>
                     <Link to="/duyurular" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                      📢 Duyurular
+                      Duyurular
                     </Link>
                     <Link to="/raporlar" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
-                      📊 Raporlar
+                      Raporlar
                     </Link>
                   </>
                 )}
