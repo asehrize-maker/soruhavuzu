@@ -225,7 +225,15 @@ export default function Dashboard() {
             <div className="card bg-pink-50 border-l-4 border-pink-500">
               <h3 className="text-sm font-medium text-pink-900">Toplam Branş</h3>
               <p className="text-2xl font-bold text-pink-700 mt-2">
-                {detayliStats?.branslar ? new Set(detayliStats.branslar.filter(b => b.brans_adi && b.brans_adi.trim().length > 0).map(b => b.brans_adi.trim().toUpperCase())).size : 0}
+                {detayliStats?.branslar ? new Set(detayliStats.branslar.filter(b => b.brans_adi && b.brans_adi.trim().length > 0).map(b => {
+                  let name = b.brans_adi.trim().toUpperCase();
+                  if (name.includes('TURKCE')) return 'TÜRKÇE';
+                  if (name.includes('INGILIZCE')) return 'İNGİLİZCE';
+                  if (name.includes('MATEMATIK')) return 'MATEMATİK';
+                  if (name.includes('FEN BILIMLERI')) return 'FEN BİLİMLERİ';
+                  if (name.includes('SOSYAL BILGILER')) return 'SOSYAL BİLGİLER';
+                  return name;
+                })).size : 0}
               </p>
             </div>
 
