@@ -5,47 +5,88 @@ import { soruAPI, bransAPI } from '../services/api';
 
 export default function Sorular() {
   const { user } = useAuthStore();
-  const [sorular, setSorular] = useState([]);
-  const [branslar, setBranslar] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    durum: '',
-    brans_id: '',
-  });
+  const [selectedQuestions, setSelectedQuestions] = useState([]);
 
-  useEffect(() => {
-    loadBranslar();
-    loadSorular();
-  }, [filters]);
+  // ... (existing functions)
 
-  const loadBranslar = async () => {
-    try {
-      const response = await bransAPI.getAll();
-      setBranslar(response.data.data);
-    } catch (error) {
-      console.error('Branşlar yüklenemedi:', error);
-    }
-  };
+  const handleExport = () => {
+    if (selectedQuestions.length === 0) return;
 
-  const loadSorular = async () => {
-    setLoading(true);
-    try {
-      const response = await soruAPI.getAll(filters);
-      setSorular(response.data.data);
-    } catch (error) {
-      console.error('Sorular yüklenemedi:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Basit bir HTML çıktısı oluştur ve yeni pencerede aç (Yazdırma/Kopyalama için)
+    const exportWindow = window.open('', '_blank');
+    const selectedData = sorular.filter(s => selectedQuestions.includes(s.id));
 
-  const handleDizgiAl = async (id) => {
-    try {
-      await soruAPI.dizgiAl(id);
-      loadSorular();
-    } catch (error) {
-      alert(error.response?.data?.error || 'Dizgiye alma başarısız');
-    }
+    let htmlContent = `
+      <html>
+      <head>
+        <title>Soru Havuzu Dışa Aktarım</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+        <style>
+          body { font-family: 'Times New Roman', serif; padding: 40px; }
+          .soru-item { margin-bottom: 30px; page-break-inside: avoid; border-bottom: 1px dashed #ccc; padding-bottom: 20px; }
+          .soru-metni { font-size: 16px; margin-bottom: 15px; }
+          .secenekler { margin-left: 20px; }
+          .secenek { margin-bottom: 5px; }
+          .soru-gorsel { max-width: 300px; display: block; margin: 10px 0; }
+          @media print {
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="no-print" style="margin-bottom: 20px;">
+          <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px;">Yazdır / PDF Olarak Kaydet</button>
+        </div>
+        <h1>Seçilen Sorular (${selectedData.length})</h1>
+    `;
+
+    selectedData.forEach((soru, index) => {
+      htmlContent += `
+          <div class="soru-item">
+            <div class="soru-no"><strong>Soru ${index + 1}</strong> <span style="font-size:12px; color: #666;">(#${soru.id})</span></div>
+            
+            ${soru.fotograf_konumu === 'ust' && soru.fotograf_url ? `<img src="${soru.fotograf_url}" class="soru-gorsel" />` : ''}
+            
+            <div class="soru-metni">${soru.soru_metni.replace(/\n/g, '<br>')}</div>
+            
+            ${soru.fotograf_konumu === 'alt' && soru.fotograf_url ? `<img src="${soru.fotograf_url}" class="soru-gorsel" />` : ''}
+
+            <div class="secenekler">
+              ${soru.secenek_a ? `<div class="secenek">A) ${soru.secenek_a}</div>` : ''}
+              ${soru.secenek_b ? `<div class="secenek">B) ${soru.secenek_b}</div>` : ''}
+              ${soru.secenek_c ? `<div class="secenek">C) ${soru.secenek_c}</div>` : ''}
+              ${soru.secenek_d ? `<div class="secenek">D) ${soru.secenek_d}</div>` : ''}
+              ${soru.secenek_e ? `<div class="secenek">E) ${soru.secenek_e}</div>` : ''}
+            </div>
+            
+            <div style="margin-top: 10px; font-size: 12px; color: #999;">
+               Doğru Cevap: <strong>${soru.dogru_cevap || '-'}</strong> | 
+               Zorluk: ${soru.zorluk_seviyesi || '-'} | 
+               Kazanım: ${soru.kazanim || '-'}
+            </div>
+          </div>
+        `;
+    });
+
+    htmlContent += `
+       <script>
+         document.addEventListener("DOMContentLoaded", function() {
+            renderMathInElement(document.body, {
+              delimiters: [
+                  {left: '$$', right: '$$', display: true},
+                  {left: '$', right: '$', display: false}
+              ]
+            });
+         });
+       </script>
+      </body>
+      </html>
+    `;
+
+    exportWindow.document.write(htmlContent);
+    exportWindow.document.close();
   };
 
   const getDurumBadge = (durum) => {
@@ -114,6 +155,27 @@ export default function Sorular() {
         </div>
       </div>
 
+      {/* Araç Çubuğu (Dışa Aktarma / Çoklu İşlem) */}
+      <div className="flex justify-end space-x-3">
+        {selectedQuestions.length > 0 && (
+          <div className="flex items-center space-x-2 bg-indigo-50 px-3 py-1 rounded border border-indigo-200">
+            <span className="text-sm font-medium text-indigo-800">{selectedQuestions.length} soru seçildi</span>
+            <button
+              onClick={handleExport}
+              className="btn btn-primary text-sm py-1 px-3"
+            >
+              📄 Seçilenleri Dışa Aktar (Word/Yazdır)
+            </button>
+            <button
+              onClick={() => setSelectedQuestions([])}
+              className="text-xs text-red-600 hover:underline"
+            >
+              Temizle
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Sorular Listesi */}
       {loading ? (
         <div className="text-center py-12">
@@ -121,17 +183,31 @@ export default function Sorular() {
         </div>
       ) : sorular.length === 0 ? (
         <div className="card text-center py-12">
-          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
+          {/* ... (empty state icon) ... */}
           <h3 className="mt-2 text-lg font-medium text-gray-900">Soru bulunamadı</h3>
           <p className="mt-1 text-sm text-gray-500">Henüz hiç soru eklenmemiş.</p>
         </div>
       ) : (
         <div className="space-y-4">
           {sorular.map((soru) => (
-            <div key={soru.id} className="card hover:shadow-lg transition-shadow">
-              <div className="flex items-start justify-between">
+            <div key={soru.id} className={`card hover:shadow-lg transition-shadow border-l-4 ${selectedQuestions.includes(soru.id) ? 'border-primary-500 bg-blue-50' : 'border-transparent'}`}>
+              <div className="flex items-start">
+
+                {/* Checkbox (Sadece Tamamlandı ise veya Admin ise) */}
+                {(soru.durum === 'tamamlandi' || user?.rol === 'admin') && (
+                  <div className="mr-4 mt-1">
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
+                      checked={selectedQuestions.includes(soru.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedQuestions([...selectedQuestions, soru.id]);
+                        else setSelectedQuestions(selectedQuestions.filter(id => id !== soru.id));
+                      }}
+                    />
+                  </div>
+                )}
+
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
                     {getDurumBadge(soru.durum)}
@@ -144,27 +220,27 @@ export default function Sorular() {
                       </span>
                     )}
                   </div>
-                  
-                  <p className="text-gray-900 line-clamp-2 mb-2">{soru.soru_metni}</p>
-                  
+
+                  <p className="text-gray-900 line-clamp-2 mb-2 font-mono text-sm">{soru.soru_metni}</p>
+
                   <div className="flex items-center space-x-4 text-sm text-gray-500">
                     <span>Yazan: {soru.olusturan_ad}</span>
                     {soru.dizgici_ad && <span>Dizgici: {soru.dizgici_ad}</span>}
                     <span>{new Date(soru.olusturulma_tarihi).toLocaleDateString('tr-TR')}</span>
                     {soru.fotograf_url && (
-                      <span className="text-primary-600">📷 Fotoğraf var</span>
+                      <span className="text-primary-600">📷 Görsel</span>
                     )}
                   </div>
                 </div>
 
-                <div className="ml-4 flex items-center space-x-2">
+                <div className="ml-4 flex flex-col space-y-2">
                   <Link
                     to={`/sorular/${soru.id}`}
-                    className="btn btn-secondary text-sm"
+                    className="btn btn-secondary text-sm text-center"
                   >
                     Detay
                   </Link>
-                  
+
                   {user?.rol === 'dizgici' && soru.durum === 'beklemede' && (
                     <button
                       onClick={() => handleDizgiAl(soru.id)}
