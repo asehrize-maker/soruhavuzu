@@ -188,59 +188,7 @@ export default function Dashboard() {
 
 
 
-        {/* Hızlı Erişim */}
-        <div className="card">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">⚡ Hızlı Erişim</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Link
-              to="/sorular"
-              className="p-4 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors"
-            >
-              <div className="text-center">
-                <svg className="mx-auto h-10 w-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">Tüm Sorular</h3>
-              </div>
-            </Link>
 
-            <Link
-              to="/kullanicilar"
-              className="p-4 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors"
-            >
-              <div className="text-center">
-                <svg className="mx-auto h-10 w-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">Kullanıcılar</h3>
-              </div>
-            </Link>
-
-            <Link
-              to="/ekipler"
-              className="p-4 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors"
-            >
-              <div className="text-center">
-                <svg className="mx-auto h-10 w-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">Ekipler</h3>
-              </div>
-            </Link>
-
-            <Link
-              to="/branslar"
-              className="p-4 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors"
-            >
-              <div className="text-center">
-                <svg className="mx-auto h-10 w-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">Branşlar</h3>
-              </div>
-            </Link>
-          </div>
-        </div>
       </div>
     );
   }
