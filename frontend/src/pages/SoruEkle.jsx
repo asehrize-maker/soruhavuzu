@@ -31,9 +31,205 @@ export default function SoruEkle() {
     dogru_cevap: '',
   });
 
-  // ... (rest of state items: fotograf, previewUrl, dosya, dosyaError)
+  const [fotograf, setFotograf] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [dosya, setDosya] = useState(null);
+  const [dosyaError, setDosyaError] = useState('');
 
-  // ... (latexTemplates, useEffects, render functions)
+  // LaTeX Şablonları
+  const latexTemplates = [
+    { name: 'Kesir', code: '\\frac{pay}{payda}' },
+    { name: 'Karekök', code: '\\sqrt{sayı}' },
+    { name: 'Üs', code: 'x^{üs}' },
+    { name: 'Alt İndis', code: 'x_{alt}' },
+    { name: 'Toplam', code: '\\sum_{i=1}^{n} x_i' },
+    { name: 'İntegral', code: '\\int_{a}^{b} f(x) dx' },
+    { name: 'Limit', code: '\\lim_{x \\to \\infty} f(x)' },
+    { name: 'Matris', code: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}' },
+    { name: 'Pi', code: '\\pi' },
+    { name: 'Alfa', code: '\\alpha' },
+    { name: 'Beta', code: '\\beta' },
+    { name: 'Theta', code: '\\theta' },
+    { name: 'Eşit Değil', code: '\\neq' },
+    { name: 'Yaklaşık', code: '\\approx' },
+    { name: 'Küçük Eşit', code: '\\leq' },
+    { name: 'Büyük Eşit', code: '\\geq' },
+  ];
+
+  useEffect(() => {
+    if (user?.rol === 'admin') {
+      loadBranslar();
+    }
+  }, [user]);
+
+  // LaTeX render for preview
+  useEffect(() => {
+    if (showPreview && formData.latex_kodu && previewRef.current) {
+      renderLatexPreview();
+    }
+  }, [showPreview, formData.latex_kodu]);
+
+  // Soru metni LaTeX preview
+  useEffect(() => {
+    if (showSoruPreview && formData.soru_metni && soruPreviewRef.current) {
+      renderSoruPreview();
+    }
+  }, [showSoruPreview, formData.soru_metni]);
+
+  const renderLatexContent = (content) => {
+    let html = content;
+
+    // Display math ($$...$$) önce işlenmeli (inline'dan önce)
+    html = html.replace(/\$\$([^\$]+)\$\$/g, (match, latex) => {
+      try {
+        return katex.renderToString(latex, {
+          throwOnError: false,
+          displayMode: true,
+        });
+      } catch (e) {
+        return `<span class="text-red-500">${match}</span>`;
+      }
+    });
+
+    // Inline math ($...$) işleme
+    html = html.replace(/\$([^\$]+)\$/g, (match, latex) => {
+      try {
+        return katex.renderToString(latex, {
+          throwOnError: false,
+          displayMode: false,
+        });
+      } catch (e) {
+        return `<span class="text-red-500">${match}</span>`;
+      }
+    });
+
+    return html;
+  };
+
+  const renderSoruPreview = () => {
+    if (!soruPreviewRef.current) return;
+
+    try {
+      soruPreviewRef.current.innerHTML = renderLatexContent(formData.soru_metni);
+    } catch (error) {
+      console.error('LaTeX rendering error:', error);
+      soruPreviewRef.current.textContent = formData.soru_metni;
+    }
+  };
+
+  const renderLatexPreview = () => {
+    if (!previewRef.current) return;
+
+    try {
+      previewRef.current.innerHTML = renderLatexContent(formData.latex_kodu);
+    } catch (error) {
+      console.error('LaTeX rendering error:', error);
+      previewRef.current.textContent = formData.latex_kodu;
+    }
+  };
+
+  const loadBranslar = async () => {
+    try {
+      const response = await bransAPI.getAll();
+      setBranslar(response.data.data);
+    } catch (error) {
+      console.error('Branşlar yüklenemedi:', error);
+    }
+  };
+
+  const insertLatex = (template) => {
+    const textarea = latexRef.current;
+    if (!textarea) return; // Guard clause
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = formData.latex_kodu;
+    const before = text.substring(0, start);
+    const after = text.substring(end);
+
+    const newText = before + template + after;
+    setFormData({ ...formData, latex_kodu: newText });
+
+    // Cursor'ı template'in sonuna taşı
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + template.length, start + template.length);
+    }, 0);
+  };
+
+  const wrapWithDelimiters = (type) => {
+    const textarea = latexRef.current;
+    if (!textarea) return; // Guard clause
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = formData.latex_kodu;
+    const selectedText = text.substring(start, end);
+
+    let wrapped;
+    if (type === 'inline') {
+      wrapped = `$${selectedText}$`;
+    } else {
+      wrapped = `$$\n${selectedText}\n$$`;
+    }
+
+    const before = text.substring(0, start);
+    const after = text.substring(end);
+    const newText = before + wrapped + after;
+
+    setFormData({ ...formData, latex_kodu: newText });
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFotograf(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDosyaChange = (e) => {
+    const file = e.target.files[0];
+    setDosyaError('');
+
+    if (file) {
+      // 1MB limit kontrolü
+      if (file.size > 1 * 1024 * 1024) {
+        setDosyaError('Dosya boyutu 1MB\'dan büyük olamaz');
+        setDosya(null);
+        e.target.value = '';
+        return;
+      }
+
+      // Dosya tipi kontrolü
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'text/plain'
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        setDosyaError('Sadece PDF, Word, Excel veya TXT dosyaları yüklenebilir');
+        setDosya(null);
+        e.target.value = '';
+        return;
+      }
+
+      console.log('Dosya seçildi:', file.name, file.type, file.size);
+      setDosya(file);
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  };
 
   const handleChange = (e) => {
     setFormData({
