@@ -89,6 +89,9 @@ export const soruAPI = {
   getDetayliStats: () => api.get('/sorular/stats/detayli'),
   getRapor: (params) => api.get('/sorular/rapor', { params }),
   getYedek: () => api.get('/sorular/yedek'),
+  getComments: (id) => api.get(`/sorular/${id}/yorumlar`),
+  addComment: (id, text) => api.post(`/sorular/${id}/yorum`, { yorum_metni: text }),
+  getHistory: (id) => api.get(`/sorular/${id}/gecmis`),
 };
 
 // Bildirim API
