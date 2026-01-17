@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { bransAPI, userAPI, ekipAPI } from '../services/api';
+import { bransAPI, userAPI, ekipAPI, authAPI } from '../services/api';
 
 const MAIN_BRANCHES = [
   { name: 'TÜRKÇE', color: 'from-red-500 to-red-600', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
@@ -19,6 +19,11 @@ export default function Branslar() {
   const [selectedTeacherId, setSelectedTeacherId] = useState('');
   const [assigningLoading, setAssigningLoading] = useState(false);
   const [creatingBranch, setCreatingBranch] = useState(false);
+
+  // New User Form State
+  const [newUser, setNewUser] = useState({ ad_soyad: '', email: '', sifre: '' });
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [activeTab, setActiveTab] = useState('add'); // 'add' (existing) or 'create' (new)
 
   useEffect(() => {
     loadData();
@@ -52,16 +57,27 @@ export default function Branslar() {
 
     // If branch doesn't exist, try to create it automatically
     if (!foundBranch) {
-      if (ekipler.length === 0) {
-        alert('Bu branşı otomatik oluşturmak için sistemde en az bir Ekip olmalıdır. Lütfen önce Ekipler sayfasından bir ekip oluşturun.');
+      // Since the user wants to remove "Teams" UI but create users, we might need a default team.
+      // We'll proceed even if no teams exist (sending null for team_id if allowed, or alert if needed).
+      // But Brans MUST have an ekip_id usually.
+
+      let defaultTeamId = ekipler.length > 0 ? ekipler[0].id : null;
+
+      // If no teams exist, and we must create one?
+      // For now, let's assume we can create a branch without teams IF the backend allows, OR warn.
+      // But wait, the previous code warned if teams=0.
+      // User said "ekipleri de kaldır". This means UI removal. Data might remain.
+
+      if (!defaultTeamId) {
+        // If absolutely no team, try to create a dummy one?
+        // Or just alert.
+        alert('Sistem altyapısı için en az bir Ekip gereklidir. Bu aşamada otomatik oluşturulamıyor.');
         return;
       }
 
       if (confirm(`"${branchName}" branşı sistemde bulunamadı. Otomatik oluşturulsun mu?`)) {
         setCreatingBranch(true);
         try {
-          // Assign to the first available team
-          const defaultTeamId = ekipler[0].id;
           await bransAPI.create({
             brans_adi: branchName,
             ekip_id: defaultTeamId,
@@ -101,6 +117,8 @@ export default function Branslar() {
       setSelectedBranch(foundBranch);
       setShowModal(true);
       setSelectedTeacherId('');
+      setNewUser({ ad_soyad: '', email: '', sifre: '' });
+      setActiveTab('add');
     }
   };
 
@@ -135,6 +153,41 @@ export default function Branslar() {
     } catch (error) {
       console.error('Atama hatası:', error);
       alert(error.response?.data?.error || 'Atama işlemi başarısız');
+    } finally {
+      setAssigningLoading(false);
+    }
+  };
+
+  const handleCreateAndAssignTeacher = async (e) => {
+    e.preventDefault();
+    if (!selectedBranch) return;
+
+    setAssigningLoading(true);
+    try {
+      const defaultTeamId = ekipler.length > 0 ? ekipler[0].id : null;
+
+      const registerData = {
+        ...newUser,
+        rol: 'soru_yazici',
+        brans_id: selectedBranch.id,
+        ekip_id: defaultTeamId // Use default team if available
+      };
+
+      await authAPI.register(registerData);
+
+      alert('Yeni öğretmen oluşturuldu ve atandı!');
+      setNewUser({ ad_soyad: '', email: '', sifre: '' });
+      await loadData(); // Reload users
+      setActiveTab('add'); // Switch back to add/list view potentially, or stay? Stay is fine.
+    } catch (error) {
+      console.error('Kayıt hatası:', error);
+      let errMsg = 'Kayıt başarısız';
+      if (error.response?.data?.errors) {
+        errMsg = error.response.data.errors.map(e => e.msg).join(', ');
+      } else if (error.response?.data?.error) {
+        errMsg = error.response.data.error;
+      }
+      alert(errMsg);
     } finally {
       setAssigningLoading(false);
     }
@@ -193,7 +246,7 @@ export default function Branslar() {
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm group-hover:bg-white/30 transition-colors">
-                      Öğretmen Ata &rarr;
+                      Yönet &rarr;
                     </span>
                   </div>
                 </div>
@@ -209,7 +262,7 @@ export default function Branslar() {
           <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowModal(false)}></div>
 
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
               <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div className="sm:flex sm:items-start">
                   <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
@@ -219,48 +272,109 @@ export default function Branslar() {
                     </h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Left: Assign New Teacher */}
+                      {/* Left Column: Actions */}
                       <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
-                          <svg className="w-5 h-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                          </svg>
-                          Öğretmen Ekle
-                        </h4>
-                        <div className="space-y-3">
-                          <select
-                            value={selectedTeacherId}
-                            onChange={(e) => setSelectedTeacherId(e.target.value)}
-                            className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                          >
-                            <option value="">Öğretmen Seçiniz...</option>
-                            {getAvailableTeachers(selectedBranch.id).map(teacher => (
-                              <option key={teacher.id} value={teacher.id}>
-                                {teacher.ad_soyad} {teacher.brans_adi ? `(${teacher.brans_adi})` : '(Branşsız)'}
-                              </option>
-                            ))}
-                          </select>
+                        {/* Tabs */}
+                        <div className="flex space-x-2 mb-4">
                           <button
-                            onClick={handleAssignTeacher}
-                            disabled={!selectedTeacherId || assigningLoading}
-                            className={`w-full inline-flex justify-center rounded-md border border-transparent px-4 py-2 bg-blue-600 text-base font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm ${(!selectedTeacherId || assigningLoading) ? 'opacity-50 cursor-not-allowed' : ''
-                              }`}
+                            onClick={() => setActiveTab('add')}
+                            className={`flex-1 py-2 text-sm font-medium rounded-md ${activeTab === 'add' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
                           >
-                            {assigningLoading ? 'Atanıyor...' : 'Kaydet'}
+                            Varolanı Ekle
+                          </button>
+                          <button
+                            onClick={() => setActiveTab('create')}
+                            className={`flex-1 py-2 text-sm font-medium rounded-md ${activeTab === 'create' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                          >
+                            Yeni Oluştur
                           </button>
                         </div>
-                        <p className="text-xs text-gray-500 mt-2">
-                          * Listeden seçilen öğretmenin mevcut branşı değişecektir.
-                        </p>
+
+                        {activeTab === 'add' ? (
+                          <div className="space-y-4">
+                            <div className="bg-blue-50 p-3 rounded text-sm text-blue-800 mb-2">
+                              Sistemde kayıtlı branşsız öğretmenleri buradan atayabilirsiniz.
+                            </div>
+                            <div className="space-y-2">
+                              <label className="block text-sm font-medium text-gray-700">Öğretmen Seç</label>
+                              <select
+                                value={selectedTeacherId}
+                                onChange={(e) => setSelectedTeacherId(e.target.value)}
+                                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                              >
+                                <option value="">Öğretmen Seçiniz...</option>
+                                {getAvailableTeachers(selectedBranch.id).map(teacher => (
+                                  <option key={teacher.id} value={teacher.id}>
+                                    {teacher.ad_soyad} {teacher.brans_adi ? `(${teacher.brans_adi})` : '(Branşsız)'}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <button
+                              onClick={handleAssignTeacher}
+                              disabled={!selectedTeacherId || assigningLoading}
+                              className={`w-full inline-flex justify-center rounded-md border border-transparent px-4 py-2 bg-blue-600 text-base font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm ${(!selectedTeacherId || assigningLoading) ? 'opacity-50 cursor-not-allowed' : ''
+                                }`}
+                            >
+                              {assigningLoading ? 'Atanıyor...' : 'Atama Yap'}
+                            </button>
+                          </div>
+                        ) : (
+                          <form onSubmit={handleCreateAndAssignTeacher} className="space-y-4">
+                            <div className="bg-green-50 p-3 rounded text-sm text-green-800 mb-2">
+                              Sisteme yeni bir öğretmen kaydedip doğrudan bu branşa atayın.
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">Ad Soyad</label>
+                              <input
+                                type="text"
+                                required
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                value={newUser.ad_soyad}
+                                onChange={e => setNewUser({ ...newUser, ad_soyad: e.target.value })}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">Email</label>
+                              <input
+                                type="email"
+                                required
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                value={newUser.email}
+                                onChange={e => setNewUser({ ...newUser, email: e.target.value })}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">Şifre</label>
+                              <input
+                                type="text"
+                                required
+                                minLength="6"
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                value={newUser.sifre}
+                                onChange={e => setNewUser({ ...newUser, sifre: e.target.value })}
+                                placeholder="En az 6 karakter"
+                              />
+                            </div>
+                            <button
+                              type="submit"
+                              disabled={assigningLoading}
+                              className={`w-full inline-flex justify-center rounded-md border border-transparent px-4 py-2 bg-green-600 text-base font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:text-sm ${assigningLoading ? 'opacity-50 cursor-not-allowed' : ''
+                                }`}
+                            >
+                              {assigningLoading ? 'Oluşturuluyor...' : 'Oluştur ve Ata'}
+                            </button>
+                          </form>
+                        )}
                       </div>
 
-                      {/* Right: Existing Teachers */}
-                      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm overflow-y-auto max-h-[300px]">
+                      {/* Right Column: Existing Teachers */}
+                      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm overflow-y-auto max-h-[400px]">
                         <h4 className="font-semibold text-gray-800 mb-3 flex items-center sticky top-0 bg-white pb-2 border-b">
                           <svg className="w-5 h-5 mr-2 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                           </svg>
-                          Mevcut Öğretmenler ({getBranchTeachers(selectedBranch.id).length})
+                          Bu Branştaki Öğretmenler ({getBranchTeachers(selectedBranch.id).length})
                         </h4>
 
                         <div className="space-y-2">
@@ -268,7 +382,7 @@ export default function Branslar() {
                             <p className="text-sm text-gray-400 italic text-center py-4">Bu branşa henüz öğretmen atanmamış.</p>
                           ) : (
                             getBranchTeachers(selectedBranch.id).map(teacher => (
-                              <div key={teacher.id} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded border border-gray-100">
+                              <div key={teacher.id} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded border border-gray-100 transition-colors">
                                 <div className="flex items-center">
                                   <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold mr-3">
                                     {teacher.ad_soyad.substring(0, 2).toUpperCase()}
@@ -280,7 +394,7 @@ export default function Branslar() {
                                 </div>
                                 <button
                                   onClick={() => handleRemoveTeacher(teacher.id)}
-                                  className="text-red-400 hover:text-red-600 p-1 rounded-full hover:bg-red-50"
+                                  className="text-red-400 hover:text-red-600 p-2 rounded-full hover:bg-red-50"
                                   title="Branştan Çıkar"
                                 >
                                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
