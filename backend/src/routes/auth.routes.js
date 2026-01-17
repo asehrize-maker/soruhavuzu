@@ -29,15 +29,9 @@ router.post('/register', [
       throw new AppError('Bu email zaten kullanılıyor', 400);
     }
 
-    // İlk kullanıcı kontrolü
-    const userCountResult = await pool.query('SELECT count(*) FROM kullanicilar');
-    const userCount = parseInt(userCountResult.rows[0].count);
-
     let finalRole = rol;
-    if (userCount === 0) {
-      finalRole = 'admin';
-    } else if (rol === 'admin') {
-      // İlk kullanıcı değilse ve admin olmaya çalışıyorsa engelle
+    if (rol === 'admin') {
+      // Admin rolü ile kayıt olunamaz, soru_yazici olarak değiştir
       finalRole = 'soru_yazici';
     }
 
