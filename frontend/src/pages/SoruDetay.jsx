@@ -83,13 +83,13 @@ export default function SoruDetay() {
   // Dosya indirme helper fonksiyonu
   const getDownloadUrl = (url, filename) => {
     if (!url) return '';
-    
+
     // Cloudinary URL'sine fl_attachment parametresi ekle
     if (url.includes('cloudinary.com')) {
       // Raw dosyalar için doğrudan URL kullan (download attribute ile birlikte çalışır)
       return url;
     }
-    
+
     return url;
   };
 
@@ -397,34 +397,78 @@ export default function SoruDetay() {
         </div>
       </div>
 
-      {/* Dizgi İşlemleri */}
-      {user?.rol === 'dizgici' && soru.durum === 'dizgide' && soru.dizgici_id === user.id && (
-        <div className="card">
-          <h3 className="text-xl font-semibold mb-4">Dizgi Tamamla</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Notlar (Opsiyonel)
-              </label>
-              <textarea
-                rows="4"
-                className="input"
-                placeholder="Dizgi hakkında notlar..."
-                value={dizgiNotu}
-                onChange={(e) => setDizgiNotu(e.target.value)}
-              />
+      {/* Dizgi İşlemleri & Değerlendirme */}
+      {(user?.rol === 'dizgici' || user?.rol === 'admin') && (soru.durum === 'dizgide' || soru.durum === 'beklemede' || soru.durum === 'tamamlandi') && (
+        <div className="card bg-indigo-50 border border-indigo-100">
+          <h3 className="text-xl font-semibold mb-4 text-indigo-900">İnceleme ve İşlemler</h3>
+
+          {/* İnceleme Yorumları */}
+          <div className="mb-6">
+            <h4 className="font-medium text-indigo-800 mb-2">Yorumlar / Notlar</h4>
+            <div className="bg-white rounded-lg border border-indigo-200 h-64 overflow-y-auto mb-3 p-3 space-y-3">
+              <IncelemeYorumlari soruId={id} />
             </div>
-            <button onClick={handleDizgiTamamla} className="btn btn-primary">
-              Dizgiyi Tamamla
-            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Durum Değişikliği */}
+            {soru.durum !== 'tamamlandi' && (
+              <div className="space-y-4">
+                <h4 className="font-medium text-indigo-800">Durum İşlemleri</h4>
+
+                {/* Revize İste */}
+                <div className="bg-white p-3 rounded border border-red-200">
+                  <label className="block text-sm font-medium text-red-800 mb-1">Revize İste (Soru Yazarına)</label>
+                  <textarea
+                    rows="2"
+                    className="input text-sm border-red-300 focus:border-red-500 focus:ring-red-500 mb-2"
+                    placeholder="Revize nedenini açıklayın..."
+                    value={dizgiNotu}
+                    onChange={(e) => setDizgiNotu(e.target.value)}
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!dizgiNotu) return alert('Lütfen revize notu girin');
+                      try {
+                        await soruAPI.updateDurum(id, { durum: 'revize_gerekli', revize_notu: dizgiNotu });
+                        alert('Revize talebi gönderildi');
+                        loadSoru();
+                        setDizgiNotu('');
+                      } catch (e) { alert(e.response?.data?.error || 'Hata'); }
+                    }}
+                    className="w-full btn bg-red-600 text-white hover:bg-red-700 text-sm"
+                  >
+                    Revize Gerekli
+                  </button>
+                </div>
+
+                {/* Dizgi Tamamla */}
+                {soru.durum === 'dizgide' && (
+                  <div className="bg-white p-3 rounded border border-green-200">
+                    <label className="block text-sm font-medium text-green-800 mb-2">Dizgiyi Onayla</label>
+                    <button onClick={handleDizgiTamamla} className="w-full btn btn-success text-sm">
+                      ✓ Dizgiyi Tamamla
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Dizgi Geçmişi */}
+      {/* Versiyon Geçmişi (Sadece Admin ve Sahibi) */}
+      {(user?.rol === 'admin' || user?.id === soru.olusturan_kullanici_id) && (
+        <div className="card">
+          <h3 className="text-xl font-semibold mb-4 text-gray-800">Versiyon Geçmişi</h3>
+          <VersiyonGecmisi soruId={id} />
+        </div>
+      )}
+
+      {/* Dizgi Geçmişi (Eski) */}
       {soru.dizgi_gecmisi && soru.dizgi_gecmisi.length > 0 && (
         <div className="card">
-          <h3 className="text-xl font-semibold mb-4">Dizgi Geçmişi</h3>
+          <h3 className="text-xl font-semibold mb-4">Dizgi Hareketleri</h3>
           <div className="space-y-3">
             {soru.dizgi_gecmisi.map((gecmis) => (
               <div key={gecmis.id} className="border-l-4 border-primary-500 pl-4 py-2">
@@ -434,14 +478,117 @@ export default function SoruDetay() {
                     {new Date(gecmis.tamamlanma_tarihi).toLocaleString('tr-TR')}
                   </span>
                 </div>
+                <div className="text-xs text-gray-400 uppercase mt-1">{gecmis.durum}</div>
                 {gecmis.notlar && (
-                  <p className="mt-1 text-sm text-gray-600">{gecmis.notlar}</p>
+                  <p className="mt-1 text-sm text-gray-600 bg-gray-50 p-2 rounded">{gecmis.notlar}</p>
                 )}
               </div>
             ))}
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Alt Bileşenler
+function IncelemeYorumlari({ soruId }) {
+  const [yorumlar, setYorumlar] = useState([]);
+  const [yeniYorum, setYeniYorum] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const loadYorumlar = async () => {
+    try {
+      const res = await soruAPI.getComments(soruId);
+      setYorumlar(res.data.data);
+    } catch (e) { console.error(e); } finally { setLoading(false); }
+  };
+
+  useEffect(() => { loadYorumlar(); }, [soruId]);
+
+  const handleYorumEkle = async () => {
+    if (!yeniYorum.trim()) return;
+    try {
+      await soruAPI.addComment(soruId, yeniYorum);
+      setYeniYorum('');
+      loadYorumlar();
+    } catch (e) { alert('Yorum eklenemedi'); }
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-1 space-y-3 overflow-y-auto pr-2">
+        {loading ? <p className="text-sm text-gray-500 text-center">Yükleniyor...</p> :
+          yorumlar.length === 0 ? <p className="text-sm text-gray-400 text-center">Henüz yorum yok.</p> :
+            yorumlar.map((y) => (
+              <div key={y.id} className="bg-gray-50 p-2 rounded text-sm relative group">
+                <div className="flex justify-between items-start mb-1">
+                  <span className="font-bold text-gray-700">{y.ad_soyad} <span className="text-xs font-normal text-gray-500">({y.rol})</span></span>
+                  <span className="text-xs text-gray-400">{new Date(y.tarih).toLocaleString('tr-TR')}</span>
+                </div>
+                <p className="text-gray-800 whitespace-pre-wrap">{y.yorum_metni}</p>
+              </div>
+            ))}
+      </div>
+      <div className="mt-3 flex gap-2 pt-2 border-t">
+        <input
+          type="text"
+          className="input text-sm py-1"
+          placeholder="Bir yorum yazın..."
+          value={yeniYorum}
+          onChange={(e) => setYeniYorum(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleYorumEkle()}
+        />
+        <button onClick={handleYorumEkle} className="btn btn-primary py-1 px-3 text-sm">Ekle</button>
+      </div>
+    </div>
+  );
+}
+
+function VersiyonGecmisi({ soruId }) {
+  const [versiyonlar, setVersiyonlar] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await soruAPI.getHistory(soruId);
+        setVersiyonlar(res.data.data);
+      } catch (e) { console.error(e); } finally { setLoading(false); }
+    };
+    load();
+  }, [soruId]);
+
+  if (loading) return <div className="text-center text-sm text-gray-500">Yükleniyor...</div>;
+  if (versiyonlar.length === 0) return <div className="text-center text-sm text-gray-500">Bu soru henüz hiç güncellenmemiş (Versiyon 1).</div>;
+
+  return (
+    <div className="space-y-4">
+      {versiyonlar.map((v) => {
+        const data = v.data; // JSON verisi
+        return (
+          <div key={v.id} className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition">
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex items-center gap-2">
+                <span className="badge bg-gray-600 text-white">v{v.versiyon_no}</span>
+                <span className="text-sm font-medium text-gray-900">{v.ad_soyad}</span>
+              </div>
+              <span className="text-xs text-gray-500">{new Date(v.degisim_tarihi).toLocaleString('tr-TR')}</span>
+            </div>
+            <div className="text-xs text-gray-500 mb-2">
+              {v.degisim_aciklamasi || 'Güncelleme'}
+            </div>
+
+            {/* Değişiklik Özeti (Basit) */}
+            <div className="bg-white p-2 border rounded text-xs text-gray-600 font-mono h-24 overflow-y-auto">
+              {/* Sadece metni gösterelim şimdilik */}
+              <p><strong>Soru Metni:</strong> {data.soru_metni?.substring(0, 100)}...</p>
+              <p><strong>Cevap:</strong> {data.dogru_cevap}</p>
+              <p><strong>Durum:</strong> {data.durum}</p>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
