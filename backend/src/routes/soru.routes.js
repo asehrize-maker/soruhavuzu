@@ -465,7 +465,7 @@ router.put('/:id(\\d+)', [
 });
 
 // Yorum Ekleme Endpoint'i
-router.post('/:id/yorum', verifyToken, async (req, res) => {
+router.post('/:id/yorum', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const { yorum_metni } = req.body;
@@ -491,7 +491,7 @@ router.post('/:id/yorum', verifyToken, async (req, res) => {
 });
 
 // Soru Yorumlarını Getirme
-router.get('/:id/yorumlar', verifyToken, async (req, res) => {
+router.get('/:id/yorumlar', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -513,7 +513,7 @@ router.get('/:id/yorumlar', verifyToken, async (req, res) => {
 });
 
 // Soru Geçmişini (Versiyonlarını) Getirme
-router.get('/:id/gecmis', verifyToken, async (req, res) => {
+router.get('/:id/gecmis', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
 
