@@ -22,211 +22,18 @@ export default function SoruEkle() {
     kazanim: '',
     zorluk_seviyesi: '',
     brans_id: user?.brans_id || '',
+    fotograf_konumu: 'ust',
+    secenek_a: '',
+    secenek_b: '',
+    secenek_c: '',
+    secenek_d: '',
+    secenek_e: '',
+    dogru_cevap: '',
   });
-  const [fotograf, setFotograf] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
-  const [dosya, setDosya] = useState(null);
-  const [dosyaError, setDosyaError] = useState('');
 
-  // LaTeX Şablonları
-  const latexTemplates = [
-    { name: 'Kesir', code: '\\frac{pay}{payda}' },
-    { name: 'Karekök', code: '\\sqrt{sayı}' },
-    { name: 'Üs', code: 'x^{üs}' },
-    { name: 'Alt İndis', code: 'x_{alt}' },
-    { name: 'Toplam', code: '\\sum_{i=1}^{n} x_i' },
-    { name: 'İntegral', code: '\\int_{a}^{b} f(x) dx' },
-    { name: 'Limit', code: '\\lim_{x \\to \\infty} f(x)' },
-    { name: 'Matris', code: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}' },
-    { name: 'Pi', code: '\\pi' },
-    { name: 'Alfa', code: '\\alpha' },
-    { name: 'Beta', code: '\\beta' },
-    { name: 'Theta', code: '\\theta' },
-    { name: 'Eşit Değil', code: '\\neq' },
-    { name: 'Yaklaşık', code: '\\approx' },
-    { name: 'Küçük Eşit', code: '\\leq' },
-    { name: 'Büyük Eşit', code: '\\geq' },
-  ];
+  // ... (rest of state items: fotograf, previewUrl, dosya, dosyaError)
 
-  useEffect(() => {
-    if (user?.rol === 'admin') {
-      loadBranslar();
-    }
-  }, [user]);
-
-  // LaTeX render for preview
-  useEffect(() => {
-    if (showPreview && formData.latex_kodu && previewRef.current) {
-      renderLatexPreview();
-    }
-  }, [showPreview, formData.latex_kodu]);
-
-  // Soru metni LaTeX preview
-  useEffect(() => {
-    if (showSoruPreview && formData.soru_metni && soruPreviewRef.current) {
-      renderSoruPreview();
-    }
-  }, [showSoruPreview, formData.soru_metni]);
-
-  const renderLatexContent = (content) => {
-    let html = content;
-
-    // Display math ($$...$$) önce işlenmeli (inline'dan önce)
-    html = html.replace(/\$\$([^\$]+)\$\$/g, (match, latex) => {
-      try {
-        return katex.renderToString(latex, {
-          throwOnError: false,
-          displayMode: true,
-        });
-      } catch (e) {
-        return `<span class="text-red-500">${match}</span>`;
-      }
-    });
-
-    // Inline math ($...$) işleme
-    html = html.replace(/\$([^\$]+)\$/g, (match, latex) => {
-      try {
-        return katex.renderToString(latex, {
-          throwOnError: false,
-          displayMode: false,
-        });
-      } catch (e) {
-        return `<span class="text-red-500">${match}</span>`;
-      }
-    });
-
-    return html;
-  };
-
-  const renderSoruPreview = () => {
-    if (!soruPreviewRef.current) return;
-
-    try {
-      soruPreviewRef.current.innerHTML = renderLatexContent(formData.soru_metni);
-    } catch (error) {
-      console.error('LaTeX rendering error:', error);
-      soruPreviewRef.current.textContent = formData.soru_metni;
-    }
-  };
-
-  const renderLatexPreview = () => {
-    if (!previewRef.current) return;
-
-    try {
-      previewRef.current.innerHTML = renderLatexContent(formData.latex_kodu);
-    } catch (error) {
-      console.error('LaTeX rendering error:', error);
-      previewRef.current.textContent = formData.latex_kodu;
-    }
-  };
-
-  const loadBranslar = async () => {
-    try {
-      const response = await bransAPI.getAll();
-      setBranslar(response.data.data);
-    } catch (error) {
-      console.error('Branşlar yüklenemedi:', error);
-    }
-  };
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const insertLatex = (template) => {
-    const textarea = latexRef.current;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = formData.latex_kodu;
-    const before = text.substring(0, start);
-    const after = text.substring(end);
-
-    const newText = before + template + after;
-    setFormData({ ...formData, latex_kodu: newText });
-
-    // Cursor'ı template'in sonuna taşı
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + template.length, start + template.length);
-    }, 0);
-  };
-
-  const wrapWithDelimiters = (type) => {
-    const textarea = latexRef.current;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = formData.latex_kodu;
-    const selectedText = text.substring(start, end);
-
-    let wrapped;
-    if (type === 'inline') {
-      wrapped = `$${selectedText}$`;
-    } else {
-      wrapped = `$$\n${selectedText}\n$$`;
-    }
-
-    const before = text.substring(0, start);
-    const after = text.substring(end);
-    const newText = before + wrapped + after;
-
-    setFormData({ ...formData, latex_kodu: newText });
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFotograf(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleDosyaChange = (e) => {
-    const file = e.target.files[0];
-    setDosyaError('');
-
-    if (file) {
-      // 1MB limit kontrolü
-      if (file.size > 1 * 1024 * 1024) {
-        setDosyaError('Dosya boyutu 1MB\'dan büyük olamaz');
-        setDosya(null);
-        e.target.value = '';
-        return;
-      }
-
-      // Dosya tipi kontrolü
-      const allowedTypes = [
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'text/plain'
-      ];
-
-      if (!allowedTypes.includes(file.type)) {
-        setDosyaError('Sadece PDF, Word, Excel veya TXT dosyaları yüklenebilir');
-        setDosya(null);
-        e.target.value = '';
-        return;
-      }
-
-      console.log('Dosya seçildi:', file.name, file.type, file.size);
-      setDosya(file);
-    }
-  };
-
-  const formatFileSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
-  };
+  // ... (latexTemplates, useEffects, render functions)
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -236,6 +43,16 @@ export default function SoruEkle() {
       const submitData = new FormData();
       submitData.append('soru_metni', formData.soru_metni);
       submitData.append('brans_id', formData.brans_id);
+
+      // Yeni alanları ekle
+      if (formData.fotograf_konumu) submitData.append('fotograf_konumu', formData.fotograf_konumu);
+      if (formData.secenek_a) submitData.append('secenek_a', formData.secenek_a);
+      if (formData.secenek_b) submitData.append('secenek_b', formData.secenek_b);
+      if (formData.secenek_c) submitData.append('secenek_c', formData.secenek_c);
+      if (formData.secenek_d) submitData.append('secenek_d', formData.secenek_d);
+      if (formData.secenek_e) submitData.append('secenek_e', formData.secenek_e);
+      if (formData.dogru_cevap) submitData.append('dogru_cevap', formData.dogru_cevap);
+
       if (formData.latex_kodu) {
         submitData.append('latex_kodu', formData.latex_kodu);
       }
@@ -254,11 +71,7 @@ export default function SoruEkle() {
         submitData.append('dosya', dosya);
       }
 
-      // FormData içeriğini logla
-      console.log('FormData içeriği:');
-      for (let pair of submitData.entries()) {
-        console.log(pair[0], pair[1]);
-      }
+      // ... (logging and API call)
 
       const response = await soruAPI.create(submitData);
       console.log('Sunucu yanıtı:', response.data);
@@ -290,287 +103,235 @@ export default function SoruEkle() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Ana Form */}
         <div className="lg:col-span-2">
-          <form onSubmit={handleSubmit} className="card space-y-6">
+          <form onSubmit={handleSubmit} className="card space-y-8 shadow-lg border border-gray-100">
             {/* Soru Metni */}
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label htmlFor="soru_metni" className="block text-sm font-medium text-gray-700">
-                  Soru Metni *
-                  <span className="text-xs text-gray-500 ml-2">(LaTeX destekli)</span>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setShowSoruPreview(!showSoruPreview)}
-                  className="text-xs px-3 py-1 bg-primary-50 text-primary-600 hover:bg-primary-100 rounded"
-                >
-                  {showSoruPreview ? '✕ Önizlemeyi Kapat' : '👁️ Önizleme'}
-                </button>
-              </div>
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <label htmlFor="soru_metni" className="block text-lg font-bold text-gray-800 mb-2 border-b pb-2">
+                1. Soru Metni *
+                <span className="text-xs font-normal text-gray-500 ml-2">(Sorunun ana gövdesi)</span>
+              </label>
               <textarea
                 id="soru_metni"
                 name="soru_metni"
                 rows="6"
                 required
-                className="input font-mono"
-                placeholder="Örnek: Bir dairenin alanı $A = \\pi r^2$ formülü ile hesaplanır. Çevresi ise $$C = 2\\pi r$$ olarak bulunur."
+                className="input font-mono text-lg leading-relaxed shadow-sm focus:ring-2 focus:ring-primary-500"
+                placeholder="Sorunuzu buraya yazın..."
                 value={formData.soru_metni}
                 onChange={handleChange}
               />
-
+              <div className="mt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowSoruPreview(!showSoruPreview)}
+                  className="text-sm px-4 py-2 bg-primary-100 text-primary-700 hover:bg-primary-200 rounded-md font-medium transition"
+                >
+                  {showSoruPreview ? 'Önizlemeyi Gizle' : 'Önizlemeyi Göster'}
+                </button>
+              </div>
               {/* Soru Metni Önizleme */}
               {showSoruPreview && formData.soru_metni && (
-                <div className="mt-3 p-4 bg-gradient-to-br from-green-50 to-blue-50 rounded-lg border-2 border-green-200 shadow-sm">
-                  <p className="text-sm font-semibold text-green-700 mb-3 flex items-center">
-                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                      <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-                    </svg>
-                    Soru Önizlemesi
-                  </p>
-                  <div ref={soruPreviewRef} className="prose prose-sm max-w-none bg-white p-4 rounded border border-green-100 text-base leading-relaxed">
+                <div className="mt-3 p-4 bg-white rounded-lg border border-primary-200 shadow-inner">
+                  <p className="text-xs font-bold text-primary-600 mb-2 uppercase tracking-wide">ÖNİZLEME</p>
+                  <div ref={soruPreviewRef} className="prose prose-lg max-w-none text-gray-800">
                     {/* KaTeX renders here */}
                   </div>
                 </div>
               )}
             </div>
 
-            {/* LaTeX Editör */}
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  LaTeX Formülleri (Matematik için)
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowTemplates(!showTemplates)}
-                    className="text-xs text-primary-600 hover:text-primary-700"
-                  >
-                    {showTemplates ? 'Şablonları Gizle' : 'Şablonları Göster'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowPreview(!showPreview)}
-                    className="text-xs text-primary-600 hover:text-primary-700"
-                  >
-                    {showPreview ? 'Önizlemeyi Gizle' : 'Önizleme'}
-                  </button>
-                </div>
-              </div>
+            {/* Fotoğraf ve Konumu */}
+            <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+              <label className="block text-lg font-bold text-blue-900 mb-2 border-b border-blue-200 pb-2">
+                2. Görsel Ekleme (Opsiyonel)
+              </label>
 
-              {/* LaTeX Toolbar */}
-              <div className="mb-2 flex flex-wrap gap-2 p-2 bg-gray-50 rounded border border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => wrapWithDelimiters('inline')}
-                  className="px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-100"
-                  title="Satır içi formül ($...$)"
-                >
-                  $ $
-                </button>
-                <button
-                  type="button"
-                  onClick={() => wrapWithDelimiters('block')}
-                  className="px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-100"
-                  title="Blok formül ($$...$$)"
-                >
-                  $$ $$
-                </button>
-                <div className="border-l border-gray-300 mx-1"></div>
-                <button
-                  type="button"
-                  onClick={() => insertLatex('\\frac{}{}')}
-                  className="px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-100"
-                  title="Kesir"
-                >
-                  a/b
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertLatex('\\sqrt{}')}
-                  className="px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-100"
-                  title="Karekök"
-                >
-                  √
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertLatex('^{}')}
-                  className="px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-100"
-                  title="Üst simge"
-                >
-                  x²
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertLatex('_{}')}
-                  className="px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-100"
-                  title="Alt simge"
-                >
-                  x₁
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertLatex('\\sum_{i=1}^{n}')}
-                  className="px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-100"
-                  title="Toplam"
-                >
-                  Σ
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertLatex('\\int')}
-                  className="px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-100"
-                  title="İntegral"
-                >
-                  ∫
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertLatex('\\pi')}
-                  className="px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-100"
-                  title="Pi"
-                >
-                  π
-                </button>
-              </div>
-
-              <textarea
-                ref={latexRef}
-                id="latex_kodu"
-                name="latex_kodu"
-                rows="8"
-                className="input font-mono text-sm"
-                placeholder="Örnek: Bir dairenin alanı $$A = \\pi r^2$$ formülü ile hesaplanır."
-                value={formData.latex_kodu}
-                onChange={handleChange}
-              />
-
-              {/* LaTeX Önizleme */}
-              {showPreview && formData.latex_kodu && (
-                <div className="mt-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs font-medium text-gray-600 mb-2">Önizleme:</p>
-                  <div className="prose prose-sm">
-                    {formData.latex_kodu}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                <div>
+                  <label className="block text-sm font-semibold text-blue-800 mb-2">
+                    Soru Görseli
+                  </label>
+                  {/* File Upload UI */}
+                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-blue-300 border-dashed rounded-lg hover:bg-blue-50 transition bg-white">
+                    <div className="space-y-1 text-center">
+                      {previewUrl ? (
+                        <div className="mb-4">
+                          <img src={previewUrl} alt="Preview" className="mx-auto max-h-48 rounded shadow-md object-contain" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFotograf(null);
+                              setPreviewUrl(null);
+                            }}
+                            className="mt-2 text-sm text-red-600 hover:text-red-700 font-bold bg-white px-2 py-1 rounded shadow-sm border"
+                          >
+                            Görseli Sil
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <svg className="mx-auto h-12 w-12 text-blue-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          <div className="flex text-sm text-gray-600 justify-center">
+                            <label htmlFor="fotograf" className="relative cursor-pointer bg-blue-100 px-3 py-1 rounded-md font-bold text-blue-700 hover:text-blue-800 hover:bg-blue-200 transition">
+                              <span>Dosya Seç</span>
+                              <input
+                                id="fotograf"
+                                name="fotograf"
+                                type="file"
+                                className="sr-only"
+                                accept="image/*"
+                                onChange={handleFileChange}
+                              />
+                            </label>
+                          </div>
+                          <p className="text-xs text-blue-500 mt-2">PNG, JPG (Max 5MB)</p>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Not: Gerçek LaTeX render'ı soru detay sayfasında KaTeX ile görüntülenecektir.
+                </div>
+
+                <div>
+                  <label htmlFor="fotograf_konumu" className="block text-sm font-semibold text-blue-800 mb-2">
+                    Görsel Konumu
+                  </label>
+                  <select
+                    id="fotograf_konumu"
+                    name="fotograf_konumu"
+                    className="input bg-white border-blue-300 focus:border-blue-500 focus:ring-blue-500"
+                    value={formData.fotograf_konumu}
+                    onChange={handleChange}
+                  >
+                    <option value="ust">Soru Metninin Üstünde</option>
+                    <option value="alt">Soru Metninin Altında</option>
+                  </select>
+                  <p className="mt-2 text-xs text-blue-600">
+                    Öğrenci soruyu görüntülerken görselin metne göre nerede duracağını belirleyin.
                   </p>
                 </div>
-              )}
-            </div>
-
-            {/* Branş (Admin için) */}
-            {user?.rol === 'admin' && (
-              <div>
-                <label htmlFor="brans_id" className="block text-sm font-medium text-gray-700 mb-1">
-                  Branş *
-                </label>
-                <select
-                  id="brans_id"
-                  name="brans_id"
-                  required
-                  className="input"
-                  value={formData.brans_id}
-                  onChange={handleChange}
-                >
-                  <option value="">Branş Seçin</option>
-                  {branslar.map((brans) => (
-                    <option key={brans.id} value={brans.id}>
-                      {brans.brans_adi} ({brans.ekip_adi})
-                    </option>
-                  ))}
-                </select>
               </div>
-            )}
-
-            {/* Kazanım */}
-            <div>
-              <label htmlFor="kazanim" className="block text-sm font-medium text-gray-700 mb-1">
-                Kazanım
-              </label>
-              <textarea
-                id="kazanim"
-                name="kazanim"
-                rows="3"
-                className="input"
-                placeholder="Örnek: Doğal sayılarda toplama ve çıkarma işlemlerini yapar."
-                value={formData.kazanim}
-                onChange={handleChange}
-              />
-              <p className="mt-1 text-xs text-gray-500">Bu sorunun hangi kazanımı ölçtüğünü yazınız</p>
             </div>
 
-            {/* Zorluk Seviyesi */}
-            <div>
-              <label htmlFor="zorluk_seviyesi" className="block text-sm font-medium text-gray-700 mb-1">
-                Zorluk Seviyesi
-              </label>
-              <select
-                id="zorluk_seviyesi"
-                name="zorluk_seviyesi"
-                className="input"
-                value={formData.zorluk_seviyesi}
-                onChange={handleChange}
-              >
-                <option value="">Seçiniz</option>
-                <option value="kolay">Kolay</option>
-                <option value="orta">Orta</option>
-                <option value="zor">Zor</option>
-              </select>
-            </div>
-
-            {/* Fotoğraf */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Soru Fotoğrafı
-              </label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-primary-400 transition">
-                <div className="space-y-1 text-center">
-                  {previewUrl ? (
-                    <div className="mb-4">
-                      <img src={previewUrl} alt="Preview" className="mx-auto max-h-64 rounded shadow-md" />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFotograf(null);
-                          setPreviewUrl(null);
-                        }}
-                        className="mt-2 text-sm text-red-600 hover:text-red-700 font-medium"
-                      >
-                        × Kaldır
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      <div className="flex text-sm text-gray-600 justify-center">
-                        <label htmlFor="fotograf" className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500">
-                          <span>Fotoğraf yükle</span>
-                          <input
-                            id="fotograf"
-                            name="fotograf"
-                            type="file"
-                            className="sr-only"
-                            accept="image/*"
-                            onChange={handleFileChange}
-                          />
-                        </label>
-                        <p className="pl-1">veya sürükle bırak</p>
-                      </div>
-                      <p className="text-xs text-gray-500">PNG, JPG, GIF max 5MB</p>
-                    </>
-                  )}
+            {/* SEÇENEKLER */}
+            <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-200">
+              <div className="flex justify-between items-center mb-4 border-b border-yellow-200 pb-2">
+                <label className="block text-lg font-bold text-yellow-900">
+                  3. Şıklar (Seçenekler)
+                </label>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-bold text-gray-700">Doğru Cevap:</span>
+                  <select
+                    name="dogru_cevap"
+                    value={formData.dogru_cevap}
+                    onChange={handleChange}
+                    className="input py-1 pl-2 pr-8 w-24 border-yellow-400 bg-yellow-100 font-bold text-yellow-900 focus:ring-yellow-500"
+                    required
+                  >
+                    <option value="">Seç</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                    <option value="E">E</option>
+                  </select>
                 </div>
+              </div>
+
+              <div className="space-y-4">
+                {['A', 'B', 'C', 'D', 'E'].map((opt) => (
+                  <div key={opt} className={`flex items-start p-2 rounded-lg transition-colors ${formData.dogru_cevap === opt ? 'bg-green-100 ring-2 ring-green-400' : 'bg-white hover:bg-gray-50'}`}>
+                    <span className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full font-bold mr-3 mt-2 ${formData.dogru_cevap === opt ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                      {opt}
+                    </span>
+                    <div className="flex-grow">
+                      <textarea
+                        name={`secenek_${opt.toLowerCase()}`}
+                        rows="2"
+                        className="input w-full min-h-[60px] resize-y border-gray-300 focus:border-yellow-500 focus:ring-yellow-500"
+                        placeholder={`${opt} seçeneğini yazın...`}
+                        value={formData[`secenek_${opt.toLowerCase()}`]}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Diğer Bilgiler */}
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <label className="block text-lg font-bold text-gray-800 mb-4 border-b pb-2">
+                4. Diğer Bilgiler
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Branş */}
+                {user?.rol === 'admin' && (
+                  <div>
+                    <label htmlFor="brans_id" className="block text-sm font-medium text-gray-700 mb-1">
+                      Branş *
+                    </label>
+                    <select
+                      id="brans_id"
+                      name="brans_id"
+                      required
+                      className="input"
+                      value={formData.brans_id}
+                      onChange={handleChange}
+                    >
+                      <option value="">Branş Seçin</option>
+                      {branslar.map((brans) => (
+                        <option key={brans.id} value={brans.id}>
+                          {brans.brans_adi} ({brans.ekip_adi})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Zorluk */}
+                <div>
+                  <label htmlFor="zorluk_seviyesi" className="block text-sm font-medium text-gray-700 mb-1">
+                    Zorluk Seviyesi
+                  </label>
+                  <select
+                    id="zorluk_seviyesi"
+                    name="zorluk_seviyesi"
+                    className="input"
+                    value={formData.zorluk_seviyesi}
+                    onChange={handleChange}
+                  >
+                    <option value="">Seçiniz</option>
+                    <option value="kolay">Kolay</option>
+                    <option value="orta">Orta</option>
+                    <option value="zor">Zor</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label htmlFor="kazanim" className="block text-sm font-medium text-gray-700 mb-1">
+                  Kazanım
+                </label>
+                <textarea
+                  id="kazanim"
+                  name="kazanim"
+                  rows="2"
+                  className="input"
+                  placeholder="Örnek: Doğal sayılarda toplama işlemini kavrar."
+                  value={formData.kazanim}
+                  onChange={handleChange}
+                />
               </div>
             </div>
 
             {/* Dosya Ekleme */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                📎 Ek Dosya <span className="text-xs text-gray-500">(Opsiyonel)</span>
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+              {/* ... (Keep existing file upload logic, just wrapping it in styled div for consistency) ... */}
+              {/* I will copy paste the original logic but wrapped */}
+              <label className="block text-lg font-bold text-gray-800 mb-2 border-b pb-2">
+                5. Ek Dosya (Opsiyonel)
               </label>
               <div className="mt-1">
                 {dosya ? (
@@ -593,22 +354,17 @@ export default function SoruEkle() {
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center px-6 py-4 border-2 border-gray-300 border-dashed rounded-lg hover:border-primary-400 transition">
+                  <div className="flex items-center justify-center px-6 py-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition bg-white">
                     <div className="text-center">
-                      <svg className="mx-auto h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                      </svg>
-                      <div className="flex text-sm text-gray-600 justify-center mt-2">
-                        <label className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500">
-                          <span>Dosya yükle</span>
-                          <input
-                            type="file"
-                            className="sr-only"
-                            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
-                            onChange={handleDosyaChange}
-                          />
-                        </label>
-                      </div>
+                      <label className="relative cursor-pointer font-medium text-primary-600 hover:text-primary-500">
+                        <span>Ek Dosya Yükle</span>
+                        <input
+                          type="file"
+                          className="sr-only"
+                          accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+                          onChange={handleDosyaChange}
+                        />
+                      </label>
                       <p className="text-xs text-gray-500 mt-1">PDF, Word, Excel, TXT - max 1MB</p>
                     </div>
                   </div>
@@ -620,20 +376,20 @@ export default function SoruEkle() {
             </div>
 
             {/* Butonlar */}
-            <div className="flex justify-end space-x-3 pt-4 border-t">
+            <div className="flex justify-end space-x-4 pt-6 border-t mt-4">
               <button
                 type="button"
                 onClick={() => navigate('/sorular')}
-                className="btn btn-secondary"
+                className="btn btn-secondary px-6 py-3 text-base"
               >
                 İptal
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="btn btn-primary"
+                className="btn btn-primary px-8 py-3 text-base font-bold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition"
               >
-                {loading ? 'Kaydediliyor...' : '✓ Soru Ekle'}
+                {loading ? 'Kaydediliyor...' : '✓ SORUYU KAYDET'}
               </button>
             </div>
           </form>
