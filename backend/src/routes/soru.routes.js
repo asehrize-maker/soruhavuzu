@@ -223,7 +223,16 @@ router.post('/', [
 
       const uploadResult = await cloudinary.uploader.upload(dataURI, {
         folder: 'soru-havuzu',
-        resource_type: 'auto'
+        resource_type: 'auto',
+        transformation: [
+          {
+            width: 1920,
+            height: 1920,
+            crop: 'limit',
+            quality: 'auto:good',
+            fetch_format: 'auto'
+          }
+        ]
       });
 
       fotograf_url = uploadResult.secure_url;
@@ -317,7 +326,16 @@ router.put('/:id(\\d+)', [
 
       const uploadResult = await cloudinary.uploader.upload(dataURI, {
         folder: 'soru-havuzu',
-        resource_type: 'auto'
+        resource_type: 'auto',
+        transformation: [
+          {
+            width: 1920,
+            height: 1920,
+            crop: 'limit',
+            quality: 'auto:good',
+            fetch_format: 'auto'
+          }
+        ]
       });
 
       fotograf_url = uploadResult.secure_url;
