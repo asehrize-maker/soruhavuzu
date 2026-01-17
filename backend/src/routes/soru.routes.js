@@ -207,6 +207,12 @@ router.post('/', [
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
+    console.log('--- Soru Ekleme İsteği ---');
+    console.log('Body:', req.body);
+    console.log('Files:', req.files);
+    console.log('Has fotograf:', req.files?.fotograf ? 'Evet' : 'Hayır');
+    console.log('Has dosya:', req.files?.dosya ? 'Evet' : 'Hayır');
+
     const { soru_metni, zorluk_seviyesi, brans_id, latex_kodu } = req.body;
     let fotograf_url = null;
     let fotograf_public_id = null;
@@ -242,6 +248,7 @@ router.post('/', [
     // Dosya yükleme (1MB limit)
     if (req.files && req.files.dosya && req.files.dosya[0]) {
       const file = req.files.dosya[0];
+      console.log('Dosya yükleniyor:', file.originalname, file.mimetype, file.size);
 
       // 1MB boyut kontrolü
       if (file.size > 1 * 1024 * 1024) {
@@ -256,23 +263,38 @@ router.post('/', [
       const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
       const publicId = `soru-havuzu/dosyalar/${timestamp}_${sanitizedFilename}`;
 
+      console.log('Cloudinary\'ye yükleniyor, public_id:', publicId);
+
       const uploadResult = await cloudinary.uploader.upload(dataURI, {
         public_id: publicId,
         resource_type: 'raw',
         type: 'upload'
       });
 
+      console.log('Cloudinary yanıtı:', uploadResult.secure_url);
+
       dosya_url = uploadResult.secure_url;
       dosya_public_id = uploadResult.public_id;
       dosya_adi = file.originalname;
       dosya_boyutu = file.size;
+    } else {
+      console.log('Dosya bulunamadı req.files içinde');
     }
+
+    console.log('Veritabanına kaydedilecek dosya bilgileri:', {
+      dosya_url,
+      dosya_public_id,
+      dosya_adi,
+      dosya_boyutu
+    });
 
     const result = await pool.query(
       `INSERT INTO sorular (soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, latex_kodu, olusturan_kullanici_id, dosya_url, dosya_public_id, dosya_adi, dosya_boyutu) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
       [soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi || null, brans_id, latex_kodu || null, req.user.id, dosya_url, dosya_public_id, dosya_adi, dosya_boyutu]
     );
+
+    console.log('Soru başarıyla eklendi, ID:', result.rows[0].id);
 
     res.status(201).json({
       success: true,

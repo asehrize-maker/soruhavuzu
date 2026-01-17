@@ -194,6 +194,7 @@ export default function SoruEkle() {
       // 1MB limit kontrolü
       if (file.size > 1 * 1024 * 1024) {
         setDosyaError('Dosya boyutu 1MB\'dan büyük olamaz');
+        setDosya(null);
         e.target.value = '';
         return;
       }
@@ -210,10 +211,12 @@ export default function SoruEkle() {
 
       if (!allowedTypes.includes(file.type)) {
         setDosyaError('Sadece PDF, Word, Excel veya TXT dosyaları yüklenebilir');
+        setDosya(null);
         e.target.value = '';
         return;
       }
 
+      console.log('Dosya seçildi:', file.name, file.type, file.size);
       setDosya(file);
     }
   };
@@ -239,16 +242,26 @@ export default function SoruEkle() {
         submitData.append('zorluk_seviyesi', formData.zorluk_seviyesi);
       }
       if (fotograf) {
+        console.log('Fotoğraf ekleniyor:', fotograf.name);
         submitData.append('fotograf', fotograf);
       }
       if (dosya) {
+        console.log('Dosya ekleniyor:', dosya.name, dosya.type, dosya.size);
         submitData.append('dosya', dosya);
       }
 
-      await soruAPI.create(submitData);
+      // FormData içeriğini logla
+      console.log('FormData içeriği:');
+      for (let pair of submitData.entries()) {
+        console.log(pair[0], pair[1]);
+      }
+
+      const response = await soruAPI.create(submitData);
+      console.log('Sunucu yanıtı:', response.data);
       alert('Soru başarıyla eklendi!');
       navigate('/sorular');
     } catch (error) {
+      console.error('Hata detayı:', error.response?.data);
       alert(error.response?.data?.error || 'Soru eklenirken hata oluştu');
     } finally {
       setLoading(false);
