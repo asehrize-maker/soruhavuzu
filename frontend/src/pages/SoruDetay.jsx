@@ -80,6 +80,24 @@ export default function SoruDetay() {
     }
   };
 
+  // Dosya indirme helper fonksiyonu
+  const getDownloadUrl = (url, filename) => {
+    if (!url) return '';
+    
+    // Cloudinary URL'sine fl_attachment parametresi ekle
+    if (url.includes('cloudinary.com')) {
+      // URL'yi parse et
+      const urlParts = url.split('/upload/');
+      if (urlParts.length === 2) {
+        // fl_attachment parametresini ekle (dosya adını da belirt)
+        const safeFilename = encodeURIComponent(filename || 'dosya');
+        return `${urlParts[0]}/upload/fl_attachment:${safeFilename}/${urlParts[1]}`;
+      }
+    }
+    
+    return url;
+  };
+
   const handleDizgiTamamla = async () => {
     try {
       await soruAPI.dizgiTamamla(id, { notlar: dizgiNotu });
@@ -306,10 +324,8 @@ export default function SoruDetay() {
           <div className="mt-6">
             <h4 className="text-lg font-medium mb-3">📎 Ek Dosya</h4>
             <a
-              href={soru.dosya_url}
+              href={getDownloadUrl(soru.dosya_url, soru.dosya_adi)}
               download={soru.dosya_adi || 'dosya'}
-              target="_blank"
-              rel="noopener noreferrer"
               className="flex items-center p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition group"
             >
               <svg className="w-10 h-10 text-primary-600 group-hover:text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
