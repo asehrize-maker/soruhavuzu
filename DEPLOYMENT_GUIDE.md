@@ -71,7 +71,7 @@ git push -u origin main
    CLOUDINARY_CLOUD_NAME=<cloudinary_cloud_name>
    CLOUDINARY_API_KEY=<cloudinary_api_key>
    CLOUDINARY_API_SECRET=<cloudinary_api_secret>
-   FRONTEND_URL=https://soru-havuzu-frontend.onrender.com
+   FRONTEND_URL=https://soruhavuzu.onrender.com
    ```
 
 5. "Create Web Service" butonuna tıklayın
@@ -111,13 +111,13 @@ Backend deploy olduktan sonra:
 1. Backend servisinizin Environment Variables'ına gidin
 2. `FRONTEND_URL` değerini frontend URL'niz ile güncelleyin:
    ```
-   FRONTEND_URL=https://soru-havuzu-frontend.onrender.com
+   FRONTEND_URL=https://soruhavuzu.onrender.com
    ```
 3. Servisi yeniden deploy edin (otomatik olacak)
 
 ## Adım 5: İlk Kullanım
 
-1. Frontend URL'nize gidin: `https://soru-havuzu-frontend.onrender.com`
+1. Frontend URL'nize gidin: `https://soruhavuzu.onrender.com`
 2. "Kayıt Ol" butonuna tıklayın
 3. İlk admin kullanıcısını oluşturun:
    - Ad Soyad: İsminiz
@@ -147,7 +147,7 @@ Backend deploy olduktan sonra:
 
 Sisteminiz artık canlıda! URL'leriniz:
 
-- **Frontend**: https://soru-havuzu-frontend.onrender.com
+- **Frontend**: https://soruhavuzu.onrender.com
 - **Backend API**: https://soru-havuzu-backend.onrender.com/api
 - **Health Check**: https://soru-havuzu-backend.onrender.com/api/health
 
