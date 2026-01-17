@@ -76,18 +76,26 @@ export default function Dashboard() {
                         </h3>
                         <div className="mt-4 grid grid-cols-1 gap-4">
                           {['TÜRKÇE', 'FEN BİLİMLERİ', 'SOSYAL BİLGİLER', 'MATEMATİK', 'İNGİLİZCE'].map((bransAdi) => {
-                            // Find branch in logic (Case insensitive match or partial match)
-                            // Assuming names in DB are capitalize or normal case, converting to upper for match
-                            const statKey = selectedStat.key; // e.g., 'tamamlandi'
-                            // Helper to find count
+                            const statKey = selectedStat.key;
+
+                            // Helper to find count (Summing up in case of multiple teams/branches with same name)
                             const findCount = () => {
                               if (!detayliStats?.branslar) return 0;
-                              const branch = detayliStats.branslar.find(b =>
-                                b.brans_adi.toUpperCase().includes(bransAdi) ||
-                                (bransAdi === 'TÜRKÇE' && b.brans_adi.toUpperCase().includes('TURKCE'))
+
+                              // Filter all matching branches
+                              const matchingBranches = detayliStats.branslar.filter(b =>
+                                b.brans_adi.trim().toUpperCase() === bransAdi.trim().toUpperCase() ||
+                                (bransAdi === 'TÜRKÇE' && b.brans_adi.toUpperCase().includes('TURKCE')) ||
+                                (bransAdi === 'İNGİLİZCE' && b.brans_adi.toUpperCase().includes('INGILIZCE'))
                               );
-                              return branch ? (statKey === 'toplam_soru' ? branch.soru_sayisi : branch[statKey]) : 0;
+
+                              // Sum the values
+                              return matchingBranches.reduce((acc, curr) => {
+                                const val = (statKey === 'toplam_soru' ? curr.soru_sayisi : curr[statKey]);
+                                return acc + (parseInt(val) || 0);
+                              }, 0);
                             };
+
                             const count = findCount();
 
                             return (
