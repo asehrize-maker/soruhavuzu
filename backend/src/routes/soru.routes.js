@@ -92,9 +92,14 @@ router.get('/', authenticate, async (req, res, next) => {
 
     // Rol bazlı filtreleme
     if (req.user.rol === 'soru_yazici') {
-      // Soru yazıcı sadece kendi sorularını görür
-      query += ` AND s.olusturan_kullanici_id = $${paramCount++}`;
-      params.push(req.user.id);
+      // Soru yazıcı:
+      // 1. Kendi oluşturduğu tüm soruları görür.
+      // 2. Kendi branşındaki 'tamamlandi' durumundaki soruları görür (Havuz mantığı).
+      query += ` AND (
+        s.olusturan_kullanici_id = $${paramCount++} 
+        OR (s.durum = 'tamamlandi' AND s.brans_id = $${paramCount++})
+      )`;
+      params.push(req.user.id, req.user.brans_id); // req.user.brans_id login olurken token'a eklenmiş olmalı.
     } else if (req.user.rol === 'dizgici') {
       // Dizgici atandığı tüm branşlardaki soruları görür
       // Hem yeni kullanici_branslari tablosunu hem de eski brans_id alanını kontrol et
