@@ -902,9 +902,9 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
       SELECT COUNT(*) as toplam_ekip FROM ekipler
     `);
 
-    // Branş sayıları (Tekil - Büyük/küçük harf duyarsız)
+    // Branş sayıları (Tekil - Büyük/küçük harf duyarsız, boşluklar temizlenmiş)
     const bransStatsCount = await pool.query(`
-      SELECT COUNT(DISTINCT UPPER(brans_adi)) as toplam_brans FROM branslar
+      SELECT COUNT(DISTINCT UPPER(TRIM(brans_adi))) as toplam_brans FROM branslar
     `);
 
     res.json({
