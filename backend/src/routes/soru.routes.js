@@ -255,9 +255,6 @@ router.post('/', [
         throw new AppError('Dosya boyutu 1MB\'dan büyük olamaz', 400);
       }
 
-      const b64 = Buffer.from(file.buffer).toString('base64');
-      const dataURI = `data:${file.mimetype};base64,${b64}`;
-
       // Dosya adını ve uzantısını koru
       const timestamp = Date.now();
       const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -265,13 +262,34 @@ router.post('/', [
 
       console.log('Cloudinary\'ye yükleniyor, public_id:', publicId);
 
-      const uploadResult = await cloudinary.uploader.upload(dataURI, {
-        public_id: publicId,
-        resource_type: 'raw',
-        type: 'upload'
+      // Büyük dosyalar için stream kullan
+      const uploadPromise = new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            public_id: publicId,
+            resource_type: 'raw',
+            type: 'upload',
+            timeout: 60000 // 60 saniye timeout
+          },
+          (error, result) => {
+            if (error) {
+              console.error('Cloudinary upload hatası:', error);
+              reject(error);
+            } else {
+              console.log('Cloudinary tam yanıt:', JSON.stringify(result, null, 2));
+              resolve(result);
+            }
+          }
+        );
+
+        // Buffer'ı stream'e yaz
+        uploadStream.end(file.buffer);
       });
 
-      console.log('Cloudinary yanıtı:', uploadResult.secure_url);
+      const uploadResult = await uploadPromise;
+
+      console.log('Upload başarılı mı?:', uploadResult.secure_url ? 'Evet' : 'Hayır');
+      console.log('Cloudinary URL:', uploadResult.secure_url);
 
       dosya_url = uploadResult.secure_url;
       dosya_public_id = uploadResult.public_id;
