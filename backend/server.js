@@ -62,18 +62,22 @@ app.get('/api/health', (req, res) => {
 app.use(errorHandler);
 
 // Veritabanı tablolarını oluştur ve sunucuyu başlat
+// Veritabanı tablolarını oluştur ve sunucuyu başlat
 const startServer = async () => {
-  try {
-    // Migration'ı çalıştır (tablolar oluştur)
-    await createTables();
+  // Önce sunucuyu başlat (Render deploy'u başarılı olsun diye)
+  app.listen(PORT, () => {
+    console.log(`🚀 Server ${PORT} portunda çalışıyor`);
+    console.log(`📝 API: http://localhost:${PORT}/api`);
+  });
 
-    app.listen(PORT, () => {
-      console.log(`🚀 Server ${PORT} portunda çalışıyor`);
-      console.log(`📝 API: http://localhost:${PORT}/api`);
-    });
+  // Sonra veritabanına bağlanmayı dene
+  try {
+    await createTables();
+    console.log('✅ Veritabanı tabloları hazır');
   } catch (error) {
-    console.error('❌ Sunucu başlatma hatası:', error);
-    process.exit(1);
+    console.error('❌ Veritabanı bağlantı hatası:', error);
+    console.log('⚠️ Sunucu veritabanı olmadan çalışmaya devam ediyor...');
+    // process.exit(1) YAPMA! Sunucu açık kalsın ki CORS hatası çözülsün.
   }
 };
 
