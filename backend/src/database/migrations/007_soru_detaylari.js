@@ -19,7 +19,9 @@ export const addSoruDetaylari = async () => {
       ADD COLUMN IF NOT EXISTS secenek_c TEXT,
       ADD COLUMN IF NOT EXISTS secenek_d TEXT,
       ADD COLUMN IF NOT EXISTS secenek_e TEXT,
-      ADD COLUMN IF NOT EXISTS dogru_cevap VARCHAR(1) CHECK (dogru_cevap IN ('A', 'B', 'C', 'D', 'E'))
+      ADD COLUMN IF NOT EXISTS dogru_cevap VARCHAR(1) CHECK (dogru_cevap IN ('A', 'B', 'C', 'D', 'E')),
+      ADD COLUMN IF NOT EXISTS kazanim TEXT,
+      ADD COLUMN IF NOT EXISTS latex_kodu TEXT
     `);
 
         await client.query('COMMIT');
