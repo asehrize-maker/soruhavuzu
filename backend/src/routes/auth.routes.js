@@ -13,7 +13,7 @@ router.post('/register', [
   body('ad_soyad').trim().notEmpty().withMessage('Ad soyad gerekli'),
   body('email').isEmail().withMessage('Geçerli bir email girin'),
   body('sifre').isLength({ min: 6 }).withMessage('Şifre en az 6 karakter olmalı'),
-  body('rol').isIn(['admin', 'soru_yazici', 'dizgici']).withMessage('Geçersiz rol')
+  body('rol').isIn(['admin', 'soru_yazici', 'dizgici', 'incelemeci']).withMessage('Geçersiz rol')
 ], async (req, res, next) => {
   try {
     const errors = validationResult(req);
