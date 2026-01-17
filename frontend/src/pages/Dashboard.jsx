@@ -56,15 +56,7 @@ export default function Dashboard() {
   if (user?.rol === 'admin' && detayliStats) {
     return (
       <div className="space-y-6">
-        {/* Hoşgeldin Mesajı */}
-        <div className="card bg-gradient-to-r from-primary-600 to-primary-700 text-white">
-          <h1 className="text-3xl font-bold">
-            Hoş Geldiniz, {user?.ad_soyad}
-          </h1>
-          <p className="mt-2 text-primary-100">
-            Sistem Yöneticisi - Admin Kontrol Paneli
-          </p>
-        </div>
+
 
         {/* Ana İstatistikler */}
         <div>
