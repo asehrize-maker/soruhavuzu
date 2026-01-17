@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { bransAPI, userAPI } from '../services/api';
+import { bransAPI, userAPI, ekipAPI } from '../services/api';
 
 const MAIN_BRANCHES = [
   { name: 'TÜRKÇE', color: 'from-red-500 to-red-600', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
@@ -12,11 +12,13 @@ const MAIN_BRANCHES = [
 export default function Branslar() {
   const [branslar, setBranslar] = useState([]);
   const [users, setUsers] = useState([]);
+  const [ekipler, setEkipler] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [selectedTeacherId, setSelectedTeacherId] = useState('');
   const [assigningLoading, setAssigningLoading] = useState(false);
+  const [creatingBranch, setCreatingBranch] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -24,12 +26,14 @@ export default function Branslar() {
 
   const loadData = async () => {
     try {
-      const [bransResponse, userResponse] = await Promise.all([
+      const [bransResponse, userResponse, ekipResponse] = await Promise.all([
         bransAPI.getAll(),
         userAPI.getAll(),
+        ekipAPI.getAll(),
       ]);
       setBranslar(bransResponse.data.data);
       setUsers(userResponse.data.data);
+      setEkipler(ekipResponse.data.data);
     } catch (error) {
       console.error('Veri yükleme hatası:', error);
       alert('Veriler yüklenemedi');
@@ -38,21 +42,65 @@ export default function Branslar() {
     }
   };
 
-  const handleBranchClick = (branchName) => {
+  const handleBranchClick = async (branchName) => {
     // Find the real branch object from DB (case insensitive match)
-    const foundBranch = branslar.find(b =>
+    let foundBranch = branslar.find(b =>
       b.brans_adi.toLowerCase() === branchName.toLowerCase() ||
-      (branchName === 'TÜRKÇE' && b.brans_adi.toLowerCase().includes('turkce')) || // Fallback for char encoding often issues
+      (branchName === 'TÜRKÇE' && b.brans_adi.toLowerCase().includes('turkce')) ||
       (branchName === 'İNGİLİZCE' && b.brans_adi.toLowerCase().includes('ingilizce'))
     );
+
+    // If branch doesn't exist, try to create it automatically
+    if (!foundBranch) {
+      if (ekipler.length === 0) {
+        alert('Bu branşı otomatik oluşturmak için sistemde en az bir Ekip olmalıdır. Lütfen önce Ekipler sayfasından bir ekip oluşturun.');
+        return;
+      }
+
+      if (confirm(`"${branchName}" branşı sistemde bulunamadı. Otomatik oluşturulsun mu?`)) {
+        setCreatingBranch(true);
+        try {
+          // Assign to the first available team
+          const defaultTeamId = ekipler[0].id;
+          await bransAPI.create({
+            brans_adi: branchName,
+            ekip_id: defaultTeamId,
+            aciklama: 'Otomatik oluşturulan branş'
+          });
+
+          // Refresh data
+          const [bransResponse] = await Promise.all([bransAPI.getAll()]);
+          setBranslar(bransResponse.data.data);
+          const newBranchList = bransResponse.data.data;
+
+          // Find the newly created branch in the refreshed list
+          foundBranch = newBranchList.find(b => b.brans_adi.toLowerCase() === branchName.toLowerCase());
+
+          if (!foundBranch) {
+            // Try looser match
+            foundBranch = newBranchList.find(b => b.brans_adi.toUpperCase().includes(branchName.toUpperCase()));
+          }
+
+          if (!foundBranch) {
+            alert('Branş oluşturuldu ancak listelenemedi. Lütfen sayfayı yenileyin.');
+            return;
+          }
+        } catch (error) {
+          console.error('Branş oluşturma hatası:', error);
+          alert('Branş oluşturulamadı: ' + (error.response?.data?.error || error.message));
+          return;
+        } finally {
+          setCreatingBranch(false);
+        }
+      } else {
+        return;
+      }
+    }
 
     if (foundBranch) {
       setSelectedBranch(foundBranch);
       setShowModal(true);
-      // Reset selection
       setSelectedTeacherId('');
-    } else {
-      alert(`"${branchName}" branşı henüz sistemde tanımlı değil. Lütfen önce bu branşı oluşturun.`);
     }
   };
 
@@ -61,7 +109,7 @@ export default function Branslar() {
   };
 
   const getAvailableTeachers = (currentBranchId) => {
-    // Show teachers who are NOT in this branch (or have no branch)
+    // Show teachers who are NOT in this branch
     return users.filter(u => u.rol === 'soru_yazici' && u.brans_id !== currentBranchId);
   };
 
@@ -70,23 +118,20 @@ export default function Branslar() {
 
     setAssigningLoading(true);
     try {
-      // Get the full user object to ensure we don't lose other data
       const userToUpdate = users.find(u => u.id === parseInt(selectedTeacherId));
       if (!userToUpdate) return;
 
-      // Update user's branch
       const updateData = {
         ...userToUpdate,
         brans_id: selectedBranch.id,
-        // Ensure arrays are preserved if exist
         brans_ids: userToUpdate.brans_ids || [],
       };
 
       await userAPI.update(selectedTeacherId, updateData);
 
       alert('Öğretmen ataması başarılı!');
-      await loadData(); // Reload to refresh lists
-      setSelectedTeacherId(''); // Reset dropdown
+      await loadData();
+      setSelectedTeacherId('');
     } catch (error) {
       console.error('Atama hatası:', error);
       alert(error.response?.data?.error || 'Atama işlemi başarısız');
@@ -102,7 +147,6 @@ export default function Branslar() {
       const userToUpdate = users.find(u => u.id === userId);
       if (!userToUpdate) return;
 
-      // Remove branch (set to null)
       const updateData = {
         ...userToUpdate,
         brans_id: null
@@ -123,17 +167,14 @@ export default function Branslar() {
         <p className="text-gray-500">Branş seçerek öğretmen ataması yapabilirsiniz.</p>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      {loading || creatingBranch ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+          {creatingBranch && <p className="text-gray-500">Branş oluşturuluyor...</p>}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
           {MAIN_BRANCHES.map((branch) => {
-            // Find matching DB branch stats if possible
-            const dbBranch = branslar.find(b => b.brans_adi.toUpperCase().includes(branch.name.split(' ')[0]));
-            // Simple matching
-
             return (
               <div
                 key={branch.name}
