@@ -162,8 +162,8 @@ export default function Dashboard() {
                 <span className="text-sm font-medium text-gray-700">Kolay</span>
                 <div className="flex items-center space-x-2">
                   <div className="w-48 bg-gray-200 rounded-full h-3">
-                    <div 
-                      className="bg-green-500 h-3 rounded-full" 
+                    <div
+                      className="bg-green-500 h-3 rounded-full"
                       style={{ width: `${(detayliStats.genel.kolay / detayliStats.genel.toplam_soru * 100) || 0}%` }}
                     ></div>
                   </div>
@@ -174,8 +174,8 @@ export default function Dashboard() {
                 <span className="text-sm font-medium text-gray-700">Orta</span>
                 <div className="flex items-center space-x-2">
                   <div className="w-48 bg-gray-200 rounded-full h-3">
-                    <div 
-                      className="bg-yellow-500 h-3 rounded-full" 
+                    <div
+                      className="bg-yellow-500 h-3 rounded-full"
                       style={{ width: `${(detayliStats.genel.orta / detayliStats.genel.toplam_soru * 100) || 0}%` }}
                     ></div>
                   </div>
@@ -186,8 +186,8 @@ export default function Dashboard() {
                 <span className="text-sm font-medium text-gray-700">Zor</span>
                 <div className="flex items-center space-x-2">
                   <div className="w-48 bg-gray-200 rounded-full h-3">
-                    <div 
-                      className="bg-red-500 h-3 rounded-full" 
+                    <div
+                      className="bg-red-500 h-3 rounded-full"
                       style={{ width: `${(detayliStats.genel.zor / detayliStats.genel.toplam_soru * 100) || 0}%` }}
                     ></div>
                   </div>
@@ -204,8 +204,8 @@ export default function Dashboard() {
                 <span className="text-sm font-medium text-gray-700">Beklemede</span>
                 <div className="flex items-center space-x-2">
                   <div className="w-48 bg-gray-200 rounded-full h-3">
-                    <div 
-                      className="bg-yellow-500 h-3 rounded-full" 
+                    <div
+                      className="bg-yellow-500 h-3 rounded-full"
                       style={{ width: `${(detayliStats.genel.beklemede / detayliStats.genel.toplam_soru * 100) || 0}%` }}
                     ></div>
                   </div>
@@ -216,8 +216,8 @@ export default function Dashboard() {
                 <span className="text-sm font-medium text-gray-700">Dizgide</span>
                 <div className="flex items-center space-x-2">
                   <div className="w-48 bg-gray-200 rounded-full h-3">
-                    <div 
-                      className="bg-orange-500 h-3 rounded-full" 
+                    <div
+                      className="bg-orange-500 h-3 rounded-full"
                       style={{ width: `${(detayliStats.genel.dizgide / detayliStats.genel.toplam_soru * 100) || 0}%` }}
                     ></div>
                   </div>
@@ -228,8 +228,8 @@ export default function Dashboard() {
                 <span className="text-sm font-medium text-gray-700">Tamamlandı</span>
                 <div className="flex items-center space-x-2">
                   <div className="w-48 bg-gray-200 rounded-full h-3">
-                    <div 
-                      className="bg-green-500 h-3 rounded-full" 
+                    <div
+                      className="bg-green-500 h-3 rounded-full"
                       style={{ width: `${(detayliStats.genel.tamamlandi / detayliStats.genel.toplam_soru * 100) || 0}%` }}
                     ></div>
                   </div>
@@ -240,8 +240,8 @@ export default function Dashboard() {
                 <span className="text-sm font-medium text-gray-700">Revize Gerekli</span>
                 <div className="flex items-center space-x-2">
                   <div className="w-48 bg-gray-200 rounded-full h-3">
-                    <div 
-                      className="bg-red-500 h-3 rounded-full" 
+                    <div
+                      className="bg-red-500 h-3 rounded-full"
                       style={{ width: `${(detayliStats.genel.revize_gerekli / detayliStats.genel.toplam_soru * 100) || 0}%` }}
                     ></div>
                   </div>
@@ -283,54 +283,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Kullanıcı & Dizgici Performansı */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="card">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">👤 En Aktif Soru Yazıcıları</h3>
-            <div className="space-y-3">
-              {detayliStats.kullanicilar.slice(0, 5).map((kullanici, index) => (
-                <div key={kullanici.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-bold">
-                      {index + 1}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{kullanici.ad_soyad}</p>
-                      <p className="text-xs text-gray-500">{kullanici.brans_adi}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-primary-600">{kullanici.olusturulan_soru}</p>
-                    <p className="text-xs text-green-600">{kullanici.tamamlanan} tamamlandı</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
 
-          <div className="card">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">✏️ En Aktif Dizgiciler</h3>
-            <div className="space-y-3">
-              {detayliStats.dizgiciler.slice(0, 5).map((dizgici, index) => (
-                <div key={dizgici.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white font-bold">
-                      {index + 1}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{dizgici.ad_soyad}</p>
-                      <p className="text-xs text-gray-500">{dizgici.brans_adi}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-green-600">{dizgici.tamamlanan_dizgi || 0}</p>
-                    <p className="text-xs text-gray-600">{dizgici.ortalama_sure_saat ? `${dizgici.ortalama_sure_saat}sa ort.` : '-'}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
 
         {/* Hızlı Erişim */}
         <div className="card">
