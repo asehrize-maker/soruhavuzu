@@ -363,6 +363,13 @@ export default function SoruDetay() {
           </div>
         )}
 
+        {soru.kazanim && (
+          <div className="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r">
+            <h4 className="text-sm font-semibold text-blue-900 mb-2">🎯 Kazanım</h4>
+            <p className="text-gray-700">{soru.kazanim}</p>
+          </div>
+        )}
+
         <div className="mt-6 pt-6 border-t border-gray-200">
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>

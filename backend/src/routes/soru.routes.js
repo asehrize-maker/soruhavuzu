@@ -306,10 +306,12 @@ router.post('/', [
       dosya_boyutu
     });
 
+    const { kazanim } = req.body;
+
     const result = await pool.query(
-      `INSERT INTO sorular (soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, latex_kodu, olusturan_kullanici_id, dosya_url, dosya_public_id, dosya_adi, dosya_boyutu) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
-      [soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi || null, brans_id, latex_kodu || null, req.user.id, dosya_url, dosya_public_id, dosya_adi, dosya_boyutu]
+      `INSERT INTO sorular (soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, latex_kodu, kazanim, olusturan_kullanici_id, dosya_url, dosya_public_id, dosya_adi, dosya_boyutu) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+      [soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi || null, brans_id, latex_kodu || null, kazanim || null, req.user.id, dosya_url, dosya_public_id, dosya_adi, dosya_boyutu]
     );
 
     console.log('Soru başarıyla eklendi, ID:', result.rows[0].id);
@@ -391,9 +393,9 @@ router.put('/:id(\\d+)', [
     const result = await pool.query(
       `UPDATE sorular 
        SET soru_metni = $1, fotograf_url = $2, fotograf_public_id = $3, 
-           zorluk_seviyesi = $4, durum = $5, guncellenme_tarihi = CURRENT_TIMESTAMP
-       WHERE id = $6 RETURNING *`,
-      [soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, yeniDurum, id]
+           zorluk_seviyesi = $4, kazanim = $5, durum = $6, guncellenme_tarihi = CURRENT_TIMESTAMP
+       WHERE id = $7 RETURNING *`,
+      [soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, req.body.kazanim || null, yeniDurum, id]
     );
 
     // Eğer revize durumundan güncellendiyse ve dizgici atanmışsa, dizgiciye bildirim gönder

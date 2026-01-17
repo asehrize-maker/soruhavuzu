@@ -19,6 +19,7 @@ export default function SoruEkle() {
   const [formData, setFormData] = useState({
     soru_metni: '',
     latex_kodu: '',
+    kazanim: '',
     zorluk_seviyesi: '',
     brans_id: user?.brans_id || '',
   });
@@ -237,6 +238,9 @@ export default function SoruEkle() {
       submitData.append('brans_id', formData.brans_id);
       if (formData.latex_kodu) {
         submitData.append('latex_kodu', formData.latex_kodu);
+      }
+      if (formData.kazanim) {
+        submitData.append('kazanim', formData.kazanim);
       }
       if (formData.zorluk_seviyesi) {
         submitData.append('zorluk_seviyesi', formData.zorluk_seviyesi);
@@ -479,6 +483,23 @@ export default function SoruEkle() {
                 </select>
               </div>
             )}
+
+            {/* Kazanım */}
+            <div>
+              <label htmlFor="kazanim" className="block text-sm font-medium text-gray-700 mb-1">
+                Kazanım
+              </label>
+              <textarea
+                id="kazanim"
+                name="kazanim"
+                rows="3"
+                className="input"
+                placeholder="Örnek: Doğal sayılarda toplama ve çıkarma işlemlerini yapar."
+                value={formData.kazanim}
+                onChange={handleChange}
+              />
+              <p className="mt-1 text-xs text-gray-500">Bu sorunun hangi kazanımı ölçtüğünü yazınız</p>
+            </div>
 
             {/* Zorluk Seviyesi */}
             <div>
