@@ -9,8 +9,8 @@ import { createNotification } from './bildirim.routes.js';
 
 const router = express.Router();
 
-// Multer config (memory storage)
-const upload = multer({
+// Multer config (memory storage) - Fotoğraf için
+const uploadFotograf = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB
@@ -23,6 +23,50 @@ const upload = multer({
     }
   }
 });
+
+// Multer config - Birden fazla dosya için (fotoğraf + dosya)
+const uploadFields = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB (en büyük dosya limiti)
+  },
+  fileFilter: (req, file, cb) => {
+    // Fotoğraf alanı için sadece resim
+    if (file.fieldname === 'fotograf') {
+      if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Fotoğraf için sadece resim dosyaları yüklenebilir'), false);
+      }
+    }
+    // Dosya alanı için PDF, Word, Excel
+    else if (file.fieldname === 'dosya') {
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'text/plain'
+      ];
+      if (allowedTypes.includes(file.mimetype)) {
+        // 1MB limit kontrolü dosya için
+        if (parseInt(req.headers['content-length']) > 6 * 1024 * 1024) {
+          cb(new Error('Toplam dosya boyutu çok büyük'), false);
+        } else {
+          cb(null, true);
+        }
+      } else {
+        cb(new Error('Dosya için sadece PDF, Word, Excel veya TXT dosyaları yüklenebilir'), false);
+      }
+    } else {
+      cb(null, true);
+    }
+  }
+});
+
+// Eski upload değişkenini koru (geriye uyumluluk için)
+const upload = uploadFotograf;
 
 // Tüm soruları getir (filtreleme ile)
 router.get('/', authenticate, async (req, res, next) => {
@@ -146,7 +190,10 @@ router.get('/:id(\\d+)', authenticate, async (req, res, next) => {
 router.post('/', [
   authenticate,
   authorize('admin', 'soru_yazici'),
-  upload.single('fotograf'),
+  uploadFields.fields([
+    { name: 'fotograf', maxCount: 1 },
+    { name: 'dosya', maxCount: 1 }
+  ]),
   body('soru_metni').trim().notEmpty().withMessage('Soru metni gerekli'),
   body('brans_id').isInt().withMessage('Geçerli bir branş seçin')
 ], async (req, res, next) => {
@@ -159,11 +206,16 @@ router.post('/', [
     const { soru_metni, zorluk_seviyesi, brans_id, latex_kodu } = req.body;
     let fotograf_url = null;
     let fotograf_public_id = null;
+    let dosya_url = null;
+    let dosya_public_id = null;
+    let dosya_adi = null;
+    let dosya_boyutu = null;
 
     // Fotoğraf yükleme
-    if (req.file) {
-      const b64 = Buffer.from(req.file.buffer).toString('base64');
-      const dataURI = `data:${req.file.mimetype};base64,${b64}`;
+    if (req.files && req.files.fotograf && req.files.fotograf[0]) {
+      const file = req.files.fotograf[0];
+      const b64 = Buffer.from(file.buffer).toString('base64');
+      const dataURI = `data:${file.mimetype};base64,${b64}`;
 
       const uploadResult = await cloudinary.uploader.upload(dataURI, {
         folder: 'soru-havuzu',
@@ -174,10 +226,33 @@ router.post('/', [
       fotograf_public_id = uploadResult.public_id;
     }
 
+    // Dosya yükleme (1MB limit)
+    if (req.files && req.files.dosya && req.files.dosya[0]) {
+      const file = req.files.dosya[0];
+
+      // 1MB boyut kontrolü
+      if (file.size > 1 * 1024 * 1024) {
+        throw new AppError('Dosya boyutu 1MB\'dan büyük olamaz', 400);
+      }
+
+      const b64 = Buffer.from(file.buffer).toString('base64');
+      const dataURI = `data:${file.mimetype};base64,${b64}`;
+
+      const uploadResult = await cloudinary.uploader.upload(dataURI, {
+        folder: 'soru-havuzu/dosyalar',
+        resource_type: 'raw'
+      });
+
+      dosya_url = uploadResult.secure_url;
+      dosya_public_id = uploadResult.public_id;
+      dosya_adi = file.originalname;
+      dosya_boyutu = file.size;
+    }
+
     const result = await pool.query(
-      `INSERT INTO sorular (soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, latex_kodu, olusturan_kullanici_id) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi || null, brans_id, latex_kodu || null, req.user.id]
+      `INSERT INTO sorular (soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, latex_kodu, olusturan_kullanici_id, dosya_url, dosya_public_id, dosya_adi, dosya_boyutu) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      [soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi || null, brans_id, latex_kodu || null, req.user.id, dosya_url, dosya_public_id, dosya_adi, dosya_boyutu]
     );
 
     res.status(201).json({

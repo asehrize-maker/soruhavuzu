@@ -105,7 +105,6 @@ export default function Register() {
               >
                 <option value="soru_yazici">Soru Yazıcı</option>
                 <option value="dizgici">Dizgici</option>
-                <option value="admin">Admin</option>
               </select>
             </div>
           </div>

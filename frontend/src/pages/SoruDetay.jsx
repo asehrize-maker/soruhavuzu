@@ -21,9 +21,9 @@ export default function SoruDetay() {
 
   const renderLatexInElement = (element, content) => {
     if (!element || !content) return;
-    
+
     let html = content;
-    
+
     // Display math ($$...$$) önce işlenmeli
     html = html.replace(/\$\$([^\$]+)\$\$/g, (match, latex) => {
       try {
@@ -35,7 +35,7 @@ export default function SoruDetay() {
         return `<span class="text-red-500 text-sm">${match}</span>`;
       }
     });
-    
+
     // Inline math ($...$) işleme
     html = html.replace(/\$([^\$]+)\$/g, (match, latex) => {
       try {
@@ -47,10 +47,10 @@ export default function SoruDetay() {
         return `<span class="text-red-500 text-sm">${match}</span>`;
       }
     });
-    
+
     // Yeni satırları koruyarak render et
     html = html.replace(/\n/g, '<br>');
-    
+
     element.innerHTML = html;
   };
 
@@ -59,7 +59,7 @@ export default function SoruDetay() {
       const response = await soruAPI.getById(id);
       const soruData = response.data.data;
       setSoru(soruData);
-      
+
       // Soru yüklendikten sonra LaTeX render et
       setTimeout(() => {
         if (soruMetniRef.current && soruData?.soru_metni) {
@@ -89,7 +89,7 @@ export default function SoruDetay() {
 
   const handleSil = async () => {
     if (!confirm('Bu soruyu silmek istediğinizden emin misiniz?')) return;
-    
+
     try {
       await soruAPI.delete(id);
       alert('Soru silindi');
@@ -127,23 +127,23 @@ export default function SoruDetay() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-          {/* Header */}
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Soru Detayı</h1>
-              <p className="mt-2 text-gray-600">Soru #{soru.id}</p>
-            </div>
-            <div className="flex space-x-2">
-              <button onClick={() => navigate('/sorular')} className="btn btn-secondary">
-                ← Geri
-              </button>
-              {(user?.rol === 'admin' || soru.olusturan_kullanici_id === user?.id) && (
-                <button onClick={handleSil} className="btn btn-danger">
-                  Sil
-                </button>
-              )}
-            </div>
-          </div>
+      {/* Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Soru Detayı</h1>
+          <p className="mt-2 text-gray-600">Soru #{soru.id}</p>
+        </div>
+        <div className="flex space-x-2">
+          <button onClick={() => navigate('/sorular')} className="btn btn-secondary">
+            ← Geri
+          </button>
+          {(user?.rol === 'admin' || soru.olusturan_kullanici_id === user?.id) && (
+            <button onClick={handleSil} className="btn btn-danger">
+              Sil
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Soru Bilgileri */}
       <div className="card">
@@ -190,6 +190,37 @@ export default function SoruDetay() {
               alt="Soru fotoğrafı"
               className="max-w-full h-auto rounded-lg shadow-md"
             />
+          </div>
+        )}
+
+        {soru.dosya_url && (
+          <div className="mt-6">
+            <h4 className="text-lg font-medium mb-3">📎 Ek Dosya</h4>
+            <a
+              href={soru.dosya_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition group"
+            >
+              <svg className="w-10 h-10 text-primary-600 group-hover:text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <div className="ml-4 flex-1">
+                <p className="font-medium text-gray-900 group-hover:text-primary-600">
+                  {soru.dosya_adi || 'Dosya İndir'}
+                </p>
+                {soru.dosya_boyutu && (
+                  <p className="text-sm text-gray-500">
+                    {soru.dosya_boyutu < 1024 ? soru.dosya_boyutu + ' B' :
+                      soru.dosya_boyutu < 1024 * 1024 ? (soru.dosya_boyutu / 1024).toFixed(1) + ' KB' :
+                        (soru.dosya_boyutu / (1024 * 1024)).toFixed(2) + ' MB'}
+                  </p>
+                )}
+              </div>
+              <svg className="w-6 h-6 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            </a>
           </div>
         )}
 

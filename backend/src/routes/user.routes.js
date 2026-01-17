@@ -112,11 +112,7 @@ router.put('/:id', authenticate, async (req, res, next) => {
           updates.push(`ekip_id = $${paramCount++}`);
           values.push(ekip_id || null);
         }
-        // Eski tek branş alanını da güncelle (geriye uyumluluk için)
-        if (brans_id !== undefined) {
-          updates.push(`brans_id = $${paramCount++}`);
-          values.push(brans_id || null);
-        }
+
         if (req.body.rol) {
           updates.push(`rol = $${paramCount++}`);
           values.push(req.body.rol);
@@ -145,7 +141,15 @@ router.put('/:id', authenticate, async (req, res, next) => {
           if (brans_ids.length > 0 && brans_ids[0]) {
             updates.push(`brans_id = $${paramCount++}`);
             values.push(brans_ids[0]);
+          } else {
+            // Branş listesi boşsa brans_id'yi null yap
+            updates.push(`brans_id = $${paramCount++}`);
+            values.push(null);
           }
+        } else if (brans_id !== undefined) {
+          // Eski tek branş alanını güncelle (brans_ids yoksa)
+          updates.push(`brans_id = $${paramCount++}`);
+          values.push(brans_id || null);
         }
       }
 

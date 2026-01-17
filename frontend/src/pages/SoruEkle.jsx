@@ -24,6 +24,8 @@ export default function SoruEkle() {
   });
   const [fotograf, setFotograf] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [dosya, setDosya] = useState(null);
+  const [dosyaError, setDosyaError] = useState('');
 
   // LaTeX Şablonları
   const latexTemplates = [
@@ -67,7 +69,7 @@ export default function SoruEkle() {
 
   const renderLatexContent = (content) => {
     let html = content;
-    
+
     // Display math ($$...$$) önce işlenmeli (inline'dan önce)
     html = html.replace(/\$\$([^\$]+)\$\$/g, (match, latex) => {
       try {
@@ -79,7 +81,7 @@ export default function SoruEkle() {
         return `<span class="text-red-500">${match}</span>`;
       }
     });
-    
+
     // Inline math ($...$) işleme
     html = html.replace(/\$([^\$]+)\$/g, (match, latex) => {
       try {
@@ -91,13 +93,13 @@ export default function SoruEkle() {
         return `<span class="text-red-500">${match}</span>`;
       }
     });
-    
+
     return html;
   };
 
   const renderSoruPreview = () => {
     if (!soruPreviewRef.current) return;
-    
+
     try {
       soruPreviewRef.current.innerHTML = renderLatexContent(formData.soru_metni);
     } catch (error) {
@@ -108,7 +110,7 @@ export default function SoruEkle() {
 
   const renderLatexPreview = () => {
     if (!previewRef.current) return;
-    
+
     try {
       previewRef.current.innerHTML = renderLatexContent(formData.latex_kodu);
     } catch (error) {
@@ -140,10 +142,10 @@ export default function SoruEkle() {
     const text = formData.latex_kodu;
     const before = text.substring(0, start);
     const after = text.substring(end);
-    
+
     const newText = before + template + after;
     setFormData({ ...formData, latex_kodu: newText });
-    
+
     // Cursor'ı template'in sonuna taşı
     setTimeout(() => {
       textarea.focus();
@@ -157,18 +159,18 @@ export default function SoruEkle() {
     const end = textarea.selectionEnd;
     const text = formData.latex_kodu;
     const selectedText = text.substring(start, end);
-    
+
     let wrapped;
     if (type === 'inline') {
       wrapped = `$${selectedText}$`;
     } else {
       wrapped = `$$\n${selectedText}\n$$`;
     }
-    
+
     const before = text.substring(0, start);
     const after = text.substring(end);
     const newText = before + wrapped + after;
-    
+
     setFormData({ ...formData, latex_kodu: newText });
   };
 
@@ -182,6 +184,44 @@ export default function SoruEkle() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleDosyaChange = (e) => {
+    const file = e.target.files[0];
+    setDosyaError('');
+
+    if (file) {
+      // 1MB limit kontrolü
+      if (file.size > 1 * 1024 * 1024) {
+        setDosyaError('Dosya boyutu 1MB\'dan büyük olamaz');
+        e.target.value = '';
+        return;
+      }
+
+      // Dosya tipi kontrolü
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'text/plain'
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        setDosyaError('Sadece PDF, Word, Excel veya TXT dosyaları yüklenebilir');
+        e.target.value = '';
+        return;
+      }
+
+      setDosya(file);
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
   };
 
   const handleSubmit = async (e) => {
@@ -200,6 +240,9 @@ export default function SoruEkle() {
       }
       if (fotograf) {
         submitData.append('fotograf', fotograf);
+      }
+      if (dosya) {
+        submitData.append('dosya', dosya);
       }
 
       await soruAPI.create(submitData);
@@ -235,7 +278,7 @@ export default function SoruEkle() {
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label htmlFor="soru_metni" className="block text-sm font-medium text-gray-700">
-                  Soru Metni * 
+                  Soru Metni *
                   <span className="text-xs text-gray-500 ml-2">(LaTeX destekli)</span>
                 </label>
                 <button
@@ -256,7 +299,7 @@ export default function SoruEkle() {
                 value={formData.soru_metni}
                 onChange={handleChange}
               />
-              
+
               {/* Soru Metni Önizleme */}
               {showSoruPreview && formData.soru_metni && (
                 <div className="mt-3 p-4 bg-gradient-to-br from-green-50 to-blue-50 rounded-lg border-2 border-green-200 shadow-sm">
@@ -487,6 +530,58 @@ export default function SoruEkle() {
                     </>
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* Dosya Ekleme */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                📎 Ek Dosya <span className="text-xs text-gray-500">(Opsiyonel)</span>
+              </label>
+              <div className="mt-1">
+                {dosya ? (
+                  <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{dosya.name}</p>
+                        <p className="text-xs text-gray-500">{formatFileSize(dosya.size)}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setDosya(null)}
+                      className="text-red-600 hover:text-red-700 font-medium text-sm"
+                    >
+                      × Kaldır
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center px-6 py-4 border-2 border-gray-300 border-dashed rounded-lg hover:border-primary-400 transition">
+                    <div className="text-center">
+                      <svg className="mx-auto h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                      <div className="flex text-sm text-gray-600 justify-center mt-2">
+                        <label className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500">
+                          <span>Dosya yükle</span>
+                          <input
+                            type="file"
+                            className="sr-only"
+                            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+                            onChange={handleDosyaChange}
+                          />
+                        </label>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">PDF, Word, Excel, TXT - max 1MB</p>
+                    </div>
+                  </div>
+                )}
+                {dosyaError && (
+                  <p className="mt-2 text-sm text-red-600">{dosyaError}</p>
+                )}
               </div>
             </div>
 
