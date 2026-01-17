@@ -413,13 +413,27 @@ router.put('/:id(\\d+)', [
       yeniDurum = 'beklemede';
     }
 
+    // 1. Mevcut halini versiyon geçmişine kaydet (Backup)
+    await pool.query(
+      `INSERT INTO soru_versiyonlari (soru_id, versiyon_no, data, degistiren_kullanici_id, degisim_aciklamasi)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        id,
+        soru.versiyon || 1,
+        JSON.stringify(soru),
+        req.user.id,
+        'Soru güncellemesi'
+      ]
+    );
+
     const result = await pool.query(
       `UPDATE sorular 
        SET soru_metni = $1, fotograf_url = $2, fotograf_public_id = $3, 
            zorluk_seviyesi = $4, kazanim = $5, durum = $6, 
            secenek_a = $7, secenek_b = $8, secenek_c = $9, secenek_d = $10, secenek_e = $11, 
            dogru_cevap = $12, fotograf_konumu = $13,
-           guncellenme_tarihi = CURRENT_TIMESTAMP
+           guncellenme_tarihi = CURRENT_TIMESTAMP,
+           versiyon = COALESCE(versiyon, 1) + 1
        WHERE id = $14 RETURNING *`,
       [
         soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, req.body.kazanim || null, yeniDurum,
@@ -442,10 +456,89 @@ router.put('/:id(\\d+)', [
 
     res.json({
       success: true,
+      message: 'Soru güncellendi ve yeni versiyon oluşturuldu',
       data: result.rows[0]
     });
   } catch (error) {
     next(error);
+  }
+});
+
+// Yorum Ekleme Endpoint'i
+router.post('/:id/yorum', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { yorum_metni } = req.body;
+
+    if (!yorum_metni) {
+      throw new AppError('Yorum metni zorunludur', 400);
+    }
+
+    const result = await pool.query(
+      `INSERT INTO soru_yorumlari (soru_id, kullanici_id, yorum_metni) 
+       VALUES ($1, $2, $3) RETURNING *`,
+      [id, req.user.id, yorum_metni]
+    );
+
+    res.json({
+      success: true,
+      message: 'Yorum eklendi',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
+});
+
+// Soru Yorumlarını Getirme
+router.get('/:id/yorumlar', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(`
+      SELECT sy.*, k.ad_soyad, k.rol 
+      FROM soru_yorumlari sy
+      JOIN kullanicilar k ON sy.kullanici_id = k.id
+      WHERE sy.soru_id = $1
+      ORDER BY sy.tarih DESC
+    `, [id]);
+
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Soru Geçmişini (Versiyonlarını) Getirme
+router.get('/:id/gecmis', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Sadece admin veya soru sahibi görebilir
+    const soruCheck = await pool.query('SELECT olusturan_kullanici_id FROM sorular WHERE id = $1', [id]);
+    if (soruCheck.rows.length === 0) throw new AppError('Soru bulunamadı', 404);
+
+    if (req.user.rol !== 'admin' && soruCheck.rows[0].olusturan_kullanici_id !== req.user.id) {
+      throw new AppError('Yetkisiz işlem', 403);
+    }
+
+    const result = await pool.query(`
+      SELECT sv.*, k.ad_soyad 
+      FROM soru_versiyonlari sv
+      LEFT JOIN kullanicilar k ON sv.degistiren_kullanici_id = k.id
+      WHERE sv.soru_id = $1
+      ORDER BY sv.versiyon_no DESC
+    `, [id]);
+
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
 
