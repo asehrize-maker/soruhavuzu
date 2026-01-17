@@ -12,6 +12,9 @@ export default function SoruDetay() {
   const [soru, setSoru] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dizgiNotu, setDizgiNotu] = useState('');
+  const [editMode, setEditMode] = useState(false);
+  const [editData, setEditData] = useState({ soru_metni: '', zorluk_seviyesi: '' });
+  const [saving, setSaving] = useState(false);
   const soruMetniRef = useRef(null);
   const latexKoduRef = useRef(null);
 
@@ -99,6 +102,51 @@ export default function SoruDetay() {
     }
   };
 
+  // Düzenleme modunu başlat
+  const handleEditStart = () => {
+    setEditData({
+      soru_metni: soru.soru_metni,
+      zorluk_seviyesi: soru.zorluk_seviyesi || ''
+    });
+    setEditMode(true);
+  };
+
+  // Düzenlemeyi kaydet
+  const handleEditSave = async () => {
+    if (!editData.soru_metni.trim()) {
+      alert('Soru metni boş olamaz');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const formData = new FormData();
+      formData.append('soru_metni', editData.soru_metni);
+      if (editData.zorluk_seviyesi) {
+        formData.append('zorluk_seviyesi', editData.zorluk_seviyesi);
+      }
+
+      await soruAPI.update(id, formData);
+      alert('Soru güncellendi!');
+      setEditMode(false);
+      loadSoru();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Güncelleme başarısız');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Düzenleme iptal
+  const handleEditCancel = () => {
+    setEditMode(false);
+    setEditData({ soru_metni: '', zorluk_seviyesi: '' });
+  };
+
+  // Düzenleme izni kontrolü - admin veya kendi sorusu ve (beklemede veya revize_gerekli durumunda)
+  const canEdit = (user?.rol === 'admin' || soru.olusturan_kullanici_id === user?.id) &&
+    (soru.durum === 'beklemede' || soru.durum === 'revize_gerekli');
+
   if (loading) {
     return (
       <div className="text-center py-12">
@@ -137,6 +185,11 @@ export default function SoruDetay() {
           <button onClick={() => navigate('/sorular')} className="btn btn-secondary">
             ← Geri
           </button>
+          {canEdit && !editMode && (
+            <button onClick={handleEditStart} className="btn btn-primary">
+              ✏️ Düzenle
+            </button>
+          )}
           {(user?.rol === 'admin' || soru.olusturan_kullanici_id === user?.id) && (
             <button onClick={handleSil} className="btn btn-danger">
               Sil
@@ -144,6 +197,21 @@ export default function SoruDetay() {
           )}
         </div>
       </div>
+
+      {/* Revize Notu Uyarısı */}
+      {soru.durum === 'revize_gerekli' && soru.revize_notu && (
+        <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-r-lg">
+          <div className="flex items-start">
+            <svg className="w-6 h-6 text-orange-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <h4 className="font-semibold text-orange-800">Revize Gerekli</h4>
+              <p className="text-orange-700 mt-1">{soru.revize_notu}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Soru Bilgileri */}
       <div className="card">
@@ -163,9 +231,50 @@ export default function SoruDetay() {
 
         <div className="prose max-w-none">
           <h3 className="text-xl font-semibold mb-3">Soru Metni</h3>
-          <div ref={soruMetniRef} className="text-gray-900 text-base leading-relaxed katex-left-align">
-            {/* LaTeX renders here */}
-          </div>
+          {editMode ? (
+            <div className="space-y-4">
+              <textarea
+                className="input font-mono"
+                rows="8"
+                value={editData.soru_metni}
+                onChange={(e) => setEditData({ ...editData, soru_metni: e.target.value })}
+                placeholder="Soru metnini girin..."
+              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Zorluk Seviyesi</label>
+                <select
+                  className="input"
+                  value={editData.zorluk_seviyesi}
+                  onChange={(e) => setEditData({ ...editData, zorluk_seviyesi: e.target.value })}
+                >
+                  <option value="">Seçiniz</option>
+                  <option value="kolay">Kolay</option>
+                  <option value="orta">Orta</option>
+                  <option value="zor">Zor</option>
+                </select>
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  onClick={handleEditSave}
+                  disabled={saving}
+                  className="btn btn-primary"
+                >
+                  {saving ? 'Kaydediliyor...' : '✓ Kaydet'}
+                </button>
+                <button
+                  onClick={handleEditCancel}
+                  disabled={saving}
+                  className="btn btn-secondary"
+                >
+                  İptal
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div ref={soruMetniRef} className="text-gray-900 text-base leading-relaxed katex-left-align">
+              {/* LaTeX renders here */}
+            </div>
+          )}
         </div>
 
         {soru.latex_kodu && (
