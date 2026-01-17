@@ -35,6 +35,13 @@ export default function SoruEkle() {
 
   // ... (latexTemplates, useEffects, render functions)
 
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
