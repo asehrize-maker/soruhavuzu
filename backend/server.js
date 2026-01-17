@@ -29,8 +29,17 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+// CORS Ayarları
+const frontendUrl = process.env.FRONTEND_URL;
+// Trailing slash temizle
+const cleanFrontendUrl = frontendUrl ? frontendUrl.replace(/\/$/, '') : '';
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: [
+    cleanFrontendUrl,
+    'http://localhost:5173',
+    'https://soruhavuzu.onrender.com'
+  ].filter(Boolean),
   credentials: true
 }));
 app.use(express.json());
@@ -59,7 +68,7 @@ const startServer = async () => {
   try {
     // Migration'ı çalıştır (tablolar oluştur)
     await createTables();
-    
+
     app.listen(PORT, () => {
       console.log(`🚀 Server ${PORT} portunda çalışıyor`);
       console.log(`📝 API: http://localhost:${PORT}/api`);
