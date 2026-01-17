@@ -25,6 +25,7 @@ export default function Branslar() {
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [activeTab, setActiveTab] = useState('add'); // 'add' (existing) or 'create' (new)
   const [selectedRole, setSelectedRole] = useState('soru_yazici');
+  const [editingTeacher, setEditingTeacher] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -214,8 +215,25 @@ export default function Branslar() {
       await userAPI.update(userId, updateData);
       await loadData();
     } catch (error) {
-      console.error('Kaldırma hatası:', error);
-      alert('İşlem başarısız');
+      console.error('Kullanıcı branştan çıkarılamadı:', error);
+      alert('Kullanıcı branştan çıkarılırken bir hata oluştu.');
+    }
+  };
+
+  const handleUpdateRole = async () => {
+    if (!editingTeacher) return;
+    try {
+      setAssigningLoading(true);
+      // We pass the branch_id to ensure it stays in the branch, although API usually updates only provided fields.
+      // But typically userAPI.update might expect partials.
+      await userAPI.update(editingTeacher.id, { rol: editingTeacher.rol });
+      await loadData();
+      setEditingTeacher(null);
+    } catch (error) {
+      console.error('Rol güncelleme hatası:', error);
+      alert('Rol güncellenemedi.');
+    } finally {
+      setAssigningLoading(false);
     }
   };
 
@@ -420,86 +438,122 @@ export default function Branslar() {
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-900">{teacher.ad_soyad}</p>
-                                    <p className="text-xs text-gray-500">
-                                      {teacher.email} • <span className="text-blue-600 font-semibold">{teacher.rol === 'soru_yazici' ? 'Yazar' : teacher.rol === 'dizgici' ? 'Dizgici' : teacher.rol === 'incelemeci' ? 'İncelemeci' : teacher.rol}</span>
-                                    </p>
+                                    {editingTeacher?.id === teacher.id ? (
+                                      <div className="flex items-center space-x-2 mt-1">
+                                        <select
+                                          value={editingTeacher.rol}
+                                          onChange={(e) => setEditingTeacher({ ...editingTeacher, rol: e.target.value })}
+                                          className="text-xs border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 py-1"
+                                        >
+                                          <option value="soru_yazici">Soru Yazarı</option>
+                                          <option value="dizgici">Dizgici</option>
+                                          <option value="incelemeci">İncelemeci</option>
+                                        </select>
+                                        <button onClick={handleUpdateRole} className="text-green-600 hover:text-green-800" title="Kaydet">
+                                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                          </svg>
+                                        </button>
+                                        <button onClick={() => setEditingTeacher(null)} className="text-gray-400 hover:text-gray-600" title="İptal">
+                                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                          </svg>
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <p className="text-xs text-gray-500">
+                                        {teacher.email} • <span className="text-blue-600 font-semibold">{teacher.rol === 'soru_yazici' ? 'Yazar' : teacher.rol === 'dizgici' ? 'Dizgici' : teacher.rol === 'incelemeci' ? 'İncelemeci' : teacher.rol}</span>
+                                      </p>
+                                    )}
                                   </div>
                                 </div>
-                                <button
-                                  onClick={() => handleRemoveTeacher(teacher.id)}
-                                  className="text-red-400 hover:text-red-600 p-2 rounded-full hover:bg-red-50"
-                                  title="Branştan Çıkar"
-                                >
-                                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                  </svg>
-                                </button>
-                              </div>
-                            ))
+                                <div className="flex items-center space-x-1">
+                                  {!editingTeacher && (
+                                    <button
+                                      onClick={() => setEditingTeacher({ id: teacher.id, rol: teacher.rol })}
+                                      className="text-blue-400 hover:text-blue-600 p-2 rounded-full hover:bg-blue-50"
+                                      title="Rolü Düzenle"
+                                    >
+                                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      </svg>
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleRemoveTeacher(teacher.id)}
+                                    className="text-red-400 hover:text-red-600 p-2 rounded-full hover:bg-red-50"
+                                    title="Branştan Çıkar"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                  </button>
+                                </div>
+                                ))
                           )}
-                        </div>
+                              </div>
+                      </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button
-                  type="button"
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                  onClick={() => setShowModal(false)}
-                >
-                  Kapat
-                </button>
+                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                  <button
+                    type="button"
+                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                    onClick={() => setShowModal(false)}
+                  >
+                    Kapat
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
       )}
-      {/* Other Branches Section */}
-      {branslar.filter(b => !MAIN_BRANCHES.some(mb =>
-        b.brans_adi.toUpperCase().trim() === mb.name.toUpperCase().trim() ||
-        (mb.name === 'TÜRKÇE' && b.brans_adi.toUpperCase().includes('TURKCE')) ||
-        (mb.name === 'İNGİLİZCE' && b.brans_adi.toUpperCase().includes('INGILIZCE'))
-      )).length > 0 && (
-          <div className="mt-12 pt-8 border-t border-gray-200">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Diğer Branşlar</h2>
-            <p className="text-sm text-gray-500 mb-4">Sistem dışı veya manuel eklenmiş diğer branşlar.</p>
-            <div className="bg-white shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
-              <ul className="divide-y divide-gray-200">
-                {branslar.filter(b => !MAIN_BRANCHES.some(mb =>
-                  b.brans_adi.toUpperCase().trim() === mb.name.toUpperCase().trim() ||
-                  (mb.name === 'TÜRKÇE' && b.brans_adi.toUpperCase().includes('TURKCE')) ||
-                  (mb.name === 'İNGİLİZCE' && b.brans_adi.toUpperCase().includes('INGILIZCE'))
-                )).map(branch => (
-                  <li key={branch.id} className="px-4 py-4 flex items-center justify-between hover:bg-gray-50">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{branch.brans_adi}</p>
-                      <p className="text-xs text-gray-500">
-                        {ekipler.find(e => e.id === branch.ekip_id)?.ekip_adi || 'Ekip Yok'}
-                      </p>
-                    </div>
-                    <button
-                      onClick={async () => {
-                        if (confirm(`"${branch.brans_adi}" branşını silmek istediğinize emin misiniz? Bu işlem geri alınamaz!`)) {
-                          try {
-                            await bransAPI.delete(branch.id);
-                            loadData();
-                          } catch (e) {
-                            alert('Silme başarısız: ' + (e.response?.data?.error || e.message));
-                          }
-                        }
-                      }}
-                      className="text-red-600 hover:text-red-900 text-sm font-medium"
-                    >
-                      Sil
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
-    </div>
-  );
+          {/* Other Branches Section */}
+          {branslar.filter(b => !MAIN_BRANCHES.some(mb =>
+            b.brans_adi.toUpperCase().trim() === mb.name.toUpperCase().trim() ||
+            (mb.name === 'TÜRKÇE' && b.brans_adi.toUpperCase().includes('TURKCE')) ||
+            (mb.name === 'İNGİLİZCE' && b.brans_adi.toUpperCase().includes('INGILIZCE'))
+          )).length > 0 && (
+              <div className="mt-12 pt-8 border-t border-gray-200">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Diğer Branşlar</h2>
+                <p className="text-sm text-gray-500 mb-4">Sistem dışı veya manuel eklenmiş diğer branşlar.</p>
+                <div className="bg-white shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+                  <ul className="divide-y divide-gray-200">
+                    {branslar.filter(b => !MAIN_BRANCHES.some(mb =>
+                      b.brans_adi.toUpperCase().trim() === mb.name.toUpperCase().trim() ||
+                      (mb.name === 'TÜRKÇE' && b.brans_adi.toUpperCase().includes('TURKCE')) ||
+                      (mb.name === 'İNGİLİZCE' && b.brans_adi.toUpperCase().includes('INGILIZCE'))
+                    )).map(branch => (
+                      <li key={branch.id} className="px-4 py-4 flex items-center justify-between hover:bg-gray-50">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{branch.brans_adi}</p>
+                          <p className="text-xs text-gray-500">
+                            {ekipler.find(e => e.id === branch.ekip_id)?.ekip_adi || 'Ekip Yok'}
+                          </p>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            if (confirm(`"${branch.brans_adi}" branşını silmek istediğinize emin misiniz? Bu işlem geri alınamaz!`)) {
+                              try {
+                                await bransAPI.delete(branch.id);
+                                loadData();
+                              } catch (e) {
+                                alert('Silme başarısız: ' + (e.response?.data?.error || e.message));
+                              }
+                            }
+                          }}
+                          className="text-red-600 hover:text-red-900 text-sm font-medium"
+                        >
+                          Sil
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+        </div>
+      );
 }
