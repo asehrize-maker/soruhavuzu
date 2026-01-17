@@ -214,36 +214,7 @@ export default function Dashboard() {
 
 
 
-        {/* Branş Performansı */}
-        <div className="card">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">🏆 Branş Performansı</h3>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Branş</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ekip</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Toplam</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Beklemede</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Dizgide</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Tamamlandı</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {detayliStats.branslar.slice(0, 10).map((brans, index) => (
-                  <tr key={brans.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{brans.brans_adi}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{brans.ekip_adi}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center font-bold text-blue-600">{brans.soru_sayisi}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-yellow-600">{brans.beklemede}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-orange-600">{brans.dizgide}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-green-600">{brans.tamamlandi}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+
 
 
 
