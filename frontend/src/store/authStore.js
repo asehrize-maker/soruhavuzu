@@ -17,6 +17,9 @@ const useAuthStore = create((set) => ({
   isAuthenticated: !!localStorage.getItem('token'),
   loading: false,
   error: null,
+  viewRole: null,
+
+  setViewRole: (role) => set({ viewRole: role || null }),
 
   login: async (credentials) => {
     set({ loading: true, error: null });
@@ -30,7 +33,7 @@ const useAuthStore = create((set) => ({
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
       
-      set({ user, token, isAuthenticated: true, loading: false });
+      set({ user, token, isAuthenticated: true, loading: false, viewRole: null });
       return { success: true };
     } catch (error) {
       const errorMessage = error.response?.data?.error || 'Giriş başarısız';
@@ -51,7 +54,7 @@ const useAuthStore = create((set) => ({
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
       
-      set({ user, token, isAuthenticated: true, loading: false });
+      set({ user, token, isAuthenticated: true, loading: false, viewRole: null });
       return { success: true };
     } catch (error) {
       const errorMessage = error.response?.data?.error || 'Kayıt başarısız';
@@ -63,7 +66,7 @@ const useAuthStore = create((set) => ({
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    set({ user: null, token: null, isAuthenticated: false });
+    set({ user: null, token: null, isAuthenticated: false, viewRole: null });
   },
 
   updateUser: (userData) => {

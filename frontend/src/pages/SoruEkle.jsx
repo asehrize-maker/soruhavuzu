@@ -7,7 +7,9 @@ import 'katex/dist/katex.min.css';
 
 export default function SoruEkle() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user: authUser, viewRole } = useAuthStore();
+  const effectiveRole = viewRole || authUser?.rol;
+  const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
   const [branslar, setBranslar] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);

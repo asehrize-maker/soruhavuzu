@@ -4,7 +4,9 @@ import useAuthStore from '../store/authStore';
 import { soruAPI, bransAPI } from '../services/api';
 
 export default function Sorular() {
-  const { user } = useAuthStore();
+  const { user: authUser, viewRole } = useAuthStore();
+  const effectiveRole = viewRole || authUser?.rol;
+  const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
   const [selectedQuestions, setSelectedQuestions] = useState([]);
 
   // ... (existing functions)

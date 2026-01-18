@@ -3,7 +3,9 @@ import { mesajAPI } from '../services/api';
 import useAuthStore from '../store/authStore';
 
 export default function MesajKutusu({ soruId, soruSahibi, dizgici }) {
-  const { user } = useAuthStore();
+  const { user: authUser, viewRole } = useAuthStore();
+  const effectiveRole = viewRole || authUser?.rol;
+  const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
   const [mesajlar, setMesajlar] = useState([]);
   const [yeniMesaj, setYeniMesaj] = useState('');
   const [loading, setLoading] = useState(true);

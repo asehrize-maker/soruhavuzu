@@ -21,8 +21,8 @@ function PrivateRoute({ children }) {
 }
 
 function AdminRoute({ children }) {
-  const user = useAuthStore((state) => state.user);
-  return user?.rol === 'admin' ? children : <Navigate to="/" />;
+  const role = useAuthStore((state) => state.viewRole || state.user?.rol);
+  return role === 'admin' ? children : <Navigate to="/" />;
 }
 
 function App() {

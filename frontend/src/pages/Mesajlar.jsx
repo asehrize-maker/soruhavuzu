@@ -3,7 +3,9 @@ import { kullaniciMesajAPI } from '../services/api';
 import useAuthStore from '../store/authStore';
 
 export default function Mesajlar() {
-  const { user } = useAuthStore();
+  const { user: authUser, viewRole } = useAuthStore();
+  const effectiveRole = viewRole || authUser?.rol;
+  const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
   const [konusmalar, setKonusmalar] = useState([]);
   const [kullanicilar, setKullanicilar] = useState([]);
   const [secilenKullanici, setSecilenKullanici] = useState(null);
