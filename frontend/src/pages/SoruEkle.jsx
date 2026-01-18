@@ -106,17 +106,37 @@ export default function SoruEkle() {
   };
 
   const handleCopyContent = () => {
-    // HTML taglerini temizleyip salt metin olarak kopyala
-    const fullText = components.map(c => {
-      // Basit HTML temizliği (veya innerText kullanabilirdik ama component state'inden alıyoruz)
+    // 1. Plain Text Birleştirme
+    const plainText = components.map(c => {
       const tempDiv = document.createElement("div");
       tempDiv.innerHTML = c.content;
       return tempDiv.innerText || tempDiv.textContent || "";
     }).join('\n\n');
 
-    navigator.clipboard.writeText(fullText).then(() => {
-      alert("📋 Tüm soru metni panoya kopyalandı!");
-    });
+    // 2. HTML Birleştirme (Formatlı Kopyalama İçin)
+    const fullHtml = components.map(c => {
+      return `<div style="margin-bottom: 12px;">${c.content}</div>`;
+    }).join('');
+
+    // Clipboard API
+    const doCopy = async () => {
+      try {
+        if (navigator.clipboard && navigator.clipboard.write) {
+          const item = new ClipboardItem({
+            'text/html': new Blob([fullHtml], { type: 'text/html' }),
+            'text/plain': new Blob([plainText], { type: 'text/plain' })
+          });
+          await navigator.clipboard.write([item]);
+          alert("📋 TÜM SORU (Biçimleriyle) KOPYALANDI!");
+        } else {
+          throw new Error("Clipboard API not fully supported");
+        }
+      } catch (err) {
+        console.error(err);
+        navigator.clipboard.writeText(plainText).then(() => alert("📋 Sadece Metin Kopyalandı (Tarayıcı kısıtlaması)"));
+      }
+    };
+    doCopy();
   };
 
   const handleSave = async (submitToReview = false) => {
