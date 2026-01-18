@@ -30,7 +30,15 @@ router.post('/register', [
     }
 
     let finalRole = rol;
-    if (rol === 'admin') {
+
+    // Sistemdeki ilk kullanıcı mı kontrol et
+    const userCountResult = await pool.query('SELECT COUNT(*) FROM kullanicilar');
+    const userCount = parseInt(userCountResult.rows[0].count);
+
+    if (userCount === 0) {
+      // İlk kullanıcı her zaman admin olsun
+      finalRole = 'admin';
+    } else if (rol === 'admin') {
       // Admin rolü ile kayıt olunamaz, soru_yazici olarak değiştir
       finalRole = 'soru_yazici';
     }
