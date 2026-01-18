@@ -32,7 +32,7 @@ export default function SoruEkle() {
 
   // İçerik Bileşenleri
   const [components, setComponents] = useState([
-    { id: 'init_koku', type: 'koku', content: 'Soru kökünü buraya yazınız...' }
+    { id: 'init_koku', type: 'koku', content: '' }
   ]);
 
   // Resim Modu State
@@ -67,8 +67,8 @@ export default function SoruEkle() {
 
   const addComponent = (type) => {
     let defaultContent = '';
-    if (type === 'koku') defaultContent = 'Yeni soru kökü...';
-    if (type === 'govde') defaultContent = 'Yeni soru gövdesi...';
+    // if (type === 'koku') defaultContent = ''; // Zaten boş
+    // if (type === 'govde') defaultContent = '';
 
     const newComp = { id: Date.now(), type, content: defaultContent };
     setComponents([...components, newComp]);
@@ -103,6 +103,20 @@ export default function SoruEkle() {
 
   const execCmd = (cmd) => {
     document.execCommand(cmd, false, null);
+  };
+
+  const handleCopyContent = () => {
+    // HTML taglerini temizleyip salt metin olarak kopyala
+    const fullText = components.map(c => {
+      // Basit HTML temizliği (veya innerText kullanabilirdik ama component state'inden alıyoruz)
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = c.content;
+      return tempDiv.innerText || tempDiv.textContent || "";
+    }).join('\n\n');
+
+    navigator.clipboard.writeText(fullText).then(() => {
+      alert("📋 Tüm soru metni panoya kopyalandı!");
+    });
   };
 
   const handleSave = async (submitToReview = false) => {
@@ -259,6 +273,9 @@ export default function SoruEkle() {
                   <RibbonButton cmd="subscript" label="Alt İndis" icon={<span className="text-xs">x₂</span>} />
                 </div>
                 <div className="flex-1"></div>
+                <button onClick={handleCopyContent} className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 font-medium px-2 py-1 rounded hover:bg-white transition" title="Tümünü Kopyala">
+                  📋 Kopyala
+                </button>
                 <div className="text-xs text-gray-400 font-mono">HelveticaSınav • 10pt • 12L</div>
               </div>
 
