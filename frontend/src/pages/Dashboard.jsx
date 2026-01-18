@@ -185,42 +185,52 @@ export default function Dashboard() {
     useEffect(() => {
       const fetchSorular = async () => {
         setListLoading(true);
-        setError(null);
         try {
-          // Backend'den soruları çek (Timeout ekli: 5 saniye)
-          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Sunucu 5 saniye içinde cevap vermedi (Timeout)')), 5000));
+          // Backend'den soruları çek (Timeout: 15 saniye)
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Sunucu yanıt vermedi (Zaman aşımı)')), 15000));
           const response = await Promise.race([soruAPI.getAll(), timeoutPromise]);
 
           const allQuestions = response.data.data || [];
+          processQuestions(allQuestions); // Filtreleme fonksiyonu
 
-          // Filtreleme:
-          // 1. Seçili branş (API filterledi ama client-side garanti olsun)
-          // 2. Durum: İnceleme bekleyen veya süreçteki sorular (Tamamlananlar hariç incelensin)
-          // 3. İnceleme Modu: 'alanci' ise 'onay_alanci' FALSE olanlar, 'dilci' ise 'onay_dilci' FALSE olanlar
-          const filtered = allQuestions.filter(s => {
-            // s.brans_id bazen string bazen int gelebilir
-            const isBransMatch = parseInt(s.brans_id) === parseInt(bransId);
-            if (!isBransMatch) return false; // API yapmadıysa biz yaparız
-            const isStatusSuitable = ['inceleme_bekliyor', 'beklemede', 'incelemede', 'dizgide'].includes(s.durum);
-
-            // Mod Kontrolü: İlgili onay verilmemişse listele
-            let isPendingReview = false;
-            if (reviewMode === 'alanci') isPendingReview = !s.onay_alanci;
-            if (reviewMode === 'dilci') isPendingReview = !s.onay_dilci;
-
-            // Eğer soru zaten 'dizgi_bekliyor' veya 'tamamlandi' ise listeden düşsün (inceleme bitmiş)
-            const notFinished = s.durum !== 'dizgi_bekliyor' && s.durum !== 'tamamlandi';
-
-            return isStatusSuitable && isPendingReview && notFinished;
-          });
-
-          setSorular(filtered);
         } catch (err) {
           console.error("Sorular çekilemedi", err);
-          setError("Sorular yüklenirken hata oluştu: " + (err.response?.data?.message || err.message));
+          setError("Sunucuya erişilemiyor. Demo veriler gösteriliyor. (Hata: " + (err.message) + ")");
+
+          // MOCK DATA FALLBACK
+          const mockData = [
+            { id: 999, brans_id: bransId, brans_adi: bransAdi || 'Demo Branş', soru_metni: 'Bu bir demo sorusudur. Sunucu yanıt vermediği için gösterilmektedir.', durum: 'inceleme_bekliyor', zorluk_seviyesi: 1, olusturan_kullanici_ad_soyad: 'Sistem', olusturulma_tarihi: new Date().toISOString() }
+          ];
+          // Mock veriyi işle
+          const filteredMock = mockData; // Filtre mantığını burada tekrar yazmak yerine direkt verelim
+          setSorular(filteredMock);
         } finally {
           setListLoading(false);
         }
+      };
+
+      const processQuestions = (allQuestions) => {
+        // Filtreleme:
+        // 1. Seçili branş (API filterledi ama client-side garanti olsun)
+        // 2. Durum: İnceleme bekleyen veya süreçteki sorular (Tamamlananlar hariç incelensin)
+        // 3. İnceleme Modu: 'alanci' ise 'onay_alanci' FALSE olanlar, 'dilci' ise 'onay_dilci' FALSE olanlar
+        const filtered = allQuestions.filter(s => {
+          // s.brans_id bazen string bazen int gelebilir
+          const isBransMatch = parseInt(s.brans_id) === parseInt(bransId);
+          if (!isBransMatch) return false; // API yapmadıysa biz yaparız
+          const isStatusSuitable = ['inceleme_bekliyor', 'beklemede', 'incelemede', 'dizgide'].includes(s.durum);
+
+          // Mod Kontrolü: İlgili onay verilmemişse listele
+          let isPendingReview = false;
+          if (reviewMode === 'alanci') isPendingReview = !s.onay_alanci;
+          if (reviewMode === 'dilci') isPendingReview = !s.onay_dilci;
+
+          // Eğer soru zaten 'dizgi_bekliyor' veya 'tamamlandi' ise listeden düşsün (inceleme bitmiş)
+          const notFinished = s.durum !== 'dizgi_bekliyor' && s.durum !== 'tamamlandi';
+
+          return isStatusSuitable && isPendingReview && notFinished;
+        });
+        setSorular(filtered);
       };
 
       if (bransId) {
@@ -228,10 +238,16 @@ export default function Dashboard() {
       }
     }, [bransId, reviewMode]);
 
-    if (error) return <div className="text-center py-8 text-red-600 bg-red-50 rounded-lg p-4 border border-red-200">{error}</div>;
+    if (error) return (
+      <div>
+        <div className="text-center py-2 text-yellow-800 bg-yellow-100 rounded-lg mb-4 border border-yellow-200">{error}</div>
+        {/* Hata olsa bile mock soruları göster */}
+        {renderSoruListesi()}
+      </div>
+    );
     if (listLoading) return <div className="text-center py-8">Yükleniyor...</div>;
 
-    return (
+    const renderSoruListesi = () => (
       <div className="mt-8">
         <h3 className="text-xl font-bold text-gray-800 mb-4">{bransAdi} - İnceleme Bekleyen Sorular</h3>
         {sorular.length === 0 ? (
@@ -252,7 +268,7 @@ export default function Dashboard() {
                         soru.zorluk_seviyesi === 'orta' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-red-100 text-red-800'
                         }`}>
-                        {soru.zorluk_seviyesi?.toUpperCase()}
+                        {String(soru.zorluk_seviyesi).toUpperCase()}
                       </span>
                       <span className="text-xs text-gray-500">#{soru.id}</span>
                     </div>
@@ -269,6 +285,8 @@ export default function Dashboard() {
         )}
       </div>
     );
+
+    return renderSoruListesi();
   }
 
   // Loading durumu
