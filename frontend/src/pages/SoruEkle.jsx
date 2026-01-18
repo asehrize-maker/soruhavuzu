@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import { soruAPI } from '../services/api';
+import { soruAPI, bransAPI } from '../services/api';
 
 // İmleç sorununu çözen, re-render olmayan editör bloğu
 const EditableBlock = memo(({ initialHtml, onChange, className, placeholder }) => {
@@ -40,7 +40,28 @@ export default function SoruEkle() {
   const [fullImageFile, setFullImageFile] = useState(null);
 
   // Soru Metadata
-  const [metadata, setMetadata] = useState({ zorluk: '3', dogruCevap: '' });
+  const [metadata, setMetadata] = useState({ zorluk: '3', dogruCevap: '', brans_id: '' });
+  const [branslar, setBranslar] = useState([]);
+
+  useEffect(() => {
+    // Branşları yükle
+    const loadBranslar = async () => {
+      try {
+        const res = await bransAPI.getAll();
+        setBranslar(res.data.data || []);
+
+        // Kullanıcının branşı varsa onu seç, yoksa ilkini seç
+        if (user?.brans_id) {
+          setMetadata(prev => ({ ...prev, brans_id: user.brans_id }));
+        } else if (res.data.data?.length > 0) {
+          setMetadata(prev => ({ ...prev, brans_id: res.data.data[0].id }));
+        }
+      } catch (err) {
+        console.error("Branşlar yüklenemedi", err);
+      }
+    };
+    loadBranslar();
+  }, [user]);
 
   // --- YARDIMCI FONKSİYONLAR ---
 
@@ -94,7 +115,7 @@ export default function SoruEkle() {
       const formData = new FormData();
       formData.append('zorluk_seviyesi', metadata.zorluk);
       formData.append('dogru_cevap', metadata.dogruCevap);
-      formData.append('brans_id', user?.brans_id || '1');
+      formData.append('brans_id', metadata.brans_id || user?.brans_id || '1');
       formData.append('kazanim', 'Genel');
 
       if (inputMode === 'resim') {
@@ -287,6 +308,20 @@ export default function SoruEkle() {
         <div className="w-[170mm] mx-auto mt-2 bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-20 animate-fade-in-up">
           <h3 className="text-xs font-bold text-gray-400 uppercase mb-4 border-b pb-2 tracking-wider">Soru Künyesi</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-bold text-gray-700 mb-2">Ders / Branş</label>
+              <select
+                className="w-full p-2 border border-gray-300 rounded-md bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                value={metadata.brans_id}
+                onChange={(e) => setMetadata({ ...metadata, brans_id: e.target.value })}
+              >
+                <option value="">Branş Seçiniz...</option>
+                {branslar.map(b => (
+                  <option key={b.id} value={b.id}>{b.brans_adi}</option>
+                ))}
+              </select>
+            </div>
+
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Zorluk Seviyesi</label>
               <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-200">
