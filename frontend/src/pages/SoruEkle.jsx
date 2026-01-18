@@ -84,7 +84,7 @@ export default function SoruEkle() {
     document.execCommand(cmd, false, null);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (submitToReview = false) => {
     if (!metadata.dogruCevap) {
       alert("Lütfen aşağıdan Doğru Cevabı seçiniz.");
       return;
@@ -95,7 +95,12 @@ export default function SoruEkle() {
       formData.append('zorluk_seviyesi', metadata.zorluk);
       formData.append('dogru_cevap', metadata.dogruCevap);
       formData.append('brans_id', user?.brans_id || '1');
-      formData.append('kazanim', 'Genel'); // Default
+      formData.append('kazanim', 'Genel');
+
+      // Statü belirleme (Backend destekliyorsa)
+      if (submitToReview) {
+        formData.append('durum', 'inceleme_bekliyor');
+      }
 
       if (inputMode === 'resim') {
         if (fullImageFile) {
@@ -107,20 +112,26 @@ export default function SoruEkle() {
           return;
         }
       } else {
-        // Metin Modu: HTML Birleştir
         const htmlContent = components.map(c => {
-          // Inline görseller şimdilik desteklenmiyor (Backend tek dosya alıyor)
-          // İleride Base64 yapılabilir.
           return `<div class="type-${c.type}" style="margin-bottom: 8px;">${c.content}</div>`;
         }).join('');
         formData.append('soru_metni', htmlContent);
       }
 
-      // Backend zorunlu alanları için (Şıklar metin içinde olduğu için boş/ok gönderiyoruz)
       ['a', 'b', 'c', 'd', 'e'].forEach(opt => formData.append(`secenek_${opt}`, '.'));
 
-      await soruAPI.create(formData);
-      alert("✅ Soru başarıyla havuza eklendi!");
+      const res = await soruAPI.create(formData);
+
+      // Eğer create sırasında durum işlenmediyse ve incelemeye gidecekse update atalım (Garanti olsun)
+      if (submitToReview && res.data?.data?.id) {
+        try {
+          await soruAPI.updateDurum(res.data.data.id, { durum: 'inceleme_bekliyor' });
+        } catch (e) { console.log("Durum update warning:", e); }
+        alert("✅ Soru kaydedildi ve İNCELEMEYE GÖNDERİLDİ!");
+      } else {
+        alert("✅ Soru havuza kaydedildi!");
+      }
+
       navigate('/sorular');
 
     } catch (error) {
@@ -342,21 +353,34 @@ export default function SoruEkle() {
               </label>
             </div>
 
-            <button
-              className="px-6 py-2 bg-[#0078D4] text-white font-bold rounded shadow hover:bg-[#005A9E] transition transform hover:scale-105"
-              onClick={handleSave}
-            >
-              KAYDET (HAVUZA GÖNDER)
-            </button>
+            <div className="flex gap-2">
+              <button
+                className="px-6 py-2 bg-gray-500 text-white font-bold rounded shadow hover:bg-gray-600 transition"
+                onClick={() => handleSave(false)}
+              >
+                KAYDET
+              </button>
+              <button
+                className="px-6 py-2 bg-[#0078D4] text-white font-bold rounded shadow hover:bg-[#005A9E] transition transform hover:scale-105"
+                onClick={() => handleSave(true)}
+              >
+                İNCELEMEYE GÖNDER
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {inputMode === 'resim' && (
         <div className="fixed bottom-8 right-8">
-          <button onClick={handleSave} className="px-8 py-3 bg-[#0078D4] text-white font-bold rounded-full shadow-xl hover:scale-105 transition" disabled={!fullImageFile}>
-            KAYDET (HAVUZA GÖNDER)
-          </button>
+          <div className="flex flex-col gap-2 items-end">
+            <button onClick={() => handleSave(false)} className="px-8 py-2 bg-gray-500 text-white font-bold rounded-full shadow hover:bg-gray-600 transition" disabled={!fullImageFile}>
+              SADECE KAYDET
+            </button>
+            <button onClick={() => handleSave(true)} className="px-8 py-3 bg-[#0078D4] text-white font-bold rounded-full shadow-xl hover:scale-105 transition" disabled={!fullImageFile}>
+              İNCELEMEYE GÖNDER
+            </button>
+          </div>
         </div>
       )}
 
