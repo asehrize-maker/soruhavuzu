@@ -306,7 +306,7 @@ export default function SoruDetay() {
       </div>
 
       {/* İncelemeci İşlemleri (ÜST PANEL) */}
-      {(user?.rol === 'incelemeci' || user?.rol === 'admin') && ['inceleme_bekliyor', 'beklemede', 'revize_gerekli'].includes(soru.durum) && (
+      {user?.rol === 'incelemeci' && ['inceleme_bekliyor', 'beklemede', 'revize_gerekli'].includes(soru.durum) && (
         <div className="card bg-purple-50 border-2 border-purple-200 mb-6 shadow-lg">
           <div className="flex justify-between items-center mb-4 border-b border-purple-200 pb-2">
             <h3 className="text-xl font-bold text-purple-900 flex items-center">
@@ -509,6 +509,37 @@ export default function SoruDetay() {
               </div>
             )}
           </>)}
+        </div>
+
+        {/* Seçenekler */}
+        <div className="mt-6 mb-6">
+          <h4 className="text-lg font-semibold mb-3 text-gray-800 border-b pb-2">Seçenekler</h4>
+          <div className="grid grid-cols-1 gap-3">
+            {['a', 'b', 'c', 'd', 'e'].map((opt) => {
+              const text = soru[`secenek_${opt}`];
+              if (!text) return null;
+              // Doğru cevabı sadece Yetkili Kişiler görsün (Zaten bu sayfaya giren yetkilidir ama yine de)
+              const isCorrect = soru.dogru_cevap === opt.toUpperCase();
+              return (
+                <div key={opt} className={`p-3 rounded-lg border flex items-start ${isCorrect ? 'bg-green-50 border-green-500 ring-1 ring-green-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
+                  <span className={`font-bold mr-3 w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full text-sm transition-colors ${isCorrect ? 'bg-green-600 text-white shadow-sm' : 'bg-gray-200 text-gray-700'}`}>
+                    {opt.toUpperCase()}
+                  </span>
+                  <div className="flex-1 text-gray-800 text-base pt-1 min-w-0 break-words" ref={(el) => el && renderLatexInElement(el, text)}>
+                    {text}
+                  </div>
+                  {isCorrect && (
+                    <div className="ml-3 flex-shrink-0 flex items-center">
+                      <span className="text-green-700 text-xs font-bold bg-green-100 px-2 py-1 rounded border border-green-200 flex items-center">
+                        <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                        DOĞRU
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {soru.latex_kodu && (
