@@ -396,13 +396,7 @@ export default function Dashboard() {
               </p>
             </div>
 
-            <div className="card bg-teal-50 border-l-4 border-teal-500">
-              <h3 className="text-sm font-medium text-teal-900">Fotoğraflı Soru</h3>
-              <p className="text-2xl font-bold text-teal-700 mt-2">{detayliStats.genel.fotografli || 0}</p>
-              <p className="text-xs text-teal-600 mt-1">
-                {detayliStats.genel.latexli || 0} LaTeX'li soru
-              </p>
-            </div>
+
           </div>
         </div>
 
