@@ -165,11 +165,64 @@ export default function Sorular() {
     return <span className={badges[durum]}>{labels[durum]}</span>;
   };
 
+  // Admin için Branş Seçimi Landing Page
+  if (user?.rol === 'admin' && !filters.brans_id) {
+    return (
+      <div className="max-w-6xl mx-auto py-10 space-y-8 animate-fade-in-up">
+        <div className="text-center">
+          <h1 className="text-4xl font-extrabold text-gray-900 mb-2">Soru Havuzu</h1>
+          <p className="text-xl text-gray-500">Lütfen işlem yapmak istediğiniz branşı seçiniz</p>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-12"><div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div></div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {branslar.map(brans => (
+              <button
+                key={brans.id}
+                onClick={() => setFilters({ ...filters, brans_id: brans.id })}
+                className="group flex flex-col items-center p-8 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-xl hover:border-blue-500 hover:bg-gradient-to-br hover:from-white hover:to-blue-50 transition-all transform hover:-translate-y-1"
+              >
+                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-4xl mb-6 group-hover:scale-110 transition-transform shadow-inner">📚</div>
+                <h3 className="text-2xl font-bold text-gray-800 group-hover:text-blue-700">{brans.brans_adi}</h3>
+                <p className="text-sm font-medium text-gray-500 mt-2 bg-gray-100 px-3 py-1 rounded-full">{brans.ekip_adi}</p>
+                <div className="mt-6 text-blue-600 font-semibold opacity-0 group-hover:opacity-100 transition-opacity flex items-center">
+                  Soruları Görüntüle <span className="ml-2">→</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
+      {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Sorular</h1>
+        <div className="flex items-center gap-4">
+          {user?.rol === 'admin' && filters.brans_id && (
+            <button
+              onClick={() => setFilters({ ...filters, brans_id: '' })}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-sm"
+              title="Branş Seçimine Dön"
+            >
+              <span className="text-xl font-bold">←</span>
+            </button>
+          )}
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+            Sorular
+            {user?.rol === 'admin' && filters.brans_id && (
+              <span className="text-gray-400 font-light ml-3 text-2xl flex items-center">
+                <span className="mx-2">/</span>
+                <span className="text-blue-600">{branslar.find(b => b.id == filters.brans_id)?.brans_adi}</span>
+              </span>
+            )}
+          </h1>
+        </div>
         {(user?.rol === 'admin' || user?.rol === 'soru_yazici') && (
           <Link to="/sorular/yeni" className="btn btn-primary">
             + Yeni Soru Ekle
