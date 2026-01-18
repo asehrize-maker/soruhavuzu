@@ -7,6 +7,8 @@ import { updateDurumConstraint } from './migrations/006_durum_constraint.js';
 import { addSoruDetaylari } from './migrations/007_soru_detaylari.js';
 import { addSoruIncelemeVeVersiyon } from './migrations/008_soru_inceleme_versiyon.js';
 import { seedSivasEkibi } from './migrations/009_sivas_ekibi_seed.js';
+import { updateWorkflowStatus } from './migrations/010_update_workflow_status.js';
+import { doubleApprovalSystem } from './migrations/011_double_approval_system.js';
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -112,6 +114,13 @@ const createTables = async () => {
 
     // Sivas Ekibi ve Temel Branşları Seed Et
     await seedSivasEkibi();
+
+    // İş akışı durumlarını güncelle (V2)
+    // İş akışı durumlarını güncelle (V2)
+    await updateWorkflowStatus();
+
+    // Çift onay sistemi ve revize notları
+    await doubleApprovalSystem();
 
   } catch (error) {
     await client.query('ROLLBACK');

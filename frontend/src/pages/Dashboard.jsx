@@ -12,6 +12,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedStat, setSelectedStat] = useState(null);
   const [selectedBranch, setSelectedBranch] = useState(null);
+  const [reviewMode, setReviewMode] = useState('alanci'); // 'alanci' | 'dilci'
+  const [adminTab, setAdminTab] = useState('inceleme'); // Admin paneli varsayılan sekmesi
+  const [showIncelemeciPreview, setShowIncelemeciPreview] = useState(false); // Deprecated but kept for compatibility
 
   useEffect(() => {
     loadStats();
@@ -48,7 +51,7 @@ export default function Dashboard() {
   };
 
   // İncelemeci için özel dashboard
-  if (user?.rol === 'incelemeci') {
+  const renderIncelemeciContent = () => {
     const branslar = [
       { ad: 'TÜRKÇE', color: 'blue' },
       { ad: 'MATEMATİK', color: 'red' },
@@ -64,11 +67,41 @@ export default function Dashboard() {
             Hoş Geldiniz, {user?.ad_soyad}
           </h1>
           <p className="mt-2 text-purple-100">
-            İncelemeci paneline hoş geldiniz. İncelemek istediğiniz branşı seçin.
+            {user?.rol === 'admin' ? 'İncelemeci Paneli (Önizleme Modu)' : 'İncelemeci paneline hoş geldiniz. İncelemek istediğiniz branşı seçin.'}
           </p>
         </div>
 
-        <h2 className="text-xl font-bold text-gray-900">Branşlar</h2>
+        <div className="flex justify-center mb-8">
+          <div className="bg-white p-2 rounded-xl shadow-md border border-gray-200 inline-flex space-x-2">
+            <button
+              onClick={() => { setReviewMode('alanci'); setSelectedBranch(null); }}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-lg text-sm font-bold transition-all transform ${reviewMode === 'alanci'
+                ? 'bg-blue-600 text-white shadow-lg scale-105'
+                : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                }`}
+            >
+              <span className="text-xl">🔬</span>
+              <span>ALAN İNCELEMESİ</span>
+            </button>
+            <button
+              onClick={() => { setReviewMode('dilci'); setSelectedBranch(null); }}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-lg text-sm font-bold transition-all transform ${reviewMode === 'dilci'
+                ? 'bg-green-600 text-white shadow-lg scale-105'
+                : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                }`}
+            >
+              <span className="text-xl">📝</span>
+              <span>DİL İNCELEMESİ</span>
+            </button>
+          </div>
+        </div>
+
+        <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+          Branşlar
+          <span className={`ml-2 px-3 py-1 rounded-full text-sm ${reviewMode === 'alanci' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
+            {reviewMode === 'alanci' ? 'Alan Uzmanı Modu' : 'Dil Uzmanı Modu'}
+          </span>
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {branslar.map((brans) => (
             <div
@@ -92,30 +125,48 @@ export default function Dashboard() {
         </div>
 
         {/* Seçili Branşın Sorularını Göster */}
-        {selectedBranch && <IncelemeListesi brans={selectedBranch} />}
+        {selectedBranch && <IncelemeListesi brans={selectedBranch} reviewMode={reviewMode} />}
       </div>
     );
+  };
+
+  // İncelemeci için özel dashboard
+  if (user?.rol === 'incelemeci') {
+    return renderIncelemeciContent();
   }
 
-  function IncelemeListesi({ brans }) {
+  function IncelemeListesi({ brans, reviewMode }) {
     const [sorular, setSorular] = useState([]);
     const [listLoading, setListLoading] = useState(true);
+
 
     useEffect(() => {
       const fetchSorular = async () => {
         setListLoading(true);
         try {
-          // Durumu 'tamamlandi' olan ve seçili branştaki soruları getir
+          // Backend'den soruları çek
           const response = await soruAPI.getAll({ brans_adi: brans });
-          // İstemci tarafında filtreleme (Backend filtresi tam çalışmayabilir diye)
           const allQuestions = response.data.data || [];
-          const filtered = allQuestions.filter(s =>
-            s.brans_adi === brans &&
-            (s.durum === 'tamamlandi' || s.durum === 'dizgide' || s.durum === 'incelemede' || s.durum === 'beklemede')
-          );
-          // İncelemeci hepsini görsün mü? Genelde "Tamamlandı" olanları görür.
-          // Kullanıcı "Bekleyen sorular" dedi. 
-          // Biz şimdilik hepsini listeleyelim ki veri görünsün, sonra filtreleriz.
+
+          // Filtreleme:
+          // 1. Seçili branş
+          // 2. Durum: İnceleme bekleyen veya süreçteki sorular (Tamamlananlar hariç incelensin)
+          // 3. İnceleme Modu: 'alanci' ise 'onay_alanci' FALSE olanlar, 'dilci' ise 'onay_dilci' FALSE olanlar
+          const filtered = allQuestions.filter(s => {
+            const isBransMatch = s.brans_adi === brans;
+            const isStatusSuitable = ['inceleme_bekliyor', 'beklemede', 'incelemede', 'dizgide'].includes(s.durum);
+
+            // Mod Kontrolü: İlgili onay verilmemişse listele
+            let isPendingReview = false;
+            if (reviewMode === 'alanci') isPendingReview = !s.onay_alanci;
+            if (reviewMode === 'dilci') isPendingReview = !s.onay_dilci;
+
+            // Eğer soru zaten 'dizgi_bekliyor' veya 'tamamlandi' ise listeden düşsün (inceleme bitmiş)
+            const notFinished = s.durum !== 'dizgi_bekliyor' && s.durum !== 'tamamlandi';
+
+            return isBransMatch && isStatusSuitable && isPendingReview && notFinished;
+          });
+
           setSorular(filtered);
         } catch (err) {
           console.error("Sorular çekilemedi", err);
@@ -127,7 +178,7 @@ export default function Dashboard() {
       if (brans) {
         fetchSorular();
       }
-    }, [brans]);
+    }, [brans, reviewMode]);
 
     if (listLoading) return <div className="text-center py-8">Yükleniyor...</div>;
 
@@ -155,8 +206,8 @@ export default function Dashboard() {
                   <p className="mt-1 font-medium text-gray-900 line-clamp-1">{soru.soru_metni?.substring(0, 100)}...</p>
                   <p className="text-xs text-gray-500 mt-1">Yazar: {soru.olusturan_kullanici_ad_soyad} • Tarih: {new Date(soru.olusturulma_tarihi).toLocaleDateString("tr-TR")}</p>
                 </div>
-                <Link to={`/sorular/${soru.id}`} className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition">
-                  İncele
+                <Link to={`/sorular/${soru.id}?incelemeTuru=${reviewMode}`} className={`px-4 py-2 text-white text-sm font-medium rounded hover:opacity-90 transition ${reviewMode === 'alanci' ? 'bg-blue-600' : 'bg-green-600'}`}>
+                  {reviewMode === 'alanci' ? 'Alan İncele' : 'Dil İncele'}
                 </Link>
               </div>
             ))}
@@ -177,9 +228,57 @@ export default function Dashboard() {
   }
 
   // Admin için detaylı dashboard
-  if (user?.rol === 'admin' && detayliStats) {
+  if (user?.rol === 'admin') {
+    if (adminTab === 'inceleme') {
+      return (
+        <div className="space-y-6">
+          <div className="bg-red-600 text-white text-center py-2 font-bold rounded-lg mb-4 shadow-lg animate-pulse">
+            SİSTEM GÜNCELLENDİ - LÜTFEN SAYFAYI YENİLEYİN
+          </div>
+          <div className="flex border-b border-gray-200 mb-6 bg-white px-4 pt-2 rounded-t-xl gap-4">
+            <button
+              onClick={() => setAdminTab('inceleme')}
+              className="px-4 py-3 font-bold text-blue-600 border-b-2 border-blue-600 flex items-center bg-blue-50 rounded-t-lg"
+            >
+              <span className="mr-2">⚡</span> İnceleme Paneli (Operasyon)
+            </button>
+            <button
+              onClick={() => setAdminTab('istatistik')}
+              className="px-4 py-3 font-medium text-gray-500 hover:text-gray-700 flex items-center"
+            >
+              <span className="mr-2">📊</span> İstatistikler & Yönetim
+            </button>
+          </div>
+
+          {/* Kullanıcıya Bilgi Notu */}
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+            <p className="text-sm text-blue-700">
+              Admin olarak, rolünüzü değiştirmeden buradan doğrudan <strong>İncelemeci</strong> işlemlerini gerçekleştirebilirsiniz.
+              Aşağıdaki butonlarla <strong>Alan</strong> veya <strong>Dil</strong> moduna geçebilirsiniz.
+            </p>
+          </div>
+
+          {renderIncelemeciContent()}
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-6">
+        <div className="flex border-b border-gray-200 mb-6 bg-white px-4 pt-2 rounded-t-xl gap-4">
+          <button
+            onClick={() => setAdminTab('inceleme')}
+            className="px-4 py-3 font-medium text-gray-500 hover:text-gray-700 flex items-center"
+          >
+            <span className="mr-2">⚡</span> İnceleme Paneli (Operasyon)
+          </button>
+          <button
+            onClick={() => setAdminTab('istatistik')}
+            className="px-4 py-3 font-bold text-blue-600 border-b-2 border-blue-600 flex items-center bg-blue-50 rounded-t-lg"
+          >
+            <span className="mr-2">📊</span> İstatistikler & Yönetim
+          </button>
+        </div>
 
 
         {/* Ana İstatistikler (Genel İstatistikler) */}

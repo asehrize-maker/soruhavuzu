@@ -92,6 +92,9 @@ export const soruAPI = {
   getComments: (id) => api.get(`/sorular/${id}/yorumlar`),
   addComment: (id, text) => api.post(`/sorular/${id}/yorum`, { yorum_metni: text }),
   getHistory: (id) => api.get(`/sorular/${id}/gecmis`),
+  addRevizeNot: (id, data) => api.post(`/sorular/${id}/revize-not`, data),
+  getRevizeNotlari: (id) => api.get(`/sorular/${id}/revize-notlari`),
+  deleteRevizeNot: (id, notId) => api.delete(`/sorular/${id}/revize-not/${notId}`),
 };
 
 // Bildirim API

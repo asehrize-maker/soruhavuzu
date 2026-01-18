@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { soruAPI } from '../services/api';
 import katex from 'katex';
@@ -8,6 +8,10 @@ import 'katex/dist/katex.min.css';
 export default function SoruDetay() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const incelemeTuru = queryParams.get('incelemeTuru'); // 'alanci' | 'dilci'
+
   const { user: authUser, viewRole } = useAuthStore();
   const effectiveRole = viewRole || authUser?.rol;
   const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
@@ -20,6 +24,11 @@ export default function SoruDetay() {
   const soruMetniRef = useRef(null);
   const latexKoduRef = useRef(null);
 
+  // Revize Notları State
+  const [selectedText, setSelectedText] = useState('');
+  const [revizeNotuInput, setRevizeNotuInput] = useState('');
+  const [revizeNotlari, setRevizeNotlari] = useState([]);
+
   useEffect(() => {
     loadSoru();
   }, [id]);
@@ -29,7 +38,7 @@ export default function SoruDetay() {
 
     let html = content;
 
-    // Display math ($$...$$) önce işlenmeli
+    // Display math
     html = html.replace(/\$\$([^\$]+)\$\$/g, (match, latex) => {
       try {
         return katex.renderToString(latex, {
@@ -41,7 +50,7 @@ export default function SoruDetay() {
       }
     });
 
-    // Inline math ($...$) işleme
+    // Inline math
     html = html.replace(/\$([^\$]+)\$/g, (match, latex) => {
       try {
         return katex.renderToString(latex, {
@@ -53,8 +62,24 @@ export default function SoruDetay() {
       }
     });
 
-    // Yeni satırları koruyarak render et
     html = html.replace(/\n/g, '<br>');
+
+    // Highlight Revize Notları
+    if (revizeNotlari && revizeNotlari.length > 0) {
+      revizeNotlari.forEach((not, index) => {
+        if (!not.secilen_metin) return;
+        const colorClass = not.inceleme_turu === 'dilci' ? 'green' : 'blue';
+        const mark = `<mark class="bg-${colorClass}-200 rounded px-1 cursor-help relative group">
+          ${not.secilen_metin}
+          <span class="absolute bottom-full left-0 hidden group-hover:block bg-gray-800 text-white text-xs p-2 rounded w-48 z-50 shadow-lg mb-1">
+            <strong>${index + 1}.</strong> ${not.not_metni} <br/>
+            <span class="text-gray-400 text-[10px]">${new Date(not.tarih).toLocaleString()}</span>
+          </span>
+          <sup class="text-${colorClass}-700 font-bold ml-0.5 select-none">[${index + 1}]</sup>
+        </mark>`;
+        html = html.split(not.secilen_metin).join(mark);
+      });
+    }
 
     element.innerHTML = html;
   };
@@ -62,24 +87,64 @@ export default function SoruDetay() {
   const loadSoru = async () => {
     try {
       const response = await soruAPI.getById(id);
-      const soruData = response.data.data;
-      setSoru(soruData);
-
-      // Soru yüklendikten sonra LaTeX render et
-      setTimeout(() => {
-        if (soruMetniRef.current && soruData?.soru_metni) {
-          renderLatexInElement(soruMetniRef.current, soruData.soru_metni);
-        }
-        if (latexKoduRef.current && soruData?.latex_kodu) {
-          renderLatexInElement(latexKoduRef.current, soruData.latex_kodu);
-        }
-      }, 0);
+      setSoru(response.data.data);
     } catch (error) {
       alert('Soru yüklenemedi');
       navigate('/sorular');
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    if (soru) {
+      if (soruMetniRef.current && soru.soru_metni) {
+        renderLatexInElement(soruMetniRef.current, soru.soru_metni);
+      }
+      if (latexKoduRef.current && soru.latex_kodu) {
+        renderLatexInElement(latexKoduRef.current, soru.latex_kodu);
+      }
+    }
+  }, [soru, revizeNotlari]);
+
+  useEffect(() => {
+    if (id) loadRevizeNotlari();
+  }, [id]);
+
+  const loadRevizeNotlari = async () => {
+    try {
+      const res = await soruAPI.getRevizeNotlari(id);
+      setRevizeNotlari(res.data.data);
+    } catch (e) { console.error(e); }
+  };
+
+  const handleTextSelection = () => {
+    if (!incelemeTuru) return;
+    const selection = window.getSelection();
+    const text = selection.toString().trim();
+    if (text) setSelectedText(text);
+  };
+
+  const handleAddRevizeNot = async () => {
+    if (!revizeNotuInput.trim()) return;
+    try {
+      await soruAPI.addRevizeNot(id, {
+        secilen_metin: selectedText,
+        not_metni: revizeNotuInput,
+        inceleme_turu: incelemeTuru
+      });
+      setRevizeNotuInput('');
+      setSelectedText('');
+      loadRevizeNotlari();
+    } catch (e) { alert('Not eklenemedi: ' + (e.response?.data?.error || e.message)); }
+  };
+
+  const handleDeleteRevizeNot = async (notId) => {
+    if (!confirm('Notu silmek istiyor musunuz?')) return;
+    try {
+      await soruAPI.deleteRevizeNot(id, notId);
+      loadRevizeNotlari();
+    } catch (e) { alert('Silinemedi'); }
   };
 
   // Dosya indirme helper fonksiyonu
@@ -189,22 +254,28 @@ export default function SoruDetay() {
 
   // Düzenleme izni kontrolü - admin veya kendi sorusu ve (beklemede veya revize_gerekli durumunda)
   const canEdit = (user?.rol === 'admin' || soru.olusturan_kullanici_id === user?.id) &&
-    (soru.durum === 'beklemede' || soru.durum === 'revize_gerekli');
+    (soru.durum === 'beklemede' || soru.durum === 'revize_gerekli' || soru.durum === 'revize_istendi');
 
   const getDurumBadge = (durum) => {
     const badges = {
       beklemede: 'badge badge-warning',
+      inceleme_bekliyor: 'badge badge-primary',
+      dizgi_bekliyor: 'badge badge-warning',
       dizgide: 'badge badge-info',
       tamamlandi: 'badge badge-success',
       revize_gerekli: 'badge badge-error',
+      revize_istendi: 'badge badge-error',
     };
     const labels = {
       beklemede: 'Beklemede',
+      inceleme_bekliyor: 'İnceleme Bekliyor',
+      dizgi_bekliyor: 'Dizgi Bekliyor',
       dizgide: 'Dizgide',
       tamamlandi: 'Tamamlandı',
       revize_gerekli: 'Revize Gerekli',
+      revize_istendi: 'Revize İstendi',
     };
-    return <span className={badges[durum]}>{labels[durum]}</span>;
+    return <span className={badges[durum]} > {labels[durum]}</span>;
   };
 
   return (
@@ -304,11 +375,41 @@ export default function SoruDetay() {
                 </button>
               </div>
             </div>
-          ) : (
-            <div ref={soruMetniRef} className="text-gray-900 text-base leading-relaxed katex-left-align">
+          ) : (<>
+            <div
+              ref={soruMetniRef}
+              className="text-gray-900 text-base leading-relaxed katex-left-align relative"
+              onMouseUp={handleTextSelection}
+            >
               {/* LaTeX renders here */}
             </div>
-          )}
+
+            {/* Not Ekleme Popover */}
+            {selectedText && (
+              <div className="fixed bottom-12 right-12 z-50 w-96 bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden transform transition-all animate-fade-in-up">
+                <div className={`px-4 py-3 border-b flex justify-between items-center ${incelemeTuru === 'alanci' ? 'bg-blue-50' : 'bg-green-50'}`}>
+                  <h3 className={`text-sm font-bold ${incelemeTuru === 'alanci' ? 'text-blue-800' : 'text-green-800'}`}>Not Ekle ({incelemeTuru === 'alanci' ? 'Alan' : 'Dil'})</h3>
+                  <button onClick={() => setSelectedText('')} className="text-gray-400 hover:text-red-500 font-bold">✕</button>
+                </div>
+                <div className="p-4 bg-white">
+                  <div className="mb-3 text-xs text-gray-600 bg-gray-50 p-2 rounded italic border border-gray-200 border-l-4 border-l-gray-400">
+                    "{selectedText.substring(0, 100)}{selectedText.length > 100 ? '...' : ''}"
+                  </div>
+                  <textarea
+                    className="w-full text-sm border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent p-2"
+                    rows="3"
+                    placeholder="Düzeltme notunuzu girin..."
+                    value={revizeNotuInput}
+                    onChange={(e) => setRevizeNotuInput(e.target.value)}
+                  />
+                  <div className="mt-3 flex justify-end gap-2">
+                    <button onClick={() => setSelectedText('')} className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">İptal</button>
+                    <button onClick={handleAddRevizeNot} className={`px-4 py-1 text-sm text-white rounded shadow-sm ${incelemeTuru === 'alanci' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'}`}>Kaydet</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>)}
         </div>
 
         {soru.latex_kodu && (
@@ -399,8 +500,93 @@ export default function SoruDetay() {
         </div>
       </div>
 
+      {/* İncelemeci İşlemleri */}
+      {(user?.rol === 'incelemeci' || user?.rol === 'admin') && soru.durum === 'inceleme_bekliyor' && (
+        <div className="card bg-purple-50 border border-purple-100">
+          <h3 className="text-xl font-semibold mb-4 text-purple-900">İnceleme İşlemleri</h3>
+
+          {/* İnceleme Yorumları */}
+          <div className="mb-6">
+            <h4 className="font-medium text-purple-800 mb-2">Yorumlar / Notlar</h4>
+            <div className="bg-white rounded-lg border border-purple-200 h-64 overflow-y-auto mb-3 p-3 space-y-3">
+              <IncelemeYorumlari soruId={id} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
+              <h4 className="font-medium text-purple-800">Karar Ver</h4>
+
+              {/* Onayla */}
+              <div className="bg-white p-3 rounded border border-green-200">
+                <p className="text-sm text-gray-600 mb-2">
+                  {incelemeTuru === 'alanci' ? 'Sorunun İÇERİK (ALAN) açısından uygunluğunu onaylayın.' : 'Sorunun DİL ve BİÇİM açısından uygunluğunu onaylayın.'}
+                </p>
+                <button
+                  onClick={async () => {
+                    if (!confirm(`Bu soruya ${incelemeTuru === 'alanci' ? 'ALAN' : 'DİL'} onayı vermek istiyor musunuz?`)) return;
+                    try {
+                      await soruAPI.updateDurum(id, {
+                        newStatus: 'dizgi_bekliyor',
+                        aciklama: `${incelemeTuru === 'alanci' ? 'Alan' : 'Dil'} incelemesi onaylandı.`,
+                        inceleme_turu: incelemeTuru
+                      });
+                      alert('Onay kaydedildi.');
+                      loadSoru();
+                    } catch (e) { alert(e.response?.data?.error || 'İşlem hatası'); }
+                  }}
+                  className={`w-full btn ${incelemeTuru === 'alanci' ? 'btn-primary' : 'btn-success'}`}
+                >
+                  ✓ {incelemeTuru === 'alanci' ? 'Alan' : 'Dil'} Onayı Ver
+                </button>
+
+                <button
+                  onClick={async () => {
+                    if (!confirm('Bu soruyu tamamen onaylayıp süreci bitirmek istiyor musunuz?')) return;
+                    try {
+                      await soruAPI.updateDurum(id, { newStatus: 'tamamlandi', aciklama: 'İncelemeci final onayı verdi' });
+                      alert('Soru tamamlandı ve havuzda yayınlandı.');
+                      loadSoru();
+                    } catch (e) { alert(e.response?.data?.error || 'İşlem hatası'); }
+                  }}
+                  className="w-full btn btn-primary mt-2"
+                >
+                  🏆 Onayla ve Tamamla
+                </button>
+              </div>
+
+              {/* Revize */}
+              <div className="bg-white p-3 rounded border border-red-200">
+                <label className="block text-sm font-medium text-red-800 mb-1">Revize İste</label>
+                <textarea
+                  rows="2"
+                  className="input text-sm border-red-300 focus:border-red-500 mb-2"
+                  placeholder="Revize nedenini açıklayın..."
+                  value={dizgiNotu} // Aynı state'i kullanalım
+                  onChange={(e) => setDizgiNotu(e.target.value)}
+                />
+                <button
+                  onClick={async () => {
+                    if (!dizgiNotu) return alert('Lütfen revize notu girin');
+                    try {
+                      await soruAPI.updateDurum(id, { newStatus: 'revize_istendi', aciklama: dizgiNotu });
+                      alert('Revize talebi gönderildi');
+                      setDizgiNotu('');
+                      loadSoru();
+                    } catch (e) { alert(e.response?.data?.error || 'Hata'); }
+                  }}
+                  className="w-full btn bg-red-600 text-white hover:bg-red-700"
+                >
+                  Revize İste
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Dizgi İşlemleri & Değerlendirme */}
-      {(user?.rol === 'dizgici' || user?.rol === 'admin') && (soru.durum === 'dizgide' || soru.durum === 'beklemede' || soru.durum === 'tamamlandi') && (
+      {(user?.rol === 'dizgici' || user?.rol === 'admin') && (soru.durum === 'dizgide' || soru.durum === 'dizgi_bekliyor' || soru.durum === 'beklemede' || soru.durum === 'tamamlandi') && (
         <div className="card bg-indigo-50 border border-indigo-100">
           <h3 className="text-xl font-semibold mb-4 text-indigo-900">İnceleme ve İşlemler</h3>
 
