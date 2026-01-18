@@ -210,26 +210,37 @@ export default function Dashboard() {
       };
 
       const processQuestions = (allQuestions) => {
-        // Filtreleme:
-        // 1. Seçili branş (API filterledi ama client-side garanti olsun)
-        // 2. Durum: İnceleme bekleyen veya süreçteki sorular (Tamamlananlar hariç incelensin)
-        // 3. İnceleme Modu: 'alanci' ise 'onay_alanci' FALSE olanlar, 'dilci' ise 'onay_dilci' FALSE olanlar
+        // DEBUG MODE: Filtreleri geçici olarak devre dışı bırakıyoruz.
+        // Soruların neden görünmediğini anlamak için ham veriyi görelim.
+
+        const filtered = allQuestions;
+        /*
         const filtered = allQuestions.filter(s => {
-          // s.brans_id bazen string bazen int gelebilir
-          const isBransMatch = parseInt(s.brans_id) === parseInt(bransId);
-          if (!isBransMatch) return false; // API yapmadıysa biz yaparız
-          const isStatusSuitable = ['inceleme_bekliyor', 'beklemede', 'incelemede', 'dizgide'].includes(s.durum);
+           // s.brans_id bazen string bazen int gelebilir
+           const isBransMatch = parseInt(s.brans_id) === parseInt(bransId);
+           if (!isBransMatch) return false; // API yapmadıysa biz yaparız
+           const isStatusSuitable = ['inceleme_bekliyor', 'beklemede', 'incelemede', 'dizgide'].includes(s.durum);
 
-          // Mod Kontrolü: İlgili onay verilmemişse listele
-          let isPendingReview = false;
-          if (reviewMode === 'alanci') isPendingReview = !s.onay_alanci;
-          if (reviewMode === 'dilci') isPendingReview = !s.onay_dilci;
+           // Mod Kontrolü: İlgili onay verilmemişse listele
+           let isPendingReview = false;
+           if (reviewMode === 'alanci') isPendingReview = !s.onay_alanci;
+           if (reviewMode === 'dilci') isPendingReview = !s.onay_dilci;
 
-          // Eğer soru zaten 'dizgi_bekliyor' veya 'tamamlandi' ise listeden düşsün (inceleme bitmiş)
-          const notFinished = s.durum !== 'dizgi_bekliyor' && s.durum !== 'tamamlandi';
+           // Eğer soru zaten 'dizgi_bekliyor' veya 'tamamlandi' ise listeden düşsün (inceleme bitmiş)
+           const notFinished = s.durum !== 'dizgi_bekliyor' && s.durum !== 'tamamlandi';
 
-          return isStatusSuitable && isPendingReview && notFinished;
+           return isStatusSuitable && isPendingReview && notFinished;
         });
+        */
+
+        if (allQuestions.length > 0) {
+          console.log("Gelen Sorular (İlk 1):", allQuestions[0]);
+          // Kullanıcıya bilgi verelim
+          if (allQuestions.length !== filtered.length) {
+            // Filtreleme oldu
+          }
+        }
+
         setSorular(filtered);
       };
 
