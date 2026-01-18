@@ -56,6 +56,18 @@ export default function Sorular() {
     loadSorular();
   }, [user?.id, user?.rol, filters.durum, filters.brans_id]);
 
+  const handleSil = async (id) => {
+    if (window.confirm('Bu soruyu kalıcı olarak silmek istediğinize emin misiniz?')) {
+      try {
+        await soruAPI.delete(id);
+        setSorular(sorular.filter(s => s.id !== id));
+      } catch (err) {
+        console.error('Silme hatası:', err);
+        alert('Silme işlemi başarısız oldu.');
+      }
+    }
+  };
+
   const handleDizgiAl = async (soruId) => {
     try {
       await soruAPI.dizgiAl(soruId);
@@ -364,6 +376,26 @@ export default function Sorular() {
                   >
                     Detay
                   </Link>
+
+                  {(user?.rol === 'admin' || (user?.rol === 'soru_yazici' && soru.olusturan_kullanici_id === user?.id)) && (
+                    <button
+                      onClick={() => handleSil(soru.id)}
+                      className="btn bg-white text-red-600 border border-red-200 hover:bg-red-50 text-sm"
+                    >
+                      🗑 Sil
+                    </button>
+                  )}
+
+                  {/* Sil Butonu (Admin veya Kendi Sorusu) */}
+                  {(user?.rol === 'admin' || (user?.rol === 'soru_yazici' && soru.olusturan_kullanici_id === user?.id)) && (
+                    <button
+                      onClick={() => handleSil(soru.id)}
+                      className="btn bg-red-50 text-red-600 hover:bg-red-100 text-sm border border-red-200"
+                      title="Soruyu Sil"
+                    >
+                      🗑 Sil
+                    </button>
+                  )}
 
                   {user?.rol === 'dizgici' && soru.durum === 'beklemede' && (
                     <button
