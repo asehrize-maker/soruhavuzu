@@ -110,12 +110,16 @@ export default function SoruEkle() {
       alert("Lütfen aşağıdan Doğru Cevabı seçiniz.");
       return;
     }
+    if (!metadata.brans_id) {
+      alert("Lütfen bir Ders/Branş seçiniz!");
+      return;
+    }
 
     try {
       const formData = new FormData();
       formData.append('zorluk_seviyesi', metadata.zorluk);
       formData.append('dogru_cevap', metadata.dogruCevap);
-      formData.append('brans_id', metadata.brans_id || user?.brans_id || '1');
+      formData.append('brans_id', metadata.brans_id);
       formData.append('kazanim', 'Genel');
 
       if (inputMode === 'resim') {
