@@ -306,7 +306,7 @@ export default function SoruDetay() {
       </div>
 
       {/* İncelemeci İşlemleri (ÜST PANEL) */}
-      {(user?.rol === 'incelemeci' || user?.rol === 'admin') && soru.durum === 'inceleme_bekliyor' && (
+      {(user?.rol === 'incelemeci' || user?.rol === 'admin') && ['inceleme_bekliyor', 'beklemede', 'revize_gerekli'].includes(soru.durum) && (
         <div className="card bg-purple-50 border-2 border-purple-200 mb-6 shadow-lg">
           <div className="flex justify-between items-center mb-4 border-b border-purple-200 pb-2">
             <h3 className="text-xl font-bold text-purple-900 flex items-center">
