@@ -75,54 +75,38 @@ export default function Dashboard() {
                           {selectedStat.title}
                         </h3>
 
-                        {selectedStat.key === 'brans_listesi' ? (
-                          <div className="mt-4">
-                            <p className="text-sm text-gray-500 mb-3">Sistemde kayıtlı tüm benzersiz branşlar:</p>
-                            <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto">
-                              {Array.from(new Set(detayliStats?.branslar?.map(b => b.brans_adi.trim().toUpperCase()) || [])).map(bName => (
-                                <div key={bName} className="p-3 bg-pink-50 rounded-lg flex justify-between items-center text-pink-900 font-medium border border-pink-100">
-                                  <span>{detayliStats.branslar.find(b => b.brans_adi.trim().toUpperCase() === bName)?.brans_adi || bName}</span>
-                                  <span className="text-xs bg-white px-2 py-1 rounded-full text-pink-600 border border-pink-200 shadow-sm">
-                                    Kayıtlı
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="mt-4 grid grid-cols-1 gap-4">
-                            {['TÜRKÇE', 'FEN BİLİMLERİ', 'SOSYAL BİLGİLER', 'MATEMATİK', 'İNGİLİZCE'].map((bransAdi) => {
-                              const statKey = selectedStat.key;
+                        <div className="mt-4 grid grid-cols-1 gap-4">
+                          {['TÜRKÇE', 'FEN BİLİMLERİ', 'SOSYAL BİLGİLER', 'MATEMATİK', 'İNGİLİZCE'].map((bransAdi) => {
+                            const statKey = selectedStat.key;
 
-                              // Helper to find count (Summing up in case of multiple teams/branches with same name)
-                              const findCount = () => {
-                                if (!detayliStats?.branslar) return 0;
+                            // Helper to find count (Summing up in case of multiple teams/branches with same name)
+                            const findCount = () => {
+                              if (!detayliStats?.branslar) return 0;
 
-                                // Filter all matching branches
-                                const matchingBranches = detayliStats.branslar.filter(b =>
-                                  b.brans_adi.trim().toUpperCase() === bransAdi.trim().toUpperCase() ||
-                                  (bransAdi === 'TÜRKÇE' && b.brans_adi.toUpperCase().includes('TURKCE')) ||
-                                  (bransAdi === 'İNGİLİZCE' && b.brans_adi.toUpperCase().includes('INGILIZCE'))
-                                );
-
-                                // Sum the values
-                                return matchingBranches.reduce((acc, curr) => {
-                                  const val = (statKey === 'toplam_soru' ? curr.soru_sayisi : curr[statKey]);
-                                  return acc + (parseInt(val) || 0);
-                                }, 0);
-                              };
-
-                              const count = findCount();
-
-                              return (
-                                <div key={bransAdi} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                                  <span className="font-medium text-gray-700">{bransAdi}</span>
-                                  <span className="font-bold text-gray-900">{count}</span>
-                                </div>
+                              // Filter all matching branches
+                              const matchingBranches = detayliStats.branslar.filter(b =>
+                                b.brans_adi.trim().toUpperCase() === bransAdi.trim().toUpperCase() ||
+                                (bransAdi === 'TÜRKÇE' && b.brans_adi.toUpperCase().includes('TURKCE')) ||
+                                (bransAdi === 'İNGİLİZCE' && b.brans_adi.toUpperCase().includes('INGILIZCE'))
                               );
-                            })}
-                          </div>
-                        )}
+
+                              // Sum the values
+                              return matchingBranches.reduce((acc, curr) => {
+                                const val = (statKey === 'toplam_soru' ? curr.soru_sayisi : curr[statKey]);
+                                return acc + (parseInt(val) || 0);
+                              }, 0);
+                            };
+
+                            const count = findCount();
+
+                            return (
+                              <div key={bransAdi} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                <span className="font-medium text-gray-700">{bransAdi}</span>
+                                <span className="font-bold text-gray-900">{count}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   </div>
