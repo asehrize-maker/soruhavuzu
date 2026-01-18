@@ -7,9 +7,67 @@ export default function Sorular() {
   const { user: authUser, viewRole } = useAuthStore();
   const effectiveRole = viewRole || authUser?.rol;
   const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
+
+  const [sorular, setSorular] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [branslar, setBranslar] = useState([]);
+  const [filters, setFilters] = useState({
+    durum: '',
+    brans_id: '',
+  });
   const [selectedQuestions, setSelectedQuestions] = useState([]);
 
-  // ... (existing functions)
+  useEffect(() => {
+    if (!user) return;
+
+    const loadBranslar = async () => {
+      if (user.rol !== 'admin') return;
+      try {
+        const response = await bransAPI.getAll();
+        setBranslar(response.data.data || []);
+      } catch (error) {
+        console.error('Branşlar yüklenemedi:', error);
+      }
+    };
+
+    loadBranslar();
+  }, [user?.id, user?.rol]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const loadSorular = async () => {
+      setLoading(true);
+      try {
+        const params = {
+          durum: filters.durum || undefined,
+          brans_id: filters.brans_id || undefined,
+        };
+        const response = await soruAPI.getAll(params);
+        setSorular(response.data.data || []);
+      } catch (error) {
+        console.error('Sorular yüklenemedi:', error);
+        setSorular([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSorular();
+  }, [user?.id, user?.rol, filters.durum, filters.brans_id]);
+
+  const handleDizgiAl = async (soruId) => {
+    try {
+      await soruAPI.dizgiAl(soruId);
+      const response = await soruAPI.getAll({
+        durum: filters.durum || undefined,
+        brans_id: filters.brans_id || undefined,
+      });
+      setSorular(response.data.data || []);
+    } catch (error) {
+      alert(error.response?.data?.error || 'Soru dizgiye alınamadı');
+    }
+  };
 
   const handleExport = () => {
     if (selectedQuestions.length === 0) return;
@@ -185,6 +243,15 @@ export default function Sorular() {
         </div>
       ) : sorular.length === 0 ? (
         <div className="card text-center py-12">
+          <h3 className="mt-2 text-lg font-medium text-gray-900">Henüz soru eklenmedi</h3>
+          <p className="mt-1 text-sm text-gray-500">İlk soruyu ekleyerek soru havuzunu oluşturmaya başlayabilirsiniz.</p>
+          {(user?.rol === 'admin' || user?.rol === 'soru_yazici') && (
+            <div className="mt-6">
+              <Link to="/sorular/yeni" className="btn btn-primary">
+                + İlk Soruyu Ekle
+              </Link>
+            </div>
+          )}
           {/* ... (empty state icon) ... */}
           <h3 className="mt-2 text-lg font-medium text-gray-900">Soru bulunamadı</h3>
           <p className="mt-1 text-sm text-gray-500">Henüz hiç soru eklenmemiş.</p>
