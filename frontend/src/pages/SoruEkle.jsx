@@ -151,8 +151,8 @@ export default function SoruEkle() {
 
     try {
       const formData = new FormData();
-      // Test: Veritabanı integer 1-5'i reddediyorsa, String 'Orta' bekliyor olabilir.
-      formData.append('zorluk_seviyesi', 'Orta');
+      // 'zorluk_seviyesi' gönderilmiyor, DB Default değeri kullanılacak.
+      // formData.append('zorluk_seviyesi', 'Orta');
       formData.append('dogru_cevap', metadata.dogruCevap);
       formData.append('brans_id', parseInt(metadata.brans_id));
       formData.append('kazanim', 'Genel');
