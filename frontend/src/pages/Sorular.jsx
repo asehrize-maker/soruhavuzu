@@ -297,7 +297,11 @@ export default function Sorular() {
       ) : sorular.length === 0 ? (
         <div className="card text-center py-12">
           <h3 className="mt-2 text-lg font-medium text-gray-900">Henüz soru eklenmedi</h3>
-          <p className="mt-1 text-sm text-gray-500">İlk soruyu ekleyerek soru havuzunu oluşturmaya başlayabilirsiniz.</p>
+          <p className="mt-1 text-sm text-gray-500">
+            {user?.rol === 'soru_yazici'
+              ? 'İlk soruyu ekleyerek soru havuzunu oluşturmaya başlayabilirsiniz.'
+              : 'Bu kriterlere uygun henüz soru bulunmamaktadır.'}
+          </p>
           {user?.rol === 'soru_yazici' && (
             <div className="mt-6">
               <Link to="/sorular/yeni" className="btn btn-primary">
