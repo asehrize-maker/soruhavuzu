@@ -13,8 +13,6 @@ export default function Dashboard() {
   const [selectedStat, setSelectedStat] = useState(null);
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [reviewMode, setReviewMode] = useState('alanci'); // 'alanci' | 'dilci'
-  const [adminTab, setAdminTab] = useState('inceleme'); // Admin paneli varsayılan sekmesi
-  const [showIncelemeciPreview, setShowIncelemeciPreview] = useState(false); // Deprecated but kept for compatibility
 
   useEffect(() => {
     loadStats();
@@ -229,56 +227,11 @@ export default function Dashboard() {
 
   // Admin için detaylı dashboard
   if (user?.rol === 'admin') {
-    if (adminTab === 'inceleme') {
-      return (
-        <div className="space-y-6">
-          <div className="bg-red-600 text-white text-center py-2 font-bold rounded-lg mb-4 shadow-lg animate-pulse">
-            SİSTEM GÜNCELLENDİ - LÜTFEN SAYFAYI YENİLEYİN
-          </div>
-          <div className="flex border-b border-gray-200 mb-6 bg-white px-4 pt-2 rounded-t-xl gap-4">
-            <button
-              onClick={() => setAdminTab('inceleme')}
-              className="px-4 py-3 font-bold text-blue-600 border-b-2 border-blue-600 flex items-center bg-blue-50 rounded-t-lg"
-            >
-              <span className="mr-2">⚡</span> İnceleme Paneli (Operasyon)
-            </button>
-            <button
-              onClick={() => setAdminTab('istatistik')}
-              className="px-4 py-3 font-medium text-gray-500 hover:text-gray-700 flex items-center"
-            >
-              <span className="mr-2">📊</span> İstatistikler & Yönetim
-            </button>
-          </div>
 
-          {/* Kullanıcıya Bilgi Notu */}
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
-            <p className="text-sm text-blue-700">
-              Admin olarak, rolünüzü değiştirmeden buradan doğrudan <strong>İncelemeci</strong> işlemlerini gerçekleştirebilirsiniz.
-              Aşağıdaki butonlarla <strong>Alan</strong> veya <strong>Dil</strong> moduna geçebilirsiniz.
-            </p>
-          </div>
-
-          {renderIncelemeciContent()}
-        </div>
-      );
-    }
 
     return (
       <div className="space-y-6">
-        <div className="flex border-b border-gray-200 mb-6 bg-white px-4 pt-2 rounded-t-xl gap-4">
-          <button
-            onClick={() => setAdminTab('inceleme')}
-            className="px-4 py-3 font-medium text-gray-500 hover:text-gray-700 flex items-center"
-          >
-            <span className="mr-2">⚡</span> İnceleme Paneli (Operasyon)
-          </button>
-          <button
-            onClick={() => setAdminTab('istatistik')}
-            className="px-4 py-3 font-bold text-blue-600 border-b-2 border-blue-600 flex items-center bg-blue-50 rounded-t-lg"
-          >
-            <span className="mr-2">📊</span> İstatistikler & Yönetim
-          </button>
-        </div>
+
 
 
         {/* Ana İstatistikler (Genel İstatistikler) */}
