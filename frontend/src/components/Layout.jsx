@@ -163,7 +163,8 @@ export default function Layout() {
                   <option value="admin">Admin</option>
                   <option value="soru_yazici">Soru Yazici</option>
                   <option value="dizgici">Dizgici</option>
-                  <option value="incelemeci">Incelemeci</option>
+                  <option value="alan_incelemeci">Alan Incelemeci</option>
+                  <option value="dil_incelemeci">Dil Incelemeci</option>
                 </select>
               </div>
             )}

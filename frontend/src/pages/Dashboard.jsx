@@ -5,8 +5,21 @@ import { soruAPI } from '../services/api';
 
 export default function Dashboard() {
   const { user: authUser, viewRole } = useAuthStore();
-  const effectiveRole = viewRole || authUser?.rol;
-  const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
+
+  // Custom Role Mapping for Sidebar Selection
+  let roleToUse = viewRole || authUser?.rol;
+  let incelemeTuruOverride = authUser?.inceleme_turu;
+
+  if (viewRole === 'alan_incelemeci') {
+    roleToUse = 'incelemeci';
+    incelemeTuruOverride = 'alanci';
+  } else if (viewRole === 'dil_incelemeci') {
+    roleToUse = 'incelemeci';
+    incelemeTuruOverride = 'dilci';
+  }
+
+  const effectiveRole = roleToUse;
+  const user = authUser ? { ...authUser, rol: effectiveRole, inceleme_turu: incelemeTuruOverride } : authUser;
   const [stats, setStats] = useState(null);
   const [detayliStats, setDetayliStats] = useState(null);
   const [loading, setLoading] = useState(true);
