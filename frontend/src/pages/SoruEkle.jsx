@@ -151,14 +151,14 @@ export default function SoruEkle() {
 
     try {
       const formData = new FormData();
-      formData.append('zorluk_seviyesi', metadata.zorluk);
+      formData.append('zorluk_seviyesi', '1');
       formData.append('dogru_cevap', metadata.dogruCevap);
       formData.append('brans_id', metadata.brans_id);
       formData.append('kazanim', 'Genel');
-      // Olası eksik alanlar için varsayılanlar
-      formData.append('sinif_seviyesi', '12');
-      formData.append('unite', 'Genel Tekrar');
-      formData.append('konu', 'Genel Tekrar');
+      // Olası eksik alanlar için varsayılanlar (Sınıf 8, Konu Genel)
+      formData.append('sinif_seviyesi', '8');
+      formData.append('unite', 'Genel');
+      formData.append('konu', 'Genel');
 
       if (inputMode === 'resim') {
         if (fullImageFile) {
