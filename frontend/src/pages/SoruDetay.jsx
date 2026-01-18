@@ -255,7 +255,8 @@ export default function SoruDetay() {
   // Düzenleme izni kontrolü - admin veya kendi sorusu ve (beklemede veya revize_gerekli durumunda)
   // Düzenleme izni kontrolü - admin veya kendi sorusu ve (beklemede veya revize_gerekli durumunda)
   // İnceleme modundaysak (incelemeTuru varsa) düzenleme kapalı
-  const canEdit = !incelemeTuru && (user?.rol === 'admin' || soru.olusturan_kullanici_id === user?.id) &&
+  // GÜNCELLEME: Admin sadece kendi sorusunu düzenleyebilir ("Sadece Görüntüleme" isteği üzerine)
+  const canEdit = !incelemeTuru && (soru.olusturan_kullanici_id === user?.id) &&
     (soru.durum === 'beklemede' || soru.durum === 'revize_gerekli' || soru.durum === 'revize_istendi');
 
   const getDurumBadge = (durum) => {
@@ -633,7 +634,7 @@ export default function SoruDetay() {
 
 
       {/* Dizgi İşlemleri & Değerlendirme */}
-      {(user?.rol === 'dizgici' || user?.rol === 'admin') && (soru.durum === 'dizgide' || soru.durum === 'dizgi_bekliyor' || soru.durum === 'beklemede' || soru.durum === 'tamamlandi') && (
+      {user?.rol === 'dizgici' && (soru.durum === 'dizgide' || soru.durum === 'dizgi_bekliyor' || soru.durum === 'beklemede' || soru.durum === 'tamamlandi') && (
         <div className="card bg-indigo-50 border border-indigo-100">
           <h3 className="text-xl font-semibold mb-4 text-indigo-900">İnceleme ve İşlemler</h3>
 
