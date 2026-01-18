@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, memo } from 'react';
 import useAuthStore from '../store/authStore';
+import useAuthStore from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
+import { soruAPI } from '../services/api';
 
 // İmleç sorununu çözen, re-render olmayan editör bloğu
 const EditableBlock = memo(({ initialHtml, onChange, className, placeholder }) => {
@@ -81,6 +83,51 @@ export default function SoruEkle() {
 
   const execCmd = (cmd) => {
     document.execCommand(cmd, false, null);
+  };
+
+  const handleSave = async () => {
+    if (!metadata.dogruCevap) {
+      alert("Lütfen aşağıdan Doğru Cevabı seçiniz.");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('zorluk_seviyesi', metadata.zorluk);
+      formData.append('dogru_cevap', metadata.dogruCevap);
+      formData.append('brans_id', user?.brans_id || '1');
+      formData.append('kazanim', 'Genel'); // Default
+
+      if (inputMode === 'resim') {
+        if (fullImageFile) {
+          formData.append('fotograf', fullImageFile);
+          formData.append('fotograf_konumu', 'ust');
+          formData.append('soru_metni', '<p>(Görsel Soru)</p>');
+        } else {
+          alert("Lütfen bir resim yükleyin.");
+          return;
+        }
+      } else {
+        // Metin Modu: HTML Birleştir
+        const htmlContent = components.map(c => {
+          // Inline görseller şimdilik desteklenmiyor (Backend tek dosya alıyor)
+          // İleride Base64 yapılabilir.
+          return `<div class="type-${c.type}" style="margin-bottom: 8px;">${c.content}</div>`;
+        }).join('');
+        formData.append('soru_metni', htmlContent);
+      }
+
+      // Backend zorunlu alanları için (Şıklar metin içinde olduğu için boş/ok gönderiyoruz)
+      ['a', 'b', 'c', 'd', 'e'].forEach(opt => formData.append(`secenek_${opt}`, '.'));
+
+      await soruAPI.create(formData);
+      alert("✅ Soru başarıyla havuza eklendi!");
+      navigate('/sorular');
+
+    } catch (error) {
+      console.error(error);
+      alert("Kaydetme Hatası: " + (error.response?.data?.message || error.message));
+    }
   };
 
   // --- UI BİLEŞENLERİ ---
@@ -298,9 +345,9 @@ export default function SoruEkle() {
 
             <button
               className="px-6 py-2 bg-[#0078D4] text-white font-bold rounded shadow hover:bg-[#005A9E] transition transform hover:scale-105"
-              onClick={() => alert('Kaydedildi!')}
+              onClick={handleSave}
             >
-              KAYDET
+              KAYDET (HAVUZA GÖNDER)
             </button>
           </div>
         </div>
@@ -308,8 +355,8 @@ export default function SoruEkle() {
 
       {inputMode === 'resim' && (
         <div className="fixed bottom-8 right-8">
-          <button className="px-8 py-3 bg-[#0078D4] text-white font-bold rounded-full shadow-xl hover:scale-105 transition" disabled={!fullImageFile}>
-            KAYDET
+          <button onClick={handleSave} className="px-8 py-3 bg-[#0078D4] text-white font-bold rounded-full shadow-xl hover:scale-105 transition" disabled={!fullImageFile}>
+            KAYDET (HAVUZA GÖNDER)
           </button>
         </div>
       )}
