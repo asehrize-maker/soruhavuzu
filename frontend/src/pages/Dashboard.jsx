@@ -16,7 +16,12 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadStats();
-  }, []);
+    // Otomatik inceleme modu seçimi
+    if (user?.rol === 'incelemeci') {
+      if (user.inceleme_turu === 'alanci') setReviewMode('alanci');
+      if (user.inceleme_turu === 'dilci') setReviewMode('dilci');
+    }
+  }, [user]);
 
   const loadStats = async () => {
     try {
@@ -69,30 +74,33 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="flex justify-center mb-8">
-          <div className="bg-white p-2 rounded-xl shadow-md border border-gray-200 inline-flex space-x-2">
-            <button
-              onClick={() => { setReviewMode('alanci'); setSelectedBranch(null); }}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-lg text-sm font-bold transition-all transform ${reviewMode === 'alanci'
-                ? 'bg-blue-600 text-white shadow-lg scale-105'
-                : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-                }`}
-            >
-              <span className="text-xl">🔬</span>
-              <span>ALAN İNCELEMESİ</span>
-            </button>
-            <button
-              onClick={() => { setReviewMode('dilci'); setSelectedBranch(null); }}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-lg text-sm font-bold transition-all transform ${reviewMode === 'dilci'
-                ? 'bg-green-600 text-white shadow-lg scale-105'
-                : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-                }`}
-            >
-              <span className="text-xl">📝</span>
-              <span>DİL İNCELEMESİ</span>
-            </button>
+        {/* Mod Seçimi (Eğer admin tarafından sabitlenmemişse göster) */}
+        {(!user?.inceleme_turu || (user.inceleme_turu !== 'alanci' && user.inceleme_turu !== 'dilci')) && (
+          <div className="flex justify-center mb-8">
+            <div className="bg-white p-2 rounded-xl shadow-md border border-gray-200 inline-flex space-x-2">
+              <button
+                onClick={() => { setReviewMode('alanci'); setSelectedBranch(null); }}
+                className={`flex items-center space-x-2 px-6 py-3 rounded-lg text-sm font-bold transition-all transform ${reviewMode === 'alanci'
+                  ? 'bg-blue-600 text-white shadow-lg scale-105'
+                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                  }`}
+              >
+                <span className="text-xl">🔬</span>
+                <span>ALAN İNCELEMESİ</span>
+              </button>
+              <button
+                onClick={() => { setReviewMode('dilci'); setSelectedBranch(null); }}
+                className={`flex items-center space-x-2 px-6 py-3 rounded-lg text-sm font-bold transition-all transform ${reviewMode === 'dilci'
+                  ? 'bg-green-600 text-white shadow-lg scale-105'
+                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                  }`}
+              >
+                <span className="text-xl">📝</span>
+                <span>DİL İNCELEMESİ</span>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
           Branşlar

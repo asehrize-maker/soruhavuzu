@@ -77,7 +77,18 @@ export default function Kullanicilar() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await userAPI.update(editingUser.id, formData);
+      const payload = { ...formData };
+
+      // Özel Rol Mantığı
+      if (formData.rol === 'alan_incelemeci') {
+        payload.rol = 'incelemeci';
+        payload.inceleme_turu = 'alanci';
+      } else if (formData.rol === 'dil_incelemeci') {
+        payload.rol = 'incelemeci';
+        payload.inceleme_turu = 'dilci';
+      }
+
+      await userAPI.update(editingUser.id, payload);
       alert('Kullanıcı güncellendi!');
       setShowModal(false);
       setEditingUser(null);
@@ -99,20 +110,43 @@ export default function Kullanicilar() {
     }
   };
 
-  const getRolBadge = (rol) => {
-    const badges = {
-      admin: 'bg-purple-100 text-purple-800',
-      soru_yazici: 'bg-blue-100 text-blue-800',
-      dizgici: 'bg-green-100 text-green-800',
-    };
-    const labels = {
-      admin: 'Admin',
-      soru_yazici: 'Soru Yazıcı',
-      dizgici: 'Dizgici',
-    };
+  const getRolBadge = (kullanici) => {
+    let label = '';
+    let color = '';
+
+    switch (kullanici.rol) {
+      case 'admin':
+        label = 'Admin';
+        color = 'bg-purple-100 text-purple-800';
+        break;
+      case 'soru_yazici':
+        label = 'Soru Yazıcı';
+        color = 'bg-blue-100 text-blue-800';
+        break;
+      case 'dizgici':
+        label = 'Dizgici';
+        color = 'bg-green-100 text-green-800';
+        break;
+      case 'incelemeci':
+        if (kullanici.inceleme_turu === 'dilci') {
+          label = 'Dil İncelemeci';
+          color = 'bg-teal-100 text-teal-800';
+        } else if (kullanici.inceleme_turu === 'alanci') {
+          label = 'Alan İncelemeci';
+          color = 'bg-indigo-100 text-indigo-800';
+        } else {
+          label = 'İncelemeci';
+          color = 'bg-orange-100 text-orange-800';
+        }
+        break;
+      default:
+        label = kullanici.rol;
+        color = 'bg-gray-100 text-gray-800';
+    }
+
     return (
-      <span className={`px-3 py-1 rounded-full text-sm font-medium ${badges[rol]}`}>
-        {labels[rol]}
+      <span className={`px-3 py-1 rounded-full text-sm font-medium ${color}`}>
+        {label}
       </span>
     );
   };
@@ -172,7 +206,7 @@ export default function Kullanicilar() {
                     <div className="text-sm text-gray-500">{kullanici.email}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {getRolBadge(kullanici.rol)}
+                    {getRolBadge(kullanici)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
@@ -308,6 +342,8 @@ export default function Kullanicilar() {
                   <option value="soru_yazici">Soru Yazıcı</option>
                   <option value="dizgici">Dizgici</option>
                   <option value="admin">Admin</option>
+                  <option value="alan_incelemeci">Alan İncelemeci</option>
+                  <option value="dil_incelemeci">Dil İncelemeci</option>
                 </select>
               </div>
 
