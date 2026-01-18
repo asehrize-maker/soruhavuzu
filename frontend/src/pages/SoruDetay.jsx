@@ -253,7 +253,9 @@ export default function SoruDetay() {
   if (!soru) return null;
 
   // Düzenleme izni kontrolü - admin veya kendi sorusu ve (beklemede veya revize_gerekli durumunda)
-  const canEdit = (user?.rol === 'admin' || soru.olusturan_kullanici_id === user?.id) &&
+  // Düzenleme izni kontrolü - admin veya kendi sorusu ve (beklemede veya revize_gerekli durumunda)
+  // İnceleme modundaysak (incelemeTuru varsa) düzenleme kapalı
+  const canEdit = !incelemeTuru && (user?.rol === 'admin' || soru.olusturan_kullanici_id === user?.id) &&
     (soru.durum === 'beklemede' || soru.durum === 'revize_gerekli' || soru.durum === 'revize_istendi');
 
   const getDurumBadge = (durum) => {
@@ -302,6 +304,83 @@ export default function SoruDetay() {
           )}
         </div>
       </div>
+
+      {/* İncelemeci İşlemleri (ÜST PANEL) */}
+      {(user?.rol === 'incelemeci' || user?.rol === 'admin') && soru.durum === 'inceleme_bekliyor' && (
+        <div className="card bg-purple-50 border-2 border-purple-200 mb-6 shadow-lg">
+          <div className="flex justify-between items-center mb-4 border-b border-purple-200 pb-2">
+            <h3 className="text-xl font-bold text-purple-900 flex items-center">
+              <span className="text-2xl mr-2">⚡</span>
+              İnceleme ve Karar Paneli
+            </h3>
+            <span className={`px-3 py-1 rounded-full text-sm font-bold ${incelemeTuru === 'alanci' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
+              {incelemeTuru === 'alanci' ? 'ALAN UZMANI' : 'DİL UZMANI'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Sol: Onay */}
+            <div className="bg-white p-4 rounded-lg border border-green-200 shadow-sm">
+              <h4 className="font-bold text-green-800 mb-2">✅ Onay İşlemi</h4>
+              <p className="text-sm text-gray-600 mb-3">
+                {incelemeTuru === 'alanci'
+                  ? 'Sorunun ALAN (Bilimsel) açısından uygun olduğunu onaylıyorsanız butona basın.'
+                  : 'Sorunun DİL (Türkçe/Yazım) açısından uygun olduğunu onaylıyorsanız butona basın.'}
+              </p>
+              <button
+                onClick={async () => {
+                  if (!confirm(`Bu soruya ${incelemeTuru === 'alanci' ? 'ALAN' : 'DİL'} onayı vermek istiyor musunuz?`)) return;
+                  try {
+                    await soruAPI.updateDurum(id, {
+                      newStatus: 'dizgi_bekliyor',
+                      aciklama: `${incelemeTuru === 'alanci' ? 'Alan' : 'Dil'} incelemesi onaylandı.`,
+                      inceleme_turu: incelemeTuru
+                    });
+                    alert('Onay kaydedildi. Soru listeden düşürüldü.');
+                    // Kullanıcıyı dashboarda yönlendir
+                    navigate('/dashboard');
+                  } catch (e) { alert(e.response?.data?.error || 'İşlem hatası'); }
+                }}
+                className={`w-full py-3 rounded-lg font-bold text-white shadow transition transform hover:scale-105 ${incelemeTuru === 'alanci' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'}`}
+              >
+                ✓ {incelemeTuru === 'alanci' ? 'ALAN ONAYI VER' : 'DİL ONAYI VER'}
+              </button>
+            </div>
+
+            {/* Sağ: Revize */}
+            <div className="bg-white p-4 rounded-lg border border-red-200 shadow-sm">
+              <h4 className="font-bold text-red-800 mb-2">🛑 Revize / Düzeltme Talebi</h4>
+              <p className="text-sm text-gray-600 mb-2">Soruda hata varsa notunuzu yazıp Dizgiciye gönderin.</p>
+              <textarea
+                rows="2"
+                className="w-full text-sm border-gray-300 rounded focus:border-red-500 mb-2 p-2"
+                placeholder="Düzeltilmesi gerekenleri özetleyin..."
+                value={dizgiNotu}
+                onChange={(e) => setDizgiNotu(e.target.value)}
+              />
+              <button
+                onClick={async () => {
+                  if (!dizgiNotu) return alert('Lütfen revize notu girin');
+                  if (!confirm('Soru "Revize İstendi" olarak işaretlenip Dizgiciye gönderilecek. Onaylıyor musunuz?')) return;
+                  try {
+                    await soruAPI.updateDurum(id, { newStatus: 'revize_istendi', aciklama: dizgiNotu });
+                    alert('Revize talebi Dizgiciye iletildi.');
+                    setDizgiNotu('');
+                    navigate('/dashboard');
+                  } catch (e) { alert(e.response?.data?.error || 'Hata'); }
+                }}
+                className="w-full py-2 bg-red-600 text-white rounded font-bold hover:bg-red-700 transition"
+              >
+                Dizgiciye Revize Gönder
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 p-2 bg-gray-50 rounded text-center text-xs text-gray-500">
+            Not: Metnin üzerine tıklayıp seçerek de detaylı notlar ekleyebilirsiniz.
+          </div>
+        </div>
+      )}
 
       {/* Revize Notu Uyarısı */}
       {soru.durum === 'revize_gerekli' && soru.revize_notu && (
@@ -500,90 +579,7 @@ export default function SoruDetay() {
         </div>
       </div>
 
-      {/* İncelemeci İşlemleri */}
-      {(user?.rol === 'incelemeci' || user?.rol === 'admin') && soru.durum === 'inceleme_bekliyor' && (
-        <div className="card bg-purple-50 border border-purple-100">
-          <h3 className="text-xl font-semibold mb-4 text-purple-900">İnceleme İşlemleri</h3>
 
-          {/* İnceleme Yorumları */}
-          <div className="mb-6">
-            <h4 className="font-medium text-purple-800 mb-2">Yorumlar / Notlar</h4>
-            <div className="bg-white rounded-lg border border-purple-200 h-64 overflow-y-auto mb-3 p-3 space-y-3">
-              <IncelemeYorumlari soruId={id} />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-4">
-              <h4 className="font-medium text-purple-800">Karar Ver</h4>
-
-              {/* Onayla */}
-              <div className="bg-white p-3 rounded border border-green-200">
-                <p className="text-sm text-gray-600 mb-2">
-                  {incelemeTuru === 'alanci' ? 'Sorunun İÇERİK (ALAN) açısından uygunluğunu onaylayın.' : 'Sorunun DİL ve BİÇİM açısından uygunluğunu onaylayın.'}
-                </p>
-                <button
-                  onClick={async () => {
-                    if (!confirm(`Bu soruya ${incelemeTuru === 'alanci' ? 'ALAN' : 'DİL'} onayı vermek istiyor musunuz?`)) return;
-                    try {
-                      await soruAPI.updateDurum(id, {
-                        newStatus: 'dizgi_bekliyor',
-                        aciklama: `${incelemeTuru === 'alanci' ? 'Alan' : 'Dil'} incelemesi onaylandı.`,
-                        inceleme_turu: incelemeTuru
-                      });
-                      alert('Onay kaydedildi.');
-                      loadSoru();
-                    } catch (e) { alert(e.response?.data?.error || 'İşlem hatası'); }
-                  }}
-                  className={`w-full btn ${incelemeTuru === 'alanci' ? 'btn-primary' : 'btn-success'}`}
-                >
-                  ✓ {incelemeTuru === 'alanci' ? 'Alan' : 'Dil'} Onayı Ver
-                </button>
-
-                <button
-                  onClick={async () => {
-                    if (!confirm('Bu soruyu tamamen onaylayıp süreci bitirmek istiyor musunuz?')) return;
-                    try {
-                      await soruAPI.updateDurum(id, { newStatus: 'tamamlandi', aciklama: 'İncelemeci final onayı verdi' });
-                      alert('Soru tamamlandı ve havuzda yayınlandı.');
-                      loadSoru();
-                    } catch (e) { alert(e.response?.data?.error || 'İşlem hatası'); }
-                  }}
-                  className="w-full btn btn-primary mt-2"
-                >
-                  🏆 Onayla ve Tamamla
-                </button>
-              </div>
-
-              {/* Revize */}
-              <div className="bg-white p-3 rounded border border-red-200">
-                <label className="block text-sm font-medium text-red-800 mb-1">Revize İste</label>
-                <textarea
-                  rows="2"
-                  className="input text-sm border-red-300 focus:border-red-500 mb-2"
-                  placeholder="Revize nedenini açıklayın..."
-                  value={dizgiNotu} // Aynı state'i kullanalım
-                  onChange={(e) => setDizgiNotu(e.target.value)}
-                />
-                <button
-                  onClick={async () => {
-                    if (!dizgiNotu) return alert('Lütfen revize notu girin');
-                    try {
-                      await soruAPI.updateDurum(id, { newStatus: 'revize_istendi', aciklama: dizgiNotu });
-                      alert('Revize talebi gönderildi');
-                      setDizgiNotu('');
-                      loadSoru();
-                    } catch (e) { alert(e.response?.data?.error || 'Hata'); }
-                  }}
-                  className="w-full btn bg-red-600 text-white hover:bg-red-700"
-                >
-                  Revize İste
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Dizgi İşlemleri & Değerlendirme */}
       {(user?.rol === 'dizgici' || user?.rol === 'admin') && (soru.durum === 'dizgide' || soru.durum === 'dizgi_bekliyor' || soru.durum === 'beklemede' || soru.durum === 'tamamlandi') && (
