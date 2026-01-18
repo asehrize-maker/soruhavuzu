@@ -5,7 +5,9 @@ import { bildirimAPI } from '../services/api';
 
 export default function Duyurular() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user: authUser, viewRole } = useAuthStore();
+  const effectiveRole = viewRole || authUser?.rol;
+  const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     baslik: '',

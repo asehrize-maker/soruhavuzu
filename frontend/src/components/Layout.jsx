@@ -4,8 +4,11 @@ import useAuthStore from '../store/authStore';
 import { kullaniciMesajAPI, bildirimAPI } from '../services/api';
 
 export default function Layout() {
-  const { user, logout } = useAuthStore();
+  const { user: authUser, logout, viewRole, setViewRole } = useAuthStore();
   const navigate = useNavigate();
+  const actualRole = authUser?.rol;
+  const effectiveRole = viewRole || actualRole;
+  const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
   const [okunmamisMesajSayisi, setOkunmamisMesajSayisi] = useState(0);
   const [okunmamisBildirimSayisi, setOkunmamisBildirimSayisi] = useState(0);
   const [showBildirimPanel, setShowBildirimPanel] = useState(false);
@@ -143,6 +146,28 @@ export default function Layout() {
             <div className="mt-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-900 text-blue-100 border border-blue-700">
               {user?.rol === 'admin' ? 'Yönetici' : user?.rol === 'soru_yazici' ? 'Öğretmen' : 'Dizgici'}
             </div>
+
+            {actualRole === 'admin' && (
+              <div className="mt-3">
+                <label className="block text-[11px] font-semibold text-gray-400 mb-1">
+                  Rol Gorunumu
+                </label>
+                <select
+                  className="w-full bg-[#0f172a] border border-gray-600 text-gray-200 text-xs rounded-md px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={effectiveRole || 'admin'}
+                  onChange={(e) => {
+                    const nextRole = e.target.value;
+                    setViewRole(nextRole === 'admin' ? null : nextRole);
+                  }}
+                >
+                  <option value="admin">Admin</option>
+                  <option value="soru_yazici">Soru Yazici</option>
+                  <option value="dizgici">Dizgici</option>
+                  <option value="incelemeci">Incelemeci</option>
+                </select>
+              </div>
+            )}
+
             {user?.brans_adi && (
               <p className="text-xs text-gray-400 mt-1">{user.brans_adi}</p>
             )}

@@ -21,7 +21,7 @@ router.post('/register', [
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const { ad_soyad, email, sifre, rol, ekip_id, brans_id } = req.body;
+    const { ad_soyad, email, sifre, rol, ekip_id, brans_id, admin_secret } = req.body;
 
     // Email kontrolü
     const userExists = await pool.query('SELECT id FROM kullanicilar WHERE email = $1', [email]);
@@ -44,6 +44,18 @@ router.post('/register', [
     }
 
     // Şifre hash
+    // Admin kaydi sadece ADMIN_REGISTER_SECRET ile acik
+    if (rol === 'admin') {
+      const expectedSecret = process.env.ADMIN_REGISTER_SECRET;
+      if (!expectedSecret) {
+        throw new AppError('Admin kaydi kapali (ADMIN_REGISTER_SECRET ayarlanmamis)', 403);
+      }
+      if (!admin_secret || admin_secret !== expectedSecret) {
+        throw new AppError('Admin secret hatali', 403);
+      }
+      finalRole = 'admin';
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(sifre, salt);
 

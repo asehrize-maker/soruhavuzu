@@ -8,7 +8,9 @@ import 'katex/dist/katex.min.css';
 export default function SoruDetay() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user: authUser, viewRole } = useAuthStore();
+  const effectiveRole = viewRole || authUser?.rol;
+  const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
   const [soru, setSoru] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dizgiNotu, setDizgiNotu] = useState('');

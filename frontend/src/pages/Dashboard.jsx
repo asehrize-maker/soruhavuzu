@@ -4,7 +4,9 @@ import useAuthStore from '../store/authStore';
 import { soruAPI } from '../services/api';
 
 export default function Dashboard() {
-  const { user } = useAuthStore();
+  const { user: authUser, viewRole } = useAuthStore();
+  const effectiveRole = viewRole || authUser?.rol;
+  const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
   const [stats, setStats] = useState(null);
   const [detayliStats, setDetayliStats] = useState(null);
   const [loading, setLoading] = useState(true);

@@ -7,7 +7,9 @@ import 'katex/dist/katex.min.css';
 
 export default function SoruEkle() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user: authUser, viewRole } = useAuthStore();
+  const effectiveRole = viewRole || authUser?.rol;
+  const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
   const [branslar, setBranslar] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
@@ -57,10 +59,10 @@ export default function SoruEkle() {
   ];
 
   useEffect(() => {
-    if (user?.rol === 'admin') {
+    if (authUser?.rol === 'admin') {
       loadBranslar();
     }
-  }, [user]);
+  }, [authUser?.rol]);
 
   // LaTeX render for preview
   useEffect(() => {
@@ -243,6 +245,11 @@ export default function SoruEkle() {
     setLoading(true);
 
     try {
+      if (!formData.brans_id) {
+        alert('Branş seçimi zorunludur');
+        return;
+      }
+
       const submitData = new FormData();
       submitData.append('soru_metni', formData.soru_metni);
       submitData.append('brans_id', formData.brans_id);
@@ -282,7 +289,16 @@ export default function SoruEkle() {
       navigate('/sorular');
     } catch (error) {
       console.error('Hata detayı:', error.response?.data);
-      alert(error.response?.data?.error || 'Soru eklenirken hata oluştu');
+      const apiData = error.response?.data;
+      const firstValidationError =
+        Array.isArray(apiData?.errors) && apiData.errors.length > 0 ? apiData.errors[0] : null;
+      const message =
+        apiData?.error ||
+        firstValidationError?.msg ||
+        firstValidationError?.message ||
+        error.message ||
+        'Soru eklenirken hata oluştu';
+      alert(message);
     } finally {
       setLoading(false);
     }
@@ -470,7 +486,7 @@ export default function SoruEkle() {
               </label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Branş */}
-                {user?.rol === 'admin' && (
+                {authUser?.rol === 'admin' && (
                   <div>
                     <label htmlFor="brans_id" className="block text-sm font-medium text-gray-700 mb-1">
                       Branş *
