@@ -151,9 +151,9 @@ export default function SoruEkle() {
 
     try {
       const formData = new FormData();
-      formData.append('zorluk_seviyesi', metadata.zorluk);
+      formData.append('zorluk_seviyesi', parseInt(metadata.zorluk) || 1);
       formData.append('dogru_cevap', metadata.dogruCevap);
-      formData.append('brans_id', metadata.brans_id);
+      formData.append('brans_id', parseInt(metadata.brans_id));
       formData.append('kazanim', 'Genel');
 
       if (inputMode === 'resim') {
@@ -367,16 +367,22 @@ export default function SoruEkle() {
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Zorluk Seviyesi</label>
               <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-200">
-                {[1, 2, 3, 4, 5].map(lvl => (
+                {[
+                  { val: 1, label: 'Çok Kolay', color: 'bg-green-100 text-green-700 ring-green-300' },
+                  { val: 2, label: 'Kolay', color: 'bg-green-50 text-green-600 ring-green-200' },
+                  { val: 3, label: 'Orta', color: 'bg-yellow-100 text-yellow-700 ring-yellow-300' },
+                  { val: 4, label: 'Zor', color: 'bg-orange-100 text-orange-700 ring-orange-300' },
+                  { val: 5, label: 'Çok Zor', color: 'bg-red-100 text-red-700 ring-red-300' }
+                ].map(item => (
                   <button
-                    key={lvl}
-                    onClick={() => setMetadata({ ...metadata, zorluk: lvl.toString() })}
-                    className={`flex-1 py-2 rounded-md text-sm font-bold transition-all ${metadata.zorluk === lvl.toString()
-                      ? (lvl < 3 ? 'bg-green-100 text-green-700 shadow-sm ring-1 ring-green-300' : (lvl === 3 ? 'bg-yellow-100 text-yellow-700 shadow-sm ring-1 ring-yellow-300' : 'bg-red-100 text-red-700 shadow-sm ring-1 ring-red-300'))
+                    key={item.val}
+                    onClick={() => setMetadata({ ...metadata, zorluk: item.val.toString() })}
+                    className={`flex-1 py-2 px-1 rounded-md text-xs font-bold transition-all whitespace-nowrap ${metadata.zorluk === item.val.toString()
+                      ? item.color + ' shadow-sm ring-1'
                       : 'text-gray-400 hover:bg-white hover:text-gray-600'
                       }`}
                   >
-                    {lvl}
+                    {item.label}
                   </button>
                 ))}
               </div>
