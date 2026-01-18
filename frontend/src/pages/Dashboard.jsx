@@ -187,8 +187,10 @@ export default function Dashboard() {
         setListLoading(true);
         setError(null);
         try {
-          // Backend'den soruları çek (Parametresiz -> Client Side Filter)
-          const response = await soruAPI.getAll();
+          // Backend'den soruları çek (Timeout ekli: 5 saniye)
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Sunucu 5 saniye içinde cevap vermedi (Timeout)')), 5000));
+          const response = await Promise.race([soruAPI.getAll(), timeoutPromise]);
+
           const allQuestions = response.data.data || [];
 
           // Filtreleme:
