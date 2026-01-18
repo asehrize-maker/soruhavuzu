@@ -121,6 +121,10 @@ export default function SoruEkle() {
       formData.append('dogru_cevap', metadata.dogruCevap);
       formData.append('brans_id', metadata.brans_id);
       formData.append('kazanim', 'Genel');
+      // Olası eksik alanlar için varsayılanlar
+      formData.append('sinif_seviyesi', '12');
+      formData.append('unite', 'Genel Tekrar');
+      formData.append('konu', 'Genel Tekrar');
 
       if (inputMode === 'resim') {
         if (fullImageFile) {
@@ -155,8 +159,9 @@ export default function SoruEkle() {
       navigate('/sorular');
 
     } catch (error) {
-      console.error(error);
-      alert("Kaydetme Hatası: " + (error.response?.data?.message || error.message));
+      console.error("Save Error:", error);
+      const serverMsg = error.response?.data?.message || error.response?.data?.error || JSON.stringify(error.response?.data);
+      alert("Kaydetme Hatası: " + (serverMsg || error.message));
     }
   };
 
