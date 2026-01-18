@@ -179,11 +179,13 @@ export default function Dashboard() {
   function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
     const [sorular, setSorular] = useState([]);
     const [listLoading, setListLoading] = useState(true);
+    const [error, setError] = useState(null);
 
 
     useEffect(() => {
       const fetchSorular = async () => {
         setListLoading(true);
+        setError(null);
         try {
           // Backend'den soruları çek (Parametresiz -> Client Side Filter)
           const response = await soruAPI.getAll();
@@ -207,12 +209,13 @@ export default function Dashboard() {
             // Eğer soru zaten 'dizgi_bekliyor' veya 'tamamlandi' ise listeden düşsün (inceleme bitmiş)
             const notFinished = s.durum !== 'dizgi_bekliyor' && s.durum !== 'tamamlandi';
 
-            return isBransMatch && isStatusSuitable && isPendingReview && notFinished;
+            return isStatusSuitable && isPendingReview && notFinished;
           });
 
           setSorular(filtered);
         } catch (err) {
           console.error("Sorular çekilemedi", err);
+          setError("Sorular yüklenirken hata oluştu: " + (err.response?.data?.message || err.message));
         } finally {
           setListLoading(false);
         }
@@ -223,6 +226,7 @@ export default function Dashboard() {
       }
     }, [bransId, reviewMode]);
 
+    if (error) return <div className="text-center py-8 text-red-600 bg-red-50 rounded-lg p-4 border border-red-200">{error}</div>;
     if (listLoading) return <div className="text-center py-8">Yükleniyor...</div>;
 
     return (
