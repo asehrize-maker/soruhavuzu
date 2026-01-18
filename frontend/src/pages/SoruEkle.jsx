@@ -174,11 +174,18 @@ export default function SoruEkle() {
                   <RibbonButton cmd="subscript" label="Alt İndis" icon={<span className="text-xs">x₂</span>} />
                 </div>
                 <div className="flex-1"></div>
-                <div className="text-xs text-gray-400 font-mono">Times New Roman • 11pt</div>
+                <div className="text-xs text-gray-400 font-mono">HelveticaSınav • 10pt • 12L</div>
               </div>
 
               {/* KAĞIT İÇERİĞİ */}
-              <div className="p-[10mm] font-serif text-[11pt] leading-relaxed text-black space-y-4">
+              <div
+                className="p-[10mm] text-[10pt] leading-[1.2] text-black space-y-[3mm] text-left"
+                style={{
+                  fontFamily: '"HelveticaSınav", "Helvetica", "Arial", sans-serif',
+                  hyphens: 'none',
+                  WebkitHyphens: 'none'
+                }}
+              >
                 {/* Soru Numarası */}
                 <div className="absolute top-[10mm] left-[4mm] font-bold text-gray-400 text-xs select-none">1</div>
 
