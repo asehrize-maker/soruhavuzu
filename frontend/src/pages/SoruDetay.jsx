@@ -376,6 +376,26 @@ export default function SoruDetay() {
             </div>
           </div>
 
+          {revizeNotlari.length > 0 && (
+            <div className="mt-4 bg-white p-3 rounded border border-gray-200">
+              <h4 className="font-bold text-sm text-gray-700 mb-2">Eklenen Revize Notları:</h4>
+              <ul className="space-y-2 max-h-40 overflow-y-auto">
+                {revizeNotlari.map((not, idx) => (
+                  <li key={not.id} className="flex justify-between items-start text-sm bg-gray-50 p-2 rounded border border-gray-100">
+                    <div>
+                      <span className="font-bold text-blue-900 mr-2">[{idx + 1}]</span>
+                      <span className="text-gray-800">{not.not_metni}</span>
+                      <div className="text-xs text-gray-500 mt-0.5 italic">"{not.secilen_metin.substring(0, 30)}..." üzerine</div>
+                    </div>
+                    {(not.kullanici_id === user?.id || user?.rol === 'admin') && (
+                      <button onClick={() => handleDeleteRevizeNot(not.id)} className="text-red-500 hover:text-red-700 font-bold px-2 ml-2" title="Notu Sil">🗑️</button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="mt-4 p-2 bg-gray-50 rounded text-center text-xs text-gray-500">
             Not: Metnin üzerine tıklayıp seçerek de detaylı notlar ekleyebilirsiniz.
           </div>
