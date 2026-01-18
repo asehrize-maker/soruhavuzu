@@ -10,6 +10,7 @@ export default function Register() {
     email: '',
     sifre: '',
     rol: 'soru_yazici',
+    admin_secret: '',
   });
 
   const handleSubmit = async (e) => {
@@ -105,8 +106,26 @@ export default function Register() {
               >
                 <option value="soru_yazici">Soru Yazıcı</option>
                 <option value="dizgici">Dizgici</option>
+                <option value="admin">Admin</option>
               </select>
             </div>
+
+            {formData.rol === 'admin' && (
+              <div>
+                <label htmlFor="admin_secret" className="block text-sm font-medium text-gray-700 mb-1">
+                  Admin Secret
+                </label>
+                <input
+                  id="admin_secret"
+                  name="admin_secret"
+                  type="password"
+                  required
+                  className="input"
+                  value={formData.admin_secret}
+                  onChange={handleChange}
+                />
+              </div>
+            )}
           </div>
 
           <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded text-sm">
