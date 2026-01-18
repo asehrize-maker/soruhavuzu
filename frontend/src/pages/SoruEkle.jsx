@@ -18,6 +18,7 @@ export default function SoruEkle() {
   const previewRef = useRef(null);
   const soruPreviewRef = useRef(null);
   const [showSoruPreview, setShowSoruPreview] = useState(false);
+  const [secenekSayisi, setSecenekSayisi] = useState(4);
   const [formData, setFormData] = useState({
     soru_metni: '',
     latex_kodu: '',
@@ -453,29 +454,61 @@ export default function SoruEkle() {
                     <option value="B">B</option>
                     <option value="C">C</option>
                     <option value="D">D</option>
-                    <option value="E">E</option>
+                    {secenekSayisi >= 5 && <option value="E">E</option>}
                   </select>
                 </div>
               </div>
 
               <div className="space-y-4">
-                {['A', 'B', 'C', 'D', 'E'].map((opt) => (
-                  <div key={opt} className={`flex items-start p-2 rounded-lg transition-colors ${formData.dogru_cevap === opt ? 'bg-green-100 ring-2 ring-green-400' : 'bg-white hover:bg-gray-50'}`}>
-                    <span className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full font-bold mr-3 mt-2 ${formData.dogru_cevap === opt ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
-                      {opt}
-                    </span>
-                    <div className="flex-grow">
-                      <textarea
-                        name={`secenek_${opt.toLowerCase()}`}
-                        rows="2"
-                        className="input w-full min-h-[60px] resize-y border-gray-300 focus:border-yellow-500 focus:ring-yellow-500"
-                        placeholder={`${opt} seçeneğini yazın...`}
-                        value={formData[`secenek_${opt.toLowerCase()}`]}
-                        onChange={handleChange}
-                      />
-                    </div>
+                <div className="space-y-4">
+                  {Array.from({ length: secenekSayisi }).map((_, index) => {
+                    const opt = String.fromCharCode(65 + index); // 65 = A
+                    return (
+                      <div key={opt} className={`flex items-start p-2 rounded-lg transition-colors ${formData.dogru_cevap === opt ? 'bg-green-100 ring-2 ring-green-400' : 'bg-white hover:bg-gray-50'}`}>
+                        <span className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full font-bold mr-3 mt-2 ${formData.dogru_cevap === opt ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                          {opt}
+                        </span>
+                        <div className="flex-grow">
+                          <textarea
+                            name={`secenek_${opt.toLowerCase()}`}
+                            rows="2"
+                            className="input w-full min-h-[60px] resize-y border-gray-300 focus:border-yellow-500 focus:ring-yellow-500"
+                            placeholder={`${opt} seçeneğini yazın...`}
+                            value={formData[`secenek_${opt.toLowerCase()}`]}
+                            onChange={handleChange}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  <div className="flex justify-end pt-2">
+                    {secenekSayisi < 5 ? (
+                      <button
+                        type="button"
+                        onClick={() => setSecenekSayisi(5)}
+                        className="text-sm flex items-center text-primary-600 hover:text-primary-800 font-medium px-3 py-1.5 rounded-md hover:bg-primary-50 transition-colors"
+                      >
+                        <span className="text-lg mr-1">+</span> 5. Seçeneği Ekle (E)
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSecenekSayisi(4);
+                          if (formData.dogru_cevap === 'E') {
+                            setFormData(prev => ({ ...prev, dogru_cevap: '', secenek_e: '' }));
+                          } else {
+                            setFormData(prev => ({ ...prev, secenek_e: '' }));
+                          }
+                        }}
+                        className="text-sm flex items-center text-red-600 hover:text-red-800 font-medium px-3 py-1.5 rounded-md hover:bg-red-50 transition-colors"
+                      >
+                        <span className="text-lg mr-1">−</span> 5. Seçeneği Kaldır
+                      </button>
+                    )}
                   </div>
-                ))}
+                </div>
               </div>
             </div>
 
