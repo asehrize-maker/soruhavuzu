@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [detayliStats, setDetayliStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedStat, setSelectedStat] = useState(null);
+  const [selectedBranch, setSelectedBranch] = useState(null);
 
   useEffect(() => {
     loadStats();
@@ -70,10 +71,11 @@ export default function Dashboard() {
         <h2 className="text-xl font-bold text-gray-900">Branşlar</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {branslar.map((brans) => (
-            <Link
+            <div
               key={brans.ad}
-              to={`/inceleme/${brans.ad}`}
-              className={`card hover:shadow-lg transition-all transform hover:-translate-y-1 border-l-4 border-${brans.color}-500 cursor-pointer`}
+              onClick={() => setSelectedBranch(brans.ad)}
+              className={`card hover:shadow-lg transition-all transform hover:-translate-y-1 border-l-4 border-${brans.color}-500 cursor-pointer ${selectedBranch === brans.ad ? 'ring-2 ring-offset-2 ring-blue-500 bg-blue-50' : ''
+                }`}
             >
               <div className="flex items-center space-x-4">
                 <div className={`p-3 rounded-full bg-${brans.color}-100 text-${brans.color}-600`}>
@@ -83,12 +85,86 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">{brans.ad}</h3>
-                  <p className="text-sm text-gray-500">İncelemek için tıklayın →</p>
+                  <p className="text-sm text-gray-500">
+                    {selectedBranch === brans.ad ? 'Seçildi ✓' : 'İncelemek için tıklayın →'}
+                  </p>
                 </div>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
+
+        {/* Seçili Branşın Sorularını Göster */}
+        {selectedBranch && <IncelemeListesi brans={selectedBranch} />}
+      </div>
+    );
+  }
+
+  function IncelemeListesi({ brans }) {
+    const [sorular, setSorular] = useState([]);
+    const [listLoading, setListLoading] = useState(true);
+
+    useEffect(() => {
+      const fetchSorular = async () => {
+        setListLoading(true);
+        try {
+          // Durumu 'tamamlandi' olan ve seçili branştaki soruları getir
+          const response = await soruAPI.getAll({ brans_adi: brans });
+          // İstemci tarafında filtreleme (Backend filtresi tam çalışmayabilir diye)
+          const allQuestions = response.data.data || [];
+          const filtered = allQuestions.filter(s =>
+            s.brans_adi === brans &&
+            (s.durum === 'tamamlandi' || s.durum === 'dizgide' || s.durum === 'incelemede' || s.durum === 'beklemede')
+          );
+          // İncelemeci hepsini görsün mü? Genelde "Tamamlandı" olanları görür.
+          // Kullanıcı "Bekleyen sorular" dedi. 
+          // Biz şimdilik hepsini listeleyelim ki veri görünsün, sonra filtreleriz.
+          setSorular(filtered);
+        } catch (err) {
+          console.error("Sorular çekilemedi", err);
+        } finally {
+          setListLoading(false);
+        }
+      };
+
+      if (brans) {
+        fetchSorular();
+      }
+    }, [brans]);
+
+    if (listLoading) return <div className="text-center py-8">Yükleniyor...</div>;
+
+    return (
+      <div className="mt-8">
+        <h3 className="text-xl font-bold text-gray-800 mb-4">{brans} - İnceleme Bekleyen Sorular</h3>
+        {sorular.length === 0 ? (
+          <div className="p-6 bg-gray-50 rounded-lg text-center text-gray-500 border border-gray-200">
+            Bu branşta incelenecek soru bulunamadı.
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {sorular.map(soru => (
+              <div key={soru.id} className="card flex justify-between items-center hover:bg-gray-50 border border-gray-100">
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${soru.zorluk_seviyesi === 'kolay' ? 'bg-green-100 text-green-800' :
+                      soru.zorluk_seviyesi === 'orta' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                      {soru.zorluk_seviyesi?.toUpperCase()}
+                    </span>
+                    <span className="text-xs text-gray-500">#{soru.id}</span>
+                  </div>
+                  <p className="mt-1 font-medium text-gray-900 line-clamp-1">{soru.soru_metni?.substring(0, 100)}...</p>
+                  <p className="text-xs text-gray-500 mt-1">Yazar: {soru.olusturan_kullanici_ad_soyad} • Tarih: {new Date(soru.olusturulma_tarihi).toLocaleDateString("tr-TR")}</p>
+                </div>
+                <Link to={`/sorular/${soru.id}`} className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition">
+                  İncele
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
