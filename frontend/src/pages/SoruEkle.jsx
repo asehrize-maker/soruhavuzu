@@ -45,39 +45,7 @@ export default function SoruEkle() {
   const dizgiRef = useRef(null);
 
   // Dizgi Önizleme Güncelleme Effect
-  useEffect(() => {
-    if (dizgiRef.current) {
-      let html = '';
-
-      // Görsel Üst
-      if (previewUrl && formData.fotograf_konumu === 'ust') {
-        html += `<img src="${previewUrl}" style="width: ${imageWidth}%; max-width: 100%; margin-bottom: 12px; display: block; border-radius: 4px;" alt="Soru Görseli" />`;
-      }
-
-      // Soru Metni
-      html += `<div style="margin-bottom: 12px; line-height: 1.4;">${renderLatexContent(formData.soru_metni || '')}</div>`;
-
-      // Görsel Alt
-      if (previewUrl && formData.fotograf_konumu === 'alt') {
-        html += `<img src="${previewUrl}" style="width: ${imageWidth}%; max-width: 100%; margin-bottom: 12px; display: block; border-radius: 4px;" alt="Soru Görseli" />`;
-      }
-
-      // Seçenekler
-      html += '<div style="display: grid; gap: 4px;">';
-      ['a', 'b', 'c', 'd', 'e'].slice(0, secenekSayisi).forEach(opt => {
-        const val = formData[`secenek_${opt}`];
-        if (val) {
-          html += `<div style="display: flex; gap: 6px; align-items: baseline;">
-                    <span style="font-weight: bold; min-width: 20px;">${opt.toUpperCase()})</span> 
-                    <div>${renderLatexContent(val)}</div>
-                 </div>`;
-        }
-      });
-      html += '</div>';
-
-      dizgiRef.current.innerHTML = html;
-    }
-  }, [formData, previewUrl, imageWidth, secenekSayisi, previewWidth]);
+  // Dizgi Önizleme Güncelleme Effect (Render fonksiyonundan sonra tanımlanmalı) -> Aşağı Taşındı
 
   // LaTeX Şablonları
   const latexTemplates = [
@@ -148,6 +116,41 @@ export default function SoruEkle() {
 
     return html;
   };
+
+  // Dizgi Önizleme Güncelleme Effect
+  useEffect(() => {
+    if (dizgiRef.current) {
+      let html = '';
+
+      // Görsel Üst
+      if (previewUrl && formData.fotograf_konumu === 'ust') {
+        html += `<img src="${previewUrl}" style="width: ${imageWidth}%; max-width: 100%; margin-bottom: 12px; display: block; border-radius: 4px;" alt="Soru Görseli" />`;
+      }
+
+      // Soru Metni
+      html += `<div style="margin-bottom: 12px; line-height: 1.4;">${renderLatexContent(formData.soru_metni || '')}</div>`;
+
+      // Görsel Alt
+      if (previewUrl && formData.fotograf_konumu === 'alt') {
+        html += `<img src="${previewUrl}" style="width: ${imageWidth}%; max-width: 100%; margin-bottom: 12px; display: block; border-radius: 4px;" alt="Soru Görseli" />`;
+      }
+
+      // Seçenekler
+      html += '<div style="display: grid; gap: 4px;">';
+      ['a', 'b', 'c', 'd', 'e'].slice(0, secenekSayisi).forEach(opt => {
+        const val = formData[`secenek_${opt}`];
+        if (val) {
+          html += `<div style="display: flex; gap: 6px; align-items: baseline;">
+                    <span style="font-weight: bold; min-width: 20px;">${opt.toUpperCase()})</span> 
+                    <div>${renderLatexContent(val)}</div>
+                 </div>`;
+        }
+      });
+      html += '</div>';
+
+      dizgiRef.current.innerHTML = html;
+    }
+  }, [formData, previewUrl, imageWidth, secenekSayisi, previewWidth]);
 
   const renderSoruPreview = () => {
     if (!soruPreviewRef.current) return;
