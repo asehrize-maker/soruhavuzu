@@ -309,9 +309,7 @@ export default function Sorular() {
               </Link>
             </div>
           )}
-          {/* ... (empty state icon) ... */}
-          <h3 className="mt-2 text-lg font-medium text-gray-900">Soru bulunamadı</h3>
-          <p className="mt-1 text-sm text-gray-500">Henüz hiç soru eklenmemiş.</p>
+          {/* Empty State Cleaned */}
         </div>
       ) : (
         <div className="space-y-4">

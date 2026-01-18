@@ -39,6 +39,46 @@ export default function SoruEkle() {
   const [dosya, setDosya] = useState(null);
   const [dosyaError, setDosyaError] = useState('');
 
+  // Dizgi Önizleme State
+  const [previewWidth, setPreviewWidth] = useState('dar'); // 'dar' | 'genis'
+  const [imageWidth, setImageWidth] = useState(100);
+  const dizgiRef = useRef(null);
+
+  // Dizgi Önizleme Güncelleme Effect
+  useEffect(() => {
+    if (dizgiRef.current) {
+      let html = '';
+
+      // Görsel Üst
+      if (previewUrl && formData.fotograf_konumu === 'ust') {
+        html += `<img src="${previewUrl}" style="width: ${imageWidth}%; max-width: 100%; margin-bottom: 12px; display: block; border-radius: 4px;" alt="Soru Görseli" />`;
+      }
+
+      // Soru Metni
+      html += `<div style="margin-bottom: 12px; line-height: 1.4;">${renderLatexContent(formData.soru_metni || '')}</div>`;
+
+      // Görsel Alt
+      if (previewUrl && formData.fotograf_konumu === 'alt') {
+        html += `<img src="${previewUrl}" style="width: ${imageWidth}%; max-width: 100%; margin-bottom: 12px; display: block; border-radius: 4px;" alt="Soru Görseli" />`;
+      }
+
+      // Seçenekler
+      html += '<div style="display: grid; gap: 4px;">';
+      ['a', 'b', 'c', 'd', 'e'].slice(0, secenekSayisi).forEach(opt => {
+        const val = formData[`secenek_${opt}`];
+        if (val) {
+          html += `<div style="display: flex; gap: 6px; align-items: baseline;">
+                    <span style="font-weight: bold; min-width: 20px;">${opt.toUpperCase()})</span> 
+                    <div>${renderLatexContent(val)}</div>
+                 </div>`;
+        }
+      });
+      html += '</div>';
+
+      dizgiRef.current.innerHTML = html;
+    }
+  }, [formData, previewUrl, imageWidth, secenekSayisi, previewWidth]);
+
   // LaTeX Şablonları
   const latexTemplates = [
     { name: 'Kesir', code: '\\frac{pay}{payda}' },
@@ -407,6 +447,25 @@ export default function SoruEkle() {
                             </label>
                           </div>
                           <p className="text-xs text-blue-500 mt-2">PNG, JPG (Max 5MB)</p>
+
+                          {/* Görsel Boyut Slider (Sadece Preview varsa) */}
+                          {previewUrl && (
+                            <div className="mt-3 pt-3 border-t border-blue-100">
+                              <label className="text-xs font-bold text-blue-800 flex justify-between mb-1">
+                                Dizgi Genişliği: <span className="text-blue-600">% {imageWidth}</span>
+                              </label>
+                              <input
+                                type="range"
+                                min="20"
+                                max="100"
+                                step="5"
+                                value={imageWidth}
+                                onChange={(e) => setImageWidth(e.target.value)}
+                                className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                title="Görselin kağıt üzerindeki genişlik oranı"
+                              />
+                            </div>
+                          )}
                         </>
                       )}
                     </div>
@@ -648,7 +707,59 @@ export default function SoruEkle() {
         </div>
 
         {/* Yan Panel - Yardım & Şablonlar */}
-        <div className="lg:col-span-1 space-y-4">
+        <div className="lg:col-span-1 space-y-6">
+
+          {/* CANLI DİZGİ ÖNİZLEME */}
+          <div className="card border-2 border-indigo-200 bg-white sticky top-4 shadow-xl z-20 p-0 overflow-hidden">
+            <div className="bg-indigo-50 p-3 border-b border-indigo-200 flex justify-between items-center">
+              <h3 className="font-bold text-indigo-900 text-sm flex items-center">
+                📄 Dizgi Önizleme
+              </h3>
+              <div className="flex bg-white rounded border border-indigo-200 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setPreviewWidth('dar')}
+                  className={`px-3 py-1 text-xs font-bold transition-colors ${previewWidth === 'dar' ? 'bg-indigo-600 text-white' : 'text-indigo-600 hover:bg-indigo-50'}`}
+                >
+                  Dar
+                </button>
+                <div className="w-[1px] bg-indigo-200"></div>
+                <button
+                  type="button"
+                  onClick={() => setPreviewWidth('genis')}
+                  className={`px-3 py-1 text-xs font-bold transition-colors ${previewWidth === 'genis' ? 'bg-indigo-600 text-white' : 'text-indigo-600 hover:bg-indigo-50'}`}
+                >
+                  Geniş
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 bg-gray-200 overflow-x-auto min-h-[300px] flex items-start justify-center">
+              <div
+                className="bg-white shadow-2xl transition-all duration-300 ease-in-out origin-top border border-gray-300"
+                style={{
+                  width: previewWidth === 'dar' ? '82.4mm' : '169.6mm',
+                  minHeight: '120mm', // A4'ün bir kısmı gibi
+                  padding: '15px',
+                  fontFamily: '"Times New Roman", Times, serif',
+                  fontSize: '14px', // 10.5-11pt karşılığı yaklaşık
+                  color: 'black',
+                  lineHeight: '1.4'
+                }}
+              >
+                {/* Soru İçerik Container */}
+                <div className="flex gap-2">
+                  <span className="font-bold text-lg leading-none select-none text-black">1.</span>
+                  <div className="flex-1 w-full" ref={dizgiRef} style={{ wordBreak: 'break-word' }}>
+                    {/* İçerik useEffect ile buraya basılacak */}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-indigo-50 p-2 text-[10px] text-center text-indigo-500 font-mono border-t border-indigo-200">
+              {previewWidth === 'dar' ? 'Dar Sütun: 82.4mm' : 'Geniş Sütun: 169.6mm'}
+            </div>
+          </div>
           {/* LaTeX Şablonları */}
           {showTemplates && (
             <div className="card">
