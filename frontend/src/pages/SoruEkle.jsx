@@ -97,11 +97,6 @@ export default function SoruEkle() {
       formData.append('brans_id', user?.brans_id || '1');
       formData.append('kazanim', 'Genel');
 
-      // Statü belirleme (Backend destekliyorsa)
-      if (submitToReview) {
-        formData.append('durum', 'inceleme_bekliyor');
-      }
-
       if (inputMode === 'resim') {
         if (fullImageFile) {
           formData.append('fotograf', fullImageFile);
