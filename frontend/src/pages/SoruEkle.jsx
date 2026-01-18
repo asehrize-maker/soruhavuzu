@@ -38,6 +38,9 @@ export default function SoruEkle() {
   const [fullImageUrl, setFullImageUrl] = useState(null);
   const [fullImageFile, setFullImageFile] = useState(null);
 
+  // Soru Metadata
+  const [metadata, setMetadata] = useState({ zorluk: '3', dogruCevap: '' });
+
   // --- YARDIMCI FONKSİYONLAR ---
 
   const addComponent = (type) => {
@@ -226,6 +229,48 @@ export default function SoruEkle() {
           )}
         </div>
       </div>
+
+      {/* SORU DETAYLARI (META DATA) - Kağıdın Altında */}
+      {inputMode === 'yaz' && (
+        <div className="w-[170mm] mx-auto mt-2 bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-20 animate-fade-in-up">
+          <h3 className="text-xs font-bold text-gray-400 uppercase mb-4 border-b pb-2 tracking-wider">Soru Künyesi</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Zorluk Seviyesi</label>
+              <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-200">
+                {[1, 2, 3, 4, 5].map(lvl => (
+                  <button
+                    key={lvl}
+                    onClick={() => setMetadata({ ...metadata, zorluk: lvl.toString() })}
+                    className={`flex-1 py-2 rounded-md text-sm font-bold transition-all ${metadata.zorluk === lvl.toString()
+                      ? (lvl < 3 ? 'bg-green-100 text-green-700 shadow-sm ring-1 ring-green-300' : (lvl === 3 ? 'bg-yellow-100 text-yellow-700 shadow-sm ring-1 ring-yellow-300' : 'bg-red-100 text-red-700 shadow-sm ring-1 ring-red-300'))
+                      : 'text-gray-400 hover:bg-white hover:text-gray-600'
+                      }`}
+                  >
+                    {lvl}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Doğru Cevap</label>
+              <div className="flex gap-3 justify-start">
+                {['A', 'B', 'C', 'D', 'E'].map(opt => (
+                  <button
+                    key={opt}
+                    onClick={() => setMetadata({ ...metadata, dogruCevap: opt })}
+                    className={`w-10 h-10 rounded-full font-bold transition-all flex items-center justify-center border-2 ${metadata.dogruCevap === opt
+                      ? 'bg-blue-600 border-blue-600 text-white shadow-lg scale-110'
+                      : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'}`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 3. ALT INSERT BAR (EKLEME ÇUBUĞU) */}
       {inputMode === 'yaz' && (
