@@ -236,18 +236,23 @@ export default function Dashboard() {
           <div className="grid gap-4">
             {sorular.map(soru => (
               <div key={soru.id} className="card flex justify-between items-center hover:bg-gray-50 border border-gray-100">
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${soru.zorluk_seviyesi === 'kolay' ? 'bg-green-100 text-green-800' :
-                      soru.zorluk_seviyesi === 'orta' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                      {soru.zorluk_seviyesi?.toUpperCase()}
-                    </span>
-                    <span className="text-xs text-gray-500">#{soru.id}</span>
+                <div className="flex items-center gap-4">
+                  {soru.fotograf_url && (
+                    <img src={soru.fotograf_url} alt="" className="w-16 h-16 object-contain border rounded bg-white shadow-sm" />
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${soru.zorluk_seviyesi === 'kolay' ? 'bg-green-100 text-green-800' :
+                        soru.zorluk_seviyesi === 'orta' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                        {soru.zorluk_seviyesi?.toUpperCase()}
+                      </span>
+                      <span className="text-xs text-gray-500">#{soru.id}</span>
+                    </div>
+                    <p className="mt-1 font-medium text-gray-900 line-clamp-1">{soru.soru_metni?.substring(0, 100)}...</p>
+                    <p className="text-xs text-gray-500 mt-1">Yazar: {soru.olusturan_kullanici_ad_soyad} • Tarih: {new Date(soru.olusturulma_tarihi).toLocaleDateString("tr-TR")}</p>
                   </div>
-                  <p className="mt-1 font-medium text-gray-900 line-clamp-1">{soru.soru_metni?.substring(0, 100)}...</p>
-                  <p className="text-xs text-gray-500 mt-1">Yazar: {soru.olusturan_kullanici_ad_soyad} • Tarih: {new Date(soru.olusturulma_tarihi).toLocaleDateString("tr-TR")}</p>
                 </div>
                 <Link to={`/sorular/${soru.id}?incelemeTuru=${reviewMode}`} className={`px-4 py-2 text-white text-sm font-medium rounded hover:opacity-90 transition ${reviewMode === 'alanci' ? 'bg-blue-600' : 'bg-green-600'}`}>
                   {reviewMode === 'alanci' ? 'Alan İncele' : 'Dil İncele'}

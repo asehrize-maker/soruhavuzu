@@ -115,7 +115,7 @@ export default function SoruEkle() {
 
     // 2. HTML Birleştirme (Formatlı Kopyalama İçin)
     const fullHtml = components.map(c => {
-      return `<div style="margin-bottom: 12px;">${c.content}</div>`;
+      return `< div style = "margin-bottom: 12px;" > ${c.content}</div > `;
     }).join('');
 
     // Clipboard API
@@ -168,12 +168,13 @@ export default function SoruEkle() {
         }
       } else {
         const htmlContent = components.map(c => {
-          return `<div class="type-${c.type}" style="margin-bottom: 8px;">${c.content}</div>`;
+          return `< div class="type-${c.type}" style = "margin-bottom: 8px;" > ${c.content}</div > `;
         }).join('');
         formData.append('soru_metni', htmlContent);
       }
 
-      ['a', 'b', 'c', 'd', 'e'].forEach(opt => formData.append(`secenek_${opt}`, '.'));
+      // Resim modundaysa ve kullanıcı şık girmediyse boş gönderelim
+      ['a', 'b', 'c', 'd', 'e'].forEach(opt => formData.append(`secenek_${opt} `, ''));
 
       const res = await soruAPI.create(formData);
 
@@ -187,7 +188,9 @@ export default function SoruEkle() {
         alert("✅ Soru havuza kaydedildi!");
       }
 
-      navigate('/sorular');
+      // navigate('/sorular'); // Kullanıcı sayfada kalmak istiyor.
+      // İsteğe bağlı: Formu temizleyebiliriz ama kullanıcı belki düzeltip tekrar atacak.
+      // Sadece ID'yi saklayıp update moduna geçirmek en doğrusu ama şimdilik sayfada kalsın.
 
     } catch (error) {
       console.error("Save Error:", error);
@@ -220,13 +223,13 @@ export default function SoruEkle() {
           <div className="flex bg-[#005A9E] rounded p-0.5">
             <button
               onClick={() => setWidthMode('dar')}
-              className={`px-3 py-1 text-xs font-medium rounded transition ${widthMode === 'dar' ? 'bg-white text-[#0078D4] shadow' : 'text-white/80 hover:bg-white/10'}`}
+              className={`px - 3 py - 1 text - xs font - medium rounded transition ${widthMode === 'dar' ? 'bg-white text-[#0078D4] shadow' : 'text-white/80 hover:bg-white/10'} `}
             >
               Dar (82mm)
             </button>
             <button
               onClick={() => setWidthMode('genis')}
-              className={`px-3 py-1 text-xs font-medium rounded transition ${widthMode === 'genis' ? 'bg-white text-[#0078D4] shadow' : 'text-white/80 hover:bg-white/10'}`}
+              className={`px - 3 py - 1 text - xs font - medium rounded transition ${widthMode === 'genis' ? 'bg-white text-[#0078D4] shadow' : 'text-white/80 hover:bg-white/10'} `}
             >
               Geniş (169mm)
             </button>
@@ -234,10 +237,10 @@ export default function SoruEkle() {
         </div>
 
         <div className="flex gap-2">
-          <button onClick={() => setInputMode('yaz')} className={`px-4 py-1.5 rounded text-sm font-bold transition ${inputMode === 'yaz' ? 'bg-white text-[#0078D4]' : 'text-white hover:bg-white/10'}`}>
+          <button onClick={() => setInputMode('yaz')} className={`px - 4 py - 1.5 rounded text - sm font - bold transition ${inputMode === 'yaz' ? 'bg-white text-[#0078D4]' : 'text-white hover:bg-white/10'} `}>
             ✎ Yaz
           </button>
-          <button onClick={() => setInputMode('resim')} className={`px-4 py-1.5 rounded text-sm font-bold transition ${inputMode === 'resim' ? 'bg-white text-[#0078D4]' : 'text-white hover:bg-white/10'}`}>
+          <button onClick={() => setInputMode('resim')} className={`px - 4 py - 1.5 rounded text - sm font - bold transition ${inputMode === 'resim' ? 'bg-white text-[#0078D4]' : 'text-white hover:bg-white/10'} `}>
             🖼 Resim
           </button>
           <button onClick={() => navigate('/sorular')} className="px-4 py-1.5 rounded text-sm font-medium hover:bg-red-600 bg-red-500 ml-4">
@@ -378,10 +381,10 @@ export default function SoruEkle() {
                   <button
                     key={item.val}
                     onClick={() => setMetadata({ ...metadata, zorluk: item.val.toString() })}
-                    className={`flex-1 py-2 px-1 rounded-md text-xs font-bold transition-all whitespace-nowrap ${metadata.zorluk === item.val.toString()
-                      ? item.color + ' shadow-sm ring-1'
-                      : 'text-gray-400 hover:bg-white hover:text-gray-600'
-                      }`}
+                    className={`flex - 1 py - 2 px - 1 rounded - md text - xs font - bold transition - all whitespace - nowrap ${metadata.zorluk === item.val.toString()
+                        ? item.color + ' shadow-sm ring-1'
+                        : 'text-gray-400 hover:bg-white hover:text-gray-600'
+                      } `}
                   >
                     {item.label}
                   </button>
@@ -395,9 +398,10 @@ export default function SoruEkle() {
                   <button
                     key={opt}
                     onClick={() => setMetadata({ ...metadata, dogruCevap: opt })}
-                    className={`w-10 h-10 rounded-full font-bold transition-all flex items-center justify-center border-2 ${metadata.dogruCevap === opt
-                      ? 'bg-blue-600 border-blue-600 text-white shadow-lg scale-110'
-                      : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'}`}
+                    className={`w - 10 h - 10 rounded - full font - bold transition - all flex items - center justify - center border - 2 ${metadata.dogruCevap === opt
+                        ? 'bg-blue-600 border-blue-600 text-white shadow-lg scale-110'
+                        : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
+                      } `}
                   >
                     {opt}
                   </button>
