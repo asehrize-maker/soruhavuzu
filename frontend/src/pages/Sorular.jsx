@@ -223,7 +223,7 @@ export default function Sorular() {
             )}
           </h1>
         </div>
-        {(user?.rol === 'admin' || user?.rol === 'soru_yazici') && (
+        {user?.rol === 'soru_yazici' && (
           <Link to="/sorular/yeni" className="btn btn-primary">
             + Yeni Soru Ekle
           </Link>
@@ -298,7 +298,7 @@ export default function Sorular() {
         <div className="card text-center py-12">
           <h3 className="mt-2 text-lg font-medium text-gray-900">Henüz soru eklenmedi</h3>
           <p className="mt-1 text-sm text-gray-500">İlk soruyu ekleyerek soru havuzunu oluşturmaya başlayabilirsiniz.</p>
-          {(user?.rol === 'admin' || user?.rol === 'soru_yazici') && (
+          {user?.rol === 'soru_yazici' && (
             <div className="mt-6">
               <Link to="/sorular/yeni" className="btn btn-primary">
                 + İlk Soruyu Ekle

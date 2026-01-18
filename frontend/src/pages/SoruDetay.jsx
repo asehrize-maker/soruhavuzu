@@ -255,8 +255,9 @@ export default function SoruDetay() {
   // Düzenleme izni kontrolü - admin veya kendi sorusu ve (beklemede veya revize_gerekli durumunda)
   // Düzenleme izni kontrolü - admin veya kendi sorusu ve (beklemede veya revize_gerekli durumunda)
   // İnceleme modundaysak (incelemeTuru varsa) düzenleme kapalı
-  // GÜNCELLEME: Admin sadece kendi sorusunu düzenleyebilir ("Sadece Görüntüleme" isteği üzerine)
-  const canEdit = !incelemeTuru && (soru.olusturan_kullanici_id === user?.id) &&
+  // GÜNCELLEME: Admin kendi sorusu olsa bile 'Düzenle' butonunu görmemeli (İstek üzerine)
+  // Düzenleme sadece Admin OLMAYAN (örn: Soru Yazarı modundaki) ve sorunun sahibi olanlar içindir.
+  const canEdit = !incelemeTuru && (user?.rol !== 'admin') && (soru.olusturan_kullanici_id === user?.id) &&
     (soru.durum === 'beklemede' || soru.durum === 'revize_gerekli' || soru.durum === 'revize_istendi');
 
   const getDurumBadge = (durum) => {
