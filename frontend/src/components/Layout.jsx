@@ -144,7 +144,16 @@ export default function Layout() {
           <div className="text-left">
             <h2 className="text-sm font-bold text-gray-200 uppercase tracking-wide">{user?.ad_soyad}</h2>
             <div className="mt-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-900 text-blue-100 border border-blue-700">
-              {user?.rol === 'admin' ? 'Yönetici' : user?.rol === 'soru_yazici' ? 'Öğretmen' : 'Dizgici'}
+              {(() => {
+                const r = user?.rol;
+                if (r === 'admin') return 'Yönetici';
+                if (r === 'soru_yazici') return 'Soru Yazarı';
+                if (r === 'dizgici') return 'Dizgici';
+                if (r === 'incelemeci') return 'İncelemeci';
+                if (r === 'alan_incelemeci') return 'Alan İncelemeci';
+                if (r === 'dil_incelemeci') return 'Dil İncelemeci';
+                return 'Kullanıcı';
+              })()}
             </div>
 
             {actualRole === 'admin' && (
@@ -158,6 +167,7 @@ export default function Layout() {
                   onChange={(e) => {
                     const nextRole = e.target.value;
                     setViewRole(nextRole === 'admin' ? null : nextRole);
+                    navigate('/'); // Rol değişince Ana Sayfaya yönlendir
                   }}
                 >
                   <option value="admin">Admin</option>
