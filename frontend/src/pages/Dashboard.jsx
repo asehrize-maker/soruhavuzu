@@ -77,16 +77,13 @@ export default function Dashboard() {
               className={`card hover:shadow-lg transition-all transform hover:-translate-y-1 border-l-4 border-${brans.color}-500 cursor-pointer ${selectedBranch === brans.ad ? 'ring-2 ring-offset-2 ring-blue-500 bg-blue-50' : ''
                 }`}
             >
-              <div className="flex items-center space-x-4">
-                <div className={`p-3 rounded-full bg-${brans.color}-100 text-${brans.color}-600`}>
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={brans.icon} />
-                  </svg>
-                </div>
+              <div className="flex items-center justify-between p-2">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">{brans.ad}</h3>
-                  <p className="text-sm text-gray-500">
-                    {selectedBranch === brans.ad ? 'Seçildi ✓' : 'İncelemek için tıklayın →'}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">
+                    {selectedBranch === brans.ad ? '✓' : '→'}
                   </p>
                 </div>
               </div>
