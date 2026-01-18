@@ -145,7 +145,7 @@ export default function Layout() {
             <h2 className="text-sm font-bold text-gray-200 uppercase tracking-wide">{user?.ad_soyad}</h2>
             <div className="mt-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-900 text-blue-100 border border-blue-700">
               {(() => {
-                const r = user?.rol;
+                const r = effectiveRole; // user.rol yerine directly effectiveRole kullan
                 if (r === 'admin') return 'Yönetici';
                 if (r === 'soru_yazici') return 'Soru Yazarı';
                 if (r === 'dizgici') return 'Dizgici';

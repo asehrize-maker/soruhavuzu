@@ -185,8 +185,8 @@ export default function Dashboard() {
       const fetchSorular = async () => {
         setListLoading(true);
         try {
-          // Backend'den soruları çek (BRANŞ ID ile)
-          const response = await soruAPI.getAll({ brans_id: bransId });
+          // Backend'den soruları çek (Parametresiz -> Client Side Filter)
+          const response = await soruAPI.getAll();
           const allQuestions = response.data.data || [];
 
           // Filtreleme:
