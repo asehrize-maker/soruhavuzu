@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import { soruAPI } from '../services/api';
+import { soruAPI, bransAPI } from '../services/api';
 
 export default function Dashboard() {
   const { user: authUser, viewRole } = useAuthStore();
@@ -24,17 +24,28 @@ export default function Dashboard() {
   const [detayliStats, setDetayliStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedStat, setSelectedStat] = useState(null);
-  const [selectedBranch, setSelectedBranch] = useState(null);
+  const [selectedBranchId, setSelectedBranchId] = useState(null); // ID tutacak
+  const [bransListesi, setBransListesi] = useState([]);
   const [reviewMode, setReviewMode] = useState('alanci'); // 'alanci' | 'dilci'
 
   useEffect(() => {
     loadStats();
+    loadBranslar();
     // Otomatik inceleme modu seçimi
     if (user?.rol === 'incelemeci') {
       if (user.inceleme_turu === 'alanci') setReviewMode('alanci');
       if (user.inceleme_turu === 'dilci') setReviewMode('dilci');
     }
   }, [user]);
+
+  const loadBranslar = async () => {
+    try {
+      const res = await bransAPI.getAll();
+      setBransListesi(res.data.data || []);
+    } catch (err) {
+      console.error("Branşlar yüklenemedi", err);
+    }
+  };
 
   const loadStats = async () => {
     try {
@@ -68,13 +79,15 @@ export default function Dashboard() {
 
   // İncelemeci için özel dashboard
   const renderIncelemeciContent = () => {
-    const branslar = [
-      { ad: 'TÜRKÇE', color: 'blue' },
-      { ad: 'MATEMATİK', color: 'red' },
-      { ad: 'FEN BİLİMLERİ', color: 'green' },
-      { ad: 'SOSYAL BİLGİLER', color: 'yellow' },
-      { ad: 'İNGİLİZCE', color: 'purple' },
-    ];
+    // Dinamik renk atama helper'ı
+    const getColor = (ad) => {
+      const n = ad.toUpperCase();
+      if (n.includes('MAT')) return 'red';
+      if (n.includes('FEN')) return 'green';
+      if (n.includes('SOS')) return 'yellow';
+      if (n.includes('ING')) return 'purple';
+      return 'blue'; // default Türkçe vs
+    };
 
     return (
       <div className="space-y-6">
@@ -92,7 +105,7 @@ export default function Dashboard() {
           <div className="flex justify-center mb-8">
             <div className="bg-white p-2 rounded-xl shadow-md border border-gray-200 inline-flex space-x-2">
               <button
-                onClick={() => { setReviewMode('alanci'); setSelectedBranch(null); }}
+                onClick={() => { setReviewMode('alanci'); setSelectedBranchId(null); }}
                 className={`flex items-center space-x-2 px-6 py-3 rounded-lg text-sm font-bold transition-all transform ${reviewMode === 'alanci'
                   ? 'bg-blue-600 text-white shadow-lg scale-105'
                   : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
@@ -102,7 +115,7 @@ export default function Dashboard() {
                 <span>ALAN İNCELEMESİ</span>
               </button>
               <button
-                onClick={() => { setReviewMode('dilci'); setSelectedBranch(null); }}
+                onClick={() => { setReviewMode('dilci'); setSelectedBranchId(null); }}
                 className={`flex items-center space-x-2 px-6 py-3 rounded-lg text-sm font-bold transition-all transform ${reviewMode === 'dilci'
                   ? 'bg-green-600 text-white shadow-lg scale-105'
                   : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
@@ -122,29 +135,38 @@ export default function Dashboard() {
           </span>
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {branslar.map((brans) => (
-            <div
-              key={brans.ad}
-              onClick={() => setSelectedBranch(brans.ad)}
-              className={`card hover:shadow-lg transition-all transform hover:-translate-y-1 border-l-4 border-${brans.color}-500 cursor-pointer ${selectedBranch === brans.ad ? 'ring-2 ring-offset-2 ring-blue-500 bg-blue-50' : ''
-                }`}
-            >
-              <div className="flex items-center justify-between p-2">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">{brans.ad}</h3>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">
-                    {selectedBranch === brans.ad ? '✓' : '→'}
-                  </p>
+          {bransListesi.map((brans) => {
+            const color = getColor(brans.brans_adi);
+            return (
+              <div
+                key={brans.id}
+                onClick={() => setSelectedBranchId(brans.id)}
+                className={`card hover:shadow-lg transition-all transform hover:-translate-y-1 border-l-4 border-${color}-500 cursor-pointer ${selectedBranchId === brans.id ? 'ring-2 ring-offset-2 ring-blue-500 bg-blue-50' : ''
+                  }`}
+              >
+                <div className="flex items-center justify-between p-2">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">{brans.brans_adi}</h3>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">
+                      {selectedBranchId === brans.id ? '✓' : '→'}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Seçili Branşın Sorularını Göster */}
-        {selectedBranch && <IncelemeListesi brans={selectedBranch} reviewMode={reviewMode} />}
+        {selectedBranchId && (
+          <IncelemeListesi
+            bransId={selectedBranchId}
+            bransAdi={bransListesi.find(b => b.id === selectedBranchId)?.brans_adi}
+            reviewMode={reviewMode}
+          />
+        )}
       </div>
     );
   };
@@ -154,7 +176,7 @@ export default function Dashboard() {
     return renderIncelemeciContent();
   }
 
-  function IncelemeListesi({ brans, reviewMode }) {
+  function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
     const [sorular, setSorular] = useState([]);
     const [listLoading, setListLoading] = useState(true);
 
@@ -163,16 +185,18 @@ export default function Dashboard() {
       const fetchSorular = async () => {
         setListLoading(true);
         try {
-          // Backend'den soruları çek
-          const response = await soruAPI.getAll({ brans_adi: brans });
+          // Backend'den soruları çek (BRANŞ ID ile)
+          const response = await soruAPI.getAll({ brans_id: bransId });
           const allQuestions = response.data.data || [];
 
           // Filtreleme:
-          // 1. Seçili branş
+          // 1. Seçili branş (API filterledi ama client-side garanti olsun)
           // 2. Durum: İnceleme bekleyen veya süreçteki sorular (Tamamlananlar hariç incelensin)
           // 3. İnceleme Modu: 'alanci' ise 'onay_alanci' FALSE olanlar, 'dilci' ise 'onay_dilci' FALSE olanlar
           const filtered = allQuestions.filter(s => {
-            const isBransMatch = s.brans_adi === brans;
+            // s.brans_id bazen string bazen int gelebilir
+            const isBransMatch = parseInt(s.brans_id) === parseInt(bransId);
+            if (!isBransMatch) return false; // API yapmadıysa biz yaparız
             const isStatusSuitable = ['inceleme_bekliyor', 'beklemede', 'incelemede', 'dizgide'].includes(s.durum);
 
             // Mod Kontrolü: İlgili onay verilmemişse listele
@@ -194,16 +218,16 @@ export default function Dashboard() {
         }
       };
 
-      if (brans) {
+      if (bransId) {
         fetchSorular();
       }
-    }, [brans, reviewMode]);
+    }, [bransId, reviewMode]);
 
     if (listLoading) return <div className="text-center py-8">Yükleniyor...</div>;
 
     return (
       <div className="mt-8">
-        <h3 className="text-xl font-bold text-gray-800 mb-4">{brans} - İnceleme Bekleyen Sorular</h3>
+        <h3 className="text-xl font-bold text-gray-800 mb-4">{bransAdi} - İnceleme Bekleyen Sorular</h3>
         {sorular.length === 0 ? (
           <div className="p-6 bg-gray-50 rounded-lg text-center text-gray-500 border border-gray-200">
             Bu branşta incelenecek soru bulunamadı.
