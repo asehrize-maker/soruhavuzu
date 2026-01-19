@@ -187,8 +187,8 @@ export default function SoruDetay() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
-      {/* KESİN GÖRÜNÜR ÜST BAR (Aksiyon Butonu İçin) */}
-      <div className="sticky top-0 z-[100] bg-white/80 backdrop-blur-md border-b-2 border-purple-200 p-4 -mx-4 shadow-md flex justify-between items-center px-8">
+      {/* Header Area */}
+      <div className="bg-white border-b-2 border-gray-100 p-6 flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-black text-gray-900 flex items-center gap-2 uppercase tracking-tighter">
             📝 Soru Detayı
