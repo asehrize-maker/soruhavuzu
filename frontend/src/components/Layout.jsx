@@ -112,12 +112,6 @@ export default function Layout() {
     else menuItems.push(dizgiItem);
   }
 
-  if (effectiveRole === 'soru_yazici') {
-    // Soru Yazıcılar için hızlı soru ekleme butonu
-    const ekleItem = { path: '/sorular/yeni', label: 'Yeni Soru Yaz', icon: 'M12 4v16m8-8H4' };
-    menuItems.splice(1, 0, ekleItem);
-  }
-
   if (effectiveRole === 'incelemeci') {
     menuItems = menuItems.filter(i => !i.path.startsWith('/sorular'));
     const alanFlag = (actualRole === 'admin') || !!authUser?.inceleme_alanci;
