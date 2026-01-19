@@ -53,9 +53,14 @@ export default function Kullanicilar() {
         ekipAPI.getAll(),
         bransAPI.getAll(),
       ]);
-      setKullanicilar(userResponse.data.data);
-      setEkipler(ekipResponse.data.data);
-      setBranslar(bransResponse.data.data);
+      setKullanicilar(userResponse.data.data || []);
+      setEkipler(ekipResponse.data.data || []);
+      setBranslar(bransResponse.data.data || []);
+      console.log('Veriler yüklendi:', {
+        kullanici_sayisi: (userResponse.data.data || []).length,
+        ekip_sayisi: (ekipResponse.data.data || []).length,
+        brans_sayisi: (bransResponse.data.data || []).length
+      });
     } catch (error) {
       alert('Veriler yüklenemedi');
     } finally {
@@ -243,17 +248,33 @@ export default function Kullanicilar() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Branşlar</label>
-                <div className="max-h-40 overflow-y-auto border rounded p-2 space-y-1">
-                  {filteredBranslar.map(b => (
-                    <label key={b.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-gray-50 rounded">
-                      <input type="checkbox" checked={formData.brans_ids.includes(b.id)} onChange={e => {
-                        const newIds = e.target.checked ? [...formData.brans_ids, b.id] : formData.brans_ids.filter(id => id !== b.id);
-                        setFormData({ ...formData, brans_ids: newIds, brans_id: newIds[0] || '' });
-                      }} />
-                      <span className="text-sm">{b.brans_adi}</span>
-                    </label>
-                  ))}
+                <div className="max-h-40 overflow-y-auto border rounded p-2 space-y-1 bg-gray-50/50">
+                  {!formData.ekip_id ? (
+                    <p className="text-xs text-amber-600 font-medium py-2 text-center italic">Lütfen önce bir ekip seçin</p>
+                  ) : filteredBranslar.length === 0 ? (
+                    <p className="text-xs text-gray-500 py-2 text-center italic">Bu ekibe ait branş bulunamadı</p>
+                  ) : (
+                    filteredBranslar.map(b => (
+                      <label key={b.id} className="flex items-center gap-2 cursor-pointer p-1.5 hover:bg-white hover:shadow-sm rounded transition-all">
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          checked={formData.brans_ids.includes(b.id)}
+                          onChange={e => {
+                            const newIds = e.target.checked ? [...formData.brans_ids, b.id] : formData.brans_ids.filter(id => id !== b.id);
+                            setFormData({ ...formData, brans_ids: newIds, brans_id: newIds[0] || '' });
+                          }}
+                        />
+                        <span className="text-sm text-gray-700">{b.brans_adi}</span>
+                      </label>
+                    ))
+                  )}
                 </div>
+                {formData.ekip_id && filteredBranslar.length > 0 && (
+                  <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-tighter font-bold">
+                    Seçili: {formData.brans_ids.length} Branş
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
