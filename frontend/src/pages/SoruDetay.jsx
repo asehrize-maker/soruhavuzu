@@ -166,14 +166,14 @@ export default function SoruDetay() {
       {/* Header Area */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">📝 Soru Detayı</h1>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">📝 Soru Detayı <span className="text-[10px] bg-red-500 text-white px-1 rounded shadow">V2</span></h1>
           <p className="mt-2 text-gray-600">Soru #{soru.id}</p>
         </div>
         <div className="flex items-center space-x-2">
           <button onClick={() => navigate('/sorular')} className="btn btn-secondary">← Geri</button>
 
           {/* İNCELEME AKSİYONLARI (ÜSTTE) */}
-          {user?.rol === 'incelemeci' && (
+          {incelemeTuru && (
             <div className="flex items-center bg-purple-50 p-1.5 rounded-xl border border-purple-200 shadow-sm ml-2">
               <button
                 onClick={async () => {
