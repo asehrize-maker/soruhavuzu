@@ -841,137 +841,137 @@ export default function SoruDetay() {
               </div>
             </div>
         )}
-          </div>
+          </div></div>
 
       {revizeNotlari.filter(not => {
-            if (user?.rol === 'admin' || user?.rol === 'dizgici') return true;
-            if (incelemeTuru) return not.inceleme_turu === incelemeTuru;
-            return true;
-          }).length > 0 && (
-            <div className="card bg-amber-50 border border-amber-200">
-              <h3 className="text-xl font-bold mb-4 text-amber-900 flex items-center">
-                <span className="mr-2">📝</span> Revize / Hata Notları
-              </h3>
-              <div className="space-y-3">
-                {revizeNotlari.filter(not => {
-                  if (user?.rol === 'admin' || user?.rol === 'dizgici') return true;
-                  if (incelemeTuru) return not.inceleme_turu === incelemeTuru;
-                  return true;
-                }).map((not) => (
-                  <div key={not.id} className="flex gap-4 p-3 bg-white border border-amber-100 rounded-lg shadow-sm">
-                    <div className="w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center font-bold flex-shrink-0">
-                      {revizeNotlari.indexOf(not) + 1}
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">
-                        {not.inceleme_turu === 'alanci' ? 'ALAN UZMANI' : 'DİL UZMANI'}
-                      </div>
-                      <div className="text-sm font-bold text-gray-800 mb-1 italic opacity-70">
-                        "{not.secilen_metin}"
-                      </div>
-                      <p className="text-gray-900 font-medium">{not.not_metni}</p>
-                    </div>
-                    {(effectiveRole === 'admin' || user?.id === not.kullanici_id) && (
-                      <button onClick={() => handleDeleteRevizeNot(not.id)} className="text-red-400 hover:text-red-700 transition self-start">
-                        ✕
-                      </button>
-                    )}
+        if (user?.rol === 'admin' || user?.rol === 'dizgici') return true;
+        if (incelemeTuru) return not.inceleme_turu === incelemeTuru;
+        return true;
+      }).length > 0 && (
+          <div className="card bg-amber-50 border border-amber-200">
+            <h3 className="text-xl font-bold mb-4 text-amber-900 flex items-center">
+              <span className="mr-2">📝</span> Revize / Hata Notları
+            </h3>
+            <div className="space-y-3">
+              {revizeNotlari.filter(not => {
+                if (user?.rol === 'admin' || user?.rol === 'dizgici') return true;
+                if (incelemeTuru) return not.inceleme_turu === incelemeTuru;
+                return true;
+              }).map((not) => (
+                <div key={not.id} className="flex gap-4 p-3 bg-white border border-amber-100 rounded-lg shadow-sm">
+                  <div className="w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center font-bold flex-shrink-0">
+                    {revizeNotlari.indexOf(not) + 1}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-
-
-        {/* Popover - Sadece İnceleme/Admin Modunda */}
-        {selectedText && canReview && (
-          <div className="fixed bottom-12 right-12 z-50 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-            <div className="p-4 font-bold text-white flex justify-between items-center bg-purple-600 shadow-lg">
-              <span>Not Ekle (Madde {revizeNotlari.length + 1})</span>
-              <button onClick={() => setSelectedText('')}>✕</button>
-            </div>
-            <div className="p-4">
-              <div className="text-[10px] text-gray-400 mb-2 italic">"{selectedText.substring(0, 60)}..."</div>
-              <textarea className="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-purple-500" rows="3" placeholder="Hata açıklamasını buraya yazın..." value={revizeNotuInput} onChange={(e) => setRevizeNotuInput(e.target.value)} />
-              <button onClick={handleAddRevizeNot} className="w-full mt-2 py-2 bg-gray-800 text-white rounded-lg font-bold hover:bg-black uppercase">Notu Kaydet</button>
+                  <div className="flex-1">
+                    <div className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">
+                      {not.inceleme_turu === 'alanci' ? 'ALAN UZMANI' : 'DİL UZMANI'}
+                    </div>
+                    <div className="text-sm font-bold text-gray-800 mb-1 italic opacity-70">
+                      "{not.secilen_metin}"
+                    </div>
+                    <p className="text-gray-900 font-medium">{not.not_metni}</p>
+                  </div>
+                  {(effectiveRole === 'admin' || user?.id === not.kullanici_id) && (
+                    <button onClick={() => handleDeleteRevizeNot(not.id)} className="text-red-400 hover:text-red-700 transition self-start">
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Alt Araç Çubuğu */}
-        <div className="flex gap-2">
-          {canEdit && !editMode && <button onClick={handleEditStart} className="btn btn-primary">✏️ Düzenle</button>}
-          {/* SADECE ADMIN VE SAHİBİ SİLEBİLİR - İNCELEMECİ SİLEMEZ */}
-          {(effectiveRole === 'admin' || (soru.olusturan_kullanici_id === user?.id && effectiveRole !== 'incelemeci')) && (
-            <button onClick={handleSil} className="btn btn-danger">Sil</button>
-          )}
-        </div>
 
-        {/* Yorumlar ve Versiyon geçmişi aynen devam eder... */}
-        <div className="card">
-          <h3 className="text-xl font-bold mb-6 text-gray-800">İnceleme Yorumları</h3>
-          <IncelemeYorumlari soruId={id} />
+
+      {/* Popover - Sadece İnceleme/Admin Modunda */}
+      {selectedText && canReview && (
+        <div className="fixed bottom-12 right-12 z-50 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+          <div className="p-4 font-bold text-white flex justify-between items-center bg-purple-600 shadow-lg">
+            <span>Not Ekle (Madde {revizeNotlari.length + 1})</span>
+            <button onClick={() => setSelectedText('')}>✕</button>
+          </div>
+          <div className="p-4">
+            <div className="text-[10px] text-gray-400 mb-2 italic">"{selectedText.substring(0, 60)}..."</div>
+            <textarea className="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-purple-500" rows="3" placeholder="Hata açıklamasını buraya yazın..." value={revizeNotuInput} onChange={(e) => setRevizeNotuInput(e.target.value)} />
+            <button onClick={handleAddRevizeNot} className="w-full mt-2 py-2 bg-gray-800 text-white rounded-lg font-bold hover:bg-black uppercase">Notu Kaydet</button>
+          </div>
         </div>
+      )}
+
+      {/* Alt Araç Çubuğu */}
+      <div className="flex gap-2">
+        {canEdit && !editMode && <button onClick={handleEditStart} className="btn btn-primary">✏️ Düzenle</button>}
+        {/* SADECE ADMIN VE SAHİBİ SİLEBİLİR - İNCELEMECİ SİLEMEZ */}
+        {(effectiveRole === 'admin' || (soru.olusturan_kullanici_id === user?.id && effectiveRole !== 'incelemeci')) && (
+          <button onClick={handleSil} className="btn btn-danger">Sil</button>
+        )}
       </div>
-      );
+
+      {/* Yorumlar ve Versiyon geçmişi aynen devam eder... */}
+      <div className="card">
+        <h3 className="text-xl font-bold mb-6 text-gray-800">İnceleme Yorumları</h3>
+        <IncelemeYorumlari soruId={id} />
+      </div>
+    </div>
+  );
 }
 
-      function IncelemeYorumlari({soruId}) {
+function IncelemeYorumlari({ soruId }) {
   const [yorumlar, setYorumlar] = useState([]);
-      const [yeniYorum, setYeniYorum] = useState('');
-      const [loading, setLoading] = useState(true);
+  const [yeniYorum, setYeniYorum] = useState('');
+  const [loading, setLoading] = useState(true);
   const loadYorumlar = async () => {
-    try { const res = await soruAPI.getComments(soruId); setYorumlar(res.data.data); } catch (e) { } finally {setLoading(false); }
+    try { const res = await soruAPI.getComments(soruId); setYorumlar(res.data.data); } catch (e) { } finally { setLoading(false); }
   };
-  useEffect(() => {loadYorumlar(); }, [soruId]);
+  useEffect(() => { loadYorumlar(); }, [soruId]);
   const handleYorumEkle = async () => {
     if (!yeniYorum.trim()) return;
-      try {await soruAPI.addComment(soruId, yeniYorum); setYeniYorum(''); loadYorumlar(); } catch (e) { }
+    try { await soruAPI.addComment(soruId, yeniYorum); setYeniYorum(''); loadYorumlar(); } catch (e) { }
   };
-      return (
-      <div className="flex flex-col h-full min-h-[200px]">
-        <div className="flex-1 space-y-3">
-          {loading ? <p className="text-center text-gray-400">Yükleniyor...</p> : yorumlar.length === 0 ? <p className="text-center text-gray-400 italic text-sm">Hiç yorum yok.</p> :
-            yorumlar.map((y) => (
-              <div key={y.id} className="bg-white border rounded-xl p-4 shadow-sm">
-                <div className="flex justify-between items-baseline mb-2">
-                  <span className="font-bold text-gray-900">{y.ad_soyad} <span className="text-[10px] font-normal text-gray-400 uppercase">({y.rol})</span></span>
-                  <span className="text-[10px] text-gray-400">{new Date(y.tarih).toLocaleDateString()}</span>
-                </div>
-                <p className="text-gray-700 text-sm whitespace-pre-wrap">{y.yorum_metni}</p>
+  return (
+    <div className="flex flex-col h-full min-h-[200px]">
+      <div className="flex-1 space-y-3">
+        {loading ? <p className="text-center text-gray-400">Yükleniyor...</p> : yorumlar.length === 0 ? <p className="text-center text-gray-400 italic text-sm">Hiç yorum yok.</p> :
+          yorumlar.map((y) => (
+            <div key={y.id} className="bg-white border rounded-xl p-4 shadow-sm">
+              <div className="flex justify-between items-baseline mb-2">
+                <span className="font-bold text-gray-900">{y.ad_soyad} <span className="text-[10px] font-normal text-gray-400 uppercase">({y.rol})</span></span>
+                <span className="text-[10px] text-gray-400">{new Date(y.tarih).toLocaleDateString()}</span>
               </div>
-            ))}
-        </div>
-        <div className="mt-6 flex gap-2">
-          <input type="text" className="input shadow-inner" placeholder="İnceleme notu yazın..." value={yeniYorum} onChange={(e) => setYeniYorum(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleYorumEkle()} />
-          <button onClick={handleYorumEkle} className="btn btn-primary px-8">Ekle</button>
-        </div>
+              <p className="text-gray-700 text-sm whitespace-pre-wrap">{y.yorum_metni}</p>
+            </div>
+          ))}
       </div>
-      );
+      <div className="mt-6 flex gap-2">
+        <input type="text" className="input shadow-inner" placeholder="İnceleme notu yazın..." value={yeniYorum} onChange={(e) => setYeniYorum(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleYorumEkle()} />
+        <button onClick={handleYorumEkle} className="btn btn-primary px-8">Ekle</button>
+      </div>
+    </div>
+  );
 }
 
-      function VersiyonGecmisi({soruId}) {
+function VersiyonGecmisi({ soruId }) {
   const [versiyonlar, setVersiyonlar] = useState([]);
-      const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
-    const load = async () => { try { const res = await soruAPI.getHistory(soruId); setVersiyonlar(res.data.data); } catch (e) { } finally {setLoading(false); } };
-      load();
+    const load = async () => { try { const res = await soruAPI.getHistory(soruId); setVersiyonlar(res.data.data); } catch (e) { } finally { setLoading(false); } };
+    load();
   }, [soruId]);
-      if (loading) return <div className="text-center py-4">Sürümler yükleniyor...</div>;
-      if (versiyonlar.length === 0) return <p className="text-center text-gray-400 italic">Henüz bir sürüm geçmişi yok.</p>;
-      return (
-      <div className="space-y-4">
-        {versiyonlar.map((v) => (
-          <div key={v.id} className="border rounded-xl p-4 bg-gray-50 hover:bg-white transition-all shadow-sm">
-            <div className="flex justify-between items-center mb-2">
-              <span className="bg-gray-800 text-white px-2 py-0.5 rounded text-[10px] font-bold">v{v.versiyon_no}</span>
-              <span className="text-[10px] text-gray-400">{new Date(v.degisim_tarihi).toLocaleString()}</span>
-            </div>
-            <div className="font-bold text-sm text-gray-900 mb-2">{v.ad_soyad}</div>
-            <div className="text-xs text-gray-600 line-clamp-2 italic">"{v.degisim_aciklamasi || 'Soru güncellendi'}"</div>
+  if (loading) return <div className="text-center py-4">Sürümler yükleniyor...</div>;
+  if (versiyonlar.length === 0) return <p className="text-center text-gray-400 italic">Henüz bir sürüm geçmişi yok.</p>;
+  return (
+    <div className="space-y-4">
+      {versiyonlar.map((v) => (
+        <div key={v.id} className="border rounded-xl p-4 bg-gray-50 hover:bg-white transition-all shadow-sm">
+          <div className="flex justify-between items-center mb-2">
+            <span className="bg-gray-800 text-white px-2 py-0.5 rounded text-[10px] font-bold">v{v.versiyon_no}</span>
+            <span className="text-[10px] text-gray-400">{new Date(v.degisim_tarihi).toLocaleString()}</span>
           </div>
-        ))}
-      </div>
-      );
+          <div className="font-bold text-sm text-gray-900 mb-2">{v.ad_soyad}</div>
+          <div className="text-xs text-gray-600 line-clamp-2 italic">"{v.degisim_aciklamasi || 'Soru güncellendi'}"</div>
+        </div>
+      ))}
+    </div>
+  );
 }
