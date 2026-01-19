@@ -342,20 +342,35 @@ export default function SoruDetay() {
   const handleFinishReview = async () => {
     const hasNotes = revizeNotlari.length > 0;
     const msg = hasNotes
-      ? `İşaretlediğiniz ${revizeNotlari.length} adet notla birlikte incelemeyi bitirip Dizgiye göndermek istiyor musunuz?\n\n(Not: Gönderilen soruları "Soru Havuzu" sekmesinden takip edebilirsiniz.)`
-      : 'Soruda hiç hata bulmadınız. Hatasız ONAYLAYIP incelemeyi bitirmek istiyor musunuz?\n\n(Not: Gönderilen soruları "Soru Havuzu" sekmesinden takip edebilirsiniz.)';
+      ? `İşaretlediğiniz ${revizeNotlari.length} adet notla birlikte incelemeyi bitirip Branşa geri göndermek istiyor musunuz?`
+      : 'Soru hatasız mı? ONAYLAYIP Branşa geri göndermek istediğinizden emin misiniz?';
 
     if (!confirm(msg)) return;
 
     try {
       const type = incelemeTuru || (effectiveRole === 'incelemeci' ? 'alanci' : 'admin');
-      const yeni_durum = hasNotes ? 'revize_istendi' : 'dizgi_bekliyor';
+      // Kullanıcı talebi: İnceleme sonrası soru dizgiye değil, branşa (yazara) geri döner.
+      const yeni_durum = 'revize_istendi';
       await soruAPI.updateDurum(id, {
         yeni_durum,
-        aciklama: hasNotes ? (dizgiNotu || 'Metin üzerinde hatalar belirtildi.') : 'İnceleme hatasız tamamlandı.',
+        aciklama: hasNotes ? (dizgiNotu || 'Metin üzerinde hatalar belirtildi.') : 'İnceleme hatasız tamamlandı. Branş onayı bekleniyor.',
         inceleme_turu: type
       });
-      alert('İŞLEM TAMAMLANDI: Soru Dizgiye gönderildi. Soruyu "Soru Havuzu" sekmesinden takip edebilirsiniz.');
+      alert('İŞLEM TAMAMLANDI: Soru Branşa geri gönderildi.');
+      navigate('/');
+    } catch (e) {
+      alert('Hata: ' + (e.response?.data?.error || e.message));
+    }
+  };
+
+  const handleSendToDizgi = async () => {
+    if (!confirm('Soruyu inceledim/düzelttim. Dizgi birimine GÖNDERMEK istediğinizden emin misiniz?')) return;
+    try {
+      await soruAPI.updateDurum(id, {
+        yeni_durum: 'dizgi_bekliyor',
+        aciklama: 'Branş onayı verildi, dizgiye hazır.'
+      });
+      alert('Soru başarıyla Dizgi birimine gönderildi.');
       navigate('/');
     } catch (e) {
       alert('Hata: ' + (e.response?.data?.error || e.message));
@@ -534,9 +549,19 @@ export default function SoruDetay() {
               {(incelemeTuru || ['admin', 'incelemeci', 'alan_incelemeci', 'dil_incelemeci'].includes(effectiveRole)) && soru.durum !== 'tamamlandi' && (
                 <button
                   onClick={handleFinishReview}
+                  className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-black text-sm hover:bg-indigo-700 transition shadow-[0_4px_14px_0_rgba(79,70,229,0.39)] flex items-center gap-2 border-b-4 border-indigo-800 active:border-b-0 active:translate-y-1"
+                >
+                  🚩 İNCELEMEYİ BİTİR VE BRANŞA GÖNDER
+                </button>
+              )}
+
+              {/* BRANŞ (YAZAR) VEYA ADMIN İÇİN DİZGİYE GÖNDERME BUTONU */}
+              {(isAdmin || isOwner) && soru.durum === 'revize_istendi' && (
+                <button
+                  onClick={handleSendToDizgi}
                   className="px-6 py-3 bg-green-600 text-white rounded-xl font-black text-sm hover:bg-green-700 transition shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] flex items-center gap-2 border-b-4 border-green-800 active:border-b-0 active:translate-y-1"
                 >
-                  🚀 İNCELEMEYİ BİTİR VE DİZGİYE GÖNDER
+                  🚀 DİZGİYE GÖNDER
                 </button>
               )}
 
@@ -559,7 +584,7 @@ export default function SoruDetay() {
       {/* Soru İçeriği */}
       <div className="flex items-center gap-3 mb-2 px-1">
         {getDurumBadge(soru.durum)}
-        <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-bold border border-amber-200 uppercase tracking-tighter">Versiyon {soru.versiyon || 1}</span>
+        <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-bold border border-amber-200 uppercase tracking-tighter">Versiyon 1</span>
         <span className="badge bg-green-100 text-green-800 font-bold">✅ Doğru: {soru.dogru_cevap}</span>
         {soru.kazanim && <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-[10px] font-bold border border-blue-200 uppercase tracking-tighter">Kazanım: {soru.kazanim}</span>}
       </div>
