@@ -304,11 +304,11 @@ export default function SoruDetay() {
   };
 
   useEffect(() => {
-    if (soru) {
+    if (soru && !editMode) {
       if (soruMetniRef.current) renderLatexInElement(soruMetniRef.current, soru.soru_metni);
       if (latexKoduRef.current && soru.latex_kodu) renderLatexInElement(latexKoduRef.current, soru.latex_kodu);
     }
-  }, [soru, revizeNotlari]);
+  }, [soru, revizeNotlari, editMode]);
 
   const handleTextSelection = () => {
     const selection = window.getSelection();
@@ -519,33 +519,37 @@ export default function SoruDetay() {
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
       {/* Header Area */}
-      <div className="bg-white border-b-2 border-gray-100 p-6 flex justify-between items-center mb-6">
+      <div className="bg-white border-b-2 border-gray-100 p-6 flex justify-between items-center mb-6 rounded-xl">
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-black text-gray-900 flex items-center gap-2 uppercase tracking-tighter">
-            📝 Soru Detayı
+            {editMode ? '✏️ SORUYU DÜZENLE' : '📝 SORU DETAYI'}
           </h1>
         </div>
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/sorular')} className="btn btn-secondary btn-sm">← Geri</button>
 
-          {/* İNCELEME MODUNDA VEYA ADMIN/İNCELEMECİ İSE GÖRÜNECEK BUTONLAR */}
-          {(incelemeTuru || ['admin', 'incelemeci', 'alan_incelemeci', 'dil_incelemeci'].includes(effectiveRole)) && soru.durum !== 'tamamlandi' && (
-            <button
-              onClick={handleFinishReview}
-              className="px-6 py-3 bg-green-600 text-white rounded-xl font-black text-sm hover:bg-green-700 transition shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] flex items-center gap-2 border-b-4 border-green-800 active:border-b-0 active:translate-y-1"
-            >
-              🚀 İNCELEMEYİ BİTİR VE DİZGİYE GÖNDER
-            </button>
-          )}
+          {!editMode && (
+            <>
+              {/* İNCELEME MODUNDA VEYA ADMIN/İNCELEMECİ İSE GÖRÜNECEK BUTONLAR */}
+              {(incelemeTuru || ['admin', 'incelemeci', 'alan_incelemeci', 'dil_incelemeci'].includes(effectiveRole)) && soru.durum !== 'tamamlandi' && (
+                <button
+                  onClick={handleFinishReview}
+                  className="px-6 py-3 bg-green-600 text-white rounded-xl font-black text-sm hover:bg-green-700 transition shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] flex items-center gap-2 border-b-4 border-green-800 active:border-b-0 active:translate-y-1"
+                >
+                  🚀 İNCELEMEYİ BİTİR VE DİZGİYE GÖNDER
+                </button>
+              )}
 
-          {/* DİZGİCİ İÇİN TAMAMLAMA BUTONU */}
-          {effectiveRole === 'dizgici' && soru.durum === 'dizgide' && (
-            <button
-              onClick={handleDizgiTamamla}
-              className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-sm hover:bg-blue-700 transition shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] flex items-center gap-2 border-b-4 border-blue-800 active:border-b-0 active:translate-y-1"
-            >
-              ✅ DİZGİYİ TAMAMLA VE YAYINLA
-            </button>
+              {/* DİZGİCİ İÇİN TAMAMLAMA BUTONU */}
+              {effectiveRole === 'dizgici' && soru.durum === 'dizgide' && (
+                <button
+                  onClick={handleDizgiTamamla}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-sm hover:bg-blue-700 transition shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] flex items-center gap-2 border-b-4 border-blue-800 active:border-b-0 active:translate-y-1"
+                >
+                  ✅ DİZGİYİ TAMAMLA VE YAYINLA
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -555,8 +559,9 @@ export default function SoruDetay() {
       {/* Soru İçeriği */}
       <div className="flex items-center gap-3 mb-2 px-1">
         {getDurumBadge(soru.durum)}
-        <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-bold border border-amber-200 uppercase tracking-tighter">Versiyon 1</span>
+        <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-bold border border-amber-200 uppercase tracking-tighter">Versiyon {soru.versiyon || 1}</span>
         <span className="badge bg-green-100 text-green-800 font-bold">✅ Doğru: {soru.dogru_cevap}</span>
+        {soru.kazanim && <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-[10px] font-bold border border-blue-200 uppercase tracking-tighter">Kazanım: {soru.kazanim}</span>}
       </div>
 
       <div className="relative border-4 border-gray-200 rounded-xl overflow-hidden bg-white shadow-2xl transition-all">
@@ -652,34 +657,25 @@ export default function SoruDetay() {
             </div>
           </div>
         ) : (
-          <div className={`p-8 min-h-[400px] relative z-10 cursor-text`}>
-            <div className="prose max-w-none">
-              <div ref={soruMetniRef} className="text-gray-900 text-lg leading-relaxed katex-left-align relative z-10" onMouseUp={handleTextSelection} />
-            </div>
-
-            <div className="mt-10">
-              <div className="grid grid-cols-1 gap-4">
-                {['a', 'b', 'c', 'd', 'e'].map((opt) => {
-                  const text = soru[`secenek_${opt}`];
-                  if (!text) return null;
-                  const isCorrect = soru.dogru_cevap === opt.toUpperCase();
-                  return (
-                    <div key={opt} className={`p-4 rounded-xl border-2 flex items-start transition ${isCorrect ? 'bg-green-50 border-green-500' : 'bg-white border-gray-100 hover:border-gray-200'}`}>
-                      <span className={`font-bold mr-4 w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full text-lg ${isCorrect ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600'}`}>{opt.toUpperCase()}</span>
-                      <div className="flex-1 text-gray-800 text-lg pt-1" ref={(el) => el && renderLatexInElement(el, text)} />
-                    </div>
-                  );
-                })}
+          <div className="bg-[#F3F2F1] p-8 flex justify-center overflow-x-auto min-h-[400px]">
+            <div
+              className="bg-white shadow-lg p-[10mm] relative"
+              style={{
+                width: soru.soru_metni?.includes('width: 169') ? '169.6mm' : '82.4mm',
+                minHeight: '120mm'
+              }}
+            >
+              <div
+                className="prose max-w-none"
+                style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}
+              >
+                <div
+                  ref={soruMetniRef}
+                  className="text-gray-900 katex-left-align q-preview-container select-text"
+                  onMouseUp={handleTextSelection}
+                />
               </div>
             </div>
-
-            {soru.fotograf_url && (
-              <div className="mt-10">
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 inline-block shadow-lg">
-                  <img src={soru.fotograf_url} alt="Soru" className="max-w-full rounded-lg" />
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
