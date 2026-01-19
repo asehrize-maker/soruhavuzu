@@ -418,10 +418,10 @@ router.put('/:id(\\d+)', [
       fotograf_public_id = uploadResult.public_id;
     }
 
-    // Yazar güncelleme yaparsa (veya admin), durumu tekrar inceleme bekliyor yap
-    // Böylece revize edilen soru tekrar incelemeye düşer.
+    // Yazar güncelleme yaparsa (veya admin), sadece 'beklemede' ise incelemeye gönder.
+    // Revize aşamasındaki soru tekrar incelemeye düşmez, yazarın butona basması beklenir.
     let yeniDurum = soru.durum;
-    if (req.user.rol === 'soru_yazici' || req.user.rol === 'admin') {
+    if (soru.durum === 'beklemede' && (req.user.rol === 'soru_yazici' || req.user.rol === 'admin')) {
       yeniDurum = 'inceleme_bekliyor';
     }
 
@@ -866,9 +866,11 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
       SELECT
       COUNT(*) as toplam_soru,
         COUNT(CASE WHEN durum = 'beklemede' THEN 1 END) as beklemede,
+        COUNT(CASE WHEN durum = 'inceleme_bekliyor' THEN 1 END) as inceleme_bekliyor,
+        COUNT(CASE WHEN durum = 'revize_istendi' OR durum = 'revize_gerekli' THEN 1 END) as revize_istendi,
+        COUNT(CASE WHEN durum = 'dizgi_bekliyor' THEN 1 END) as dizgi_bekliyor,
         COUNT(CASE WHEN durum = 'dizgide' THEN 1 END) as dizgide,
         COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlandi,
-        COUNT(CASE WHEN durum = 'revize_gerekli' THEN 1 END) as revize_gerekli,
         COUNT(CASE WHEN zorluk_seviyesi = 'kolay' THEN 1 END) as kolay,
         COUNT(CASE WHEN zorluk_seviyesi = 'orta' THEN 1 END) as orta,
         COUNT(CASE WHEN zorluk_seviyesi = 'zor' THEN 1 END) as zor,

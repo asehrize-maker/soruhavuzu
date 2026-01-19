@@ -334,16 +334,20 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center items-center">
-              <span className="text-gray-500 text-sm font-medium uppercase">Bekleyen</span>
-              <span className="text-3xl font-bold text-yellow-600">{stats?.beklemede || 0}</span>
+              <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">İNCELENEN</span>
+              <span className="text-3xl font-black text-blue-600">{stats?.inceleme_bekliyor || 0}</span>
+            </div>
+            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center items-center ring-2 ring-red-100">
+              <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 text-red-600">REVİZE BEKLEYEN</span>
+              <span className="text-3xl font-black text-red-600">{stats?.revize_istendi || stats?.revize_gerekli || 0}</span>
             </div>
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center items-center">
-              <span className="text-gray-500 text-sm font-medium uppercase">Dizgide</span>
-              <span className="text-3xl font-bold text-orange-600">{stats?.dizgide || 0}</span>
+              <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">DİZGİ AŞAMASI</span>
+              <span className="text-3xl font-black text-orange-600">{(stats?.dizgi_bekliyor || 0) + (stats?.dizgide || 0)}</span>
             </div>
-            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center items-center col-span-2">
-              <span className="text-gray-500 text-sm font-medium uppercase">Yayında (Tamamlandı)</span>
-              <span className="text-4xl font-bold text-green-600">{stats?.tamamlandi || 0}</span>
+            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center items-center">
+              <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 text-green-600">TAMAMLANAN</span>
+              <span className="text-3xl font-black text-green-600">{stats?.tamamlandi || 0}</span>
             </div>
           </div>
         </div>
