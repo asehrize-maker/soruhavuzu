@@ -428,67 +428,26 @@ export default function Dashboard() {
             <span>Bilgi: İncelemesi biten veya dizgiye gönderilen soruları sol menüdeki <b>"Soru Havuzu"</b> sekmesinden takip edebilirsiniz.</span>
           </div>
 
-          {isActualAdmin && canAlanInceleme && canDilInceleme && (
-            <div className="mt-6 flex flex-wrap gap-2">
-              <button
-                onClick={() => setReviewMode('alanci')}
-                className={`px-4 py-2 rounded-lg font-medium transition ${reviewMode === 'alanci' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700'}`}
-              >
-                Alan
-              </button>
-              <button
-                onClick={() => setReviewMode('dilci')}
-                className={`px-4 py-2 rounded-lg font-medium transition ${reviewMode === 'dilci' ? 'bg-purple-600 text-white shadow-md' : 'bg-gray-100 text-gray-700'}`}
-              >
-                Dil
-              </button>
+          <div className="mt-6">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">{reviewMode === 'alanci' ? 'Alan İnceleme Branşları' : 'Dil İnceleme Branşları'}</h4>
+            <div className="flex flex-wrap gap-3">
+              {branslar.map(brans => {
+                const countObj = incelemeBransCounts.find(b => Number(b.id) === Number(brans.id));
+                const count = reviewMode === 'alanci' ? (countObj?.alanci || 0) : (countObj?.dilci || 0);
+
+                // Show if user has overall access or specifically to this branch (already handled by 'branslar' being what's available)
+                return (
+                  <button
+                    key={`${reviewMode}-${brans.id}`}
+                    onClick={() => setSelectedBrans(brans)}
+                    className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.id ? (reviewMode === 'alanci' ? 'bg-blue-600 text-white shadow-md' : 'bg-purple-600 text-white shadow-md') : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  >
+                    <span>{brans.brans_adi}</span>
+                    {count > 0 && <span className={`${reviewMode === 'alanci' ? 'bg-blue-600 border border-blue-400' : 'bg-purple-600 border border-purple-400'} text-white text-xs font-bold px-2 py-0.5 rounded-full`}>{count}</span>}
+                  </button>
+                );
+              })}
             </div>
-          )}
-
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {canAlanInceleme && (isActualAdmin || user?.inceleme_alanci) && (
-              <div>
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Alan İnceleme</h4>
-                <div className="flex flex-wrap gap-3">
-                  {branslar.map(brans => {
-                    const countObj = incelemeBransCounts.find(b => Number(b.id) === Number(brans.id));
-                    const count = countObj ? Number(countObj.alanci || 0) : 0;
-                    return (
-                      <button
-                        key={`alan-${brans.id}`}
-                        onClick={() => { setSelectedBrans(brans); setReviewMode('alanci'); }}
-                        className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.id && reviewMode === 'alanci' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700'}`}
-                      >
-                        <span>{brans.brans_adi}</span>
-                        {count > 0 && <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">{count}</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {canDilInceleme && (isActualAdmin || user?.inceleme_dilci) && (
-              <div>
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Dil İnceleme</h4>
-                <div className="flex flex-wrap gap-3">
-                  {branslar.map(brans => {
-                    const countObj = incelemeBransCounts.find(b => Number(b.id) === Number(brans.id));
-                    const count = countObj ? Number(countObj.dilci || 0) : 0;
-                    return (
-                      <button
-                        key={`dil-${brans.id}`}
-                        onClick={() => { setSelectedBrans(brans); setReviewMode('dilci'); }}
-                        className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.id && reviewMode === 'dilci' ? 'bg-purple-600 text-white shadow-md' : 'bg-gray-100 text-gray-700'}`}
-                      >
-                        <span>{brans.brans_adi}</span>
-                        {count > 0 && <span className="bg-purple-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">{count}</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
