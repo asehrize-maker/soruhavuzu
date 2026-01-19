@@ -29,6 +29,11 @@ export default function SoruDetay() {
   const [revizeNotuInput, setRevizeNotuInput] = useState('');
   const [revizeNotlari, setRevizeNotlari] = useState([]);
 
+  // Çizim Kanvası State
+  const [brushColor, setBrushColor] = useState('#ef4444');
+  const [brushWidth, setBrushWidth] = useState(2);
+  const [isEraser, setIsEraser] = useState(false);
+
   useEffect(() => {
     loadSoru();
   }, [id]);
@@ -262,7 +267,7 @@ export default function SoruDetay() {
           <div className="absolute inset-0 z-20 pointer-events-none">
             <canvas
               id="review-canvas"
-              className="w-full h-full pointer-events-auto cursor-crosshair"
+              className={`w-full h-full pointer-events-auto ${isEraser ? 'cursor-cell' : 'cursor-crosshair'}`}
               onMouseDown={(e) => {
                 const canvas = e.target;
                 const rect = canvas.getBoundingClientRect();
@@ -276,20 +281,78 @@ export default function SoruDetay() {
                 const rect = canvas.getBoundingClientRect();
                 const ctx = canvas.getContext('2d');
                 ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-                ctx.strokeStyle = 'red'; ctx.lineWidth = 2; ctx.stroke();
+
+                if (isEraser) {
+                  ctx.globalCompositeOperation = 'destination-out';
+                  ctx.lineWidth = brushWidth * 5;
+                } else {
+                  ctx.globalCompositeOperation = 'source-over';
+                  ctx.strokeStyle = brushColor;
+                  ctx.lineWidth = brushWidth;
+                }
+
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.stroke();
               }}
               onMouseUp={(e) => e.target.isDrawing = false}
               onMouseOut={(e) => e.target.isDrawing = false}
               ref={(canvas) => {
                 if (canvas && !canvas.initialized) {
                   const parent = canvas.parentElement.parentElement;
+                  canvas.style.width = '100%';
+                  canvas.style.height = '100%';
                   canvas.width = parent.offsetWidth;
                   canvas.height = parent.offsetHeight;
                   canvas.initialized = true;
                 }
               }}
             />
-            <button onClick={() => { const c = document.getElementById('review-canvas'); c.getContext('2d').clearRect(0, 0, c.width, c.height); }} className="absolute top-2 right-2 bg-white/90 p-1 rounded border shadow-sm text-[10px] font-bold text-red-600 pointer-events-auto">TEMİZLE</button>
+            {/* Çizim Araç Çubuğu */}
+            <div className="absolute top-4 right-4 flex flex-col gap-2 p-2 bg-white/90 backdrop-blur shadow-xl border border-gray-200 rounded-2xl pointer-events-auto z-50">
+              <div className="flex flex-col gap-1 border-b pb-2">
+                {['#ef4444', '#3b82f6', '#22c55e', '#000000'].map(color => (
+                  <button
+                    key={color}
+                    onClick={() => { setBrushColor(color); setIsEraser(false); }}
+                    className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${brushColor === color && !isEraser ? 'border-gray-900 scale-110' : 'border-transparent'}`}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+
+              <button
+                onClick={() => setIsEraser(!isEraser)}
+                className={`p-1.5 rounded-lg transition ${isEraser ? 'bg-indigo-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
+                title="Silgi"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+
+              <div className="flex flex-col gap-1 items-center border-t border-b py-2 my-1">
+                {[2, 5, 10].map(w => (
+                  <button
+                    key={w}
+                    onClick={() => setBrushWidth(w)}
+                    className={`w-full py-1 text-[9px] font-bold rounded ${brushWidth === w ? 'bg-gray-800 text-white' : 'hover:bg-gray-100 text-gray-500'}`}
+                  >
+                    {w === 2 ? 'İnce' : w === 5 ? 'Orta' : 'Kalın'}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => { const c = document.getElementById('review-canvas'); c.getContext('2d').clearRect(0, 0, c.width, c.height); }}
+                className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition"
+                title="Tizle"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
         )}
 
