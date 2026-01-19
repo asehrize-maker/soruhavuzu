@@ -30,7 +30,6 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
 
         const allQuestions = response.data.data || [];
 
-        // Filtreleme
         const filtered = allQuestions.filter(s => {
           const isBransMatch = parseInt(s.brans_id) === parseInt(bransId);
           if (!isBransMatch) return false;
@@ -50,7 +49,6 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
           }
 
           const notFinished = s.durum !== 'tamamlandi';
-
           return isStatusSuitable && isPendingReview && notFinished;
         });
         setSorular(filtered);
@@ -61,10 +59,7 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
         setListLoading(false);
       }
     };
-
-    if (bransId) {
-      fetchSorular();
-    }
+    if (bransId) fetchSorular();
   }, [bransId, reviewMode, authUser]);
 
   const content = (
@@ -91,7 +86,6 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
                     Görsel Yok
                   </div>
                 )}
-
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <span className={`px-2 py-0.5 text-xs rounded-full font-bold uppercase tracking-wide ${soru.zorluk_seviyesi == 1 ? 'bg-green-100 text-green-700' :
@@ -104,9 +98,7 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
                     </span>
                     <span className="text-xs text-gray-400 font-mono">#{soru.id}</span>
                   </div>
-
                   <div className="text-gray-900 font-medium line-clamp-2 text-sm max-w-2xl" dangerouslySetInnerHTML={{ __html: soru.soru_metni?.substring(0, 300) }} />
-
                   <div className="flex items-center gap-4 text-xs text-gray-500">
                     <span className="flex items-center gap-1">
                       <UserGroupIcon className="w-3 h-3" /> {soru.olusturan_kullanici_ad_soyad}
@@ -117,11 +109,9 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
                   </div>
                 </div>
               </div>
-
               <Link
                 to={`/sorular/${soru.id}?incelemeTuru=${reviewMode}`}
-                className={`px-5 py-2.5 rounded-lg text-sm font-semibold text-white shadow-sm transition transform group-hover:scale-105 ${reviewMode === 'alanci' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-purple-600 hover:bg-purple-700'
-                  }`}
+                className={`px-5 py-2.5 rounded-lg text-sm font-semibold text-white shadow-sm transition transform group-hover:scale-105 ${reviewMode === 'alanci' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-purple-600 hover:bg-purple-700'}`}
               >
                 {reviewMode === 'alanci' ? 'Alan İncele' : 'Dil İncele'} &rarr;
               </Link>
@@ -138,13 +128,11 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
       {error}
     </div>
   );
-
   if (listLoading) return (
     <div className="flex justify-center p-12">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
     </div>
   );
-
   return content;
 }
 
@@ -182,7 +170,6 @@ export default function Dashboard() {
         const res = await soruAPI.getStats({ role: activeRole });
         if (res.data.success) setStats(res.data.data);
       }
-
       if (activeRole === 'incelemeci') {
         const bransRes = await bransAPI.getAll();
         if (bransRes.data.success) setBranslar(bransRes.data.data);
@@ -320,25 +307,6 @@ export default function Dashboard() {
                             <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">{b.soru_sayisi}</span>
                           </div>
                         ))}
-                      </div>
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Sistemdeki Son Kayıtlar</h4>
-                      <div className="text-[11px] text-gray-500 border rounded-lg overflow-hidden bg-gray-50/30">
-                        <div className="p-2 bg-gray-200 font-bold flex justify-between uppercase">
-                          <span className="w-12">ID</span>
-                          <span className="flex-1">Soru Metni</span>
-                          <span className="w-20 text-right">Durum</span>
-                        </div>
-                        <div className="divide-y max-h-40 overflow-y-auto">
-                          {detayliStats?.son_sorular?.map((s, idx) => (
-                            <div key={idx} className="p-2 flex justify-between items-center hover:bg-white bg-white/50 transition-colors">
-                              <span className="w-12 font-mono font-bold text-blue-600">#{s.id}</span>
-                              <span className="flex-1 truncate pr-2" title={s.metin}>{s.metin}...</span>
-                              <span className="w-20 text-right opacity-70 italic">{s.durum}</span>
-                            </div>
-                          ))}
-                        </div>
                       </div>
                     </div>
                   </div>
