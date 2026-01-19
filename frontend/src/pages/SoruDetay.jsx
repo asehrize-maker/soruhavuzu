@@ -432,6 +432,20 @@ export default function SoruDetay() {
     }
   };
 
+  const handleSendToInceleme = async () => {
+    if (!confirm('Soruyu tekrar İNCELEME ekibine göndermek istediğinizden emin misiniz?')) return;
+    try {
+      await soruAPI.updateDurum(id, {
+        yeni_durum: 'inceleme_bekliyor',
+        aciklama: 'Branş tarafından tekrar incelemeye gönderildi.'
+      });
+      alert('Soru tekrar inceleme havuzuna gönderildi.');
+      navigate('/');
+    } catch (e) {
+      alert('Hata: ' + (e.response?.data?.error || e.message));
+    }
+  };
+
   const handleDizgiTamamla = async () => {
     if (!confirm('Dizgi işlemini bitirip soruyu HAVUZA (Tamamlandı) göndermek istediğinizden emin misiniz?')) return;
     try {
@@ -610,14 +624,25 @@ export default function SoruDetay() {
                 </button>
               )}
 
-              {/* BRANŞ (YAZAR) VEYA ADMIN İÇİR DİZGİYE GÖNDERME BUTONU */}
-              {(isAdmin || isOwner) && (soru.durum === 'revize_istendi' || soru.durum === 'tamamlandi') && (
-                <button
-                  onClick={handleSendToDizgi}
-                  className="px-6 py-3 bg-green-600 text-white rounded-xl font-black text-sm hover:bg-green-700 transition shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] flex items-center gap-2 border-b-4 border-green-800 active:border-b-0 active:translate-y-1"
-                >
-                  🚀 DİZGİYE GÖNDER
-                </button>
+              {/* BRANŞ (YAZAR) VEYA ADMIN İÇİN AKSİYONLAR (Dizgiye veya İncelemeye Gönder) */}
+              {(isAdmin || isOwner) && (soru.durum === 'revize_istendi' || soru.durum === 'tamamlandi' || soru.durum === 'inceleme_tamam') && (
+                <>
+                  {/* İncelemeye Gönder */}
+                  <button
+                    onClick={handleSendToInceleme}
+                    className="px-6 py-3 bg-indigo-100 text-indigo-700 rounded-xl font-black text-sm hover:bg-indigo-200 transition shadow-[0_4px_14px_0_rgba(79,70,229,0.2)] flex items-center gap-2 border-b-4 border-indigo-300 active:border-b-0 active:translate-y-1"
+                  >
+                    🔍 TEKRAR İNCELEMEYE GÖNDER
+                  </button>
+
+                  {/* Dizgiye Gönder */}
+                  <button
+                    onClick={handleSendToDizgi}
+                    className="px-6 py-3 bg-green-600 text-white rounded-xl font-black text-sm hover:bg-green-700 transition shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] flex items-center gap-2 border-b-4 border-green-800 active:border-b-0 active:translate-y-1"
+                  >
+                    🚀 DİZGİYE GÖNDER
+                  </button>
+                </>
               )}
 
               {/* DİZGİCİ İÇİN DİZGİYE AL BUTONU (EĞER BEKLEMEDEYSE) */}
