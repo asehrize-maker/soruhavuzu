@@ -265,7 +265,7 @@ export default function Dashboard() {
             <div className="relative z-10 flex justify-between items-start">
               <div>
                 <p className="text-emerald-100 text-xs font-bold uppercase tracking-widest">KULLANICILAR</p>
-                <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.genel?.toplam_kullanici || 0}</h3>
+                <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.sistem?.toplam_kullanici || 0}</h3>
               </div>
               <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm group-hover:bg-white/30 transition">
                 <UserGroupIcon className="w-6 h-6 text-white" />
@@ -291,7 +291,7 @@ export default function Dashboard() {
             <div className="relative z-10 flex justify-between items-start">
               <div>
                 <p className="text-orange-100 text-xs font-bold uppercase tracking-widest">EKİPLER</p>
-                <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.genel?.toplam_ekip || 0}</h3>
+                <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.sistem?.toplam_ekip || 0}</h3>
               </div>
               <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm group-hover:bg-white/30 transition">
                 <UserGroupIcon className="w-6 h-6 text-white" />
