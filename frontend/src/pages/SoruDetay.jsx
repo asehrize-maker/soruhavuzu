@@ -50,16 +50,22 @@ export default function SoruDetay() {
     });
     html = html.replace(/\n/g, '<br>');
 
-    // Revize Notlarını Metin Üzerinde Numaralandırarak İşaretle
+    // Revize Notlarını Metin Üzerinde Numaralandırarak İşaretle (ROL BAZLI FİLTRELEME)
     if (revizeNotlari && revizeNotlari.length > 0) {
-      revizeNotlari.forEach((not, index) => {
+      const visibleNotes = revizeNotlari.filter(not => {
+        if (user?.rol === 'admin' || user?.rol === 'dizgici') return true;
+        if (incelemeTuru) return not.inceleme_turu === incelemeTuru;
+        return true;
+      });
+
+      visibleNotes.forEach((not, index) => {
         if (!not.secilen_metin) return;
         const colorClass = not.inceleme_turu === 'dilci' ? 'green' : 'blue';
         const mark = `<mark class="bg-${colorClass}-100 border-b-2 border-${colorClass}-400 px-1 relative group cursor-help transition-colors hover:bg-${colorClass}-200">
           ${not.secilen_metin}
-          <sup class="text-${colorClass}-700 font-bold ml-0.5 select-none">[${index + 1}]</sup>
+          <sup class="text-${colorClass}-700 font-bold ml-0.5 select-none">[${revizeNotlari.indexOf(not) + 1}]</sup>
           <span class="absolute bottom-full left-1/2 -translate-x-1/2 hidden group-hover:block bg-gray-900 text-white text-[10px] p-2 rounded w-48 z-50 shadow-xl mb-2">
-            <strong>Not ${index + 1}:</strong> ${not.not_metni}
+            <strong>${not.inceleme_turu.toUpperCase()} Notu:</strong> ${not.not_metni}
           </span>
         </mark>`;
         html = html.split(not.secilen_metin).join(mark);
@@ -258,37 +264,45 @@ export default function SoruDetay() {
         </div>
       </div>
 
-      {/* Revize Notları Listesi */}
-      {revizeNotlari.length > 0 && (
-        <div className="card bg-amber-50 border border-amber-200">
-          <h3 className="text-xl font-bold mb-4 text-amber-900 flex items-center">
-            <span className="mr-2">📝</span> Revize / Hata Notları
-          </h3>
-          <div className="space-y-3">
-            {revizeNotlari.map((not, idx) => (
-              <div key={not.id} className="flex gap-4 p-3 bg-white border border-amber-100 rounded-lg shadow-sm">
-                <div className="w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center font-bold flex-shrink-0">
-                  {idx + 1}
-                </div>
-                <div className="flex-1">
-                  <div className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">
-                    {not.inceleme_turu === 'alanci' ? 'ALAN UZMANI' : 'DİL UZMANI'}
+      {/* Revize Notları Listesi (ROL BAZLI FİLTRELEME) */}
+      {revizeNotlari.filter(not => {
+        if (user?.rol === 'admin' || user?.rol === 'dizgici') return true;
+        if (incelemeTuru) return not.inceleme_turu === incelemeTuru;
+        return true;
+      }).length > 0 && (
+          <div className="card bg-amber-50 border border-amber-200">
+            <h3 className="text-xl font-bold mb-4 text-amber-900 flex items-center">
+              <span className="mr-2">📝</span> Revize / Hata Notları
+            </h3>
+            <div className="space-y-3">
+              {revizeNotlari.filter(not => {
+                if (user?.rol === 'admin' || user?.rol === 'dizgici') return true;
+                if (incelemeTuru) return not.inceleme_turu === incelemeTuru;
+                return true;
+              }).map((not) => (
+                <div key={not.id} className="flex gap-4 p-3 bg-white border border-amber-100 rounded-lg shadow-sm">
+                  <div className="w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center font-bold flex-shrink-0">
+                    {revizeNotlari.indexOf(not) + 1}
                   </div>
-                  <div className="text-sm font-bold text-gray-800 mb-1 italic opacity-70">
-                    "{not.secilen_metin}"
+                  <div className="flex-1">
+                    <div className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">
+                      {not.inceleme_turu === 'alanci' ? 'ALAN UZMANI' : 'DİL UZMANI'}
+                    </div>
+                    <div className="text-sm font-bold text-gray-800 mb-1 italic opacity-70">
+                      "{not.secilen_metin}"
+                    </div>
+                    <p className="text-gray-900 font-medium">{not.not_metni}</p>
                   </div>
-                  <p className="text-gray-900 font-medium">{not.not_metni}</p>
+                  {(effectiveRole === 'admin' || user?.id === not.kullanici_id) && (
+                    <button onClick={() => handleDeleteRevizeNot(not.id)} className="text-red-400 hover:text-red-700 transition self-start">
+                      ✕
+                    </button>
+                  )}
                 </div>
-                {(effectiveRole === 'admin' || user?.id === not.kullanici_id) && (
-                  <button onClick={() => handleDeleteRevizeNot(not.id)} className="text-red-400 hover:text-red-700 transition self-start">
-                    ✕
-                  </button>
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
 
 
@@ -310,7 +324,10 @@ export default function SoruDetay() {
       {/* Alt Araç Çubuğu */}
       <div className="flex gap-2">
         {canEdit && !editMode && <button onClick={handleEditStart} className="btn btn-primary">✏️ Düzenle</button>}
-        {(effectiveRole === 'admin' || soru.olusturan_kullanici_id === user?.id) && <button onClick={handleSil} className="btn btn-danger">Sil</button>}
+        {/* SADECE ADMIN VE SAHİBİ SİLEBİLİR - İNCELEMECİ SİLEMEZ */}
+        {(effectiveRole === 'admin' || (soru.olusturan_kullanici_id === user?.id && effectiveRole !== 'incelemeci')) && (
+          <button onClick={handleSil} className="btn btn-danger">Sil</button>
+        )}
       </div>
 
       {/* Yorumlar ve Versiyon geçmişi aynen devam eder... */}
