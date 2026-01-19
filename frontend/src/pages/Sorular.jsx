@@ -103,6 +103,38 @@ export default function Sorular() {
     }
   };
 
+  const handleDizgiyeGonder = async (ids) => {
+    const idList = Array.isArray(ids) ? ids : [ids];
+    if (idList.length === 0) return;
+
+    if (!window.confirm(`${idList.length} soruyu dizgi birimine göndermek istediğinize emin misiniz?`)) return;
+
+    try {
+      setLoading(true);
+      await Promise.all(idList.map(id => soruAPI.updateDurum(id, { durum: 'dizgi_bekliyor' })));
+
+      // Listeyi yenile
+      const response = await soruAPI.getAll({
+        durum: filters.durum || undefined,
+        brans_id: filters.brans_id || undefined,
+      });
+      let data = response.data.data || [];
+      if (effectiveRole === 'dizgici') {
+        data = data.filter(s => ['dizgi_bekliyor', 'dizgide'].includes(s.durum));
+      } else if (effectiveRole === 'soru_yazici') {
+        data = data.filter(s => s.olusturan_kullanici_id === user.id || s.durum === 'tamamlandi');
+      }
+      setSorular(data);
+      setSelectedQuestions([]);
+      alert(`✅ ${idList.length} soru başarıyla dizgiye gönderildi.`);
+    } catch (error) {
+      console.error('Dizgiye gönderme hatası:', error);
+      alert('İşlem sırasında bir hata oluştu.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleExport = () => {
     if (selectedQuestions.length === 0) return;
 
@@ -321,6 +353,14 @@ export default function Sorular() {
             >
               📄 Seçilenleri Dışa Aktar (Word/Yazdır)
             </button>
+            {user?.rol === 'soru_yazici' && (
+              <button
+                onClick={() => handleDizgiyeGonder(selectedQuestions)}
+                className="btn bg-purple-600 hover:bg-purple-700 text-white text-sm py-1 px-3"
+              >
+                ✨ Seçilenleri Dizgiye Gönder
+              </button>
+            )}
             <button
               onClick={() => setSelectedQuestions([])}
               className="text-xs text-red-600 hover:underline"
@@ -432,6 +472,15 @@ export default function Sorular() {
                       className="btn btn-primary text-sm"
                     >
                       Dizgiye Al
+                    </button>
+                  )}
+
+                  {user?.rol === 'soru_yazici' && soru.durum === 'tamamlandi' && (
+                    <button
+                      onClick={() => handleDizgiyeGonder(soru.id)}
+                      className="btn bg-purple-100 text-purple-700 border border-purple-200 hover:bg-purple-200 text-sm"
+                    >
+                      Dizgiye Gönder
                     </button>
                   )}
                 </div>

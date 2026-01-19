@@ -610,13 +610,13 @@ export default function SoruDetay() {
                 </button>
               )}
 
-              {/* BRANŞ (YAZAR) VEYA ADMIN İÇİN DİZGİYE GÖNDERME BUTONU */}
-              {(isAdmin || isOwner) && soru.durum === 'revize_istendi' && (
+              {/* BRANŞ (YAZAR) VEYA ADMIN İÇİR DİZGİYE GÖNDERME BUTONU */}
+              {(isAdmin || isOwner) && (soru.durum === 'revize_istendi' || soru.durum === 'tamamlandi') && (
                 <button
                   onClick={handleSendToDizgi}
                   className="px-6 py-3 bg-green-600 text-white rounded-xl font-black text-sm hover:bg-green-700 transition shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] flex items-center gap-2 border-b-4 border-green-800 active:border-b-0 active:translate-y-1"
                 >
-                  🚀 DİZGİYE VE HAVUZA GÖNDER
+                  🚀 DİZGİYE GÖNDER
                 </button>
               )}
 
