@@ -430,11 +430,6 @@ export default function SoruDetay() {
               </span>
             )}
             {/* New Info Badges */}
-            {soru.kazanim && (
-              <span className="badge bg-purple-100 text-purple-800" title="Kazanım">
-                🎯 {soru.kazanim}
-              </span>
-            )}
             <span className="badge bg-green-100 text-green-800 font-bold" title="Doğru Cevap">
               ✅ {soru.dogru_cevap || '-'}
             </span>
