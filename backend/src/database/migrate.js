@@ -13,6 +13,7 @@ import { incelemeciRolVeAltRoller } from './migrations/012_incelemeci_rol_altrol
 import { createBransKazanimlar } from './migrations/013_brans_kazanimlar.js';
 import { fixSorularDurumConstraint } from './migrations/014_fix_sorular_durum_constraint.js';
 import { normalizeSorularDurum } from './migrations/015_normalize_sorular_durum.js';
+import { addIncelemeFlags } from './migrations/016_add_inceleme_flags.js';
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -136,6 +137,7 @@ const createTables = async () => {
 
     await fixSorularDurumConstraint();
     await normalizeSorularDurum();
+    await addIncelemeFlags();
 
   } catch (error) {
     await client.query('ROLLBACK');
