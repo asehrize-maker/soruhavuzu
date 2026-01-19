@@ -16,6 +16,9 @@ import {
   Bars4Icon
 } from '@heroicons/react/24/outline';
 
+// --- GUVENLI ID URETECI ---
+const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+
 // --- İMLEÇ KORUMALI EDİTÖR ---
 const EditableBlock = memo(({ initialHtml, onChange, className, style, label }) => {
   const ref = useRef(null);
@@ -24,27 +27,33 @@ const EditableBlock = memo(({ initialHtml, onChange, className, style, label }) 
     if (ref.current && ref.current.innerHTML !== initialHtml) {
       ref.current.innerHTML = initialHtml;
     }
-    // Eklendiği an focusla
+    // Eklendiği an focusla (hafif gecikmeli - render safe)
     if (ref.current && !initialHtml) {
-      ref.current.focus();
+      setTimeout(() => {
+        if (ref.current) ref.current.focus();
+      }, 50);
     }
   }, []);
 
   return (
     <div className="relative group/edit w-full">
       {/* Etiket (Sol üstte minik ipucu - Sadece hoverda) */}
-      <div className="absolute -top-3 left-0 text-[9px] text-gray-400 font-bold px-1 opacity-0 group-hover/edit:opacity-100 transition pointer-events-none uppercase tracking-wider">
+      <div className="absolute -top-3 left-0 text-[10px] text-gray-500 font-bold px-1 opacity-0 group-hover/edit:opacity-100 transition pointer-events-none uppercase tracking-wider bg-white/80 rounded border shadow-sm">
         {label}
       </div>
       <div
         ref={ref}
         contentEditable
         suppressContentEditableWarning
-        className={`outline-none min-h-[2em] p-1 border border-transparent hover:border-gray-200 focus:border-blue-300 focus:bg-white transition rounded ${className || ''}`}
+        className={`outline-none min-h-[2em] p-1 border border-transparent hover:border-gray-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 focus:bg-white transition rounded ${className || ''}`}
         style={style}
         onInput={(e) => onChange(e.currentTarget.innerHTML)}
+        onPaste={(e) => {
+          e.preventDefault();
+          const text = e.clipboardData.getData('text/plain');
+          document.execCommand("insertText", false, text);
+        }}
       />
-      {/* Placeholder DİV'i TAMAMEN KALDIRILDI */}
     </div>
   );
 }, () => true);
@@ -84,7 +93,7 @@ const ResizableImage = ({ src, width, height, align, onUpdate, onDelete }) => {
         if (mode === 's' || (mode === 'se' && height !== 'auto')) {
           let newHeightPx = startHeightPx + diffY;
           if (newHeightPx < 50) newHeightPx = 50;
-          updates.height = newHeightPx;
+          updates.height = newHeightPx; // Pixel olarak sakla
         }
       }
       onUpdate(updates);
@@ -137,8 +146,6 @@ export default function SoruEkle() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [widthMode, setWidthMode] = useState('dar');
-
-  // START EMPTY
   const [components, setComponents] = useState([]);
 
   const [metadata, setMetadata] = useState({ zorluk: '3', dogruCevap: '', brans_id: '', kazanim: '' });
@@ -156,12 +163,12 @@ export default function SoruEkle() {
     loadBranslar();
   }, [user]);
 
-  // PLACEHOLDERLAR TAMAMEN BOŞALTILDI
-  const addGovde = () => setComponents([...components, { id: Date.now(), type: 'text', subtype: 'govde', content: '', placeholder: '', label: 'Gövde' }]);
-  const addKoku = () => setComponents([...components, { id: Date.now(), type: 'text', subtype: 'koku', content: '', placeholder: '', label: 'Soru Kökü' }]);
+  // --- EKLEME LOGIC (UNIQUE ID FIX) ---
+  const addKoku = () => setComponents(prev => [...prev, { id: generateId(), type: 'text', subtype: 'koku', content: '', placeholder: '', label: 'Soru Kökü' }]);
+  const addGovde = () => setComponents(prev => [...prev, { id: generateId(), type: 'text', subtype: 'govde', content: '', placeholder: '', label: 'Gövde' }]);
 
   const addSecenekler = (mode = 'list') => {
-    const baseId = Date.now();
+    const baseId = generateId();
     const opts = ['A', 'B', 'C', 'D'];
     const newComps = opts.map((opt, idx) => {
       let styleProps = { width: 100, float: 'none' };
@@ -169,36 +176,35 @@ export default function SoruEkle() {
       return {
         id: baseId + idx,
         type: 'text', subtype: 'secenek', content: `<b>${opt})</b> `,
-        placeholder: ``, // Placeholder yok
+        placeholder: ``,
         label: `Seçenek ${opt}`,
         ...styleProps
       };
     });
-    setComponents([...components, ...newComps]);
+    setComponents(prev => [...prev, ...newComps]);
   };
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setComponents([...components, { id: Date.now(), type: 'image', content: URL.createObjectURL(file), file: file, width: 50, height: 'auto', align: 'center' }]);
+      setComponents(prev => [...prev, { id: generateId(), type: 'image', content: URL.createObjectURL(file), file: file, width: 50, height: 'auto', align: 'center' }]);
     }
   };
 
   const updateComponent = (id, updates) => setComponents(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
   const removeComponent = (id) => setComponents(prev => prev.filter(c => c.id !== id));
 
-  // --- DRAG INTERACTION ---
   const onDragStart = (e, index) => {
     setDraggedItemIndex(index);
     e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", index); // Firefox fix
+    e.dataTransfer.setData("text/plain", index);
   };
 
   const onDragOver = (e, index) => {
     e.preventDefault();
     if (draggedItemIndex === null || draggedItemIndex === index) return;
 
-    // Smooth Reorder
+    // Smooth Reorder with minimal glitch
     const newComps = [...components];
     const item = newComps[draggedItemIndex];
     newComps.splice(draggedItemIndex, 1);
@@ -284,19 +290,26 @@ export default function SoruEkle() {
 
       <div className="flex justify-center p-8 overflow-y-auto">
         <div className="flex flex-col gap-4 sticky top-20 h-fit mr-4">
-          {/* SIDEBAR TOOLS */}
+          {/* SIDEBAR TOOLS (YENİ SIRALAMA ve AÇIKLAMALAR) */}
           <div className="bg-white p-2 rounded shadow border flex flex-col gap-2 w-36">
-            <span className="text-xs font-bold text-gray-400 uppercase text-center mb-1">Ekle</span>
-            <button onClick={addGovde} className="flex items-center gap-2 p-2 hover:bg-blue-50 text-blue-700 rounded text-sm font-bold border border-transparent hover:border-blue-200 transition text-left group">
-              <DocumentTextIcon className="w-5 h-5" /> Gövde
+            <span className="text-xs font-bold text-gray-400 uppercase text-center mb-1">Yeni Ekle</span>
+
+            {/* 1. SORU KÖKÜ */}
+            <button onClick={addKoku} className="flex flex-col p-2 hover:bg-purple-50 rounded border border-transparent hover:border-purple-200 transition text-left group">
+              <div className="flex items-center gap-2 text-purple-700 font-bold text-sm"><BoldIcon className="w-4 h-4" /> Soru Kökü</div>
+              <span className="text-[10px] text-gray-400 ml-6">Soru cümlesi (koyu)</span>
             </button>
-            <button onClick={addKoku} className="flex items-center gap-2 p-2 hover:bg-purple-50 text-purple-700 rounded text-sm font-bold border border-transparent hover:border-purple-200 transition text-left group">
-              <BoldIcon className="w-5 h-5" /> Kök
+
+            {/* 2. SORU GÖVDESİ */}
+            <button onClick={addGovde} className="flex flex-col p-2 hover:bg-blue-50 rounded border border-transparent hover:border-blue-200 transition text-left group">
+              <div className="flex items-center gap-2 text-blue-700 font-bold text-sm"><DocumentTextIcon className="w-4 h-4" /> Gövde</div>
+              <span className="text-[10px] text-gray-400 ml-6">Metin, paragraf, ön bilgi</span>
             </button>
 
             <div className="border-t my-1"></div>
-            <span className="text-[10px] font-bold text-gray-400 uppercase text-center">Şıklar (4'lü)</span>
 
+            {/* 3. ŞIKLAR */}
+            <span className="text-[10px] font-bold text-gray-400 uppercase text-center">Şıklar (4 Adet)</span>
             <button onClick={() => addSecenekler('list')} className="flex items-center gap-2 p-2 hover:bg-green-50 text-green-700 rounded text-sm font-bold border border-transparent hover:border-green-200 transition text-left">
               <QueueListIcon className="w-5 h-5" /> Alt Alta
             </button>
@@ -305,8 +318,9 @@ export default function SoruEkle() {
             </button>
 
             <div className="border-t my-1"></div>
-            <label className="flex items-center gap-2 p-2 hover:bg-orange-50 text-orange-700 rounded text-sm font-bold border border-transparent hover:border-orange-200 transition text-left cursor-pointer">
-              <PhotoIcon className="w-5 h-5" /> Görsel
+            <label className="flex flex-col p-2 hover:bg-orange-50 rounded border border-transparent hover:border-orange-200 transition text-left cursor-pointer">
+              <div className="flex items-center gap-2 text-orange-700 font-bold text-sm"><PhotoIcon className="w-4 h-4" /> Görsel</div>
+              <span className="text-[10px] text-gray-400 ml-6">Resim, grafik, harita</span>
               <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
             </label>
           </div>
