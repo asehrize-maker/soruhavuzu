@@ -178,7 +178,47 @@ export default function Dashboard() {
 
   function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
     const [sorular, setSorular] = useState([]);
-    const renderSoruListesi = () => (
+    const [listLoading, setListLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+      const fetchSorular = async () => {
+        setListLoading(true);
+        setError(null);
+        try {
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Sunucu yanıt vermedi')), 10000));
+          const response = await Promise.race([soruAPI.getAll(), timeoutPromise]);
+
+          const allQuestions = response.data.data || [];
+
+          const filtered = allQuestions.filter(s => {
+            const isBransMatch = parseInt(s.brans_id) === parseInt(bransId);
+            if (!isBransMatch) return false;
+            const isStatusSuitable = ['inceleme_bekliyor', 'beklemede', 'incelemede', 'dizgide'].includes(s.durum);
+
+            let isPendingReview = false;
+            if (reviewMode === 'alanci') isPendingReview = !s.onay_alanci;
+            if (reviewMode === 'dilci') isPendingReview = !s.onay_dilci;
+
+            const notFinished = s.durum !== 'dizgi_bekliyor' && s.durum !== 'tamamlandi';
+
+            return isStatusSuitable && isPendingReview && notFinished;
+          });
+          setSorular(filtered);
+        } catch (err) {
+          console.error("Sorular çekilemedi", err);
+          setError("Bir hata oluştu: " + (err.message));
+        } finally {
+          setListLoading(false);
+        }
+      };
+
+      if (bransId) {
+        fetchSorular();
+      }
+    }, [bransId, reviewMode]);
+
+    const content = (
       <div className="mt-8">
         <h3 className="text-xl font-bold text-gray-800 mb-4">{bransAdi} - İnceleme Bekleyen Sorular</h3>
         {sorular.length === 0 ? (
@@ -196,10 +236,10 @@ export default function Dashboard() {
                   <div className="flex-1">
                     <div className="flex items-center space-x-2">
                       <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${soru.zorluk_seviyesi === 'kolay' || soru.zorluk_seviyesi === 1 ? 'bg-green-100 text-green-800' :
-                        soru.zorluk_seviyesi === 'orta' || soru.zorluk_seviyesi === 2 || soru.zorluk_seviyesi === 3 ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
+                          soru.zorluk_seviyesi === 'orta' || soru.zorluk_seviyesi === 2 || soru.zorluk_seviyesi === 3 ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
                         }`}>
-                        {['ÇOK KOLAY', 'KOLAY', 'ORTA', 'ZOR', 'ÇOK ZOR'][soru.zorluk_seviyesi - 1] || 'BELİRSİZ'}
+                        {['ÇOK KOLAY', 'KOLAY', 'ORTA', 'ZOR', 'ÇOK ZOR'][soru.zorluk_seviyesi - 1] || String(soru.zorluk_seviyesi).toUpperCase()}
                       </span>
                       <span className="text-xs text-gray-500">#{soru.id}</span>
                     </div>
@@ -217,60 +257,10 @@ export default function Dashboard() {
       </div>
     );
 
-    useEffect(() => {
-      const fetchSorular = async () => {
-        setListLoading(true);
-        setError(null);
-        try {
-          // Backend'den soruları çek (Normal Timeout: 10 saniye)
-          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Sunucu yanıt vermedi')), 10000));
-          const response = await Promise.race([soruAPI.getAll(), timeoutPromise]);
-
-          const allQuestions = response.data.data || [];
-          processQuestions(allQuestions);
-
-        } catch (err) {
-          console.error("Sorular çekilemedi", err);
-          setError("Sorular yüklenirken hata oluştu: " + (err.message));
-        } finally {
-          setListLoading(false);
-        }
-      };
-
-      const processQuestions = (allQuestions) => {
-        // Filtreleme Aktif
-        // 1. Seçili branş (API filterledi ama client-side garanti olsun)
-        // 2. Durum: İnceleme bekleyen veya süreçteki sorular (Tamamlananlar hariç incelensin)
-        // 3. İnceleme Modu: 'alanci' ise 'onay_alanci' FALSE olanlar, 'dilci' ise 'onay_dilci' FALSE olanlar
-        const filtered = allQuestions.filter(s => {
-          // s.brans_id bazen string bazen int gelebilir
-          const isBransMatch = parseInt(s.brans_id) === parseInt(bransId);
-          if (!isBransMatch) return false;
-          const isStatusSuitable = ['inceleme_bekliyor', 'beklemede', 'incelemede', 'dizgide'].includes(s.durum);
-
-          // Mod Kontrolü: İlgili onay verilmemişse listele
-          let isPendingReview = false;
-          if (reviewMode === 'alanci') isPendingReview = !s.onay_alanci;
-          if (reviewMode === 'dilci') isPendingReview = !s.onay_dilci;
-
-          // Eğer soru zaten 'dizgi_bekliyor' veya 'tamamlandi' ise listeden düşsün (inceleme bitmiş)
-          const notFinished = s.durum !== 'dizgi_bekliyor' && s.durum !== 'tamamlandi';
-
-          return isStatusSuitable && isPendingReview && notFinished;
-        });
-        setSorular(filtered);
-      };
-
-      if (bransId) {
-        fetchSorular();
-      }
-    }, [bransId, reviewMode]);
-
     if (error) return (
       <div>
-        <div className="text-center py-2 text-yellow-800 bg-yellow-100 rounded-lg mb-4 border border-yellow-200">{error}</div>
-        {/* Hata olsa bile mock soruları göster */}
-        {renderSoruListesi()}
+        <div className="text-center py-2 text-red-800 bg-red-100 rounded-lg mb-4 border border-red-200">{error}</div>
+        {content}
       </div>
     );
     if (listLoading) return <div className="text-center py-8">Yükleniyor...</div>;
