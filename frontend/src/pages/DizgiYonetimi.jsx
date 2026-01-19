@@ -145,7 +145,7 @@ export default function DizgiYonetimi() {
                         onClick={() => handleDurumGuncelle(soru.id, 'tamamlandi')}
                         className="btn btn-success btn-sm"
                       >
-                        Tamamlandı
+                        ✅ Tamamlandı
                       </button>
                       <button
                         onClick={() => openRevizeModal(soru)}

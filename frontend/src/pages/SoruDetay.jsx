@@ -383,7 +383,7 @@ export default function SoruDetay() {
         yeni_durum: 'tamamlandi',
         aciklama: 'Dizgisi yapıldı ve havuza gönderildi.'
       });
-      alert('Soru başarıyla tamamlandı ve Hazır Soru Havuzuna eklendi.');
+      alert(`Soru başarıyla tamamlandı (V${soru.versiyon || 1}) ve Hazır Soru Havuzuna eklendi.`);
       navigate('/');
     } catch (e) {
       alert('Hata: ' + (e.response?.data?.error || e.message));
@@ -570,7 +570,7 @@ export default function SoruDetay() {
                   onClick={handleDizgiTamamla}
                   className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-sm hover:bg-blue-700 transition shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] flex items-center gap-2 border-b-4 border-blue-800 active:border-b-0 active:translate-y-1"
                 >
-                  ✅ DİZGİSİ YAPILDI
+                  ✅ TAMAMLANDI
                 </button>
               )}
             </>
