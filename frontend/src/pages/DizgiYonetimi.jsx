@@ -124,60 +124,107 @@ export default function DizgiYonetimi() {
           <h3 className="text-lg font-medium text-gray-900">Henüz soru yok</h3>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-3">
-            <h2 className="font-semibold">Dizgi Bekleyen</h2>
-            {pending.map(soru => (
-              <div key={soru.id} className="card">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-bold">Soru #{soru.id}</h4>
-                    <div className="text-xs text-gray-700" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
+        <div className="flex gap-6">
+          {/* Left column: stacked sections */}
+          <div className="w-1/3 space-y-4 overflow-y-auto max-h-[75vh]">
+            <div className="bg-white p-3 rounded shadow-sm">
+              <h2 className="font-semibold mb-2">Dizgi Bekleyen</h2>
+              <div className="space-y-2">
+                {pending.map(soru => (
+                  <div key={soru.id} className="p-2 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedSoru(soru)}>
+                    <div className="flex justify-between items-center">
+                      <div className="text-sm font-medium">Soru #{soru.id}</div>
+                      <div className="text-xs text-gray-500">{soru.brans_adi}</div>
+                    </div>
+                    <div className="text-xs text-gray-600 mt-1 truncate" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
+                      {/* Show if a prepared PNG/PDF exists and label it with the source soru id */}
+                      {(soru.fotograf_url || soru.dosya_url) && (
+                        <div className="mt-2 text-xs text-gray-500">
+                          Hazırlanan dosya: Soru #{soru.id} • {soru.fotograf_url ? 'PNG' : ''}{soru.fotograf_url && soru.dosya_url ? ' / ' : ''}{soru.dosya_url ? 'PDF' : ''}
+                        </div>
+                      )}
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <button onClick={() => navigate(`/sorular/${soru.id}`)} className="btn btn-secondary btn-sm">Detay</button>
-                    <button onClick={() => setShowMesaj(showMesaj === soru.id ? null : soru.id)} className="btn btn-info btn-sm">💬</button>
-                    <button onClick={() => handleDurumGuncelle(soru.id, 'dizgide')} className="btn btn-primary btn-sm">Dizgiye Al</button>
-                  </div>
-                </div>
+                ))}
               </div>
-            ))}
+            </div>
+
+            <div className="bg-white p-3 rounded shadow-sm">
+              <h2 className="font-semibold mb-2">Dizgide</h2>
+              <div className="space-y-2">
+                {inProgress.map(soru => (
+                  <div key={soru.id} className="p-2 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedSoru(soru)}>
+                    <div className="flex justify-between items-center">
+                      <div className="text-sm font-medium">Soru #{soru.id}</div>
+                      <div className="text-xs text-gray-500">{soru.brans_adi}</div>
+                    </div>
+                    <div className="text-xs text-gray-600 mt-1 truncate" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
+                      {(soru.fotograf_url || soru.dosya_url) && (
+                        <div className="mt-2 text-xs text-gray-500">
+                          Hazırlanan dosya: Soru #{soru.id} • {soru.fotograf_url ? (<a href={soru.fotograf_url} target="_blank" rel="noreferrer" className="text-blue-600">PNG</a>) : null}{soru.fotograf_url && soru.dosya_url ? ' / ' : ''}{soru.dosya_url ? (<a href={soru.dosya_url} target="_blank" rel="noreferrer" className="text-blue-600">PDF</a>) : null}
+                        </div>
+                      )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white p-3 rounded shadow-sm">
+              <h2 className="font-semibold mb-2">Tamamlanan</h2>
+              <div className="space-y-2">
+                {completed.map(soru => (
+                  <div key={soru.id} className="p-2 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedSoru(soru)}>
+                    <div className="flex justify-between items-center">
+                      <div className="text-sm font-medium">Soru #{soru.id}</div>
+                      <div className="text-xs text-gray-500">{soru.brans_adi}</div>
+                    </div>
+                    <div className="text-xs text-gray-600 mt-1 truncate" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-3">
-            <h2 className="font-semibold">Dizgide</h2>
-            {inProgress.map(soru => (
-              <div key={soru.id} className="card">
-                <div className="flex justify-between items-start">
+          {/* Right column: selected soru details */}
+          <div className="w-2/3">
+            {selectedSoru ? (
+              <div className="card p-4">
+                <div className="flex justify-between">
                   <div>
-                    <h4 className="font-bold">Soru #{soru.id}</h4>
-                    <div className="text-xs text-gray-700" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
+                    <h3 className="text-xl font-bold">Soru #{selectedSoru.id}</h3>
+                    <div className="text-sm text-gray-600">Branş: {selectedSoru.brans_adi} • Oluşturan: {selectedSoru.olusturan_ad}</div>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <button onClick={() => navigate(`/sorular/${soru.id}`)} className="btn btn-secondary btn-sm">Detay</button>
-                    <button onClick={() => setShowMesaj(showMesaj === soru.id ? null : soru.id)} className="btn btn-info btn-sm">💬</button>
-                    <button onClick={() => handleDurumGuncelle(soru.id, 'tamamlandi')} className="btn btn-success btn-sm">✅ Tamamlandı</button>
-                    <button onClick={() => openRevizeModal(soru)} className="btn btn-error btn-sm">Revize İste</button>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => navigate(`/sorular/${selectedSoru.id}`)} className="btn btn-secondary btn-sm">Detay</button>
+                    <button onClick={() => setShowMesaj(showMesaj === selectedSoru.id ? null : selectedSoru.id)} className="btn btn-info btn-sm">💬</button>
+                    {selectedSoru.durum === 'dizgi_bekliyor' && <button onClick={() => handleDurumGuncelle(selectedSoru.id, 'dizgide')} className="btn btn-primary btn-sm">Dizgiye Al</button>}
+                    {selectedSoru.durum === 'dizgide' && <button onClick={() => handleDurumGuncelle(selectedSoru.id, 'tamamlandi')} className="btn btn-success btn-sm">✅ Tamamlandı</button>}
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
 
-          <div className="space-y-3">
-            <h2 className="font-semibold">Tamamlanan</h2>
-            {completed.map(soru => (
-              <div key={soru.id} className="card">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-bold">Soru #{soru.id}</h4>
-                    <div className="text-xs text-gray-700" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
+                <div className="mt-4 text-gray-900" dangerouslySetInnerHTML={{ __html: selectedSoru.soru_metni }} />
+
+                <div className="mt-4">
+                  {selectedSoru.fotograf_url && <img src={selectedSoru.fotograf_url} className="max-w-md rounded border" />}
+                  {selectedSoru.dosya_url && <div className="mt-2"><a href={selectedSoru.dosya_url} target="_blank" rel="noreferrer" className="text-sm text-blue-600">Dosya (PDF/Diğer)</a></div>}
+                </div>
+
+                {showMesaj === selectedSoru.id && (
+                  <div className="mt-4 border-t pt-4">
+                    <div className="h-[400px]">
+                      <MesajKutusu
+                        soruId={selectedSoru.id}
+                        soruSahibi={{ ad_soyad: selectedSoru.olusturan_ad }}
+                        dizgici={{ ad_soyad: user.ad_soyad }}
+                      />
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <button onClick={() => navigate(`/sorular/${soru.id}`)} className="btn btn-secondary btn-sm">Detay</button>
-                    <button onClick={() => setShowMesaj(showMesaj === soru.id ? null : soru.id)} className="btn btn-info btn-sm">💬</button>
-                    <label className="btn btn-outline btn-sm">
-                      Dosya Ekle
+                )}
+
+                {/* Dosya ekleme alanı for completed */}
+                {selectedSoru.durum === 'tamamlandi' && (
+                  <div className="mt-4">
+                    <label className="btn btn-outline">
+                      Dosya Ekle (PNG/PDF)
                       <input type="file" className="hidden" accept="image/*,application/pdf" onChange={async (e) => {
                         const file = e.target.files[0];
                         if (!file) return;
@@ -185,7 +232,7 @@ export default function DizgiYonetimi() {
                         if (file.type.startsWith('image/')) fd.append('fotograf', file);
                         else fd.append('dosya', file);
                         try {
-                          await soruAPI.dizgiTamamlaWithFile(soru.id, fd);
+                          await soruAPI.dizgiTamamlaWithFile(selectedSoru.id, fd);
                           alert('Dosya yüklendi ve havuza aktarıldı');
                           await loadSorular();
                           loadBransCounts();
@@ -195,11 +242,11 @@ export default function DizgiYonetimi() {
                       }} />
                     </label>
                   </div>
-                </div>
-                {soru.fotograf_url && <img src={soru.fotograf_url} className="max-w-xs mt-2 rounded border" />}
-                {soru.dosya_url && <a href={soru.dosya_url} target="_blank" rel="noreferrer" className="text-sm text-blue-600">Dosya (PDF/Diğer)</a>}
+                )}
               </div>
-            ))}
+            ) : (
+              <div className="p-6 bg-white rounded shadow-sm text-gray-500">Sol sütundan bir soru seçin, detaylar burada gözükecek.</div>
+            )}
           </div>
         </div>
       )}
