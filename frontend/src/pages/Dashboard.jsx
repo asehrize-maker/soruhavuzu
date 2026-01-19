@@ -10,9 +10,7 @@ import {
   ClockIcon,
   BookOpenIcon,
   PencilSquareIcon,
-  InformationCircleIcon,
-  ArrowPathIcon,
-  ExclamationTriangleIcon
+  InformationCircleIcon
 } from '@heroicons/react/24/outline';
 
 // --- ALT BİLEŞEN: İNCELEME LİSTESİ ---
@@ -39,8 +37,6 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
 
           const isStatusSuitable = ['inceleme_bekliyor', 'beklemede', 'incelemede', 'dizgide'].includes(s.durum);
 
-          // Determine pending review. Prefer explicit reviewMode (admin can select),
-          // otherwise fallback to user's inceleme flags.
           let isPendingReview = false;
           if (typeof reviewMode !== 'undefined' && reviewMode) {
             if (reviewMode === 'alanci') isPendingReview = !s.onay_alanci;
@@ -69,7 +65,7 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
     if (bransId) {
       fetchSorular();
     }
-  }, [bransId]);
+  }, [bransId, reviewMode, authUser]);
 
   const content = (
     <div className="mt-8 animate-fade-in">
@@ -152,17 +148,6 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
   return content;
 }
 
-const RefreshButton = ({ onRefresh, loading }) => (
-  <button
-    onClick={onRefresh}
-    disabled={loading}
-    className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-xl hover:bg-gray-50 transition shadow-sm border border-gray-100 font-bold text-sm disabled:opacity-50 group"
-  >
-    <ArrowPathIcon className={`w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors ${loading ? 'animate-spin' : ''}`} />
-    Yenile
-  </button>
-);
-
 export default function Dashboard() {
   const { user } = useAuthStore();
   const { effectiveRole } = useOutletContext() || {};
@@ -180,40 +165,27 @@ export default function Dashboard() {
   const [selectedStat, setSelectedStat] = useState(null);
   const [reviewMode, setReviewMode] = useState('alanci');
 
-  // Ensure reviewers only see their registered review type (unless admin)
   useEffect(() => {
     if (activeRole !== 'incelemeci') return;
-    if (isActualAdmin) {
-      // Admin keeps ability to toggle; default stays as 'alanci'
-      return;
-    }
-    // Non-admin reviewer: set mode according to their registered flag
+    if (isActualAdmin) return;
     if (user?.inceleme_alanci && !user?.inceleme_dilci) setReviewMode('alanci');
     else if (user?.inceleme_dilci && !user?.inceleme_alanci) setReviewMode('dilci');
   }, [activeRole, isActualAdmin, user?.inceleme_alanci, user?.inceleme_dilci]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    setStats(null);
-    setDetayliStats(null);
     try {
       if (activeRole === 'admin') {
         const res = await soruAPI.getDetayliStats();
-        if (res.data.success) {
-          setDetayliStats(res.data.data);
-        }
+        if (res.data.success) setDetayliStats(res.data.data);
       } else {
         const res = await soruAPI.getStats({ role: activeRole });
-        if (res.data.success) {
-          setStats(res.data.data);
-        }
+        if (res.data.success) setStats(res.data.data);
       }
 
       if (activeRole === 'incelemeci') {
         const bransRes = await bransAPI.getAll();
-        if (bransRes.data.success) {
-          setBranslar(bransRes.data.data);
-        }
+        if (bransRes.data.success) setBranslar(bransRes.data.data);
       }
     } catch (error) {
       console.error("Dashboard veri hatası:", error);
@@ -226,7 +198,6 @@ export default function Dashboard() {
     fetchData();
   }, [fetchData]);
 
-  // Compute review counts per branch for both alan and dil roles (client-side)
   useEffect(() => {
     const loadCounts = async () => {
       if (activeRole !== 'incelemeci') return;
@@ -234,11 +205,9 @@ export default function Dashboard() {
         const res = await soruAPI.getAll();
         const allQuestions = res.data.data || [];
         const map = {};
-        // initialize map with branches
         branslar.forEach(b => { map[b.id] = { id: b.id, brans_adi: b.brans_adi, alanci: 0, dilci: 0 }; });
         allQuestions.forEach(s => {
-          const isStatusSuitable = ['inceleme_bekliyor', 'beklemede', 'incelemede', 'dizgide'].includes(s.durum);
-          if (!isStatusSuitable) return;
+          if (!['inceleme_bekliyor', 'beklemede', 'incelemede', 'dizgide'].includes(s.durum)) return;
           const bid = Number(s.brans_id);
           if (!map[bid]) return;
           if (!s.onay_alanci) map[bid].alanci += 1;
@@ -246,11 +215,9 @@ export default function Dashboard() {
         });
         setIncelemeBransCounts(Object.values(map));
       } catch (err) {
-        console.error('İnceleme branş istatistikleri yüklenemedi', err);
         setIncelemeBransCounts([]);
       }
     };
-
     loadCounts();
   }, [activeRole, branslar]);
 
@@ -271,23 +238,7 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold text-gray-800 tracking-tight">Yönetim Paneli</h1>
             <p className="text-gray-500 mt-1 font-medium">Sistem özetini ve aktiviteleri buradan yönetebilirsiniz.</p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={async () => {
-                if (confirm('Veritabanındaki tüm soruları kalıcı olarak silip rakamı sıfırlamak istiyor musunuz? Bu işlem geri alınamaz.')) {
-                  try {
-                    const res = await soruAPI.adminCleanup({ action: 'clear_all' });
-                    alert(res.data.message);
-                    fetchData();
-                  } catch (e) { alert('Hata: ' + (e.response?.data?.error || e.message)); }
-                }
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition border border-red-100 font-bold text-sm"
-            >
-              <ExclamationTriangleIcon className="w-4 h-4" />
-              Veritabanını Sıfırla
-            </button>
-            <RefreshButton onRefresh={fetchData} loading={loading} />
+          <div className="hidden md:block">
             <span className="px-4 py-2 bg-gray-100 text-gray-600 rounded-full text-sm font-semibold border border-gray-200">
               {new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </span>
@@ -295,7 +246,6 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Toplam Soru */}
           <div onClick={() => setSelectedStat({ key: 'toplam_soru', title: 'Toplam Soru' })}
             className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-blue-400 p-6 text-white shadow-lg shadow-blue-200 transition-all hover:scale-105 hover:shadow-xl cursor-pointer group">
             <div className="relative z-10 flex justify-between items-start">
@@ -310,7 +260,6 @@ export default function Dashboard() {
             <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition"></div>
           </div>
 
-          {/* Kullanıcılar */}
           <div onClick={() => setSelectedStat({ key: 'toplam_kullanici', title: 'Kullanıcılar' })}
             className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-400 p-6 text-white shadow-lg shadow-emerald-200 transition-all hover:scale-105 hover:shadow-xl cursor-pointer group">
             <div className="relative z-10 flex justify-between items-start">
@@ -325,7 +274,6 @@ export default function Dashboard() {
             <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition"></div>
           </div>
 
-          {/* Branşlar */}
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600 to-purple-400 p-6 text-white shadow-lg shadow-purple-200 transition-all hover:scale-105 hover:shadow-xl cursor-pointer group">
             <div className="relative z-10 flex justify-between items-start">
               <div>
@@ -339,7 +287,6 @@ export default function Dashboard() {
             <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition"></div>
           </div>
 
-          {/* Ekipler */}
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-600 to-orange-400 p-6 text-white shadow-lg shadow-orange-200 transition-all hover:scale-105 hover:shadow-xl cursor-pointer group">
             <div className="relative z-10 flex justify-between items-start">
               <div>
@@ -352,37 +299,8 @@ export default function Dashboard() {
             </div>
             <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition"></div>
           </div>
-
-          {/* Sistem Kurtarma (Admin Only) */}
-          <div className="relative overflow-hidden rounded-2xl bg-white p-6 shadow-lg shadow-gray-100 border border-red-100 transition-all hover:shadow-xl group">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-red-500 text-xs font-bold uppercase tracking-widest">SİSTEM KURTARMA</p>
-                <h3 className="text-xl font-bold mt-2 text-gray-800">Veriyi Sıfırla</h3>
-                <p className="text-xs text-gray-500 mt-1 max-w-[150px]">Tüm soru kayıtlarını kalıcı olarak temizler.</p>
-              </div>
-              <div className="p-2 bg-red-50 rounded-lg group-hover:bg-red-100 transition">
-                <ExclamationTriangleIcon className="w-6 h-6 text-red-600" />
-              </div>
-            </div>
-            <button
-              onClick={async () => {
-                if (confirm('DİKKAT: Veritabanındaki TÜM soruları silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) {
-                  try {
-                    const res = await soruAPI.adminCleanup({ action: 'clear_all' });
-                    alert(res.data.message);
-                    fetchData();
-                  } catch (e) { alert('Hata: ' + (e.response?.data?.error || e.message)); }
-                }
-              }}
-              className="mt-4 w-full py-2 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition shadow-md shadow-red-100"
-            >
-              Şimdi Sıfırla
-            </button>
-          </div>
         </div>
 
-        {/* Modal - Same as before */}
         {selectedStat && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedStat(null)}>
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
@@ -402,12 +320,8 @@ export default function Dashboard() {
                             <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">{b.soru_sayisi}</span>
                           </div>
                         ))}
-                        {(!detayliStats?.branslar || detayliStats.branslar.filter(b => b.soru_sayisi > 0).length === 0) && (
-                          <p className="text-sm text-gray-500 italic text-center py-4">Henüz soru eklenmiş bir branş yok.</p>
-                        )}
                       </div>
                     </div>
-                    {/* Ghost question detection assist */}
                     <div>
                       <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Sistemdeki Son Kayıtlar</h4>
                       <div className="text-[11px] text-gray-500 border rounded-lg overflow-hidden bg-gray-50/30">
@@ -424,21 +338,13 @@ export default function Dashboard() {
                               <span className="w-20 text-right opacity-70 italic">{s.durum}</span>
                             </div>
                           ))}
-                          {(!detayliStats?.son_sorular || detayliStats.son_sorular.length === 0) && (
-                            <p className="p-4 text-center italic text-gray-400">Herhangi bir soru kaydı bulunamadı.</p>
-                          )}
                         </div>
                       </div>
-                      <p className="mt-3 text-[10px] text-amber-600 leading-tight italic">
-                        * Bu liste veritabanındaki ham kayıtları gösterir. Eğer burada soru görüyorsanız ama havuzda göremiyorsanız, lütfen "Soru Havuzu" sayfasındaki filtreleri temizleyerek tekrar kontrol edin.
-                      </p>
                     </div>
                   </div>
                 )}
-
                 {selectedStat.key === 'toplam_kullanici' && (
                   <div className="space-y-4">
-                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Rol Dağılımı</h4>
                     {[
                       { label: 'Yöneticiler', value: detayliStats?.sistem?.admin_sayisi },
                       { label: 'Soru Yazıcılar', value: detayliStats?.sistem?.soru_yazici_sayisi },
@@ -447,16 +353,6 @@ export default function Dashboard() {
                       <div key={idx} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl">
                         <span className="font-bold text-gray-700">{item.label}</span>
                         <span className="text-xl font-black text-emerald-600">{item.value || 0}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {(selectedStat.key === 'toplam_brans' || selectedStat.title === 'Branşlar') && (
-                  <div className="grid grid-cols-2 gap-2">
-                    {detayliStats?.branslar?.map((b, idx) => (
-                      <div key={idx} className="p-2 bg-purple-50 text-purple-700 rounded text-xs font-medium text-center">
-                        {b.brans_adi}
                       </div>
                     ))}
                   </div>
@@ -478,16 +374,13 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold">Hoş Geldiniz, {user?.ad_soyad}</h1>
             <p className="text-blue-100 mt-2 text-lg">Soru hazırlama stüdyosuna erişiminiz hazır.</p>
           </div>
-          <div className="flex items-center gap-4 mt-4 md:mt-0">
-            <RefreshButton onRefresh={fetchData} loading={loading} />
-            <Link
-              to="/sorular/yeni"
-              className="flex items-center gap-3 px-8 py-4 bg-white text-blue-700 rounded-xl hover:bg-blue-50 transition shadow-xl font-bold text-lg transform hover:scale-105"
-            >
-              <PencilSquareIcon className="w-6 h-6" />
-              Yeni Soru Başlat
-            </Link>
-          </div>
+          <Link
+            to="/sorular/yeni"
+            className="mt-4 md:mt-0 flex items-center gap-3 px-8 py-4 bg-white text-blue-700 rounded-xl hover:bg-blue-50 transition shadow-xl font-bold text-lg transform hover:scale-105"
+          >
+            <PencilSquareIcon className="w-6 h-6" />
+            Yeni Soru Başlat
+          </Link>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
@@ -545,17 +438,10 @@ export default function Dashboard() {
     return (
       <div className="space-y-6 animate-fade-in">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <div className="flex justify-between items-start">
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                {reviewMode === 'alanci' ? 'Alan İnceleme Paneli' : 'Dil İnceleme Paneli'}
-              </h1>
-              <p className="text-gray-500">
-                Lütfen incelemek istediğiniz branşı seçiniz.
-              </p>
-            </div>
-            <RefreshButton onRefresh={fetchData} loading={loading} />
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            {reviewMode === 'alanci' ? 'Alan İnceleme Paneli' : 'Dil İnceleme Paneli'}
+          </h1>
+          <p className="text-gray-500">Lütfen incelemek istediğiniz branşı seçiniz.</p>
           <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-700 flex items-center gap-2">
             <InformationCircleIcon className="w-5 h-5 flex-shrink-0" />
             <span>Bilgi: İncelemesi biten veya dizgiye gönderilen soruları sol menüdeki <b>"Soru Havuzu"</b> sekmesinden takip edebilirsiniz.</span>
@@ -564,20 +450,14 @@ export default function Dashboard() {
           {isActualAdmin && canAlanInceleme && canDilInceleme && (
             <div className="mt-6 flex flex-wrap gap-2">
               <button
-                type="button"
                 onClick={() => setReviewMode('alanci')}
-                className={`px-4 py-2 rounded-lg font-medium transition ${reviewMode === 'alanci'
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                className={`px-4 py-2 rounded-lg font-medium transition ${reviewMode === 'alanci' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700'}`}
               >
                 Alan
               </button>
               <button
-                type="button"
                 onClick={() => setReviewMode('dilci')}
-                className={`px-4 py-2 rounded-lg font-medium transition ${reviewMode === 'dilci'
-                  ? 'bg-purple-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                className={`px-4 py-2 rounded-lg font-medium transition ${reviewMode === 'dilci' ? 'bg-purple-600 text-white shadow-md' : 'bg-gray-100 text-gray-700'}`}
               >
                 Dil
               </button>
@@ -596,17 +476,10 @@ export default function Dashboard() {
                       <button
                         key={`alan-${brans.id}`}
                         onClick={() => { setSelectedBrans(brans); setReviewMode('alanci'); }}
-                        className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.id && reviewMode === 'alanci'
-                          ? 'bg-blue-600 text-white shadow-md transform scale-105'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
+                        className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.id && reviewMode === 'alanci' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700'}`}
                       >
                         <span>{brans.brans_adi}</span>
-                        {count > 0 && (
-                          <span className="ml-2 inline-flex items-center justify-center bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                            {count}
-                          </span>
-                        )}
+                        {count > 0 && <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">{count}</span>}
                       </button>
                     );
                   })}
@@ -625,17 +498,10 @@ export default function Dashboard() {
                       <button
                         key={`dil-${brans.id}`}
                         onClick={() => { setSelectedBrans(brans); setReviewMode('dilci'); }}
-                        className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.id && reviewMode === 'dilci'
-                          ? 'bg-purple-600 text-white shadow-md transform scale-105'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
+                        className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.id && reviewMode === 'dilci' ? 'bg-purple-600 text-white shadow-md' : 'bg-gray-100 text-gray-700'}`}
                       >
                         <span>{brans.brans_adi}</span>
-                        {count > 0 && (
-                          <span className="ml-2 inline-flex items-center justify-center bg-purple-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                            {count}
-                          </span>
-                        )}
+                        {count > 0 && <span className="bg-purple-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">{count}</span>}
                       </button>
                     );
                   })}
@@ -646,11 +512,7 @@ export default function Dashboard() {
         </div>
 
         {selectedBrans ? (
-          <IncelemeListesi
-            bransId={selectedBrans.id}
-            bransAdi={selectedBrans.brans_adi}
-            reviewMode={reviewMode}
-          />
+          <IncelemeListesi bransId={selectedBrans.id} bransAdi={selectedBrans.brans_adi} reviewMode={reviewMode} />
         ) : (
           <div className="flex flex-col items-center justify-center p-12 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400">
             <BookOpenIcon className="w-16 h-16 mb-4 opacity-50" />
@@ -670,16 +532,13 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold">Hoş Geldiniz, {user?.ad_soyad}</h1>
             <p className="text-orange-50 mt-2 text-lg font-medium opacity-90">Dizgi ve mizanpaj görevleriniz burada yönetilmeyi bekliyor.</p>
           </div>
-          <div className="flex items-center gap-4 mt-4 md:mt-0">
-            <RefreshButton onRefresh={fetchData} loading={loading} />
-            <Link
-              to="/dizgi-yonetimi"
-              className="flex items-center gap-3 px-8 py-4 bg-white text-orange-600 rounded-xl hover:bg-orange-50 transition shadow-xl font-bold text-lg"
-            >
-              <DocumentTextIcon className="w-6 h-6" />
-              Dizgi Yönetimine Git
-            </Link>
-          </div>
+          <Link
+            to="/dizgi-yonetimi"
+            className="mt-4 md:mt-0 flex items-center gap-3 px-8 py-4 bg-white text-orange-600 rounded-xl hover:bg-orange-50 transition shadow-xl font-bold text-lg"
+          >
+            <DocumentTextIcon className="w-6 h-6" />
+            Dizgi Yönetimine Git
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
