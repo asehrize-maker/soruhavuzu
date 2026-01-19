@@ -1,9 +1,205 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import { soruAPI } from '../services/api';
+import { soruAPI, bransAPI } from '../services/api';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import {
+  ArrowsPointingOutIcon,
+  TrashIcon,
+  PhotoIcon,
+  Bars3BottomLeftIcon,
+  Bars3Icon,
+  Bars3BottomRightIcon,
+  QueueListIcon,
+  Squares2X2Icon,
+  BoldIcon,
+  DocumentTextIcon,
+  Bars4Icon,
+  DocumentArrowUpIcon,
+  PencilSquareIcon
+} from '@heroicons/react/24/outline';
+
+const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+
+// --- İMLEÇ KORUMALI EDİTÖR ---
+const EditableBlock = memo(({ initialHtml, onChange, className, style, label, hangingIndent }) => {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (ref.current && ref.current.innerHTML !== initialHtml) {
+      ref.current.innerHTML = initialHtml;
+    }
+    if (ref.current && !initialHtml) {
+      setTimeout(() => { if (ref.current) ref.current.focus(); }, 50);
+    }
+  }, []);
+
+  const computedStyle = {
+    ...style,
+    textAlign: 'left',
+    hyphens: 'none',
+    WebkitHyphens: 'none',
+    msHyphens: 'none',
+  };
+
+  if (hangingIndent) {
+    computedStyle.paddingLeft = '24px';
+    computedStyle.textIndent = '-24px';
+  }
+
+  return (
+    <div className="relative group/edit w-full">
+      <div className="absolute -top-3 left-0 text-[10px] text-gray-500 font-bold px-1 opacity-0 group-hover/edit:opacity-100 transition pointer-events-none uppercase tracking-wider bg-white/80 rounded border shadow-sm z-20">
+        {label}
+      </div>
+      <div
+        ref={ref}
+        contentEditable
+        suppressContentEditableWarning
+        className={`outline-none min-h-[2em] p-1 border border-transparent hover:border-gray-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition rounded ${className || ''}`}
+        style={computedStyle}
+        onInput={(e) => onChange(e.currentTarget.innerHTML)}
+        onPaste={(e) => {
+          e.preventDefault();
+          const text = e.clipboardData.getData('text/plain');
+          document.execCommand("insertText", false, text);
+        }}
+      />
+    </div>
+  );
+}, () => true);
+
+// --- RESIZABLE IMAGE ---
+const ResizableImage = ({ src, width, height, align, onUpdate, onDelete }) => {
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeMode, setResizeMode] = useState(null);
+  const imgRef = useRef(null);
+  const containerRef = useRef(null);
+
+  const handleMouseDown = (e, mode) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+    setResizeMode(mode);
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidthPx = containerRef.current.offsetWidth;
+    const startHeightPx = imgRef.current.offsetHeight;
+    const containerWidth = containerRef.current.parentElement.offsetWidth;
+
+    const doDrag = (dragEvent) => {
+      const diffX = dragEvent.clientX - startX;
+      const diffY = dragEvent.clientY - startY;
+      let updates = {};
+
+      if (mode === 'se' || mode === 'e') {
+        let newWidthPx = startWidthPx + diffX;
+        let newWidthPercent = (newWidthPx / containerWidth) * 100;
+        if (newWidthPercent < 10) newWidthPercent = 10;
+        if (newWidthPercent > 100) newWidthPercent = 100;
+        updates.width = newWidthPercent;
+      }
+      if (mode === 'se' || mode === 's') {
+        if (mode === 's' || (mode === 'se' && height !== 'auto')) {
+          let newHeightPx = startHeightPx + diffY;
+          if (newHeightPx < 50) newHeightPx = 50;
+          updates.height = newHeightPx;
+        }
+      }
+      onUpdate(updates);
+    };
+
+    const stopDrag = () => {
+      setIsResizing(false);
+      setResizeMode(null);
+      document.removeEventListener('mousemove', doDrag);
+      document.removeEventListener('mouseup', stopDrag);
+    };
+    document.addEventListener('mousemove', doDrag);
+    document.addEventListener('mouseup', stopDrag);
+  };
+
+  let containerStyle = { marginBottom: '1rem', position: 'relative' };
+  if (align === 'left') containerStyle = { ...containerStyle, float: 'left', margin: '0 1rem 1rem 0', width: `${width}%` };
+  else if (align === 'right') containerStyle = { ...containerStyle, float: 'right', margin: '0 0 1rem 1rem', width: `${width}%` };
+  else if (align === 'center') containerStyle = { ...containerStyle, margin: '0 auto 1rem auto', width: `${width}%`, display: 'block' };
+  else containerStyle = { ...containerStyle, width: `${width}%` };
+
+  return (
+    <div
+      ref={containerRef}
+      className={`group relative transition-all border-2 ${isResizing ? 'border-blue-500' : 'border-transparent hover:border-blue-200'}`}
+      style={containerStyle}
+    >
+      <img ref={imgRef} src={src} className="block w-full" style={{ height: height === 'auto' ? 'auto' : `${height}px`, objectFit: height === 'auto' ? 'contain' : 'fill' }} alt="Görsel" />
+
+      <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-white shadow-lg rounded-lg p-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition z-50 pointer-events-none group-hover:pointer-events-auto border border-gray-200">
+        <button onClick={() => onUpdate({ align: 'left' })} className={`p-1 rounded ${align === 'left' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}><Bars3BottomLeftIcon className="w-4 h-4" /></button>
+        <button onClick={() => onUpdate({ align: 'center' })} className={`p-1 rounded ${align === 'center' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}><Bars3Icon className="w-4 h-4" /></button>
+        <button onClick={() => onUpdate({ align: 'right' })} className={`p-1 rounded ${align === 'right' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}><Bars3BottomRightIcon className="w-4 h-4" /></button>
+        <div className="w-[1px] bg-gray-300 mx-1"></div>
+        <button onClick={() => onUpdate({ height: 'auto' })} className="p-1 rounded hover:bg-gray-100 text-xs font-bold">Oto</button>
+        <button onClick={onDelete} className="p-1 rounded hover:bg-red-100 text-red-500"><TrashIcon className="w-4 h-4" /></button>
+      </div>
+      <div onMouseDown={(e) => handleMouseDown(e, 'se')} className="absolute bottom-0 right-0 w-6 h-6 bg-blue-500 cursor-nwse-resize opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-tl-lg shadow-sm z-20">
+        <ArrowsPointingOutIcon className="w-3 h-3 text-white" />
+      </div>
+    </div>
+  );
+};
+
+const parseHtmlToComponents = (html) => {
+  if (!html) return [];
+  const div = document.createElement('div');
+  div.innerHTML = html;
+
+  // SoruEkle formatındaki blokları ara
+  const nodes = Array.from(div.children);
+  const structured = nodes.filter(n => n.classList.contains('q-txt') || n.classList.contains('q-img'));
+
+  if (structured.length === 0) {
+    // Klasik HTML ise tek bir gövde bloğu olarak al
+    return [{ id: generateId(), type: 'text', subtype: 'govde', content: html, label: 'Gövde' }];
+  }
+
+  return structured.map((node, idx) => {
+    if (node.classList.contains('q-img')) {
+      const img = node.querySelector('img');
+      const style = node.getAttribute('style') || '';
+      const wMatch = style.match(/width:\s*(\d+)%/);
+      const hMatch = style.match(/height:\s*(\d+)px/);
+      let align = 'center';
+      if (style.includes('float: left')) align = 'left';
+      else if (style.includes('float: right')) align = 'right';
+
+      return {
+        id: generateId() + idx,
+        type: 'image',
+        content: img ? img.src : '',
+        width: wMatch ? parseInt(wMatch[1]) : 50,
+        height: hMatch ? parseInt(hMatch[1]) : 'auto',
+        align: align
+      };
+    } else {
+      const subtype = Array.from(node.classList).find(c => c.startsWith('q-'))?.replace('q-', '') || 'govde';
+      const style = node.getAttribute('style') || '';
+      const wMatch = style.match(/width:\s*(\d+)%/);
+      const fMatch = style.match(/float:\s*(\w+)/);
+
+      return {
+        id: generateId() + idx,
+        type: 'text',
+        subtype: subtype,
+        content: node.innerHTML,
+        label: subtype === 'koku' ? 'Soru Kökü' : (subtype === 'secenek' ? 'Seçenek' : 'Gövde'),
+        width: wMatch ? parseInt(wMatch[1]) : 100,
+        float: fMatch ? fMatch[1] : 'none'
+      };
+    }
+  });
+};
 
 export default function SoruDetay() {
   const { id } = useParams();
@@ -20,8 +216,15 @@ export default function SoruDetay() {
   const [loading, setLoading] = useState(true);
   const [dizgiNotu, setDizgiNotu] = useState('');
   const [editMode, setEditMode] = useState(false);
-  const [editData, setEditData] = useState({ soru_metni: '', zorluk_seviyesi: '' });
   const [saving, setSaving] = useState(false);
+  const [branslar, setBranslar] = useState([]);
+
+  // Editor States
+  const [components, setComponents] = useState([]);
+  const [widthMode, setWidthMode] = useState('dar');
+  const [editMetadata, setEditMetadata] = useState({ zorluk: '3', dogruCevap: '', brans_id: '', kazanim: '' });
+  const [draggedItemIndex, setDraggedItemIndex] = useState(null);
+
   const soruMetniRef = useRef(null);
   const latexKoduRef = useRef(null);
 
@@ -33,7 +236,15 @@ export default function SoruDetay() {
   useEffect(() => {
     loadSoru();
     loadRevizeNotlari();
+    loadBranslar();
   }, [id]);
+
+  const loadBranslar = async () => {
+    try {
+      const res = await bransAPI.getAll();
+      setBranslar(res.data.data || []);
+    } catch (err) { }
+  };
 
   const renderLatexInElement = (element, content) => {
     if (!element || !content) return;
@@ -175,23 +386,118 @@ export default function SoruDetay() {
   };
 
   const handleEditStart = () => {
-    setEditData({ soru_metni: soru.soru_metni, zorluk_seviyesi: soru.zorluk_seviyesi || '' });
+    setComponents(parseHtmlToComponents(soru.soru_metni));
+    setEditMetadata({
+      zorluk: soru.zorluk_seviyesi || '3',
+      dogruCevap: soru.dogru_cevap || '',
+      brans_id: soru.brans_id || '',
+      kazanim: soru.kazanim || ''
+    });
     setEditMode(true);
   };
 
   const handleEditSave = async () => {
-    if (!editData.soru_metni.trim()) return alert('Soru metni boş olamaz');
+    if (components.length === 0) return alert("Soru içeriği boş!");
+    if (!editMetadata.dogruCevap) return alert("Lütfen Doğru Cevabı seçiniz.");
     setSaving(true);
+
     try {
       const formData = new FormData();
-      formData.append('soru_metni', editData.soru_metni);
-      if (editData.zorluk_seviyesi) formData.append('zorluk_seviyesi', editData.zorluk_seviyesi);
+      formData.append('dogru_cevap', editMetadata.dogruCevap);
+      formData.append('brans_id', editMetadata.brans_id);
+      formData.append('kazanim', editMetadata.kazanim || 'Genel');
+      formData.append('zorluk_seviyesi', editMetadata.zorluk);
+
+      let htmlContent = components.map(c => {
+        let style = "";
+        if (c.type === 'image') {
+          style = `width: ${c.width}%; margin-bottom: 12px;`;
+          if (c.height !== 'auto') style += ` height: ${c.height}px; object-fit: fill;`;
+          if (c.align === 'left') style += ' float: left; margin-right: 12px;';
+          else if (c.align === 'right') style += ' float: right; margin-left: 12px;';
+          else style += ' display: block; margin-left: auto; margin-right: auto;';
+          return `<div class="q-img" style="${style}"><img src="${c.content}" style="width:100%; height:100%;" /></div>`;
+        }
+        else {
+          let commonStyle = "text-align: left; hyphens: none; -webkit-hyphens: none; line-height: 1.4;";
+          if (c.subtype === 'koku') style = `${commonStyle} font-weight: bold; margin-bottom: 12px; margin-top: 4px; font-size: 10pt;`;
+          else if (c.subtype === 'secenek') {
+            let w = c.width !== 100 ? `width: ${c.width}%;` : '';
+            let f = c.float !== 'none' ? `float: ${c.float};` : '';
+            let m = c.float === 'left' ? 'margin-right: 2%;' : '';
+            style = `${commonStyle} margin-bottom: 6px; padding-left: 24px; text-indent: -24px; ${w} ${f} ${m}`;
+          }
+          else style = `${commonStyle} margin-bottom: 8px; font-size: 10pt;`;
+          return `<div class="q-txt q-${c.subtype}" style="${style} clear: ${c.float === 'none' ? 'both' : 'none'};">${c.content}</div>`;
+        }
+      }).join('');
+
+      htmlContent += `<div style="clear: both;"></div>`;
+      formData.append('soru_metni', htmlContent);
+
+      const firstNewImage = components.find(c => c.type === 'image' && c.file);
+      if (firstNewImage) {
+        formData.append('fotograf', firstNewImage.file);
+        formData.append('fotograf_konumu', 'ust');
+      }
+
+      ['a', 'b', 'c', 'd', 'e'].forEach(opt => formData.append(`secenek_${opt}`, ''));
+
       await soruAPI.update(id, formData);
       alert('Soru güncellendi!');
       setEditMode(false);
       loadSoru();
-    } catch (error) { alert(error.response?.data?.error || 'Güncelleme başarısız'); } finally { setSaving(false); }
+    } catch (error) {
+      alert(error.response?.data?.error || 'Güncelleme başarısız');
+    } finally {
+      setSaving(false);
+    }
   };
+
+  // Editor Helpers
+  const addKoku = () => setComponents(prev => [...prev, { id: generateId(), type: 'text', subtype: 'koku', content: '', placeholder: '', label: 'Soru Kökü' }]);
+  const addGovde = () => setComponents(prev => [...prev, { id: generateId(), type: 'text', subtype: 'govde', content: '', placeholder: '', label: 'Gövde' }]);
+  const addSecenekler = (mode = 'list') => {
+    const baseId = generateId();
+    const opts = ['A', 'B', 'C', 'D'];
+    const newComps = opts.map((opt, idx) => {
+      let styleProps = { width: 100, float: 'none' };
+      if (mode === 'grid') { styleProps = { width: 48, float: 'left' }; }
+      return {
+        id: baseId + idx,
+        type: 'text', subtype: 'secenek', content: `<b>${opt})</b> `,
+        placeholder: ``,
+        label: `Seçenek ${opt}`,
+        ...styleProps
+      };
+    });
+    setComponents(prev => [...prev, ...newComps]);
+  };
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setComponents(prev => [...prev, { id: generateId(), type: 'image', content: URL.createObjectURL(file), file: file, width: 50, height: 'auto', align: 'center' }]);
+    }
+  };
+  const updateComponent = (id, updates) => setComponents(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+  const removeComponent = (id) => setComponents(prev => prev.filter(c => c.id !== id));
+  const execCmd = (cmd) => document.execCommand(cmd, false, null);
+  const onDragStart = (e, index) => { setDraggedItemIndex(index); e.dataTransfer.effectAllowed = "move"; };
+  const onDragEnd = () => setDraggedItemIndex(null);
+  const onDragOver = (e, index) => {
+    e.preventDefault();
+    if (draggedItemIndex === null || draggedItemIndex === index) return;
+    const newComps = [...components];
+    const item = newComps[draggedItemIndex];
+    newComps.splice(draggedItemIndex, 1);
+    newComps.splice(index, 0, item);
+    setComponents(newComps);
+    setDraggedItemIndex(index);
+  };
+
+  const RibbonButton = ({ cmd, label, icon }) => (
+    <button onMouseDown={(e) => { e.preventDefault(); execCmd(cmd); }} className="w-8 h-8 flex items-center justify-center hover:bg-gray-200 rounded text-gray-700 font-medium">{icon || label}</button>
+  );
 
   if (loading) return <div className="text-center py-12"><div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div></div>;
   if (!soru) return null;
@@ -254,43 +560,128 @@ export default function SoruDetay() {
       </div>
 
       <div className="relative border-4 border-gray-200 rounded-xl overflow-hidden bg-white shadow-2xl transition-all">
-        <div className={`p-8 min-h-[400px] relative z-10 cursor-text`}>
-          <div className="prose max-w-none">
-            {editMode ? (
-              <div className="space-y-4 pointer-events-auto">
-                <textarea className="input font-mono" rows="8" value={editData.soru_metni} onChange={(e) => setEditData({ ...editData, soru_metni: e.target.value })} />
-                <button onClick={handleEditSave} disabled={saving} className="btn btn-primary">Kaydet</button>
-                <button onClick={() => setEditMode(false)} className="btn btn-secondary ml-2">İptal</button>
+        {editMode ? (
+          <div className="bg-[#F3F2F1] min-h-[600px] flex flex-col pointer-events-auto">
+            <div className="bg-[#0078D4] text-white p-2 shadow-md flex justify-between items-center sticky top-0 z-[60]">
+              <div className="flex items-center gap-4">
+                <h2 className="text-sm font-bold flex items-center gap-2"><PencilSquareIcon className="w-4 h-4" /> Düzenleme Modu</h2>
+                <div className="flex bg-[#005A9E] rounded p-0.5">
+                  <button onClick={() => setWidthMode('dar')} className={`px-2 py-0.5 text-[10px] font-bold rounded ${widthMode === 'dar' ? 'bg-white text-[#0078D4]' : 'text-white/80'}`}>82mm</button>
+                  <button onClick={() => setWidthMode('genis')} className={`px-2 py-0.5 text-[10px] font-bold rounded ${widthMode === 'genis' ? 'bg-white text-[#0078D4]' : 'text-white/80'}`}>169mm</button>
+                </div>
               </div>
-            ) : (
+              <div className="flex gap-2">
+                <button onClick={handleEditSave} disabled={saving} className="px-4 py-1 bg-white text-blue-700 text-xs font-bold rounded hover:bg-blue-50">KAYDET</button>
+                <button onClick={() => setEditMode(false)} className="px-4 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600">İPTAL</button>
+              </div>
+            </div>
+
+            <div className="flex p-4 gap-4 overflow-y-auto max-h-[700px]">
+              <div className="flex flex-col gap-2 w-32 shrink-0">
+                <button onClick={addKoku} className="flex items-center gap-2 p-2 bg-white border rounded text-xs font-bold text-purple-700 hover:bg-purple-50"><BoldIcon className="w-4 h-4" /> Kök</button>
+                <button onClick={addGovde} className="flex items-center gap-2 p-2 bg-white border rounded text-xs font-bold text-blue-700 hover:bg-blue-50"><DocumentTextIcon className="w-4 h-4" /> Gövde</button>
+                <button onClick={() => addSecenekler('list')} className="flex items-center gap-2 p-2 bg-white border rounded text-xs font-bold text-green-700 hover:bg-green-50"><QueueListIcon className="w-4 h-4" /> Şıklar</button>
+                <label className="flex items-center gap-2 p-2 bg-white border rounded text-xs font-bold text-orange-700 hover:bg-orange-50 cursor-pointer">
+                  <PhotoIcon className="w-4 h-4" /> Resim
+                  <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                </label>
+              </div>
+
+              <div className="bg-white shadow-xl mx-auto p-8 relative min-h-[500px]" style={{ width: widthMode === 'dar' ? '82.4mm' : '169.6mm' }}>
+                <div className="absolute top-0 left-0 right-0 bg-gray-50 border-b p-1 flex items-center gap-1">
+                  <RibbonButton cmd="bold" label="B" />
+                  <RibbonButton cmd="italic" label="I" />
+                  <RibbonButton cmd="underline" label="U" />
+                  <div className="w-[1px] h-4 bg-gray-300 mx-1"></div>
+                  <RibbonButton cmd="superscript" label="x²" />
+                  <RibbonButton cmd="subscript" label="x₂" />
+                </div>
+                <div className="mt-8 space-y-1 relative">
+                  {components.map((comp, index) => (
+                    <div
+                      key={comp.id}
+                      className={`relative group/item rounded px-1 transition ${draggedItemIndex === index ? 'opacity-50 bg-blue-50' : 'hover:ring-1 hover:ring-blue-100'}`}
+                      style={{ float: comp.float || 'none', width: comp.width && comp.subtype === 'secenek' ? `${comp.width}%` : 'auto', marginRight: comp.float === 'left' ? '2%' : '0' }}
+                      draggable="true"
+                      onDragStart={(e) => onDragStart(e, index)}
+                      onDragOver={(e) => onDragOver(e, index)}
+                      onDragEnd={onDragEnd}
+                    >
+                      <div className="absolute -left-6 top-1 flex flex-col gap-1 opacity-0 group-hover/item:opacity-100 transition z-10 w-5 cursor-grab">
+                        <div className="p-0.5 text-gray-400"><Bars4Icon className="w-4 h-4" /></div>
+                        <button onClick={() => removeComponent(comp.id)} className="p-0.5 text-red-300 hover:text-red-500"><TrashIcon className="w-4 h-4" /></button>
+                      </div>
+                      {comp.type === 'text' ? (
+                        <EditableBlock initialHtml={comp.content} onChange={(html) => updateComponent(comp.id, { content: html })} label={comp.label} hangingIndent={comp.subtype === 'secenek'} className={comp.subtype === 'koku' ? 'font-bold text-sm' : 'text-sm'} />
+                      ) : (
+                        <ResizableImage src={comp.content} width={comp.width} height={comp.height} align={comp.align} onUpdate={(updates) => updateComponent(comp.id, updates)} onDelete={() => removeComponent(comp.id)} />
+                      )}
+                      {comp.float === 'none' && <div style={{ clear: 'both' }}></div>}
+                    </div>
+                  ))}
+                  <div style={{ clear: 'both' }}></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white border-t p-4 flex gap-4 mt-auto">
+              <div className="flex-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Branş</label>
+                <select className="w-full border p-1 rounded text-xs" value={editMetadata.brans_id} onChange={e => setEditMetadata({ ...editMetadata, brans_id: e.target.value })}>
+                  {branslar.map(b => <option key={b.id} value={b.id}>{b.brans_adi}</option>)}
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Doğru Cevap</label>
+                <div className="flex gap-1">
+                  {['A', 'B', 'C', 'D', 'E'].map(opt => (
+                    <button key={opt} onClick={() => setEditMetadata({ ...editMetadata, dogruCevap: opt })} className={`w-6 h-6 rounded-full border font-bold text-[10px] ${editMetadata.dogruCevap === opt ? 'bg-blue-600 text-white' : 'bg-gray-50'}`}>{opt}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Zorluk</label>
+                <select className="w-full border p-1 rounded text-xs" value={editMetadata.zorluk} onChange={e => setEditMetadata({ ...editMetadata, zorluk: e.target.value })}>
+                  <option value="1">1 (Çok Kolay)</option>
+                  <option value="2">2 (Kolay)</option>
+                  <option value="3">3 (Orta)</option>
+                  <option value="4">4 (Zor)</option>
+                  <option value="5">5 (Çok Zor)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className={`p-8 min-h-[400px] relative z-10 cursor-text`}>
+            <div className="prose max-w-none">
               <div ref={soruMetniRef} className="text-gray-900 text-lg leading-relaxed katex-left-align relative z-10" onMouseUp={handleTextSelection} />
+            </div>
+
+            <div className="mt-10">
+              <div className="grid grid-cols-1 gap-4">
+                {['a', 'b', 'c', 'd', 'e'].map((opt) => {
+                  const text = soru[`secenek_${opt}`];
+                  if (!text) return null;
+                  const isCorrect = soru.dogru_cevap === opt.toUpperCase();
+                  return (
+                    <div key={opt} className={`p-4 rounded-xl border-2 flex items-start transition ${isCorrect ? 'bg-green-50 border-green-500' : 'bg-white border-gray-100 hover:border-gray-200'}`}>
+                      <span className={`font-bold mr-4 w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full text-lg ${isCorrect ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600'}`}>{opt.toUpperCase()}</span>
+                      <div className="flex-1 text-gray-800 text-lg pt-1" ref={(el) => el && renderLatexInElement(el, text)} />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {soru.fotograf_url && (
+              <div className="mt-10">
+                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 inline-block shadow-lg">
+                  <img src={soru.fotograf_url} alt="Soru" className="max-w-full rounded-lg" />
+                </div>
+              </div>
             )}
           </div>
-
-          <div className="mt-10">
-            <div className="grid grid-cols-1 gap-4">
-              {['a', 'b', 'c', 'd', 'e'].map((opt) => {
-                const text = soru[`secenek_${opt}`];
-                if (!text) return null;
-                const isCorrect = soru.dogru_cevap === opt.toUpperCase();
-                return (
-                  <div key={opt} className={`p-4 rounded-xl border-2 flex items-start transition ${isCorrect ? 'bg-green-50 border-green-500' : 'bg-white border-gray-100 hover:border-gray-200'}`}>
-                    <span className={`font-bold mr-4 w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full text-lg ${isCorrect ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600'}`}>{opt.toUpperCase()}</span>
-                    <div className="flex-1 text-gray-800 text-lg pt-1" ref={(el) => el && renderLatexInElement(el, text)} />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {soru.fotograf_url && (
-            <div className="mt-10">
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 inline-block shadow-lg">
-                <img src={soru.fotograf_url} alt="Soru" className="max-w-full rounded-lg" />
-              </div>
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Revize Notları Listesi (ROL BAZLI FİLTRELEME) */}
