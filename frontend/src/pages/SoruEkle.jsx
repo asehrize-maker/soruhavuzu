@@ -14,13 +14,13 @@ import {
   BoldIcon,
   DocumentTextIcon,
   Bars4Icon,
-  DocumentArrowUpIcon // Yeni ikon
+  DocumentArrowUpIcon
 } from '@heroicons/react/24/outline';
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 
 // --- İMLEÇ KORUMALI EDİTÖR ---
-const EditableBlock = memo(({ initialHtml, onChange, className, style, label }) => {
+const EditableBlock = memo(({ initialHtml, onChange, className, style, label, hangingIndent }) => {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -32,18 +32,32 @@ const EditableBlock = memo(({ initialHtml, onChange, className, style, label }) 
     }
   }, []);
 
+  // Hanging Indent (Asılı Girinti) Stili
+  const computedStyle = {
+    ...style,
+    textAlign: 'left', // Sola yaslı (Kullanıcı isteği)
+    hyphens: 'none',   // Tireleme yok (Kullanıcı isteği)
+    WebkitHyphens: 'none',
+    msHyphens: 'none',
+  };
+
+  if (hangingIndent) {
+    computedStyle.paddingLeft = '24px';
+    computedStyle.textIndent = '-24px';
+  }
+
   return (
     <div className="relative group/edit w-full">
       {/* Etiket */}
-      <div className="absolute -top-3 left-0 text-[10px] text-gray-500 font-bold px-1 opacity-0 group-hover/edit:opacity-100 transition pointer-events-none uppercase tracking-wider bg-white/80 rounded border shadow-sm">
+      <div className="absolute -top-3 left-0 text-[10px] text-gray-500 font-bold px-1 opacity-0 group-hover/edit:opacity-100 transition pointer-events-none uppercase tracking-wider bg-white/80 rounded border shadow-sm z-20">
         {label}
       </div>
       <div
         ref={ref}
         contentEditable
         suppressContentEditableWarning
-        className={`outline-none min-h-[2em] p-1 border border-transparent hover:border-gray-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 focus:bg-white transition rounded ${className || ''}`}
-        style={style}
+        className={`outline-none min-h-[2em] p-1 border border-transparent hover:border-gray-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition rounded ${className || ''}`}
+        style={computedStyle}
         onInput={(e) => onChange(e.currentTarget.innerHTML)}
         onPaste={(e) => {
           e.preventDefault();
@@ -106,7 +120,7 @@ const ResizableImage = ({ src, width, height, align, onUpdate, onDelete }) => {
     document.addEventListener('mouseup', stopDrag);
   };
 
-  let containerStyle = { marginBottom: '0.5rem', position: 'relative' };
+  let containerStyle = { marginBottom: '1rem', position: 'relative' }; // Image margin arttırıldı
   if (align === 'left') containerStyle = { ...containerStyle, float: 'left', margin: '0 1rem 1rem 0', width: `${width}%` };
   else if (align === 'right') containerStyle = { ...containerStyle, float: 'right', margin: '0 0 1rem 1rem', width: `${width}%` };
   else if (align === 'center') containerStyle = { ...containerStyle, margin: '0 auto 1rem auto', width: `${width}%`, display: 'block' };
@@ -128,13 +142,9 @@ const ResizableImage = ({ src, width, height, align, onUpdate, onDelete }) => {
         <button onClick={() => onUpdate({ height: 'auto' })} className="p-1 rounded hover:bg-gray-100 text-xs font-bold">Oto</button>
         <button onClick={onDelete} className="p-1 rounded hover:bg-red-100 text-red-500"><TrashIcon className="w-4 h-4" /></button>
       </div>
-
-      <div onMouseDown={(e) => handleMouseDown(e, 'e')} className="absolute top-0 right-0 bottom-0 w-4 cursor-ew-resize opacity-0 group-hover:opacity-100 hover:bg-blue-500/20 z-10"></div>
-      <div onMouseDown={(e) => handleMouseDown(e, 's')} className="absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize opacity-0 group-hover:opacity-100 hover:bg-blue-500/20 z-10"></div>
       <div onMouseDown={(e) => handleMouseDown(e, 'se')} className="absolute bottom-0 right-0 w-6 h-6 bg-blue-500 cursor-nwse-resize opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-tl-lg shadow-sm z-20">
         <ArrowsPointingOutIcon className="w-3 h-3 text-white" />
       </div>
-      {isResizing && <div className="absolute bottom-2 right-8 bg-black/70 text-white text-xs px-2 py-1 rounded">W: {Math.round(width)}% {height !== 'auto' ? `H: ${height}px` : ''}</div>}
     </div>
   );
 };
@@ -171,7 +181,7 @@ export default function SoruEkle() {
       if (mode === 'grid') { styleProps = { width: 48, float: 'left' }; }
       return {
         id: baseId + idx,
-        type: 'text', subtype: 'secenek', content: `<b>${opt})</b> `,
+        type: 'text', subtype: 'secenek', content: `<b>${opt})</b> `, // Harf ile metin arasına boşluk koyduk
         placeholder: ``,
         label: `Seçenek ${opt}`,
         ...styleProps
@@ -187,19 +197,10 @@ export default function SoruEkle() {
     }
   };
 
-  // YENİ: Hazır Soru PNG (Full Width Başlar)
   const handleReadyQuestionUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setComponents(prev => [...prev, {
-        id: generateId(),
-        type: 'image',
-        content: URL.createObjectURL(file),
-        file: file,
-        width: 100, // Varsayılan %100 Genişlik
-        height: 'auto',
-        align: 'center'
-      }]);
+      setComponents(prev => [...prev, { id: generateId(), type: 'image', content: URL.createObjectURL(file), file: file, width: 100, height: 'auto', align: 'center' }]);
     }
   };
 
@@ -211,7 +212,6 @@ export default function SoruEkle() {
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", index);
   };
-
   const onDragOver = (e, index) => {
     e.preventDefault();
     if (draggedItemIndex === null || draggedItemIndex === index) return;
@@ -222,7 +222,6 @@ export default function SoruEkle() {
     setComponents(newComps);
     setDraggedItemIndex(index);
   };
-
   const onDragEnd = () => setDraggedItemIndex(null);
   const execCmd = (cmd) => document.execCommand(cmd, false, null);
 
@@ -240,7 +239,7 @@ export default function SoruEkle() {
       let htmlContent = components.map(c => {
         let style = "";
         if (c.type === 'image') {
-          style = `width: ${c.width}%; margin-bottom: 8px;`;
+          style = `width: ${c.width}%; margin-bottom: 12px;`;
           if (c.height !== 'auto') style += ` height: ${c.height}px; object-fit: fill;`;
           if (c.align === 'left') style += ' float: left; margin-right: 12px;';
           else if (c.align === 'right') style += ' float: right; margin-left: 12px;';
@@ -248,14 +247,18 @@ export default function SoruEkle() {
           return `<div class="q-img" style="${style}"><img src="${c.content}" style="width:100%; height:100%;" /></div>`;
         }
         else {
-          if (c.subtype === 'koku') style = "font-weight: bold; margin-bottom: 8px; font-size: 1.05em;";
+          // TEXT STYLES (Dizgi Kuralları - Sola Yaslı, Tirelemesiz)
+          let commonStyle = "text-align: left; hyphens: none; -webkit-hyphens: none; line-height: 1.4;";
+
+          if (c.subtype === 'koku') style = `${commonStyle} font-weight: bold; margin-bottom: 12px; margin-top: 4px; font-size: 10pt;`;
           else if (c.subtype === 'secenek') {
             let w = c.width !== 100 ? `width: ${c.width}%;` : '';
             let f = c.float !== 'none' ? `float: ${c.float};` : '';
             let m = c.float === 'left' ? 'margin-right: 2%;' : '';
-            style = `margin-bottom: 4px; padding-left: 8px; ${w} ${f} ${m}`;
+            // Asılı Girinti (Hanging Indent)
+            style = `${commonStyle} margin-bottom: 6px; padding-left: 24px; text-indent: -24px; ${w} ${f} ${m}`;
           }
-          else style = "margin-bottom: 8px;";
+          else style = `${commonStyle} margin-bottom: 8px; font-size: 10pt;`; // Govde
 
           return `<div class="q-txt q-${c.subtype}" style="${style} clear: ${c.float === 'none' ? 'both' : 'none'};">${c.content}</div>`;
         }
@@ -296,34 +299,23 @@ export default function SoruEkle() {
 
       <div className="flex justify-center p-8 overflow-y-auto">
         <div className="flex flex-col gap-4 sticky top-20 h-fit mr-4">
-          {/* SIDEBAR TOOLS */}
           <div className="bg-white p-2 rounded shadow border flex flex-col gap-2 w-36">
             <span className="text-xs font-bold text-gray-400 uppercase text-center mb-1">Yeni Ekle</span>
-
-            {/* YENİ: HAZIR SORU PNG EKLEME BUTONU (ÜSTE EKLENDİ) */}
             <label className="flex flex-col p-2 bg-blue-50 hover:bg-blue-100 rounded border border-blue-100 hover:border-blue-300 transition text-left cursor-pointer group mb-1">
               <div className="flex items-center gap-2 text-blue-800 font-bold text-sm"><DocumentArrowUpIcon className="w-5 h-5" /> Soru PNG'si</div>
               <span className="text-[10px] text-gray-500 ml-7">Hazır dizili soru resmi</span>
               <input type="file" className="hidden" accept="image/*" onChange={handleReadyQuestionUpload} />
             </label>
-
             <div className="border-t my-1"></div>
-
-            {/* 1. SORU KÖKÜ */}
             <button onClick={addKoku} className="flex flex-col p-2 hover:bg-purple-50 rounded border border-transparent hover:border-purple-200 transition text-left group">
               <div className="flex items-center gap-2 text-purple-700 font-bold text-sm"><BoldIcon className="w-4 h-4" /> Soru Kökü</div>
               <span className="text-[10px] text-gray-400 ml-6">Soru cümlesi (koyu)</span>
             </button>
-
-            {/* 2. SORU GÖVDESİ */}
             <button onClick={addGovde} className="flex flex-col p-2 hover:bg-blue-50 rounded border border-transparent hover:border-blue-200 transition text-left group">
               <div className="flex items-center gap-2 text-blue-700 font-bold text-sm"><DocumentTextIcon className="w-4 h-4" /> Gövde</div>
               <span className="text-[10px] text-gray-400 ml-6">Metin, paragraf...</span>
             </button>
-
             <div className="border-t my-1"></div>
-
-            {/* 3. ŞIKLAR */}
             <span className="text-[10px] font-bold text-gray-400 uppercase text-center">Şıklar (4 Adet)</span>
             <button onClick={() => addSecenekler('list')} className="flex items-center gap-2 p-2 hover:bg-green-50 text-green-700 rounded text-sm font-bold border border-transparent hover:border-green-200 transition text-left">
               <QueueListIcon className="w-5 h-5" /> Alt Alta
@@ -331,7 +323,6 @@ export default function SoruEkle() {
             <button onClick={() => addSecenekler('grid')} className="flex items-center gap-2 p-2 hover:bg-teal-50 text-teal-700 rounded text-sm font-bold border border-transparent hover:border-teal-200 transition text-left">
               <Squares2X2Icon className="w-5 h-5" /> Yan Yana
             </button>
-
             <div className="border-t my-1"></div>
             <label className="flex flex-col p-2 hover:bg-orange-50 rounded border border-transparent hover:border-orange-200 transition text-left cursor-pointer">
               <div className="flex items-center gap-2 text-orange-700 font-bold text-sm"><PhotoIcon className="w-4 h-4" /> Görsel</div>
@@ -343,8 +334,6 @@ export default function SoruEkle() {
 
         <div className="bg-white shadow-2xl transition-all duration-300 relative flex flex-col group min-h-[120mm]"
           style={{ width: widthMode === 'dar' ? '82.4mm' : '169.6mm', padding: '10mm', paddingTop: '15mm' }}>
-
-          {/* FORMAT TOOLBAR */}
           <div className="absolute top-0 left-0 right-0 bg-gray-50 border-b p-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition duration-300">
             <RibbonButton cmd="bold" label="B" />
             <RibbonButton cmd="italic" label="I" />
@@ -379,6 +368,7 @@ export default function SoruEkle() {
                     initialHtml={comp.content}
                     onChange={(html) => updateComponent(comp.id, { content: html })}
                     label={comp.label}
+                    hangingIndent={comp.subtype === 'secenek'}
                     className={comp.subtype === 'koku' ? 'font-bold' : ''}
                   />
                 ) : (
@@ -388,7 +378,6 @@ export default function SoruEkle() {
               </div>
             ))}
 
-            {/* EMPTY STATE MSG */}
             {components.length === 0 && (
               <div className="flex flex-col items-center justify-center pt-20 text-gray-200 select-none">
                 <p className="italic">Öğe eklemek için solu kullanın</p>
