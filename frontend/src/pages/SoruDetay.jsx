@@ -192,7 +192,6 @@ export default function SoruDetay() {
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-black text-gray-900 flex items-center gap-2 uppercase tracking-tighter">
             📝 Soru Detayı
-            <span className="bg-blue-600 text-white text-[10px] px-2 py-1 rounded-md animate-pulse">V4 - KONTROL</span>
           </h1>
         </div>
         <div className="flex items-center gap-4">
@@ -210,11 +209,7 @@ export default function SoruDetay() {
         </div>
       </div>
 
-      <div className="bg-blue-50 p-2 rounded text-[10px] text-blue-600 flex gap-4 font-mono">
-        <span>ROL: {effectiveRole}</span>
-        <span>MOD: {incelemeTuru || 'Genel'}</span>
-        <span>DURUM: {soru.durum}</span>
-      </div>
+
 
       {/* Soru İçeriği */}
       <div className="flex items-center gap-3 mb-2 px-1">
@@ -295,17 +290,7 @@ export default function SoruDetay() {
         </div>
       )}
 
-      {/* ALT BUTON (GARANTİ OLSUN DİYE) */}
-      {soru.durum !== 'tamamlandi' && (
-        <div className="py-12 flex justify-center border-t-2 border-dashed border-gray-100">
-          <button
-            onClick={handleFinishReview}
-            className="px-12 py-6 bg-green-600 text-white rounded-2xl font-black text-2xl hover:bg-green-700 transition shadow-2xl flex items-center gap-4 animate-bounce"
-          >
-            🚀 İNCELEMEYİ BİTİR VE DİZGİYE GÖNDER
-          </button>
-        </div>
-      )}
+
 
       {/* Popover */}
       {selectedText && (
