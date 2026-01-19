@@ -610,14 +610,15 @@ export default function SoruDetay() {
   const isOwner = soru.olusturan_kullanici_id == user?.id;
   const isAdmin = effectiveRole === 'admin';
 
+  const availableStatusesForEdit = ['beklemede', 'revize_gerekli', 'revize_istendi', 'inceleme_tamam'];
   const canEdit = !incelemeTuru && (
     isAdmin ||
-    (isOwner && (soru.durum === 'beklemede' || soru.durum === 'revize_gerekli' || soru.durum === 'revize_istendi' || soru.durum === 'inceleme_tamam'))
+    (isOwner && availableStatusesForEdit.includes(soru.durum))
   );
 
   const getDurumBadge = (durum) => {
-    const badges = { beklemede: 'badge badge-warning', inceleme_bekliyor: 'badge badge-primary', dizgi_bekliyor: 'badge badge-warning', dizgide: 'badge badge-info', tamamlandi: 'badge badge-success', revize_gerekli: 'badge badge-error', revize_istendi: 'badge badge-error' };
-    const labels = { beklemede: 'Beklemede', inceleme_bekliyor: 'İnceleme Bekliyor', dizgi_bekliyor: 'Dizgi Bekliyor', dizgide: 'Dizgide', tamamlandi: 'Tamamlandı', revize_gerekli: 'Revize Gerekli', revize_istendi: 'Revize İstendi' };
+    const badges = { beklemede: 'badge badge-warning', inceleme_bekliyor: 'badge badge-primary', dizgi_bekliyor: 'badge badge-warning', dizgide: 'badge badge-info', tamamlandi: 'badge badge-success', revize_gerekli: 'badge badge-error', revize_istendi: 'badge badge-error', inceleme_tamam: 'badge badge-emerald' };
+    const labels = { beklemede: 'Beklemede', inceleme_bekliyor: 'İnceleme Bekliyor', dizgi_bekliyor: 'Dizgi Bekliyor', dizgide: 'Dizgide', tamamlandi: 'Tamamlandı', revize_gerekli: 'Revize Gerekli', revize_istendi: 'Revize İstendi', inceleme_tamam: 'İnceleme Tamamlandı' };
     return <span className={badges[durum]}>{labels[durum]}</span>;
   };
 
@@ -646,7 +647,7 @@ export default function SoruDetay() {
               )}
 
               {/* BRANŞ (YAZAR) VEYA ADMIN İÇİN AKSİYONLAR (Dizgiye veya İncelemeye Gönder) */}
-              {(isAdmin || isOwner) && (soru.durum === 'revize_istendi' || soru.durum === 'tamamlandi' || soru.durum === 'inceleme_tamam') && (
+              {(isAdmin || isOwner) && ['revize_istendi', 'tamamlandi', 'inceleme_tamam'].includes(soru.durum) && (
                 <>
                   {/* Düzenle Butonu - Sadece gerekli durumlarda */}
                   {canEdit && (
