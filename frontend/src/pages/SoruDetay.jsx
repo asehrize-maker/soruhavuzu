@@ -579,6 +579,23 @@ export default function SoruDetay() {
     setDraggedItemIndex(index);
   };
 
+  const handleEditAndAction = async () => {
+    if (components.length === 0) return alert("Soru içeriği boş!");
+    if (!editMetadata.dogruCevap) return alert("Lütfen Doğru Cevabı seçiniz.");
+
+    // Önce kaydet
+    await handleEditSave();
+
+    // Sonra aksiyon sor
+    setTimeout(() => {
+      if (confirm("Düzenleme kaydedildi. Şimdi ne yapmak istersiniz?\n\n- TAMAM: Dizgiye Gönder\n- İPTAL: İncelemeye Gönder")) {
+        handleSendToDizgi();
+      } else {
+        handleSendToInceleme();
+      }
+    }, 500);
+  };
+
   const RibbonButton = ({ cmd, label, icon }) => (
     <button onMouseDown={(e) => { e.preventDefault(); execCmd(cmd); }} className="w-8 h-8 flex items-center justify-center hover:bg-gray-200 rounded text-gray-700 font-medium">{icon || label}</button>
   );
@@ -591,7 +608,7 @@ export default function SoruDetay() {
 
   const canEdit = !incelemeTuru && (
     isAdmin ||
-    (isOwner && (soru.durum === 'beklemede' || soru.durum === 'revize_gerekli' || soru.durum === 'revize_istendi'))
+    (isOwner && (soru.durum === 'beklemede' || soru.durum === 'revize_gerekli' || soru.durum === 'revize_istendi' || soru.durum === 'inceleme_tamam'))
   );
 
   const getDurumBadge = (durum) => {
@@ -627,6 +644,16 @@ export default function SoruDetay() {
               {/* BRANŞ (YAZAR) VEYA ADMIN İÇİN AKSİYONLAR (Dizgiye veya İncelemeye Gönder) */}
               {(isAdmin || isOwner) && (soru.durum === 'revize_istendi' || soru.durum === 'tamamlandi' || soru.durum === 'inceleme_tamam') && (
                 <>
+                  {/* Düzenle Butonu - Sadece gerekli durumlarda */}
+                  {canEdit && (
+                    <button
+                      onClick={handleEditStart}
+                      className="px-6 py-3 bg-blue-100 text-blue-700 rounded-xl font-black text-sm hover:bg-blue-200 transition shadow-[0_4px_14px_0_rgba(59,130,246,0.2)] flex items-center gap-2 border-b-4 border-blue-300 active:border-b-0 active:translate-y-1"
+                    >
+                      ✍️ DÜZENLE
+                    </button>
+                  )}
+
                   {/* İncelemeye Gönder */}
                   <button
                     onClick={handleSendToInceleme}
@@ -691,261 +718,263 @@ export default function SoruDetay() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <button onClick={handleEditSave} disabled={saving} className="px-4 py-1 bg-white text-blue-700 text-xs font-bold rounded hover:bg-blue-50">KAYDET</button>
-                <button onClick={() => setEditMode(false)} className="px-4 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600">İPTAL</button>
-              </div>
-            </div>
-
-            <div className="flex p-4 gap-4 overflow-y-auto max-h-[700px]">
-              <div className="flex flex-col gap-2 w-32 shrink-0">
-                <button onClick={addKoku} className="flex items-center gap-2 p-2 bg-white border rounded text-xs font-bold text-purple-700 hover:bg-purple-50"><BoldIcon className="w-4 h-4" /> Kök</button>
-                <button onClick={addGovde} className="flex items-center gap-2 p-2 bg-white border rounded text-xs font-bold text-blue-700 hover:bg-blue-50"><DocumentTextIcon className="w-4 h-4" /> Gövde</button>
-                <button onClick={() => addSecenekler('list')} className="flex items-center gap-2 p-2 bg-white border rounded text-xs font-bold text-green-700 hover:bg-green-50"><QueueListIcon className="w-4 h-4" /> Şıklar</button>
-                <label className="flex items-center gap-2 p-2 bg-white border rounded text-xs font-bold text-orange-700 hover:bg-orange-50 cursor-pointer">
-                  <PhotoIcon className="w-4 h-4" /> Resim
-                  <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
-                </label>
-              </div>
-
-              <div className="bg-white shadow-xl mx-auto p-8 relative min-h-[500px]" style={{ width: widthMode === 'dar' ? '82.4mm' : '169.6mm' }}>
-                <div className="absolute top-0 left-0 right-0 bg-gray-50 border-b p-1 flex items-center gap-1">
-                  <RibbonButton cmd="bold" label="B" />
-                  <RibbonButton cmd="italic" label="I" />
-                  <RibbonButton cmd="underline" label="U" />
-                  <div className="w-[1px] h-4 bg-gray-300 mx-1"></div>
-                  <RibbonButton cmd="superscript" label="x²" />
-                  <RibbonButton cmd="subscript" label="x₂" />
+                <div className="flex gap-2">
+                  <button onClick={handleEditAndAction} disabled={saving} className="px-4 py-1 bg-green-400 text-white text-xs font-bold rounded hover:bg-green-500 shadow-sm border border-green-500">KAYDET & AKSİYON SEÇ</button>
+                  <button onClick={handleEditSave} disabled={saving} className="px-4 py-1 bg-white text-blue-700 text-xs font-bold rounded hover:bg-blue-50">KAYDET</button>
+                  <button onClick={() => setEditMode(false)} className="px-4 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600">İPTAL</button>
                 </div>
-                <div className="mt-8 space-y-1 relative">
-                  {components.map((comp, index) => (
-                    <div
-                      key={comp.id}
-                      className={`relative group/item rounded px-1 transition ${draggedItemIndex === index ? 'opacity-50 bg-blue-50' : 'hover:ring-1 hover:ring-blue-100'}`}
-                      style={{ float: comp.float || 'none', width: comp.width && comp.subtype === 'secenek' ? `${comp.width}%` : 'auto', marginRight: comp.float === 'left' ? '2%' : '0' }}
-                      draggable="true"
-                      onDragStart={(e) => onDragStart(e, index)}
-                      onDragOver={(e) => onDragOver(e, index)}
-                      onDragEnd={onDragEnd}
-                    >
-                      <div className="absolute -left-6 top-1 flex flex-col gap-1 opacity-0 group-hover/item:opacity-100 transition z-10 w-5 cursor-grab">
-                        <div className="p-0.5 text-gray-400"><Bars4Icon className="w-4 h-4" /></div>
-                        <button onClick={() => removeComponent(comp.id)} className="p-0.5 text-red-300 hover:text-red-500"><TrashIcon className="w-4 h-4" /></button>
+              </div>
+
+              <div className="flex p-4 gap-4 overflow-y-auto max-h-[700px]">
+                <div className="flex flex-col gap-2 w-32 shrink-0">
+                  <button onClick={addKoku} className="flex items-center gap-2 p-2 bg-white border rounded text-xs font-bold text-purple-700 hover:bg-purple-50"><BoldIcon className="w-4 h-4" /> Kök</button>
+                  <button onClick={addGovde} className="flex items-center gap-2 p-2 bg-white border rounded text-xs font-bold text-blue-700 hover:bg-blue-50"><DocumentTextIcon className="w-4 h-4" /> Gövde</button>
+                  <button onClick={() => addSecenekler('list')} className="flex items-center gap-2 p-2 bg-white border rounded text-xs font-bold text-green-700 hover:bg-green-50"><QueueListIcon className="w-4 h-4" /> Şıklar</button>
+                  <label className="flex items-center gap-2 p-2 bg-white border rounded text-xs font-bold text-orange-700 hover:bg-orange-50 cursor-pointer">
+                    <PhotoIcon className="w-4 h-4" /> Resim
+                    <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                  </label>
+                </div>
+
+                <div className="bg-white shadow-xl mx-auto p-8 relative min-h-[500px]" style={{ width: widthMode === 'dar' ? '82.4mm' : '169.6mm' }}>
+                  <div className="absolute top-0 left-0 right-0 bg-gray-50 border-b p-1 flex items-center gap-1">
+                    <RibbonButton cmd="bold" label="B" />
+                    <RibbonButton cmd="italic" label="I" />
+                    <RibbonButton cmd="underline" label="U" />
+                    <div className="w-[1px] h-4 bg-gray-300 mx-1"></div>
+                    <RibbonButton cmd="superscript" label="x²" />
+                    <RibbonButton cmd="subscript" label="x₂" />
+                  </div>
+                  <div className="mt-8 space-y-1 relative">
+                    {components.map((comp, index) => (
+                      <div
+                        key={comp.id}
+                        className={`relative group/item rounded px-1 transition ${draggedItemIndex === index ? 'opacity-50 bg-blue-50' : 'hover:ring-1 hover:ring-blue-100'}`}
+                        style={{ float: comp.float || 'none', width: comp.width && comp.subtype === 'secenek' ? `${comp.width}%` : 'auto', marginRight: comp.float === 'left' ? '2%' : '0' }}
+                        draggable="true"
+                        onDragStart={(e) => onDragStart(e, index)}
+                        onDragOver={(e) => onDragOver(e, index)}
+                        onDragEnd={onDragEnd}
+                      >
+                        <div className="absolute -left-6 top-1 flex flex-col gap-1 opacity-0 group-hover/item:opacity-100 transition z-10 w-5 cursor-grab">
+                          <div className="p-0.5 text-gray-400"><Bars4Icon className="w-4 h-4" /></div>
+                          <button onClick={() => removeComponent(comp.id)} className="p-0.5 text-red-300 hover:text-red-500"><TrashIcon className="w-4 h-4" /></button>
+                        </div>
+                        {comp.type === 'text' ? (
+                          <EditableBlock initialHtml={comp.content} onChange={(html) => updateComponent(comp.id, { content: html })} label={comp.label} hangingIndent={comp.subtype === 'secenek'} className={comp.subtype === 'koku' ? 'font-bold text-sm' : 'text-sm'} />
+                        ) : (
+                          <ResizableImage src={comp.content} width={comp.width} height={comp.height} align={comp.align} onUpdate={(updates) => updateComponent(comp.id, updates)} onDelete={() => removeComponent(comp.id)} />
+                        )}
+                        {comp.float === 'none' && <div style={{ clear: 'both' }}></div>}
                       </div>
-                      {comp.type === 'text' ? (
-                        <EditableBlock initialHtml={comp.content} onChange={(html) => updateComponent(comp.id, { content: html })} label={comp.label} hangingIndent={comp.subtype === 'secenek'} className={comp.subtype === 'koku' ? 'font-bold text-sm' : 'text-sm'} />
-                      ) : (
-                        <ResizableImage src={comp.content} width={comp.width} height={comp.height} align={comp.align} onUpdate={(updates) => updateComponent(comp.id, updates)} onDelete={() => removeComponent(comp.id)} />
-                      )}
-                      {comp.float === 'none' && <div style={{ clear: 'both' }}></div>}
-                    </div>
-                  ))}
-                  <div style={{ clear: 'both' }}></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white border-t p-4 grid grid-cols-1 md:grid-cols-4 gap-4 mt-auto">
-              <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Brans</label>
-                <select className="w-full border p-1 rounded text-xs" value={editMetadata.brans_id} onChange={e => setEditMetadata({ ...editMetadata, brans_id: e.target.value })}>
-                  {branslar.map(b => <option key={b.id} value={b.id}>{b.brans_adi}</option>)}
-                </select>
-              </div>
-              <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Dogru Cevap</label>
-                <div className="flex gap-1 mt-1">
-                  {['A', 'B', 'C', 'D', 'E'].map(opt => (
-                    <button key={opt} onClick={() => setEditMetadata({ ...editMetadata, dogruCevap: opt })} className={`w-6 h-6 rounded-full border font-bold text-[10px] ${editMetadata.dogruCevap === opt ? 'bg-blue-600 text-white' : 'bg-gray-50'}`}>{opt}</button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Kazanim</label>
-                {kazanimLoading ? (
-                  <div className="text-[11px] text-gray-500 mt-1">Kazanimlar yukleniyor...</div>
-                ) : (
-                  <select
-                    className="w-full border p-1 rounded text-xs"
-                    value={editMetadata.kazanim}
-                    onChange={e => setEditMetadata({ ...editMetadata, kazanim: e.target.value })}
-                    disabled={!editMetadata.brans_id || kazanims.length === 0}
-                  >
-                    {!editMetadata.brans_id && <option value="">Once brans secin</option>}
-                    {editMetadata.brans_id && kazanims.length === 0 && <option value="">Bu brans ta kazanim yok</option>}
-                    {kazanims.map(k => (
-                      <option key={k.id} value={k.kod}>
-                        {k.kod} - {k.aciklama}
-                      </option>
                     ))}
-                  </select>
-                )}
+                    <div style={{ clear: 'both' }}></div>
+                  </div>
+                </div>
               </div>
-              <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Zorluk</label>
-                <select className="w-full border p-1 rounded text-xs" value={editMetadata.zorluk} onChange={e => setEditMetadata({ ...editMetadata, zorluk: e.target.value })}>
-                  <option value="1">1 (?ok Kolay)</option>
-                  <option value="2">2 (Kolay)</option>
-                  <option value="3">3 (Orta)</option>
-                  <option value="4">4 (Zor)</option>
-                  <option value="5">5 (?ok Zor)</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-[#F3F2F1] p-8 flex justify-center overflow-x-auto min-h-[400px]">
-            <div
-              className="bg-white shadow-lg p-[10mm] relative"
-              style={{
-                width: soru.soru_metni?.includes('width: 169') ? '169.6mm' : '82.4mm',
-                minHeight: '120mm'
-              }}
-            >
-              <div
-                className="prose max-w-none"
-                style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}
-              >
-                <div
-                  ref={soruMetniRef}
-                  className="text-gray-900 katex-left-align q-preview-container select-text"
-                  onMouseUp={handleTextSelection}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
 
-      {/* Revize Notları Listesi (ROL BAZLI FİLTRELEME) */}
-      {revizeNotlari.filter(not => {
-        if (user?.rol === 'admin' || user?.rol === 'dizgici') return true;
-        if (incelemeTuru) return not.inceleme_turu === incelemeTuru;
-        return true;
-      }).length > 0 && (
-          <div className="card bg-amber-50 border border-amber-200">
-            <h3 className="text-xl font-bold mb-4 text-amber-900 flex items-center">
-              <span className="mr-2">📝</span> Revize / Hata Notları
-            </h3>
-            <div className="space-y-3">
-              {revizeNotlari.filter(not => {
-                if (user?.rol === 'admin' || user?.rol === 'dizgici') return true;
-                if (incelemeTuru) return not.inceleme_turu === incelemeTuru;
-                return true;
-              }).map((not) => (
-                <div key={not.id} className="flex gap-4 p-3 bg-white border border-amber-100 rounded-lg shadow-sm">
-                  <div className="w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center font-bold flex-shrink-0">
-                    {revizeNotlari.indexOf(not) + 1}
+              <div className="bg-white border-t p-4 grid grid-cols-1 md:grid-cols-4 gap-4 mt-auto">
+                <div className="flex flex-col">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase">Brans</label>
+                  <select className="w-full border p-1 rounded text-xs" value={editMetadata.brans_id} onChange={e => setEditMetadata({ ...editMetadata, brans_id: e.target.value })}>
+                    {branslar.map(b => <option key={b.id} value={b.id}>{b.brans_adi}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-col">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase">Dogru Cevap</label>
+                  <div className="flex gap-1 mt-1">
+                    {['A', 'B', 'C', 'D', 'E'].map(opt => (
+                      <button key={opt} onClick={() => setEditMetadata({ ...editMetadata, dogruCevap: opt })} className={`w-6 h-6 rounded-full border font-bold text-[10px] ${editMetadata.dogruCevap === opt ? 'bg-blue-600 text-white' : 'bg-gray-50'}`}>{opt}</button>
+                    ))}
                   </div>
-                  <div className="flex-1">
-                    <div className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">
-                      {not.inceleme_turu === 'alanci' ? 'ALAN UZMANI' : 'DİL UZMANI'}
-                    </div>
-                    <div className="text-sm font-bold text-gray-800 mb-1 italic opacity-70">
-                      "{not.secilen_metin}"
-                    </div>
-                    <p className="text-gray-900 font-medium">{not.not_metni}</p>
-                  </div>
-                  {(effectiveRole === 'admin' || user?.id === not.kullanici_id) && (
-                    <button onClick={() => handleDeleteRevizeNot(not.id)} className="text-red-400 hover:text-red-700 transition self-start">
-                      ✕
-                    </button>
+                </div>
+                <div className="flex flex-col">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase">Kazanim</label>
+                  {kazanimLoading ? (
+                    <div className="text-[11px] text-gray-500 mt-1">Kazanimlar yukleniyor...</div>
+                  ) : (
+                    <select
+                      className="w-full border p-1 rounded text-xs"
+                      value={editMetadata.kazanim}
+                      onChange={e => setEditMetadata({ ...editMetadata, kazanim: e.target.value })}
+                      disabled={!editMetadata.brans_id || kazanims.length === 0}
+                    >
+                      {!editMetadata.brans_id && <option value="">Once brans secin</option>}
+                      {editMetadata.brans_id && kazanims.length === 0 && <option value="">Bu brans ta kazanim yok</option>}
+                      {kazanims.map(k => (
+                        <option key={k.id} value={k.kod}>
+                          {k.kod} - {k.aciklama}
+                        </option>
+                      ))}
+                    </select>
                   )}
                 </div>
-              ))}
+                <div className="flex flex-col">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase">Zorluk</label>
+                  <select className="w-full border p-1 rounded text-xs" value={editMetadata.zorluk} onChange={e => setEditMetadata({ ...editMetadata, zorluk: e.target.value })}>
+                    <option value="1">1 (?ok Kolay)</option>
+                    <option value="2">2 (Kolay)</option>
+                    <option value="3">3 (Orta)</option>
+                    <option value="4">4 (Zor)</option>
+                    <option value="5">5 (?ok Zor)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            ) : (
+            <div className="bg-[#F3F2F1] p-8 flex justify-center overflow-x-auto min-h-[400px]">
+              <div
+                className="bg-white shadow-lg p-[10mm] relative"
+                style={{
+                  width: soru.soru_metni?.includes('width: 169') ? '169.6mm' : '82.4mm',
+                  minHeight: '120mm'
+                }}
+              >
+                <div
+                  className="prose max-w-none"
+                  style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}
+                >
+                  <div
+                    ref={soruMetniRef}
+                    className="text-gray-900 katex-left-align q-preview-container select-text"
+                    onMouseUp={handleTextSelection}
+                  />
+                </div>
+              </div>
+            </div>
+        )}
+          </div>
+
+      {/* Revize Notları Listesi (ROL BAZLI FİLTRELEME) */}
+        {revizeNotlari.filter(not => {
+          if (user?.rol === 'admin' || user?.rol === 'dizgici') return true;
+          if (incelemeTuru) return not.inceleme_turu === incelemeTuru;
+          return true;
+        }).length > 0 && (
+            <div className="card bg-amber-50 border border-amber-200">
+              <h3 className="text-xl font-bold mb-4 text-amber-900 flex items-center">
+                <span className="mr-2">📝</span> Revize / Hata Notları
+              </h3>
+              <div className="space-y-3">
+                {revizeNotlari.filter(not => {
+                  if (user?.rol === 'admin' || user?.rol === 'dizgici') return true;
+                  if (incelemeTuru) return not.inceleme_turu === incelemeTuru;
+                  return true;
+                }).map((not) => (
+                  <div key={not.id} className="flex gap-4 p-3 bg-white border border-amber-100 rounded-lg shadow-sm">
+                    <div className="w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center font-bold flex-shrink-0">
+                      {revizeNotlari.indexOf(not) + 1}
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">
+                        {not.inceleme_turu === 'alanci' ? 'ALAN UZMANI' : 'DİL UZMANI'}
+                      </div>
+                      <div className="text-sm font-bold text-gray-800 mb-1 italic opacity-70">
+                        "{not.secilen_metin}"
+                      </div>
+                      <p className="text-gray-900 font-medium">{not.not_metni}</p>
+                    </div>
+                    {(effectiveRole === 'admin' || user?.id === not.kullanici_id) && (
+                      <button onClick={() => handleDeleteRevizeNot(not.id)} className="text-red-400 hover:text-red-700 transition self-start">
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+
+
+        {/* Popover - Sadece İnceleme/Admin Modunda */}
+        {selectedText && canReview && (
+          <div className="fixed bottom-12 right-12 z-50 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+            <div className="p-4 font-bold text-white flex justify-between items-center bg-purple-600 shadow-lg">
+              <span>Not Ekle (Madde {revizeNotlari.length + 1})</span>
+              <button onClick={() => setSelectedText('')}>✕</button>
+            </div>
+            <div className="p-4">
+              <div className="text-[10px] text-gray-400 mb-2 italic">"{selectedText.substring(0, 60)}..."</div>
+              <textarea className="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-purple-500" rows="3" placeholder="Hata açıklamasını buraya yazın..." value={revizeNotuInput} onChange={(e) => setRevizeNotuInput(e.target.value)} />
+              <button onClick={handleAddRevizeNot} className="w-full mt-2 py-2 bg-gray-800 text-white rounded-lg font-bold hover:bg-black uppercase">Notu Kaydet</button>
             </div>
           </div>
         )}
 
-
-
-      {/* Popover - Sadece İnceleme/Admin Modunda */}
-      {selectedText && canReview && (
-        <div className="fixed bottom-12 right-12 z-50 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-          <div className="p-4 font-bold text-white flex justify-between items-center bg-purple-600 shadow-lg">
-            <span>Not Ekle (Madde {revizeNotlari.length + 1})</span>
-            <button onClick={() => setSelectedText('')}>✕</button>
-          </div>
-          <div className="p-4">
-            <div className="text-[10px] text-gray-400 mb-2 italic">"{selectedText.substring(0, 60)}..."</div>
-            <textarea className="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-purple-500" rows="3" placeholder="Hata açıklamasını buraya yazın..." value={revizeNotuInput} onChange={(e) => setRevizeNotuInput(e.target.value)} />
-            <button onClick={handleAddRevizeNot} className="w-full mt-2 py-2 bg-gray-800 text-white rounded-lg font-bold hover:bg-black uppercase">Notu Kaydet</button>
-          </div>
+        {/* Alt Araç Çubuğu */}
+        <div className="flex gap-2">
+          {canEdit && !editMode && <button onClick={handleEditStart} className="btn btn-primary">✏️ Düzenle</button>}
+          {/* SADECE ADMIN VE SAHİBİ SİLEBİLİR - İNCELEMECİ SİLEMEZ */}
+          {(effectiveRole === 'admin' || (soru.olusturan_kullanici_id === user?.id && effectiveRole !== 'incelemeci')) && (
+            <button onClick={handleSil} className="btn btn-danger">Sil</button>
+          )}
         </div>
-      )}
 
-      {/* Alt Araç Çubuğu */}
-      <div className="flex gap-2">
-        {canEdit && !editMode && <button onClick={handleEditStart} className="btn btn-primary">✏️ Düzenle</button>}
-        {/* SADECE ADMIN VE SAHİBİ SİLEBİLİR - İNCELEMECİ SİLEMEZ */}
-        {(effectiveRole === 'admin' || (soru.olusturan_kullanici_id === user?.id && effectiveRole !== 'incelemeci')) && (
-          <button onClick={handleSil} className="btn btn-danger">Sil</button>
-        )}
+        {/* Yorumlar ve Versiyon geçmişi aynen devam eder... */}
+        <div className="card">
+          <h3 className="text-xl font-bold mb-6 text-gray-800">İnceleme Yorumları</h3>
+          <IncelemeYorumlari soruId={id} />
+        </div>
       </div>
-
-      {/* Yorumlar ve Versiyon geçmişi aynen devam eder... */}
-      <div className="card">
-        <h3 className="text-xl font-bold mb-6 text-gray-800">İnceleme Yorumları</h3>
-        <IncelemeYorumlari soruId={id} />
-      </div>
-    </div>
-  );
+      );
 }
 
-function IncelemeYorumlari({ soruId }) {
+      function IncelemeYorumlari({soruId}) {
   const [yorumlar, setYorumlar] = useState([]);
-  const [yeniYorum, setYeniYorum] = useState('');
-  const [loading, setLoading] = useState(true);
+      const [yeniYorum, setYeniYorum] = useState('');
+      const [loading, setLoading] = useState(true);
   const loadYorumlar = async () => {
-    try { const res = await soruAPI.getComments(soruId); setYorumlar(res.data.data); } catch (e) { } finally { setLoading(false); }
+    try { const res = await soruAPI.getComments(soruId); setYorumlar(res.data.data); } catch (e) { } finally {setLoading(false); }
   };
-  useEffect(() => { loadYorumlar(); }, [soruId]);
+  useEffect(() => {loadYorumlar(); }, [soruId]);
   const handleYorumEkle = async () => {
     if (!yeniYorum.trim()) return;
-    try { await soruAPI.addComment(soruId, yeniYorum); setYeniYorum(''); loadYorumlar(); } catch (e) { }
+      try {await soruAPI.addComment(soruId, yeniYorum); setYeniYorum(''); loadYorumlar(); } catch (e) { }
   };
-  return (
-    <div className="flex flex-col h-full min-h-[200px]">
-      <div className="flex-1 space-y-3">
-        {loading ? <p className="text-center text-gray-400">Yükleniyor...</p> : yorumlar.length === 0 ? <p className="text-center text-gray-400 italic text-sm">Hiç yorum yok.</p> :
-          yorumlar.map((y) => (
-            <div key={y.id} className="bg-white border rounded-xl p-4 shadow-sm">
-              <div className="flex justify-between items-baseline mb-2">
-                <span className="font-bold text-gray-900">{y.ad_soyad} <span className="text-[10px] font-normal text-gray-400 uppercase">({y.rol})</span></span>
-                <span className="text-[10px] text-gray-400">{new Date(y.tarih).toLocaleDateString()}</span>
+      return (
+      <div className="flex flex-col h-full min-h-[200px]">
+        <div className="flex-1 space-y-3">
+          {loading ? <p className="text-center text-gray-400">Yükleniyor...</p> : yorumlar.length === 0 ? <p className="text-center text-gray-400 italic text-sm">Hiç yorum yok.</p> :
+            yorumlar.map((y) => (
+              <div key={y.id} className="bg-white border rounded-xl p-4 shadow-sm">
+                <div className="flex justify-between items-baseline mb-2">
+                  <span className="font-bold text-gray-900">{y.ad_soyad} <span className="text-[10px] font-normal text-gray-400 uppercase">({y.rol})</span></span>
+                  <span className="text-[10px] text-gray-400">{new Date(y.tarih).toLocaleDateString()}</span>
+                </div>
+                <p className="text-gray-700 text-sm whitespace-pre-wrap">{y.yorum_metni}</p>
               </div>
-              <p className="text-gray-700 text-sm whitespace-pre-wrap">{y.yorum_metni}</p>
-            </div>
-          ))}
+            ))}
+        </div>
+        <div className="mt-6 flex gap-2">
+          <input type="text" className="input shadow-inner" placeholder="İnceleme notu yazın..." value={yeniYorum} onChange={(e) => setYeniYorum(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleYorumEkle()} />
+          <button onClick={handleYorumEkle} className="btn btn-primary px-8">Ekle</button>
+        </div>
       </div>
-      <div className="mt-6 flex gap-2">
-        <input type="text" className="input shadow-inner" placeholder="İnceleme notu yazın..." value={yeniYorum} onChange={(e) => setYeniYorum(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleYorumEkle()} />
-        <button onClick={handleYorumEkle} className="btn btn-primary px-8">Ekle</button>
-      </div>
-    </div>
-  );
+      );
 }
 
-function VersiyonGecmisi({ soruId }) {
+      function VersiyonGecmisi({soruId}) {
   const [versiyonlar, setVersiyonlar] = useState([]);
-  const [loading, setLoading] = useState(true);
+      const [loading, setLoading] = useState(true);
   useEffect(() => {
-    const load = async () => { try { const res = await soruAPI.getHistory(soruId); setVersiyonlar(res.data.data); } catch (e) { } finally { setLoading(false); } };
-    load();
+    const load = async () => { try { const res = await soruAPI.getHistory(soruId); setVersiyonlar(res.data.data); } catch (e) { } finally {setLoading(false); } };
+      load();
   }, [soruId]);
-  if (loading) return <div className="text-center py-4">Sürümler yükleniyor...</div>;
-  if (versiyonlar.length === 0) return <p className="text-center text-gray-400 italic">Henüz bir sürüm geçmişi yok.</p>;
-  return (
-    <div className="space-y-4">
-      {versiyonlar.map((v) => (
-        <div key={v.id} className="border rounded-xl p-4 bg-gray-50 hover:bg-white transition-all shadow-sm">
-          <div className="flex justify-between items-center mb-2">
-            <span className="bg-gray-800 text-white px-2 py-0.5 rounded text-[10px] font-bold">v{v.versiyon_no}</span>
-            <span className="text-[10px] text-gray-400">{new Date(v.degisim_tarihi).toLocaleString()}</span>
+      if (loading) return <div className="text-center py-4">Sürümler yükleniyor...</div>;
+      if (versiyonlar.length === 0) return <p className="text-center text-gray-400 italic">Henüz bir sürüm geçmişi yok.</p>;
+      return (
+      <div className="space-y-4">
+        {versiyonlar.map((v) => (
+          <div key={v.id} className="border rounded-xl p-4 bg-gray-50 hover:bg-white transition-all shadow-sm">
+            <div className="flex justify-between items-center mb-2">
+              <span className="bg-gray-800 text-white px-2 py-0.5 rounded text-[10px] font-bold">v{v.versiyon_no}</span>
+              <span className="text-[10px] text-gray-400">{new Date(v.degisim_tarihi).toLocaleString()}</span>
+            </div>
+            <div className="font-bold text-sm text-gray-900 mb-2">{v.ad_soyad}</div>
+            <div className="text-xs text-gray-600 line-clamp-2 italic">"{v.degisim_aciklamasi || 'Soru güncellendi'}"</div>
           </div>
-          <div className="font-bold text-sm text-gray-900 mb-2">{v.ad_soyad}</div>
-          <div className="text-xs text-gray-600 line-clamp-2 italic">"{v.degisim_aciklamasi || 'Soru güncellendi'}"</div>
-        </div>
-      ))}
-    </div>
-  );
+        ))}
+      </div>
+      );
 }
