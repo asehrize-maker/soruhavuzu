@@ -143,6 +143,9 @@ export default function Dashboard() {
   const { user } = useAuthStore();
   const { effectiveRole } = useOutletContext() || {};
   const activeRole = (user?.rol === 'admin' && effectiveRole) ? effectiveRole : (user?.rol || effectiveRole);
+  const isActualAdmin = user?.rol === 'admin';
+  const canAlanInceleme = isActualAdmin || !!user?.inceleme_alanci;
+  const canDilInceleme = isActualAdmin || !!user?.inceleme_dilci;
 
   const [stats, setStats] = useState(null);
   const [detayliStats, setDetayliStats] = useState(null);
@@ -150,6 +153,7 @@ export default function Dashboard() {
   const [branslar, setBranslar] = useState([]);
   const [selectedBrans, setSelectedBrans] = useState(null);
   const [selectedStat, setSelectedStat] = useState(null);
+  const [reviewMode, setReviewMode] = useState('alanci');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -169,7 +173,7 @@ export default function Dashboard() {
           }
         }
 
-        if (['alan_incelemeci', 'dil_incelemeci', 'incelemeci'].includes(activeRole)) {
+        if (activeRole === 'incelemeci') {
           const bransRes = await bransAPI.getAll();
           if (bransRes.data.success) {
             setBranslar(bransRes.data.data);
@@ -184,6 +188,12 @@ export default function Dashboard() {
 
     fetchData();
   }, [activeRole]);
+
+  useEffect(() => {
+    if (activeRole !== 'incelemeci') return;
+    if (canAlanInceleme) setReviewMode('alanci');
+    else if (canDilInceleme) setReviewMode('dilci');
+  }, [activeRole, canAlanInceleme, canDilInceleme]);
 
   if (loading) {
     return (
@@ -363,15 +373,12 @@ export default function Dashboard() {
   }
 
   // 3. İNCELEMECİ
-  if (['alan_incelemeci', 'dil_incelemeci', 'incelemeci'].includes(activeRole)) {
-    const reviewMode = activeRole === 'alan_incelemeci' ? 'alanci' : (activeRole === 'dil_incelemeci' ? 'dilci' : 'genel');
-
+  if (activeRole === 'incelemeci') {
     return (
       <div className="space-y-6 animate-fade-in">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            {activeRole === 'alan_incelemeci' ? 'Alan İnceleme Paneli' :
-              activeRole === 'dil_incelemeci' ? 'Dil İnceleme Paneli' : 'İnceleme Yönetimi'}
+            {reviewMode === 'alanci' ? 'Alan İnceleme Paneli' : 'Dil İnceleme Paneli'}
           </h1>
           <p className="text-gray-500">
             Lütfen incelemek istediğiniz branşı seçiniz.
@@ -380,6 +387,29 @@ export default function Dashboard() {
             <InformationCircleIcon className="w-5 h-5 flex-shrink-0" />
             <span>Bilgi: İncelemesi biten veya dizgiye gönderilen soruları sol menüdeki <b>"Soru Havuzu"</b> sekmesinden takip edebilirsiniz.</span>
           </div>
+
+          {canAlanInceleme && canDilInceleme && (
+            <div className="mt-6 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setReviewMode('alanci')}
+                className={`px-4 py-2 rounded-lg font-medium transition ${reviewMode === 'alanci'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                Alan
+              </button>
+              <button
+                type="button"
+                onClick={() => setReviewMode('dilci')}
+                className={`px-4 py-2 rounded-lg font-medium transition ${reviewMode === 'dilci'
+                  ? 'bg-purple-600 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                Dil
+              </button>
+            </div>
+          )}
 
           <div className="mt-6 flex flex-wrap gap-3">
             {branslar.map(brans => (

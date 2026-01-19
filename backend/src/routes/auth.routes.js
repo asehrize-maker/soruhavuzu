@@ -62,7 +62,7 @@ router.post('/register', [
     // Kullanıcı oluştur
     const result = await pool.query(
       `INSERT INTO kullanicilar (ad_soyad, email, sifre, rol, ekip_id, brans_id) 
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, ad_soyad, email, rol`,
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, ad_soyad, email, rol, inceleme_alanci, inceleme_dilci`,
       [ad_soyad, email, hashedPassword, finalRole, ekip_id || null, brans_id || null]
     );
 
@@ -136,7 +136,7 @@ router.post('/login', [
 router.get('/me', authenticate, async (req, res, next) => {
   try {
     const result = await pool.query(`
-      SELECT k.id, k.ad_soyad, k.email, k.rol, k.ekip_id, k.brans_id,
+      SELECT k.id, k.ad_soyad, k.email, k.rol, k.inceleme_alanci, k.inceleme_dilci, k.ekip_id, k.brans_id,
              e.ekip_adi, b.brans_adi
       FROM kullanicilar k
       LEFT JOIN ekipler e ON k.ekip_id = e.id

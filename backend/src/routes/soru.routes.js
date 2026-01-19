@@ -108,7 +108,7 @@ router.get('/', authenticate, async (req, res, next) => {
         OR b.id = (SELECT brans_id FROM kullanicilar WHERE id = $${paramCount++})
       )`;
       params.push(req.user.id, req.user.id);
-    } else if (['alan_incelemeci', 'dil_incelemeci', 'incelemeci'].includes(req.user.rol)) {
+    } else if (req.user.rol === 'incelemeci') {
       // İncelemeciler (Alan/Dil) şu an tüm soruları görebilir.
       // İleride 'kullanici_branslari' ile kısıtlanabilir.
       // Şimdilik pas geçiyoruz (WHERE 1=1 devam ediyor).
@@ -491,6 +491,37 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
     if (soruRes.rows.length === 0) throw new AppError('Soru bulunamadı', 404);
     const soru = soruRes.rows[0];
 
+    const isAdmin = req.user.rol === 'admin';
+    const isReviewer = req.user.rol === 'incelemeci';
+    const canAlan = isAdmin || (isReviewer && !!req.user.inceleme_alanci);
+    const canDil = isAdmin || (isReviewer && !!req.user.inceleme_dilci);
+
+    // Rol bazlŽñ temel yetkiler
+    if (yeni_durum === 'inceleme_tamam' || yeni_durum === 'revize_istendi') {
+      if (!isAdmin && !isReviewer) {
+        throw new AppError('Bu iYlem iÇõin yetkiniz yok', 403);
+      }
+      if (!isAdmin) {
+        if (inceleme_turu === 'alanci' && !canAlan) throw new AppError('Alan incelemesi yetkiniz yok', 403);
+        if (inceleme_turu === 'dilci' && !canDil) throw new AppError('Dil incelemesi yetkiniz yok', 403);
+        if (inceleme_turu && !['alanci', 'dilci'].includes(inceleme_turu)) {
+          throw new AppError('GeÇõersiz inceleme tÇ¬rÇ¬', 400);
+        }
+      }
+    }
+
+    if (yeni_durum === 'dizgi_bekliyor') {
+      if (!isAdmin && req.user.id !== soru.olusturan_kullanici_id) {
+        throw new AppError('Bu iYlem iÇõin yetkiniz yok', 403);
+      }
+    }
+
+    if (yeni_durum === 'dizgide' || yeni_durum === 'tamamlandi') {
+      if (!isAdmin && req.user.rol !== 'dizgici') {
+        throw new AppError('Bu iYlem iÇõin yetkiniz yok', 403);
+      }
+    }
+
     let result;
     let message = '';
 
@@ -859,7 +890,16 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
       query = `SELECT COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor' AND onay_dilci = false AND (brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1))) as inceleme_bekliyor FROM sorular`;
       params = [req.user.id];
     } else if (targetRole === 'incelemeci') {
-      query = `SELECT COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor' AND (brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1))) as inceleme_bekliyor FROM sorular`;
+      const isAdmin = req.user.rol === 'admin';
+      const canAlan = isAdmin || !!req.user.inceleme_alanci;
+      const canDil = isAdmin || !!req.user.inceleme_dilci;
+
+      query = `
+        SELECT
+          ${canAlan ? "COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor' AND onay_alanci = false AND (brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1)))" : "0"} as inceleme_bekliyor_alanci,
+          ${canDil ? "COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor' AND onay_dilci = false AND (brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1)))" : "0"} as inceleme_bekliyor_dilci
+        FROM sorular
+      `;
       params = [req.user.id];
     } else {
       // Admin: Global istatistikler
@@ -877,9 +917,24 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
     }
 
     const result = await pool.query(query, params);
+    const row = result.rows[0] || {};
+
+    if (row.inceleme_bekliyor_alanci !== undefined || row.inceleme_bekliyor_dilci !== undefined) {
+      const alanci = Number(row.inceleme_bekliyor_alanci || 0);
+      const dilci = Number(row.inceleme_bekliyor_dilci || 0);
+      return res.json({
+        success: true,
+        data: {
+          inceleme_bekliyor_alanci: alanci,
+          inceleme_bekliyor_dilci: dilci,
+          inceleme_bekliyor: alanci + dilci
+        }
+      });
+    }
+
     res.json({
       success: true,
-      data: result.rows[0] || { toplam: 0, beklemede: 0, inceleme_bekliyor: 0, dizgi_bekliyor: 0, dizgide: 0, tamamlandi: 0, revize_gerekli: 0 }
+      data: row || { toplam: 0, beklemede: 0, inceleme_bekliyor: 0, dizgi_bekliyor: 0, dizgide: 0, tamamlandi: 0, revize_gerekli: 0 }
     });
   } catch (error) {
     next(error);

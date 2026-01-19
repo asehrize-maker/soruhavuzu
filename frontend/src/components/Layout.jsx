@@ -151,9 +151,14 @@ export default function Layout() {
                 if (r === 'admin') return 'Yönetici';
                 if (r === 'soru_yazici') return 'Soru Yazarı';
                 if (r === 'dizgici') return 'Dizgici';
-                if (r === 'incelemeci') return 'İncelemeci';
-                if (r === 'alan_incelemeci') return 'Alan İncelemeci';
-                if (r === 'dil_incelemeci') return 'Dil İncelemeci';
+                if (r === 'incelemeci') {
+                  const alan = !!authUser?.inceleme_alanci;
+                  const dil = !!authUser?.inceleme_dilci;
+                  if (alan && dil) return 'İncelemeci (Alan + Dil)';
+                  if (alan) return 'İncelemeci (Alan)';
+                  if (dil) return 'İncelemeci (Dil)';
+                  return 'İncelemeci';
+                }
                 return 'Kullanıcı';
               })()}
             </div>
@@ -175,8 +180,7 @@ export default function Layout() {
                   <option value="admin">Admin</option>
                   <option value="soru_yazici">Soru Yazici</option>
                   <option value="dizgici">Dizgici</option>
-                  <option value="alan_incelemeci">Alan Incelemeci</option>
-                  <option value="dil_incelemeci">Dil Incelemeci</option>
+                  <option value="incelemeci">İncelemeci</option>
                 </select>
               </div>
             )}

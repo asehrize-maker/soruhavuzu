@@ -9,6 +9,7 @@ import { addSoruIncelemeVeVersiyon } from './migrations/008_soru_inceleme_versiy
 import { seedSivasEkibi } from './migrations/009_sivas_ekibi_seed.js';
 import { updateWorkflowStatus } from './migrations/010_update_workflow_status.js';
 import { doubleApprovalSystem } from './migrations/011_double_approval_system.js';
+import { incelemeciRolVeAltRoller } from './migrations/012_incelemeci_rol_altroller.js';
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -45,7 +46,9 @@ const createTables = async () => {
         ad_soyad VARCHAR(150) NOT NULL,
         email VARCHAR(150) NOT NULL UNIQUE,
         sifre VARCHAR(255) NOT NULL,
-        rol VARCHAR(50) NOT NULL CHECK (rol IN ('admin', 'soru_yazici', 'dizgici')),
+        rol VARCHAR(50) NOT NULL CHECK (rol IN ('admin', 'soru_yazici', 'dizgici', 'incelemeci')),
+        inceleme_alanci BOOLEAN DEFAULT false,
+        inceleme_dilci BOOLEAN DEFAULT false,
         ekip_id INTEGER REFERENCES ekipler(id) ON DELETE SET NULL,
         brans_id INTEGER REFERENCES branslar(id) ON DELETE SET NULL,
         aktif BOOLEAN DEFAULT true,
@@ -121,6 +124,9 @@ const createTables = async () => {
 
     // Çift onay sistemi ve revize notları
     await doubleApprovalSystem();
+
+    // İncelemeci rol/alt-roller (alan/dil) desteği
+    await incelemeciRolVeAltRoller();
 
   } catch (error) {
     await client.query('ROLLBACK');

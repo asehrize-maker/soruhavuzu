@@ -212,6 +212,21 @@ export default function SoruDetay() {
   const effectiveRole = viewRole || authUser?.rol;
   const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
 
+  const effectiveIncelemeTuru = (() => {
+    if (incelemeTuru === 'alanci' || incelemeTuru === 'dilci') return incelemeTuru;
+    if (effectiveRole === 'incelemeci') {
+      const alan = !!authUser?.inceleme_alanci;
+      const dil = !!authUser?.inceleme_dilci;
+      if (alan && !dil) return 'alanci';
+      if (dil && !alan) return 'dilci';
+      if (alan && dil) return 'alanci'; // varsayılan (UI üzerinden değiştirilebilir)
+      return null;
+    }
+    return null;
+  })();
+
+  const canReview = effectiveRole === 'admin' || (effectiveRole === 'incelemeci' && !!effectiveIncelemeTuru);
+
   const [soru, setSoru] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dizgiNotu, setDizgiNotu] = useState('');
@@ -265,7 +280,9 @@ export default function SoruDetay() {
     if (revizeNotlari && revizeNotlari.length > 0) {
       const visibleNotes = revizeNotlari.filter(not => {
         if (user?.rol === 'admin' || user?.rol === 'dizgici') return true;
-        if (incelemeTuru) return not.inceleme_turu === incelemeTuru;
+        if (incelemeTuru || (user?.rol === 'incelemeci' && effectiveIncelemeTuru)) {
+          return not.inceleme_turu === (incelemeTuru || effectiveIncelemeTuru);
+        }
         return true;
       });
 
@@ -319,7 +336,11 @@ export default function SoruDetay() {
   const handleAddRevizeNot = async () => {
     if (!revizeNotuInput.trim()) return;
     try {
-      const type = incelemeTuru || (effectiveRole === 'incelemeci' ? 'alanci' : 'admin');
+      const type = incelemeTuru || (effectiveRole === 'incelemeci' ? effectiveIncelemeTuru : 'admin');
+      if (effectiveRole === 'incelemeci' && !type) {
+        alert('İnceleme türü bulunamadı. Admin tarafından alan/dil yetkisi atanmalı.');
+        return;
+      }
       await soruAPI.addRevizeNot(id, {
         secilen_metin: selectedText,
         not_metni: revizeNotuInput,
@@ -348,7 +369,11 @@ export default function SoruDetay() {
     if (!confirm(msg)) return;
 
     try {
-      const type = incelemeTuru || (effectiveRole === 'incelemeci' ? 'alanci' : 'admin');
+      const type = incelemeTuru || (effectiveRole === 'incelemeci' ? effectiveIncelemeTuru : 'admin');
+      if (effectiveRole === 'incelemeci' && !type) {
+        alert('İnceleme türü bulunamadı. Admin tarafından alan/dil yetkisi atanmalı.');
+        return;
+      }
       // Kullanıcı talebi: İnceleme bittiğinde backend hem alan hem dil onayı var mı diye bakar.
       await soruAPI.updateDurum(id, {
         yeni_durum: 'inceleme_tamam',
@@ -545,7 +570,7 @@ export default function SoruDetay() {
           {!editMode && (
             <>
               {/* İNCELEME MODUNDA VEYA ADMIN/İNCELEMECİ İSE GÖRÜNECEK BUTONLAR */}
-              {(incelemeTuru || ['admin', 'incelemeci', 'alan_incelemeci', 'dil_incelemeci'].includes(effectiveRole)) && soru.durum !== 'tamamlandi' && (
+              {canReview && soru.durum !== 'tamamlandi' && (
                 <button
                   onClick={handleFinishReview}
                   className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-black text-sm hover:bg-indigo-700 transition shadow-[0_4px_14px_0_rgba(79,70,229,0.39)] flex items-center gap-2 border-b-4 border-indigo-800 active:border-b-0 active:translate-y-1"
@@ -757,7 +782,7 @@ export default function SoruDetay() {
 
 
       {/* Popover - Sadece İnceleme/Admin Modunda */}
-      {selectedText && (effectiveRole === 'admin' || effectiveRole === 'incelemeci' || effectiveRole === 'alan_incelemeci' || effectiveRole === 'dil_incelemeci') && (
+      {selectedText && canReview && (
         <div className="fixed bottom-12 right-12 z-50 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
           <div className="p-4 font-bold text-white flex justify-between items-center bg-purple-600 shadow-lg">
             <span>Not Ekle (Madde {revizeNotlari.length + 1})</span>

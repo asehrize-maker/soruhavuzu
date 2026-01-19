@@ -14,6 +14,8 @@ export default function Kullanicilar() {
     brans_id: '',
     brans_ids: [],
     rol: '',
+    inceleme_alanci: false,
+    inceleme_dilci: false,
     aktif: true,
   });
 
@@ -69,6 +71,8 @@ export default function Kullanicilar() {
       brans_id: kullanici.brans_id || '',
       brans_ids: mevcutBransIds,
       rol: kullanici.rol,
+      inceleme_alanci: !!kullanici.inceleme_alanci,
+      inceleme_dilci: !!kullanici.inceleme_dilci,
       aktif: kullanici.aktif,
     });
     setShowModal(true);
@@ -80,12 +84,9 @@ export default function Kullanicilar() {
       const payload = { ...formData };
 
       // Özel Rol Mantığı
-      if (formData.rol === 'alan_incelemeci') {
-        payload.rol = 'incelemeci';
-        payload.inceleme_turu = 'alanci';
-      } else if (formData.rol === 'dil_incelemeci') {
-        payload.rol = 'incelemeci';
-        payload.inceleme_turu = 'dilci';
+      if (payload.rol !== 'incelemeci') {
+        payload.inceleme_alanci = false;
+        payload.inceleme_dilci = false;
       }
 
       await userAPI.update(editingUser.id, payload);
@@ -128,10 +129,10 @@ export default function Kullanicilar() {
         color = 'bg-green-100 text-green-800';
         break;
       case 'incelemeci':
-        if (kullanici.inceleme_turu === 'dilci') {
+        if (kullanici.inceleme_dilci && !kullanici.inceleme_alanci) {
           label = 'Dil İncelemeci';
           color = 'bg-teal-100 text-teal-800';
-        } else if (kullanici.inceleme_turu === 'alanci') {
+        } else if (kullanici.inceleme_alanci && !kullanici.inceleme_dilci) {
           label = 'Alan İncelemeci';
           color = 'bg-indigo-100 text-indigo-800';
         } else {
@@ -337,15 +338,45 @@ export default function Kullanicilar() {
                 <select
                   className="input"
                   value={formData.rol}
-                  onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
+                  onChange={(e) => {
+                    const nextRole = e.target.value;
+                    setFormData(prev => ({
+                      ...prev,
+                      rol: nextRole,
+                      ...(nextRole !== 'incelemeci' ? { inceleme_alanci: false, inceleme_dilci: false } : {})
+                    }));
+                  }}
                 >
                   <option value="soru_yazici">Soru Yazıcı</option>
                   <option value="dizgici">Dizgici</option>
                   <option value="admin">Admin</option>
-                  <option value="alan_incelemeci">Alan İncelemeci</option>
-                  <option value="dil_incelemeci">Dil İncelemeci</option>
+                  <option value="incelemeci">İncelemeci</option>
                 </select>
               </div>
+
+              {formData.rol === 'incelemeci' && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-700">İnceleme Yetkileri</p>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                      checked={formData.inceleme_alanci}
+                      onChange={(e) => setFormData({ ...formData, inceleme_alanci: e.target.checked })}
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Alan incelemesi</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                      checked={formData.inceleme_dilci}
+                      onChange={(e) => setFormData({ ...formData, inceleme_dilci: e.target.checked })}
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Dil incelemesi</span>
+                  </label>
+                </div>
+              )}
 
               <div>
                 <label className="flex items-center">

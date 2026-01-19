@@ -9,7 +9,7 @@ const router = express.Router();
 router.get('/', authenticate, authorize('admin'), async (req, res, next) => {
   try {
     const result = await pool.query(`
-      SELECT k.id, k.ad_soyad, k.email, k.rol, k.aktif,
+      SELECT k.id, k.ad_soyad, k.email, k.rol, k.inceleme_alanci, k.inceleme_dilci, k.aktif,
              k.ekip_id, e.ekip_adi,
              k.brans_id, b.brans_adi,
              k.olusturulma_tarihi,
@@ -46,7 +46,7 @@ router.get('/:id', authenticate, async (req, res, next) => {
     }
 
     const result = await pool.query(`
-      SELECT k.id, k.ad_soyad, k.email, k.rol, k.aktif,
+      SELECT k.id, k.ad_soyad, k.email, k.rol, k.inceleme_alanci, k.inceleme_dilci, k.aktif,
              k.ekip_id, e.ekip_adi,
              k.brans_id, b.brans_adi,
              k.olusturulma_tarihi,
@@ -92,6 +92,12 @@ router.put('/:id', authenticate, async (req, res, next) => {
     try {
       await client.query('BEGIN');
 
+      const currentUserRes = await client.query('SELECT rol FROM kullanicilar WHERE id = $1', [id]);
+      if (currentUserRes.rows.length === 0) {
+        throw new AppError('KullanŽñcŽñ bulunamadŽñ', 404);
+      }
+      const currentRole = currentUserRes.rows[0].rol;
+
       // Admin değilse aktif durumunu değiştiremez
       const updates = [];
       const values = [];
@@ -116,6 +122,24 @@ router.put('/:id', authenticate, async (req, res, next) => {
         if (req.body.rol) {
           updates.push(`rol = $${paramCount++}`);
           values.push(req.body.rol);
+        }
+
+        const willBeRole = req.body.rol || currentRole;
+        const hasAlan = Object.prototype.hasOwnProperty.call(req.body, 'inceleme_alanci');
+        const hasDil = Object.prototype.hasOwnProperty.call(req.body, 'inceleme_dilci');
+
+        if (willBeRole === 'incelemeci') {
+          if (hasAlan) {
+            updates.push(`inceleme_alanci = $${paramCount++}`);
+            values.push(!!req.body.inceleme_alanci);
+          }
+          if (hasDil) {
+            updates.push(`inceleme_dilci = $${paramCount++}`);
+            values.push(!!req.body.inceleme_dilci);
+          }
+        } else if (currentRole === 'incelemeci' || req.body.rol) {
+          updates.push(`inceleme_alanci = false`);
+          updates.push(`inceleme_dilci = false`);
         }
         if (aktif !== undefined) {
           updates.push(`aktif = $${paramCount++}`);
@@ -157,7 +181,7 @@ router.put('/:id', authenticate, async (req, res, next) => {
       if (updates.length > 0) {
         values.push(id);
         result = await client.query(
-          `UPDATE kullanicilar SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, ad_soyad, email, rol, ekip_id, brans_id, aktif`,
+          `UPDATE kullanicilar SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, ad_soyad, email, rol, inceleme_alanci, inceleme_dilci, ekip_id, brans_id, aktif`,
           values
         );
 
@@ -167,7 +191,7 @@ router.put('/:id', authenticate, async (req, res, next) => {
       } else {
         // Sadece branş güncellemesi yapıldıysa
         result = await client.query(
-          'SELECT id, ad_soyad, email, rol, ekip_id, brans_id, aktif FROM kullanicilar WHERE id = $1',
+          'SELECT id, ad_soyad, email, rol, inceleme_alanci, inceleme_dilci, ekip_id, brans_id, aktif FROM kullanicilar WHERE id = $1',
           [id]
         );
       }
