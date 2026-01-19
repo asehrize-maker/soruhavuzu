@@ -251,7 +251,7 @@ export default function SoruDetay() {
       {/* Soru İçeriği */}
       <div className="flex items-center gap-3 mb-2 px-1">
         {getDurumBadge(soru.durum)}
-        <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-bold border border-amber-200 uppercase tracking-tighter">Versiyon 1</span>
+        <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-bold border border-amber-200 uppercase tracking-tighter">Versiyon {soru.versiyon || 1}</span>
         <span className="badge bg-green-100 text-green-800 font-bold">✅ Doğru: {soru.dogru_cevap}</span>
       </div>
 
