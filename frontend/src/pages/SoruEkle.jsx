@@ -157,6 +157,8 @@ export default function SoruEkle() {
 
   const [metadata, setMetadata] = useState({ zorluk: '3', dogruCevap: '', brans_id: '', kazanim: '' });
   const [branslar, setBranslar] = useState([]);
+  const [kazanims, setKazanims] = useState([]);
+  const [kazanimLoading, setKazanimLoading] = useState(false);
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
 
   useEffect(() => {
@@ -169,6 +171,35 @@ export default function SoruEkle() {
     };
     loadBranslar();
   }, [user]);
+
+  useEffect(() => {
+    const loadKazanims = async () => {
+      if (!metadata.brans_id) {
+        setKazanims([]);
+        setMetadata(prev => ({ ...prev, kazanim: '' }));
+        return;
+      }
+      try {
+        setKazanimLoading(true);
+        const res = await bransAPI.getKazanims(metadata.brans_id);
+        const list = res.data.data || [];
+        setKazanims(list);
+        if (list.length > 0) {
+          const codes = list.map(k => k.kod);
+          if (!metadata.kazanim || !codes.includes(metadata.kazanim)) {
+            setMetadata(prev => ({ ...prev, kazanim: list[0].kod }));
+          }
+        } else {
+          setMetadata(prev => ({ ...prev, kazanim: '' }));
+        }
+      } catch (err) {
+        setKazanims([]);
+      } finally {
+        setKazanimLoading(false);
+      }
+    };
+    loadKazanims();
+  }, [metadata.brans_id, metadata.kazanim]);
 
   const addKoku = () => setComponents(prev => [...prev, { id: generateId(), type: 'text', subtype: 'koku', content: '', placeholder: '', label: 'Soru Kökü' }]);
   const addGovde = () => setComponents(prev => [...prev, { id: generateId(), type: 'text', subtype: 'govde', content: '', placeholder: '', label: 'Gövde' }]);
@@ -391,29 +422,58 @@ export default function SoruEkle() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg-up flex justify-center z-50">
-        <div className="flex gap-6 max-w-4xl w-full items-end">
-          <div className="flex-1">
+            <div className="max-w-4xl mx-auto mt-6 pb-12">
+        <div className="bg-white border shadow-sm rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <div>
             <label className="text-xs font-bold text-gray-500 uppercase">Branş</label>
-            <select className="w-full border p-1 rounded bg-gray-50" value={metadata.brans_id} onChange={e => setMetadata({ ...metadata, brans_id: e.target.value })}>
-              <option value="">Seçiniz</option>
+            <select
+              className="w-full border p-2 rounded bg-gray-50 text-sm"
+              value={metadata.brans_id}
+              onChange={e => setMetadata({ ...metadata, brans_id: e.target.value })}
+            >
+              <option value="">Se?iniz</option>
               {branslar.map(b => <option key={b.id} value={b.id}>{b.brans_adi}</option>)}
             </select>
           </div>
-          <div className="flex-1">
-            <label className="text-xs font-bold text-gray-500 uppercase">Doğru Cevap</label>
-            <div className="flex gap-2">
-              {['A', 'B', 'C', 'D'].map(opt => (
-                <button key={opt} onClick={() => setMetadata({ ...metadata, dogruCevap: opt })} className={`w-8 h-8 rounded-full border font-bold text-sm ${metadata.dogruCevap === opt ? 'bg-blue-600 text-white border-blue-600' : 'hover:bg-gray-50'}`}>{opt}</button>
+          <div>
+            <label className="text-xs font-bold text-gray-500 uppercase">Do?ru Cevap</label>
+            <div className="flex gap-2 mt-1">
+              {['A', 'B', 'C', 'D', 'E'].map(opt => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setMetadata({ ...metadata, dogruCevap: opt })}
+                  className={`w-8 h-8 rounded-full border font-bold text-sm ${metadata.dogruCevap === opt ? 'bg-blue-600 text-white border-blue-600' : 'hover:bg-gray-50'}`}
+                >
+                  {opt}
+                </button>
               ))}
             </div>
           </div>
-          <div className="flex-1">
+          <div>
             <label className="text-xs font-bold text-gray-500 uppercase">Kazanım</label>
-            <input type="text" className="w-full border p-1 rounded bg-gray-50 text-sm" placeholder="Örn: 1.2.3" value={metadata.kazanim} onChange={e => setMetadata({ ...metadata, kazanim: e.target.value })} />
+            {kazanimLoading ? (
+              <div className="text-xs text-gray-500 mt-2">Kazanımlar yükleniyor...</div>
+            ) : (
+              <select
+                className="w-full border p-2 rounded bg-gray-50 text-sm"
+                value={metadata.kazanim}
+                onChange={e => setMetadata({ ...metadata, kazanim: e.target.value })}
+                disabled={!metadata.brans_id || kazanims.length === 0}
+              >
+                {!metadata.brans_id && <option value="">Önce branş seçin</option>}
+                {metadata.brans_id && kazanims.length === 0 && <option value="">Bu branşta kazanım yok</option>}
+                {kazanims.map(k => (
+                  <option key={k.id} value={k.kod}>
+                    {k.kod} - {k.aciklama}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
       </div>
+
     </div>
   );
 }

@@ -1,0 +1,30 @@
+          </div>
+        </div>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg-up flex justify-center z-50">
+        <div className="flex gap-6 max-w-4xl w-full items-end">
+          <div className="flex-1">
+            <label className="text-xs font-bold text-gray-500 uppercase">Branş</label>
+            <select className="w-full border p-1 rounded bg-gray-50" value={metadata.brans_id} onChange={e => setMetadata({ ...metadata, brans_id: e.target.value })}>
+              <option value="">Seçiniz</option>
+              {branslar.map(b => <option key={b.id} value={b.id}>{b.brans_adi}</option>)}
+            </select>
+          </div>
+          <div className="flex-1">
+            <label className="text-xs font-bold text-gray-500 uppercase">Doğru Cevap</label>
+            <div className="flex gap-2">
+              {['A', 'B', 'C', 'D'].map(opt => (
+                <button key={opt} onClick={() => setMetadata({ ...metadata, dogruCevap: opt })} className={`w-8 h-8 rounded-full border font-bold text-sm ${metadata.dogruCevap === opt ? 'bg-blue-600 text-white border-blue-600' : 'hover:bg-gray-50'}`}>{opt}</button>
+              ))}
+            </div>
+          </div>
+          <div className="flex-1">
+            <label className="text-xs font-bold text-gray-500 uppercase">Kazanım</label>
+            <input type="text" className="w-full border p-1 rounded bg-gray-50 text-sm" placeholder="Örn: 1.2.3" value={metadata.kazanim} onChange={e => setMetadata({ ...metadata, kazanim: e.target.value })} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
