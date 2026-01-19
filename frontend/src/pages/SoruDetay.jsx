@@ -145,7 +145,7 @@ export default function SoruDetay() {
         inceleme_turu: type
       });
       alert('İŞLEM TAMAMLANDI: Soru Dizgiye gönderildi.');
-      navigate('/dashboard');
+      navigate('/');
     } catch (e) {
       alert('Hata: ' + (e.response?.data?.error || e.message));
     }
