@@ -257,7 +257,7 @@ export default function SoruEkle() {
           className="bg-white shadow-xl transition-all duration-300 relative flex flex-col"
           style={{
             width: widthMode === 'dar' ? '82.4mm' : '169.6mm',
-            minHeight: '297mm', // A4 boyu kadar uzun hissettirsin
+            minHeight: '120mm', // Başlangıçta daha kısa, içerik girdikçe uzar
             marginBottom: '2rem'
           }}
         >
@@ -382,8 +382,8 @@ export default function SoruEkle() {
                     key={item.val}
                     onClick={() => setMetadata({ ...metadata, zorluk: item.val.toString() })}
                     className={`flex - 1 py - 2 px - 1 rounded - md text - xs font - bold transition - all whitespace - nowrap ${metadata.zorluk === item.val.toString()
-                        ? item.color + ' shadow-sm ring-1'
-                        : 'text-gray-400 hover:bg-white hover:text-gray-600'
+                      ? item.color + ' shadow-sm ring-1'
+                      : 'text-gray-400 hover:bg-white hover:text-gray-600'
                       } `}
                   >
                     {item.label}
@@ -399,8 +399,8 @@ export default function SoruEkle() {
                     key={opt}
                     onClick={() => setMetadata({ ...metadata, dogruCevap: opt })}
                     className={`w - 10 h - 10 rounded - full font - bold transition - all flex items - center justify - center border - 2 ${metadata.dogruCevap === opt
-                        ? 'bg-blue-600 border-blue-600 text-white shadow-lg scale-110'
-                        : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
+                      ? 'bg-blue-600 border-blue-600 text-white shadow-lg scale-110'
+                      : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
                       } `}
                   >
                     {opt}
