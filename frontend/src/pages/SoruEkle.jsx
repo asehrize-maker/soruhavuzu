@@ -13,46 +13,38 @@ import {
   Squares2X2Icon,
   BoldIcon,
   DocumentTextIcon,
-  Bars4Icon // Handle icon for drag
+  Bars4Icon
 } from '@heroicons/react/24/outline';
 
 // --- İMLEÇ KORUMALI EDİTÖR ---
-const EditableBlock = memo(({ initialHtml, onChange, className, placeholder, style, label }) => {
+const EditableBlock = memo(({ initialHtml, onChange, className, style, label }) => {
   const ref = useRef(null);
-
-  // İçerik boşsa placeholder gösterimini CSS empty:before ile yapıyoruz ama
-  // Kullanıcı "yazı yazsın istemiyorum" dediği için placeholder'ı boş bırakabiliriz veya çok silik yapabiliriz.
-  // Kullanıcı "Soru kökü metin paragraf... gibi mantıklı bir şey yap" dediği için
-  // Placeholder yerine sadece FOCUS olunca görünen veya hiç görünmeyen bir yapı kuracağız.
-  // En iyisi placeholder'ı kaldırmak, sadece focus olunca border/bg değişimi ile "buraya yaz" hissi vermek.
 
   useEffect(() => {
     if (ref.current && ref.current.innerHTML !== initialHtml) {
       ref.current.innerHTML = initialHtml;
     }
+    // Eklendiği an focusla
+    if (ref.current && !initialHtml) {
+      ref.current.focus();
+    }
   }, []);
 
   return (
     <div className="relative group/edit w-full">
-      {/* Etiket (Sadece hoverda görünen küçük ipucu) */}
-      <div className="absolute -top-2 left-0 text-[8px] text-gray-300 font-mono px-1 opacity-0 group-hover/edit:opacity-100 transition pointer-events-none uppercase">
+      {/* Etiket (Sol üstte minik ipucu - Sadece hoverda) */}
+      <div className="absolute -top-3 left-0 text-[9px] text-gray-400 font-bold px-1 opacity-0 group-hover/edit:opacity-100 transition pointer-events-none uppercase tracking-wider">
         {label}
       </div>
       <div
         ref={ref}
         contentEditable
         suppressContentEditableWarning
-        className={`outline-none min-h-[1.5em] hover:bg-gray-50 focus:bg-blue-50/20 transition rounded px-1 ${className || ''}`}
+        className={`outline-none min-h-[2em] p-1 border border-transparent hover:border-gray-200 focus:border-blue-300 focus:bg-white transition rounded ${className || ''}`}
         style={style}
-        // placeholder={placeholder} // Placeholder'ı kaldırdık (User request: "o yazılar olmasın")
         onInput={(e) => onChange(e.currentTarget.innerHTML)}
       />
-      {/* Boşsa gösterilecek minimal rehber (Sadece focus değilken) */}
-      {(!initialHtml || initialHtml === '<br>') && (
-        <div className="absolute top-0 left-1 text-gray-200 text-sm pointer-events-none select-none italic pointer-events-none">
-          {placeholder}
-        </div>
-      )}
+      {/* Placeholder DİV'i TAMAMEN KALDIRILDI */}
     </div>
   );
 }, () => true);
@@ -146,7 +138,7 @@ export default function SoruEkle() {
   const { user } = useAuthStore();
   const [widthMode, setWidthMode] = useState('dar');
 
-  // DRAG & DROP İÇİN BAŞLANGIÇ: BOŞ ARRAY (Kullanıcı istediği için)
+  // START EMPTY
   const [components, setComponents] = useState([]);
 
   const [metadata, setMetadata] = useState({ zorluk: '3', dogruCevap: '', brans_id: '', kazanim: '' });
@@ -164,9 +156,9 @@ export default function SoruEkle() {
     loadBranslar();
   }, [user]);
 
-  // Ekleme Fonksiyonları (Sidebar Tetiklemeli)
-  const addGovde = () => setComponents([...components, { id: Date.now(), type: 'text', subtype: 'govde', content: '', placeholder: 'Gövde', label: 'Gövde' }]);
-  const addKoku = () => setComponents([...components, { id: Date.now(), type: 'text', subtype: 'koku', content: '', placeholder: 'Soru Kökü', label: 'Kök' }]);
+  // PLACEHOLDERLAR TAMAMEN BOŞALTILDI
+  const addGovde = () => setComponents([...components, { id: Date.now(), type: 'text', subtype: 'govde', content: '', placeholder: '', label: 'Gövde' }]);
+  const addKoku = () => setComponents([...components, { id: Date.now(), type: 'text', subtype: 'koku', content: '', placeholder: '', label: 'Soru Kökü' }]);
 
   const addSecenekler = (mode = 'list') => {
     const baseId = Date.now();
@@ -177,7 +169,7 @@ export default function SoruEkle() {
       return {
         id: baseId + idx,
         type: 'text', subtype: 'secenek', content: `<b>${opt})</b> `,
-        placeholder: `${opt}`,
+        placeholder: ``, // Placeholder yok
         label: `Seçenek ${opt}`,
         ...styleProps
       };
@@ -195,22 +187,22 @@ export default function SoruEkle() {
   const updateComponent = (id, updates) => setComponents(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
   const removeComponent = (id) => setComponents(prev => prev.filter(c => c.id !== id));
 
-  // --- DRAG & DROP LOGIC ---
+  // --- DRAG INTERACTION ---
   const onDragStart = (e, index) => {
     setDraggedItemIndex(index);
     e.dataTransfer.effectAllowed = "move";
-    // Şeffaf görsel vs ayarlanabilir ama default yeterli
+    e.dataTransfer.setData("text/plain", index); // Firefox fix
   };
 
   const onDragOver = (e, index) => {
-    e.preventDefault(); // Drop'a izin ver
+    e.preventDefault();
     if (draggedItemIndex === null || draggedItemIndex === index) return;
 
-    // Swap items in real-time (daha akıcı hissettirir)
+    // Smooth Reorder
     const newComps = [...components];
-    const draggedItem = newComps[draggedItemIndex];
+    const item = newComps[draggedItemIndex];
     newComps.splice(draggedItemIndex, 1);
-    newComps.splice(index, 0, draggedItem);
+    newComps.splice(index, 0, item);
 
     setComponents(newComps);
     setDraggedItemIndex(index);
@@ -320,8 +312,8 @@ export default function SoruEkle() {
           </div>
         </div>
 
-        <div className="bg-white shadow-2xl transition-all duration-300 relative flex flex-col group"
-          style={{ width: widthMode === 'dar' ? '82.4mm' : '169.6mm', minHeight: '120mm', padding: '10mm', paddingTop: '15mm' }}>
+        <div className="bg-white shadow-2xl transition-all duration-300 relative flex flex-col group min-h-[120mm]"
+          style={{ width: widthMode === 'dar' ? '82.4mm' : '169.6mm', padding: '10mm', paddingTop: '15mm' }}>
 
           {/* FORMAT TOOLBAR */}
           <div className="absolute top-0 left-0 right-0 bg-gray-50 border-b p-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition duration-300">
@@ -334,7 +326,6 @@ export default function SoruEkle() {
           </div>
 
           <div className="space-y-1 relative" style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}>
-
             {components.map((comp, index) => (
               <div
                 key={comp.id}
@@ -349,7 +340,6 @@ export default function SoruEkle() {
                 onDragOver={(e) => onDragOver(e, index)}
                 onDragEnd={onDragEnd}
               >
-                {/* Drag Handle & Delete (Sol tarafta sade sap) */}
                 <div className="absolute -left-6 top-1 flex flex-col gap-1 opacity-0 group-hover/item:opacity-100 transition z-10 w-5 cursor-grab active:cursor-grabbing">
                   <div title="Sürükle" className="p-0.5 text-gray-400 hover:text-blue-500"><Bars4Icon className="w-4 h-4" /></div>
                   <button onClick={() => removeComponent(comp.id)} className="p-0.5 text-red-300 hover:text-red-500"><TrashIcon className="w-4 h-4" /></button>
@@ -359,7 +349,6 @@ export default function SoruEkle() {
                   <EditableBlock
                     initialHtml={comp.content}
                     onChange={(html) => updateComponent(comp.id, { content: html })}
-                    placeholder={comp.placeholder}
                     label={comp.label}
                     className={comp.subtype === 'koku' ? 'font-bold' : ''}
                   />
@@ -370,13 +359,12 @@ export default function SoruEkle() {
               </div>
             ))}
 
+            {/* EMPTY STATE MSG */}
             {components.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-40 text-gray-300 border-2 border-dashed border-gray-100 rounded-lg select-none">
-                <DocumentTextIcon className="w-12 h-12 mb-2" />
-                <p>Sol menüden öğe ekleyiniz.</p>
+              <div className="flex flex-col items-center justify-center pt-20 text-gray-200 select-none">
+                <p className="italic">Öğe eklemek için solu kullanın</p>
               </div>
             )}
-
             <div style={{ clear: 'both' }}></div>
           </div>
         </div>
