@@ -134,11 +134,12 @@ export default function Layout() {
     );
   }
 
-  const isActive = (path) => {
-    const [pPath, pQuery] = path.split('?');
-    const currentPath = location.pathname;
+  const isActive = (p) => {
+    const [pPath, pQuery] = p.split('?');
+    const samePath = location.pathname === pPath;
     const currentSearch = location.search.replace(/^\?/, '');
-    return pQuery ? (currentPath === pPath && currentSearch === pQuery) : (currentPath === pPath && currentSearch === '');
+    if (pQuery) return samePath && currentSearch === pQuery;
+    return samePath && currentSearch === '';
   };
 
   return (
