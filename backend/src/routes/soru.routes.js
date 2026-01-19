@@ -1226,12 +1226,13 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
     // Kullanıcı sayıları
     const kullaniciSayilari = await pool.query(`
       SELECT
-      COUNT(CASE WHEN rol = 'admin' THEN 1 END) as admin_sayisi,
+        COUNT(CASE WHEN rol = 'admin' THEN 1 END) as admin_sayisi,
         COUNT(CASE WHEN rol = 'soru_yazici' THEN 1 END) as soru_yazici_sayisi,
         COUNT(CASE WHEN rol = 'dizgici' THEN 1 END) as dizgici_sayisi,
+        COUNT(CASE WHEN rol = 'incelemeci' THEN 1 END) as incelemeci_sayisi,
         COUNT(*) as toplam_kullanici
       FROM kullanicilar
-        `);
+    `);
 
     // Ekip sayıları
     const ekipStats = await pool.query(`

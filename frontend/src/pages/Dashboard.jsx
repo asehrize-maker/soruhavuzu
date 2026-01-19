@@ -330,6 +330,7 @@ export default function Dashboard() {
                       { label: 'Yöneticiler', value: detayliStats?.sistem?.admin_sayisi },
                       { label: 'Branşlar', value: detayliStats?.sistem?.soru_yazici_sayisi },
                       { label: 'Dizgiciler', value: detayliStats?.sistem?.dizgici_sayisi },
+                      { label: 'İncelemeciler', value: detayliStats?.sistem?.incelemeci_sayisi },
                     ].map((item, idx) => (
                       <div key={idx} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl">
                         <span className="font-bold text-gray-700">{item.label}</span>
