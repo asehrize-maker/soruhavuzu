@@ -840,7 +840,6 @@ export default function SoruDetay() {
                 />
               </div>
             </div>
-        )}
           </div>
 
       {revizeNotlari.filter(not => {
