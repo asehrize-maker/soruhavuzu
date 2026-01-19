@@ -423,10 +423,6 @@ export default function Dashboard() {
             {reviewMode === 'alanci' ? 'Alan İnceleme Paneli' : 'Dil İnceleme Paneli'}
           </h1>
           <p className="text-gray-500">Lütfen incelemek istediğiniz branşı seçiniz.</p>
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-700 flex items-center gap-2">
-            <InformationCircleIcon className="w-5 h-5 flex-shrink-0" />
-            <span>Bilgi: İncelemesi biten veya dizgiye gönderilen soruları sol menüdeki <b>"Soru Havuzu"</b> sekmesinden takip edebilirsiniz.</span>
-          </div>
 
           <div className="mt-6">
             <h4 className="text-sm font-semibold text-gray-700 mb-3">{reviewMode === 'alanci' ? 'Alan İnceleme Branşları' : 'Dil İnceleme Branşları'}</h4>
