@@ -197,12 +197,10 @@ export default function SoruDetay() {
   if (!soru) return null;
 
   const isOwner = soru.olusturan_kullanici_id === user?.id;
-  const isTypesetterInCharge = effectiveRole === 'dizgici' && soru.dizgici_id === user?.id && soru.durum === 'dizgide';
   const isAdmin = effectiveRole === 'admin';
 
   const canEdit = !incelemeTuru && (
     isAdmin ||
-    isTypesetterInCharge ||
     (isOwner && (soru.durum === 'beklemede' || soru.durum === 'revize_gerekli' || soru.durum === 'revize_istendi'))
   );
 
