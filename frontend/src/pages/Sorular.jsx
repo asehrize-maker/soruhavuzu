@@ -357,7 +357,8 @@ export default function Sorular() {
                     )}
                   </div>
 
-                  <p className="text-gray-900 line-clamp-2 mb-2 font-mono text-sm">{soru.soru_metni}</p>
+                  {/* HTML Render Fix */}
+                  <div className="text-gray-900 line-clamp-3 mb-2 text-sm question-preview" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
 
                   <div className="flex items-center space-x-4 text-sm text-gray-500">
                     <span>Yazan: {soru.olusturan_ad}</span>
@@ -381,17 +382,6 @@ export default function Sorular() {
                     <button
                       onClick={() => handleSil(soru.id)}
                       className="btn bg-white text-red-600 border border-red-200 hover:bg-red-50 text-sm"
-                    >
-                      🗑 Sil
-                    </button>
-                  )}
-
-                  {/* Sil Butonu (Admin veya Kendi Sorusu) */}
-                  {(user?.rol === 'admin' || (user?.rol === 'soru_yazici' && soru.olusturan_kullanici_id === user?.id)) && (
-                    <button
-                      onClick={() => handleSil(soru.id)}
-                      className="btn bg-red-50 text-red-600 hover:bg-red-100 text-sm border border-red-200"
-                      title="Soruyu Sil"
                     >
                       🗑 Sil
                     </button>
