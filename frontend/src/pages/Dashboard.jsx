@@ -34,15 +34,13 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
           const isBransMatch = parseInt(s.brans_id) === parseInt(bransId);
           if (!isBransMatch) return false;
 
-          // Durum kontrolü: İnceleme bekleyen veya süreçteki sorular
           const isStatusSuitable = ['inceleme_bekliyor', 'beklemede', 'incelemede', 'dizgide'].includes(s.durum);
 
           let isPendingReview = false;
           if (reviewMode === 'alanci') isPendingReview = !s.onay_alanci;
           if (reviewMode === 'dilci') isPendingReview = !s.onay_dilci;
-          // Eğer genel 'incelemeci' ise (koordinatör gibi), her şeyi görsün mü? Şimdilik evet.
 
-          const notFinished = s.durum !== 'tamamlandi'; // Dizgi bekleyenler görülebilir
+          const notFinished = s.durum !== 'tamamlandi';
 
           return isStatusSuitable && isPendingReview && notFinished;
         });
@@ -88,10 +86,10 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <span className={`px-2 py-0.5 text-xs rounded-full font-bold uppercase tracking-wide ${soru.zorluk_seviyesi == 1 ? 'bg-green-100 text-green-700' :
-                      soru.zorluk_seviyesi == 2 ? 'bg-green-50 text-green-600' :
-                        soru.zorluk_seviyesi == 3 ? 'bg-yellow-100 text-yellow-700' :
-                          soru.zorluk_seviyesi == 4 ? 'bg-orange-100 text-orange-700' :
-                            'bg-red-100 text-red-700'
+                        soru.zorluk_seviyesi == 2 ? 'bg-green-50 text-green-600' :
+                          soru.zorluk_seviyesi == 3 ? 'bg-yellow-100 text-yellow-700' :
+                            soru.zorluk_seviyesi == 4 ? 'bg-orange-100 text-orange-700' :
+                              'bg-red-100 text-red-700'
                       }`}>
                       {['ÇOK KOLAY', 'KOLAY', 'ORTA', 'ZOR', 'ÇOK ZOR'][soru.zorluk_seviyesi - 1] || 'BELİRSİZ'}
                     </span>
@@ -143,21 +141,14 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
 
 export default function Dashboard() {
   const { user } = useAuthStore();
-  // Layout'tan gelen context ile simüle edilen rolü al
   const { effectiveRole } = useOutletContext() || {};
-
-  // Eğer admin ise ve effectiveRole varsa (simülasyon), onu kullan. Yoksa kendi rolünü.
   const activeRole = (user?.rol === 'admin' && effectiveRole) ? effectiveRole : (user?.rol || effectiveRole);
 
   const [stats, setStats] = useState(null);
   const [detayliStats, setDetayliStats] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  // İncelemeci modu için states
   const [branslar, setBranslar] = useState([]);
   const [selectedBrans, setSelectedBrans] = useState(null);
-
-  // Admin stats modal
   const [selectedStat, setSelectedStat] = useState(null);
 
   useEffect(() => {
@@ -170,14 +161,12 @@ export default function Dashboard() {
             setDetayliStats(res.data.data);
           }
         } else {
-          // Diğer roller için genel stats
           const res = await soruAPI.getStats();
           if (res.data.success) {
             setStats(res.data.data);
           }
         }
 
-        // İncelemeci ise branşları çek
         if (['alan_incelemeci', 'dil_incelemeci', 'incelemeci'].includes(activeRole)) {
           const bransRes = await bransAPI.getAll();
           if (bransRes.data.success) {
@@ -194,7 +183,6 @@ export default function Dashboard() {
     fetchData();
   }, [activeRole]);
 
-  // Loading Screen
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -203,79 +191,83 @@ export default function Dashboard() {
     );
   }
 
-  // --- RENDER LOGIC ---
-
   // 1. ADMIN DASHBOARD
   if (activeRole === 'admin') {
     return (
-      <div className="space-y-8">
-        {/* Header */}
-        <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <div className="space-y-8 animate-fade-in">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Genel Bakış</h1>
-            <p className="text-gray-500 mt-1">Sistem istatistikleri ve aktivite özeti.</p>
+            <h1 className="text-3xl font-bold text-gray-800 tracking-tight">Yönetim Paneli</h1>
+            <p className="text-gray-500 mt-1 font-medium">Sistem özetini ve aktiviteleri buradan yönetebilirsiniz.</p>
           </div>
-          <div className="hidden md:flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg font-medium text-sm">
-            <ChartBarIcon className="w-5 h-5" /> Yönetici Paneli
+          <div className="hidden md:block">
+            <span className="px-4 py-2 bg-gray-100 text-gray-600 rounded-full text-sm font-semibold border border-gray-200">
+              {new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </span>
           </div>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Toplam Soru */}
           <div onClick={() => setSelectedStat({ key: 'toplam_soru', title: 'Toplam Soru' })}
-            className="card bg-white hover:shadow-lg transition cursor-pointer p-6 border-l-4 border-blue-500 group">
-            <div className="flex justify-between items-start">
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-blue-400 p-6 text-white shadow-lg shadow-blue-200 transition-all hover:scale-105 hover:shadow-xl cursor-pointer group">
+            <div className="relative z-10 flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Toplam Soru</p>
-                <h3 className="text-3xl font-bold text-gray-900 mt-2">{detayliStats?.genel?.toplam_soru || 0}</h3>
+                <p className="text-blue-100 text-xs font-bold uppercase tracking-widest">TOPLAM SORU</p>
+                <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.genel?.toplam_soru || 0}</h3>
               </div>
-              <div className="p-3 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition">
-                <DocumentTextIcon className="w-6 h-6" />
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm group-hover:bg-white/30 transition">
+                <DocumentTextIcon className="w-6 h-6 text-white" />
               </div>
             </div>
+            <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition"></div>
           </div>
 
+          {/* Kullanıcılar */}
           <div onClick={() => setSelectedStat({ key: 'toplam_kullanici', title: 'Kullanıcılar' })}
-            className="card bg-white hover:shadow-lg transition cursor-pointer p-6 border-l-4 border-green-500 group">
-            <div className="flex justify-between items-start">
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-400 p-6 text-white shadow-lg shadow-emerald-200 transition-all hover:scale-105 hover:shadow-xl cursor-pointer group">
+            <div className="relative z-10 flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Kullanıcılar</p>
-                <h3 className="text-3xl font-bold text-gray-900 mt-2">{detayliStats?.genel?.toplam_kullanici || 0}</h3>
+                <p className="text-emerald-100 text-xs font-bold uppercase tracking-widest">KULLANICILAR</p>
+                <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.genel?.toplam_kullanici || 0}</h3>
               </div>
-              <div className="p-3 bg-green-50 text-green-600 rounded-lg group-hover:bg-green-600 group-hover:text-white transition">
-                <UserGroupIcon className="w-6 h-6" />
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm group-hover:bg-white/30 transition">
+                <UserGroupIcon className="w-6 h-6 text-white" />
               </div>
             </div>
+            <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition"></div>
           </div>
 
           {/* Branşlar */}
-          <div className="card bg-white hover:shadow-lg transition p-6 border-l-4 border-purple-500 group">
-            <div className="flex justify-between items-start">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600 to-purple-400 p-6 text-white shadow-lg shadow-purple-200 transition-all hover:scale-105 hover:shadow-xl cursor-pointer group">
+            <div className="relative z-10 flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Branşlar</p>
-                <h3 className="text-3xl font-bold text-gray-900 mt-2">{detayliStats?.branslar?.length || 0}</h3>
+                <p className="text-purple-100 text-xs font-bold uppercase tracking-widest">BRANŞLAR</p>
+                <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.branslar?.length || 0}</h3>
               </div>
-              <div className="p-3 bg-purple-50 text-purple-600 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition">
-                <BookOpenIcon className="w-6 h-6" />
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm group-hover:bg-white/30 transition">
+                <BookOpenIcon className="w-6 h-6 text-white" />
               </div>
             </div>
+            <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition"></div>
           </div>
 
           {/* Ekipler */}
-          <div className="card bg-white hover:shadow-lg transition p-6 border-l-4 border-orange-500 group">
-            <div className="flex justify-between items-start">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-600 to-orange-400 p-6 text-white shadow-lg shadow-orange-200 transition-all hover:scale-105 hover:shadow-xl cursor-pointer group">
+            <div className="relative z-10 flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Ekipler</p>
-                <h3 className="text-3xl font-bold text-gray-900 mt-2">{detayliStats?.genel?.toplam_ekip || 0}</h3>
+                <p className="text-orange-100 text-xs font-bold uppercase tracking-widest">EKİPLER</p>
+                <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.genel?.toplam_ekip || 0}</h3>
               </div>
-              <div className="p-3 bg-orange-50 text-orange-600 rounded-lg group-hover:bg-orange-600 group-hover:text-white transition">
-                <UserGroupIcon className="w-6 h-6" />
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm group-hover:bg-white/30 transition">
+                <UserGroupIcon className="w-6 h-6 text-white" />
               </div>
             </div>
+            <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition"></div>
           </div>
         </div>
 
-        {/* Detaylı Stats Modal Logic */}
+        {/* Modal - Same as before */}
         {selectedStat && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in">
@@ -284,7 +276,6 @@ export default function Dashboard() {
                 <button onClick={() => setSelectedStat(null)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
               </div>
               <div className="p-6 max-h-[60vh] overflow-y-auto">
-                {/* Modal içeriği (basit listeleme) */}
                 <div className="space-y-3">
                   {detayliStats?.branslar?.map((b, idx) => (
                     <div key={idx} className="flex justify-between items-center p-3 hover:bg-gray-50 rounded border border-transparent hover:border-gray-100 transition">
@@ -301,7 +292,7 @@ export default function Dashboard() {
     );
   }
 
-  // 2. SORU YAZICI DASHBOARD
+  // 2. SORU YAZICI
   if (activeRole === 'soru_yazici') {
     return (
       <div className="space-y-8 animate-fade-in">
@@ -311,7 +302,7 @@ export default function Dashboard() {
             <p className="text-blue-100 mt-2 text-lg">Soru hazırlama stüdyosuna erişiminiz hazır.</p>
           </div>
           <Link
-            to="/sorular/yeni" // DÜZELTİLMİŞ LİNK
+            to="/sorular/yeni"
             className="mt-4 md:mt-0 flex items-center gap-3 px-8 py-4 bg-white text-blue-700 rounded-xl hover:bg-blue-50 transition shadow-xl font-bold text-lg transform hover:scale-105"
           >
             <PencilSquareIcon className="w-6 h-6" />
@@ -319,7 +310,6 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        {/* TEKNİK BİLGİLENDİRME KARTI (Kullanıcının isteği) */}
         <div className="grid md:grid-cols-2 gap-6">
           <div className="card bg-white border border-gray-200 p-6 rounded-xl shadow-sm">
             <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -335,13 +325,13 @@ export default function Dashboard() {
                 <span className="px-2 py-0.5 bg-gray-100 rounded text-xs font-mono font-bold text-gray-500 mt-0.5">GENİŞ</span>
                 <span><strong>169mm Sütun Genişliği:</strong> Tam sayfa genişliğindeki veya yan yana tablolu sorular için uygundur.</span>
               </li>
+              <li className="flex items-start gap-3">
+                <span className="px-2 py-0.5 bg-gray-100 rounded text-xs font-bold text-gray-500 mt-0.5">RESİM</span>
+                <span>Hazır soru görsellerini (PNG/JPG) yükleyebilirsiniz.</span>
+              </li>
             </ul>
-            <div className="mt-4 p-3 bg-yellow-50 text-yellow-800 text-sm rounded border border-yellow-100">
-              ℹ️ Editör içerisinde sol üst köşeden genişlik modunu (Dar/Geniş) seçebilirsiniz.
-            </div>
           </div>
 
-          {/* Hızlı İstatistikler */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center items-center">
               <span className="text-gray-500 text-sm font-medium uppercase">Bekleyen</span>
@@ -361,13 +351,12 @@ export default function Dashboard() {
     );
   }
 
-  // 3. İNCELEMECİ DASHBOARD (Alan ve Dil)
+  // 3. İNCELEMECİ
   if (['alan_incelemeci', 'dil_incelemeci', 'incelemeci'].includes(activeRole)) {
-    // Review Mode: Admin simüle ediyorsa effectiveRole'a göre, yoksa kendi rolüne göre
     const reviewMode = activeRole === 'alan_incelemeci' ? 'alanci' : (activeRole === 'dil_incelemeci' ? 'dilci' : 'genel');
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 animate-fade-in">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             {activeRole === 'alan_incelemeci' ? 'Alan İnceleme Paneli' :
@@ -383,12 +372,11 @@ export default function Dashboard() {
                 key={brans.id}
                 onClick={() => setSelectedBrans(brans)}
                 className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.id
-                  ? 'bg-blue-600 text-white shadow-md transform scale-105'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-blue-600 text-white shadow-md transform scale-105'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
               >
                 <span>{brans.brans_adi}</span>
-                {/* Opsiyonel: Branş bazlı sayı badge'i eklenebilir */}
               </button>
             ))}
           </div>
@@ -410,7 +398,7 @@ export default function Dashboard() {
     );
   }
 
-  // 4. DEFAULT VIEW (Diğer roller veya yüklenemeyen durumlar)
+  // 4. DEFAULT
   return (
     <div className="p-8 text-center text-gray-500">
       <h2 className="text-xl font-semibold text-gray-700">Panel Hazırlanıyor</h2>
