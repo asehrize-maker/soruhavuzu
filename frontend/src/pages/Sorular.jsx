@@ -398,6 +398,15 @@ export default function Sorular() {
                       <span className="text-primary-600">📷 Görsel</span>
                     )}
                   </div>
+
+                  <div className="flex items-center gap-2 mt-2 text-xs">
+                    <span className={`px-2 py-1 rounded-full font-semibold ${soru.onay_alanci ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
+                      Alan İnceleme: {soru.onay_alanci ? 'Tamam' : 'Bekliyor'}
+                    </span>
+                    <span className={`px-2 py-1 rounded-full font-semibold ${soru.onay_dilci ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
+                      Dil İnceleme: {soru.onay_dilci ? 'Tamam' : 'Bekliyor'}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="ml-4 flex flex-col space-y-2">

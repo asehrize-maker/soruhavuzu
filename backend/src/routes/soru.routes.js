@@ -502,6 +502,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         throw new AppError('Bu iYlem iÇõin yetkiniz yok', 403);
       }
       if (!isAdmin) {
+        if (!inceleme_turu) throw new AppError('Žønceleme tÇ¬rÇ¬ (alan/dil) belirtilmeli', 400);
         if (inceleme_turu === 'alanci' && !canAlan) throw new AppError('Alan incelemesi yetkiniz yok', 403);
         if (inceleme_turu === 'dilci' && !canDil) throw new AppError('Dil incelemesi yetkiniz yok', 403);
         if (inceleme_turu && !['alanci', 'dilci'].includes(inceleme_turu)) {
@@ -578,6 +579,9 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
 
     } else if (yeni_durum === 'dizgi_bekliyor') {
       // Branş tarafından onaya gelen soru
+      if (!soru.onay_alanci || !soru.onay_dilci) {
+        throw new AppError('Alan ve Dil incelemesi tamamlanmadan dizgiye gönderilemez', 400);
+      }
       result = await pool.query(
         `UPDATE sorular SET durum = 'dizgi_bekliyor', guncellenme_tarihi = NOW() WHERE id = $1 RETURNING *`,
         [id]

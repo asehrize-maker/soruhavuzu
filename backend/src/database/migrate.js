@@ -10,6 +10,7 @@ import { seedSivasEkibi } from './migrations/009_sivas_ekibi_seed.js';
 import { updateWorkflowStatus } from './migrations/010_update_workflow_status.js';
 import { doubleApprovalSystem } from './migrations/011_double_approval_system.js';
 import { incelemeciRolVeAltRoller } from './migrations/012_incelemeci_rol_altroller.js';
+import { createBransKazanimlar } from './migrations/013_brans_kazanimlar.js';
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -127,6 +128,9 @@ const createTables = async () => {
 
     // İncelemeci rol/alt-roller (alan/dil) desteği
     await incelemeciRolVeAltRoller();
+
+    // Branş kazanım tabloları
+    await createBransKazanimlar();
 
   } catch (error) {
     await client.query('ROLLBACK');

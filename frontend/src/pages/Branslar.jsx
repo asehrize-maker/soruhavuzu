@@ -19,6 +19,10 @@ export default function Branslar() {
   const [selectedTeacherId, setSelectedTeacherId] = useState('');
   const [assigningLoading, setAssigningLoading] = useState(false);
   const [creatingBranch, setCreatingBranch] = useState(false);
+  const [importBranchId, setImportBranchId] = useState('');
+  const [importFile, setImportFile] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importMessage, setImportMessage] = useState('');
 
   // New User Form State
   const [newUser, setNewUser] = useState({ ad_soyad: '', email: '', sifre: '' });
@@ -41,11 +45,33 @@ export default function Branslar() {
       setBranslar(bransResponse.data.data);
       setUsers(userResponse.data.data);
       setEkipler(ekipResponse.data.data);
+      if (!importBranchId && bransResponse.data.data?.length > 0) {
+        setImportBranchId(String(bransResponse.data.data[0].id));
+      }
     } catch (error) {
       console.error('Veri yükleme hatası:', error);
       alert('Veriler yüklenemedi');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importBranchId || !importFile) {
+      alert('Branş ve Excel dosyası seçin');
+      return;
+    }
+    setImporting(true);
+    setImportMessage('');
+    try {
+      const res = await bransAPI.importKazanims(importBranchId, importFile);
+      setImportMessage(res.data.message || 'Kazanımlar içe aktarıldı');
+      await loadData();
+    } catch (error) {
+      console.error('Kazanım import hatası:', error);
+      alert(error.response?.data?.error || 'Kazanımlar içe aktarılamadı');
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -242,6 +268,45 @@ export default function Branslar() {
       <div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Branş ve Öğretmen Yönetimi</h1>
         <p className="text-gray-500">Branş seçerek öğretmen ataması yapabilirsiniz.</p>
+      </div>
+
+      <div className="card grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Branş</label>
+          <select
+            className="input"
+            value={importBranchId}
+            onChange={(e) => setImportBranchId(e.target.value)}
+          >
+            {branslar.map((b) => (
+              <option key={b.id} value={b.id}>{b.brans_adi} ({b.ekip_adi})</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Kazanım Excel</label>
+          <input
+            type="file"
+            accept=".xlsx,.xls"
+            className="input"
+            onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+          />
+          <p className="text-xs text-gray-500 mt-1">Başlıklar: kod, aciklama</p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handleImport}
+            disabled={importing}
+            className="btn btn-primary w-full"
+          >
+            {importing ? 'İçe aktarılıyor...' : 'Kazanımları İçe Aktar'}
+          </button>
+        </div>
+        {importMessage && (
+          <div className="md:col-span-3 text-sm text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2">
+            {importMessage}
+          </div>
+        )}
       </div>
 
       {loading || creatingBranch ? (

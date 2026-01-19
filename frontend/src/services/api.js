@@ -69,6 +69,14 @@ export const bransAPI = {
   create: (data) => api.post('/branslar', data),
   update: (id, data) => api.put(`/branslar/${id}`, data),
   delete: (id) => api.delete(`/branslar/${id}`),
+  getKazanims: (id) => api.get(`/branslar/${id}/kazanimlar`),
+  importKazanims: (id, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/branslar/${id}/kazanim-import`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
 };
 
 // Soru API
