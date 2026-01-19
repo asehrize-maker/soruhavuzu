@@ -340,21 +340,72 @@ export default function Dashboard() {
 
         {/* Modal - Same as before */}
         {selectedStat && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedStat(null)}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
               <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                 <h3 className="text-lg font-bold text-gray-900">{selectedStat.title} Detayları</h3>
                 <button onClick={() => setSelectedStat(null)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
               </div>
-              <div className="p-6 max-h-[60vh] overflow-y-auto">
-                <div className="space-y-3">
-                  {detayliStats?.branslar?.map((b, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-3 hover:bg-gray-50 rounded border border-transparent hover:border-gray-100 transition">
-                      <span className="font-medium text-gray-700">{b.brans_adi}</span>
-                      <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">{b.soru_sayisi}</span>
+              <div className="p-6 max-h-[70vh] overflow-y-auto">
+                {selectedStat.key === 'toplam_soru' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Branş Dağılımı</h4>
+                      <div className="space-y-2">
+                        {detayliStats?.branslar?.filter(b => b.soru_sayisi > 0).map((b, idx) => (
+                          <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                            <span className="font-medium text-gray-700">{b.brans_adi}</span>
+                            <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">{b.soru_sayisi}</span>
+                          </div>
+                        ))}
+                        {(!detayliStats?.branslar || detayliStats.branslar.filter(b => b.soru_sayisi > 0).length === 0) && (
+                          <p className="text-sm text-gray-500 italic text-center py-4">Henüz soru eklenmiş bir branş yok.</p>
+                        )}
+                      </div>
                     </div>
-                  ))}
-                </div>
+                    {/* Ghost question detection assist */}
+                    <div>
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Sistemdeki Son Kayıtlar</h4>
+                      <div className="text-[11px] text-gray-500 border rounded-lg divide-y bg-gray-50/30">
+                        <div className="p-2 bg-gray-100 font-bold flex justify-between">
+                          <span>Soru ID</span>
+                          <span>Durum</span>
+                        </div>
+                        {/* We don't have the question list here, but we can tell the user how to find them */}
+                        <p className="p-4 text-center italic">
+                          Eğer burada rakam görüyor ancak havuzda göremiyorsanız, sorular farklı bir ekipte veya branşta olabilir.
+                          "Soru Havuzu" sayfasında filtreleri temizleyerek tümünü görebilirsiniz.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedStat.key === 'toplam_kullanici' && (
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Rol Dağılımı</h4>
+                    {[
+                      { label: 'Yöneticiler', value: detayliStats?.sistem?.admin_sayisi },
+                      { label: 'Soru Yazıcılar', value: detayliStats?.sistem?.soru_yazici_sayisi },
+                      { label: 'Dizgiciler', value: detayliStats?.sistem?.dizgici_sayisi },
+                    ].map((item, idx) => (
+                      <div key={idx} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl">
+                        <span className="font-bold text-gray-700">{item.label}</span>
+                        <span className="text-xl font-black text-emerald-600">{item.value || 0}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {(selectedStat.key === 'toplam_brans' || selectedStat.title === 'Branşlar') && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {detayliStats?.branslar?.map((b, idx) => (
+                      <div key={idx} className="p-2 bg-purple-50 text-purple-700 rounded text-xs font-medium text-center">
+                        {b.brans_adi}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
