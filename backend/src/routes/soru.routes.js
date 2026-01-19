@@ -816,7 +816,10 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
     let query = '';
     let params = [];
 
-    if (req.user.rol === 'soru_yazici') {
+    // Admin simülasyonu için rol parametresi desteği
+    const targetRole = (req.user.rol === 'admin' && req.query.role) ? req.query.role : req.user.rol;
+
+    if (targetRole === 'soru_yazici') {
       // Yazar: Kendi sorularını görür
       query = `
         SELECT
@@ -831,7 +834,7 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
         WHERE olusturan_kullanici_id = $1
       `;
       params = [req.user.id];
-    } else if (req.user.rol === 'dizgici') {
+    } else if (targetRole === 'dizgici') {
       // Dizgici: 
       // dizgi_bekliyor: Branştaki atanmamış işler
       // dizgide: Sadece benim üzerimdeki işler
@@ -847,15 +850,15 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
         FROM sorular
       `;
       params = [req.user.id];
-    } else if (req.user.rol === 'alan_incelemeci') {
+    } else if (targetRole === 'alan_incelemeci') {
       // Alan İncelemeci
       query = `SELECT COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor' AND onay_alanci = false AND (brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1))) as inceleme_bekliyor FROM sorular`;
       params = [req.user.id];
-    } else if (req.user.rol === 'dil_incelemeci') {
+    } else if (targetRole === 'dil_incelemeci') {
       // Dil İncelemeci
       query = `SELECT COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor' AND onay_dilci = false AND (brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1))) as inceleme_bekliyor FROM sorular`;
       params = [req.user.id];
-    } else if (req.user.rol === 'incelemeci') {
+    } else if (targetRole === 'incelemeci') {
       query = `SELECT COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor' AND (brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1))) as inceleme_bekliyor FROM sorular`;
       params = [req.user.id];
     } else {

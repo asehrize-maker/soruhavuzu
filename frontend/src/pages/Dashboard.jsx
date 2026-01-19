@@ -161,7 +161,7 @@ export default function Dashboard() {
             setDetayliStats(res.data.data);
           }
         } else {
-          const res = await soruAPI.getStats();
+          const res = await soruAPI.getStats({ role: activeRole });
           if (res.data.success) {
             setStats(res.data.data);
           }
