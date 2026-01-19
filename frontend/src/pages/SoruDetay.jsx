@@ -583,15 +583,19 @@ export default function SoruDetay() {
     if (components.length === 0) return alert("Soru içeriği boş!");
     if (!editMetadata.dogruCevap) return alert("Lütfen Doğru Cevabı seçiniz.");
 
-    // Önce kaydet
+    // Kaydetme işlemi (EditSave fonksiyonunu çağırıyoruz ama alert vermesini engellemek için parametre özelleştiremiyoruz, o yüzden standart akış çalışacak)
+    // Ancak kullanıcı deneyimi için önce kaydedip sonra sormak mantıklı.
     await handleEditSave();
 
-    // Sonra aksiyon sor
     setTimeout(() => {
-      if (confirm("Düzenleme kaydedildi. Şimdi ne yapmak istersiniz?\n\n- TAMAM: Dizgiye Gönder\n- İPTAL: İncelemeye Gönder")) {
+      // 1. Seçenek: Dizgiye Gönder
+      if (confirm("✅ Değişiklikler başarıyla kaydedildi.\n\n🚀 Soruyu DİZGİ birimine göndermek istiyor musunuz?\n('Tamam' derseniz DİZGİYE gider, 'İptal' derseniz diğer seçeneğe geçilir)")) {
         handleSendToDizgi();
       } else {
-        handleSendToInceleme();
+        // 2. Seçenek: İncelemeye Gönder
+        if (confirm("🔍 O zaman soruyu tekrar İNCELEME ekibine göndermek ister misiniz?\n('Tamam' derseniz İNCELEMEYE gider, 'İptal' derseniz sadece kaydedilmiş olarak kalır)")) {
+          handleSendToInceleme();
+        }
       }
     }, 500);
   };
@@ -603,7 +607,7 @@ export default function SoruDetay() {
   if (loading) return <div className="text-center py-12"><div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div></div>;
   if (!soru) return null;
 
-  const isOwner = soru.olusturan_kullanici_id === user?.id;
+  const isOwner = soru.olusturan_kullanici_id == user?.id;
   const isAdmin = effectiveRole === 'admin';
 
   const canEdit = !incelemeTuru && (
