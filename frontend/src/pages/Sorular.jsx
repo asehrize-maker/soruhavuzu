@@ -164,15 +164,19 @@ export default function Sorular() {
   const getDurumBadge = (durum) => {
     const badges = {
       beklemede: 'badge badge-warning',
+      dizgi_bekliyor: 'badge bg-purple-100 text-purple-700',
       dizgide: 'badge badge-info',
       tamamlandi: 'badge badge-success',
       revize_gerekli: 'badge badge-error',
+      revize_istendi: 'badge badge-error',
     };
     const labels = {
       beklemede: 'Beklemede',
+      dizgi_bekliyor: 'Dizgi Bekliyor',
       dizgide: 'Dizgide',
       tamamlandi: 'Tamamlandı',
       revize_gerekli: 'Revize Gerekli',
+      revize_istendi: 'Revize İstendi',
     };
     return <span className={badges[durum]}>{labels[durum]}</span>;
   };
@@ -254,9 +258,11 @@ export default function Sorular() {
             >
               <option value="">Tümü</option>
               <option value="beklemede">Beklemede</option>
+              <option value="dizgi_bekliyor">Dizgi Bekliyor</option>
               <option value="dizgide">Dizgide</option>
               <option value="tamamlandi">Tamamlandı</option>
               <option value="revize_gerekli">Revize Gerekli</option>
+              <option value="revize_istendi">Revize İstendi</option>
             </select>
           </div>
 
