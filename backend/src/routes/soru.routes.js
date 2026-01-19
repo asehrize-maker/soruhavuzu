@@ -110,8 +110,24 @@ router.get('/', authenticate, async (req, res, next) => {
       )`;
       params.push(req.user.id, req.user.id);
     } else if (req.user.rol === 'incelemeci') {
-      // İncelemeciler soru havuzunu görmesin — boş sonuç dön.
-      return res.json({ success: true, count: 0, data: [] });
+      // İncelemeciler: sadece kendi yetkili oldukları inceleme türündeki
+      // ve kendi branşlarındaki soruları görsünler.
+      const canAlan = !!req.user.inceleme_alanci;
+      const canDil = !!req.user.inceleme_dilci;
+      if (!canAlan && !canDil) {
+        return res.json({ success: true, count: 0, data: [] });
+      }
+
+      const parts = [];
+      if (canAlan) parts.push('s.onay_alanci = false');
+      if (canDil) parts.push('s.onay_dilci = false');
+      const reviewCondition = `(${parts.join(' OR ')})`;
+
+      query += ` AND ${reviewCondition} AND (
+        b.id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount++})
+        OR b.id = (SELECT brans_id FROM kullanicilar WHERE id = $${paramCount++})
+      )`;
+      params.push(req.user.id, req.user.id);
     } else {
       // Diğer rollere (ör. misafir) soru havuzu gösterilmesin
       return res.json({ success: true, count: 0, data: [] });
