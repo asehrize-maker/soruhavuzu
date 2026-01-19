@@ -138,9 +138,9 @@ export default function SoruDetay() {
 
     try {
       const type = incelemeTuru || (effectiveRole === 'incelemeci' ? 'alanci' : 'admin');
-      const newStatus = hasNotes ? 'revize_istendi' : 'dizgi_bekliyor';
+      const yeni_durum = hasNotes ? 'revize_istendi' : 'dizgi_bekliyor';
       await soruAPI.updateDurum(id, {
-        newStatus,
+        yeni_durum,
         aciklama: hasNotes ? (dizgiNotu || 'Metin üzerinde hatalar belirtildi.') : 'İnceleme hatasız tamamlandı.',
         inceleme_turu: type
       });
