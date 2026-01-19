@@ -169,55 +169,61 @@ export default function SoruDetay() {
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">📝 Soru Detayı</h1>
           <p className="mt-2 text-gray-600">Soru #{soru.id}</p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex items-center space-x-2">
           <button onClick={() => navigate('/sorular')} className="btn btn-secondary">← Geri</button>
-          {canEdit && !editMode && <button onClick={handleEditStart} className="btn btn-primary">✏️ Düzenle</button>}
-          {(user?.rol === 'admin' || soru.olusturan_kullanici_id === user?.id) && <button onClick={handleSil} className="btn btn-danger">Sil</button>}
-        </div>
-      </div>
 
-      {/* İncelemeci İşlemleri Panel */}
-      {user?.rol === 'incelemeci' && ['inceleme_bekliyor', 'beklemede', 'revize_gerekli'].includes(soru.durum) && (
-        <div className="card bg-purple-50 border-2 border-purple-200 mb-6 shadow-lg">
-          <div className="flex justify-between items-center mb-4 border-b border-purple-200 pb-2">
-            <h3 className="text-xl font-bold text-purple-900 flex items-center"><span className="text-2xl mr-2">⚡</span> İnceleme ve Karar Paneli</h3>
-            <span className={`px-3 py-1 rounded-full text-sm font-bold ${incelemeTuru === 'alanci' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
-              {incelemeTuru === 'alanci' ? 'ALAN UZMANI' : 'DİL UZMANI'}
-            </span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-4 rounded-lg border border-green-200 shadow-sm">
-              <h4 className="font-bold text-green-800 mb-2">✅ Onay İşlemi</h4>
-              <p className="text-sm text-gray-600 mb-3">{incelemeTuru === 'alanci' ? 'Bilimsel uygunluk onayı.' : 'Dil ve yazım onayı.'}</p>
+          {/* İNCELEME AKSİYONLARI (ÜSTTE) */}
+          {user?.rol === 'incelemeci' && ['inceleme_bekliyor', 'beklemede', 'revize_gerekli'].includes(soru.durum) && (
+            <div className="flex items-center bg-purple-50 p-1 rounded-lg border border-purple-100 shadow-sm ml-2">
               <button
                 onClick={async () => {
-                  if (!confirm('Onaylayıp Dizgiye göndermek istiyor musunuz?')) return;
+                  if (!confirm('Soruyu ONAYLAYIP Dizgiye göndermek istiyor musunuz?')) return;
                   try {
-                    await soruAPI.updateDurum(id, { newStatus: 'dizgi_bekliyor', aciklama: 'İnceleme onaylandı.', inceleme_turu: incelemeTuru });
+                    await soruAPI.updateDurum(id, { newStatus: 'dizgi_bekliyor', aciklama: 'İnceleme hatasız onaylandı.', inceleme_turu: incelemeTuru });
                     alert('Onaylandı ve Dizgiye gönderildi.');
                     navigate('/dashboard');
                   } catch (e) { alert('Hata oluştu'); }
                 }}
-                className={`w-full py-3 rounded-lg font-bold text-white shadow transition transform hover:scale-105 ${incelemeTuru === 'alanci' ? 'bg-blue-600' : 'bg-green-600'}`}
-              > ✓ İNCELEME TAMAM: DİZGİYE GÖNDER </button>
-            </div>
-            <div className="bg-white p-4 rounded-lg border border-red-200 shadow-sm">
-              <h4 className="font-bold text-red-800 mb-2">🛑 Revize / Hata Bildirimi</h4>
-              <p className="text-sm text-gray-600 mb-2">Hataları metin üzerinden not alıp aşağıdaki butona basın.</p>
-              <textarea rows="2" className="w-full text-sm border-gray-300 rounded p-2 mb-2" placeholder="Dizgici için genel bir not (opsiyonel)..." value={dizgiNotu} onChange={(e) => setDizgiNotu(e.target.value)} />
+                className="px-4 py-2 bg-green-600 text-white rounded font-bold text-sm hover:bg-green-700 transition"
+              >
+                ✓ Onayla ve Dizgiye Gönder
+              </button>
+              <div className="w-px h-6 bg-purple-200 mx-2"></div>
               <button
                 onClick={async () => {
-                  if (revizeNotlari.length === 0 && !dizgiNotu) return alert('Lütfen metin üzerinden hata seçin veya not girin.');
+                  if (revizeNotlari.length === 0 && !dizgiNotu) return alert('Lütfen metin üzerinde hata seçin veya not girin.');
+                  if (!confirm('Belirttiğiniz notlarla birlikte Dizgiye gönderilecek. Onaylıyor musunuz?')) return;
                   try {
                     await soruAPI.updateDurum(id, { newStatus: 'revize_istendi', aciklama: dizgiNotu || 'Metin üzerinde hatalar belirtildi.' });
                     alert('Hata notları Dizgiciye iletildi.');
                     navigate('/dashboard');
                   } catch (e) { alert('Hata'); }
                 }}
-                className="w-full py-2 bg-red-600 text-white rounded font-bold hover:bg-red-700"
-              > NOTLARLA DİZGİYE GÖNDER </button>
+                className="px-4 py-2 bg-amber-600 text-white rounded font-bold text-sm hover:bg-amber-700 transition"
+              >
+                ⚠️ Notlarla Dizgiye Gönder
+              </button>
+            </div>
+          )}
+
+          {canEdit && !editMode && <button onClick={handleEditStart} className="btn btn-primary ml-2">✏️ Düzenle</button>}
+          {(user?.rol === 'admin' || soru.olusturan_kullanici_id === user?.id) && <button onClick={handleSil} className="btn btn-danger">Sil</button>}
+        </div>
+      </div>
+
+      {/* İncelemeci İşlemleri Panel (Sidebar / Contextual) */}
+      {user?.rol === 'incelemeci' && ['inceleme_bekliyor', 'beklemede', 'revize_gerekli'].includes(soru.durum) && (
+        <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 flex items-center justify-between shadow-sm">
+          <div className="flex items-center">
+            <span className="text-2xl mr-3">⚡</span>
+            <div>
+              <div className="font-bold text-purple-900">İnceleme Modu Aktif</div>
+              <div className="text-xs text-purple-600">Hatalı kısımları metni seçerek işaretleyin. İşlem bitince yukarıdaki butonları kullanın.</div>
             </div>
           </div>
+          <span className={`px-4 py-1.5 rounded-full text-xs font-bold shadow-sm ${incelemeTuru === 'alanci' ? 'bg-blue-600 text-white' : 'bg-green-600 text-white'}`}>
+            {incelemeTuru === 'alanci' ? 'ALAN UZMANI' : 'DİL UZMANI'}
+          </span>
         </div>
       )}
 
