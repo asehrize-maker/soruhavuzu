@@ -12,14 +12,13 @@ import {
   Bars3Icon,
   Bars3BottomRightIcon,
   QueueListIcon,
-  squares2x2Icon,
+  Squares2X2Icon,
   BoldIcon,
-  DocumentTextIcon,
-  Squares2X2Icon
+  DocumentTextIcon
 } from '@heroicons/react/24/outline';
 
 // --- İMLEÇ KORUMALI EDİTÖR ---
-const EditableBlock = memo(({ initialHtml, onChange, className, placeholder, style }) => {
+const EditableBlock = memo(({ initialHtml, onChange, className, placeholder, style, label }) => {
   const ref = useRef(null);
   useEffect(() => {
     if (ref.current && ref.current.innerHTML !== initialHtml) {
@@ -28,15 +27,21 @@ const EditableBlock = memo(({ initialHtml, onChange, className, placeholder, sty
   }, []);
 
   return (
-    <div
-      ref={ref}
-      contentEditable
-      suppressContentEditableWarning
-      className={`outline-none empty:before:content-[attr(placeholder)] empty:before:text-gray-300 min-h-[1.5em] focus:bg-blue-50/10 transition rounded px-1 ${className || ''}`}
-      style={style}
-      placeholder={placeholder}
-      onInput={(e) => onChange(e.currentTarget.innerHTML)}
-    />
+    <div className="relative group/edit">
+      {/* Etiket (Hoverda veya boşken görünür) */}
+      <div className="absolute -top-3 left-0 text-[9px] font-bold text-gray-400 bg-gray-50 px-1 rounded opacity-0 group-hover/edit:opacity-100 transition pointer-events-none uppercase tracking-wider border border-gray-100">
+        {label}
+      </div>
+      <div
+        ref={ref}
+        contentEditable
+        suppressContentEditableWarning
+        className={`outline-none empty:before:content-[attr(placeholder)] empty:before:text-gray-400 min-h-[1.5em] focus:bg-blue-50/10 transition rounded px-1 ${className || ''}`}
+        style={style}
+        placeholder={placeholder}
+        onInput={(e) => onChange(e.currentTarget.innerHTML)}
+      />
+    </div>
   );
 }, () => true);
 
@@ -129,7 +134,21 @@ export default function SoruEkle() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [widthMode, setWidthMode] = useState('dar');
-  const [components, setComponents] = useState([{ id: 'init_govde', type: 'text', subtype: 'govde', content: '', placeholder: 'Soru metnini buraya giriniz...' }]);
+
+  // VARSAYILAN BAŞLANGIÇ: GÖVDE + KÖK
+  const [components, setComponents] = useState([
+    {
+      id: 'init_govde', type: 'text', subtype: 'govde', content: '',
+      placeholder: 'Soru Gövdesi: Metin, paragraf veya ön bilgi buraya girilir.',
+      label: 'Gövde'
+    },
+    {
+      id: 'init_koku', type: 'text', subtype: 'koku', content: '',
+      placeholder: 'Soru Kökü: Soru cümlesi buraya girilir.',
+      label: 'Soru Kökü'
+    }
+  ]);
+
   const [metadata, setMetadata] = useState({ zorluk: '3', dogruCevap: '', brans_id: '', kazanim: '' });
   const [branslar, setBranslar] = useState([]);
 
@@ -144,26 +163,21 @@ export default function SoruEkle() {
     loadBranslar();
   }, [user]);
 
-  const addGovde = () => setComponents([...components, { id: Date.now(), type: 'text', subtype: 'govde', content: '', placeholder: 'Soru anlatımı/paragraf...' }]);
-  const addKoku = () => setComponents([...components, { id: Date.now(), type: 'text', subtype: 'koku', content: '', placeholder: 'Soru kökü...' }]);
+  const addGovde = () => setComponents([...components, { id: Date.now(), type: 'text', subtype: 'govde', content: '', placeholder: 'Soru Gövdesi...', label: 'Gövde' }]);
+  const addKoku = () => setComponents([...components, { id: Date.now(), type: 'text', subtype: 'koku', content: '', placeholder: 'Soru Kökü...', label: 'Soru Kökü' }]);
 
-  // ŞIK EKLEME (4 Şık - Layout Seçenekli)
   const addSecenekler = (mode = 'list') => {
     const baseId = Date.now();
-    const opts = ['A', 'B', 'C', 'D']; // 4 Seçenek
+    const opts = ['A', 'B', 'C', 'D'];
 
     const newComps = opts.map((opt, idx) => {
       let styleProps = { width: 100, float: 'none' };
-      if (mode === 'grid') { // Yan Yana (2x2 veya 4x1 sığdığı kadar)
-        // 48% width vererek yan yana 2 tane sığmasını sağlarız (arada boşlukla)
-        styleProps = { width: 48, float: 'left' };
-      }
+      if (mode === 'grid') { styleProps = { width: 48, float: 'left' }; }
       return {
         id: baseId + idx,
-        type: 'text',
-        subtype: 'secenek',
-        content: `<b>${opt})</b> `,
+        type: 'text', subtype: 'secenek', content: `<b>${opt})</b> `,
         placeholder: `${opt} seçeneği...`,
+        label: `Seçenek ${opt}`,
         ...styleProps
       };
     });
@@ -173,9 +187,7 @@ export default function SoruEkle() {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setComponents([...components, {
-        id: Date.now(), type: 'image', content: URL.createObjectURL(file), file: file, width: 50, height: 'auto', align: 'center'
-      }]);
+      setComponents([...components, { id: Date.now(), type: 'image', content: URL.createObjectURL(file), file: file, width: 50, height: 'auto', align: 'center' }]);
     }
   };
 
@@ -213,10 +225,9 @@ export default function SoruEkle() {
         else {
           if (c.subtype === 'koku') style = "font-weight: bold; margin-bottom: 8px; font-size: 1.05em;";
           else if (c.subtype === 'secenek') {
-            // Custom width/float for Grid Layout
             let w = c.width !== 100 ? `width: ${c.width}%;` : '';
             let f = c.float !== 'none' ? `float: ${c.float};` : '';
-            let m = c.float === 'left' ? 'margin-right: 2%;' : ''; // Arada boşluk
+            let m = c.float === 'left' ? 'margin-right: 2%;' : '';
             style = `margin-bottom: 4px; padding-left: 8px; ${w} ${f} ${m}`;
           }
           else style = "margin-bottom: 8px;";
@@ -231,7 +242,7 @@ export default function SoruEkle() {
       const firstImage = components.find(c => c.type === 'image' && c.file);
       if (firstImage) { formData.append('fotograf', firstImage.file); formData.append('fotograf_konumu', 'ust'); }
 
-      ['a', 'b', 'c', 'd'].forEach(opt => formData.append(`secenek_${opt}`, '')); // Sadece A-D
+      ['a', 'b', 'c', 'd'].forEach(opt => formData.append(`secenek_${opt}`, ''));
 
       await soruAPI.create(formData);
       alert("✅ Soru başarıyla kaydedildi!");
@@ -248,8 +259,8 @@ export default function SoruEkle() {
         <div className="flex items-center gap-4">
           <h1 className="text-lg font-semibold flex items-center gap-2"><PhotoIcon className="w-5 h-5" /> Gelişmiş Dizgi Editörü</h1>
           <div className="flex bg-[#005A9E] rounded p-0.5 shadow-inner">
-            <button onClick={() => setWidthMode('dar')} className={`px-3 py-1 text-xs font-bold rounded transition ${widthMode === 'dar' ? 'bg-white text-[#0078D4] shadow' : 'text-white/80'}`}>82mm</button>
-            <button onClick={() => setWidthMode('genis')} className={`px-3 py-1 text-xs font-bold rounded transition ${widthMode === 'genis' ? 'bg-white text-[#0078D4] shadow' : 'text-white/80'}`}>169mm</button>
+            <button onClick={() => setWidthMode('dar')} className={`px-3 py-1 text-xs font-bold rounded transition ${widthMode === 'dar' ? 'bg-white text-[#0078D4] shadow' : 'text-white/80'}`}>82mm (Dar)</button>
+            <button onClick={() => setWidthMode('genis')} className={`px-3 py-1 text-xs font-bold rounded transition ${widthMode === 'genis' ? 'bg-white text-[#0078D4] shadow' : 'text-white/80'}`}>169mm (Geniş)</button>
           </div>
         </div>
         <div className="flex gap-3">
@@ -301,7 +312,7 @@ export default function SoruEkle() {
           </div>
 
           <div className="space-y-1 relative" style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}>
-            <div className="absolute -top-4 -left-4 font-bold text-gray-400 text-xs select-none p-2">1</div>
+            {/* Soru No Kaldırıldı ve Silik Yazı Placeholder Olarak Düzenlendi */}
             {components.map((comp, index) => (
               <div key={comp.id} className="relative group/item hover:ring-1 hover:ring-blue-100 rounded px-1 transition"
                 style={{
@@ -319,12 +330,12 @@ export default function SoruEkle() {
                     initialHtml={comp.content}
                     onChange={(html) => updateComponent(comp.id, { content: html })}
                     placeholder={comp.placeholder}
-                    className={comp.subtype === 'koku' ? 'font-bold bg-purple-50/30' : comp.subtype === 'secenek' ? 'pl-4 hover:bg-green-50/30' : ''}
+                    label={comp.label} // EKLENDİ: Üste etiket koyar ("Gövde", "Kök" vs)
+                    className={comp.subtype === 'koku' ? 'font-bold bg-purple-50/10' : comp.subtype === 'secenek' ? 'pl-4 hover:bg-green-50/10' : ''}
                   />
                 ) : (
                   <ResizableImage src={comp.content} width={comp.width} height={comp.height} align={comp.align} onUpdate={(updates) => updateComponent(comp.id, updates)} onDelete={() => removeComponent(comp.id)} />
                 )}
-                {/* Float temizliği: Eğer eleman float ise kendinden sonrakine etki etmemesi için burada temizlik yapılmaz, container sonunda yapılır veya bir sonraki blok block ise o temizler */}
                 {comp.float === 'none' && <div style={{ clear: 'both' }}></div>}
               </div>
             ))}
