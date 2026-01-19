@@ -230,7 +230,7 @@ export default function SoruDetay() {
 
       {/* SORU KALIBI / FRAME */}
       <div className="relative border-4 border-gray-200 rounded-xl overflow-hidden bg-white shadow-2xl transition-all">
-        <div className={`p-8 min-h-[400px] relative z-10 ${incelemeTuru ? 'select-none cursor-text' : ''}`}>
+        <div className={`p-8 min-h-[400px] relative z-10 ${incelemeTuru ? 'cursor-text' : ''}`}>
           <div className="prose max-w-none">
             {editMode ? (
               <div className="space-y-4 pointer-events-auto">
