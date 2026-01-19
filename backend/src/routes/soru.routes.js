@@ -302,41 +302,6 @@ router.post('/', [
           }
         );
 
-          // Dizgi için branş bazlı bekleyen soru sayıları
-          router.get('/stats/dizgi-brans', authenticate, async (req, res, next) => {
-            try {
-              const isAdmin = req.user.rol === 'admin';
-              let query;
-              let params = [];
-
-              if (isAdmin) {
-                query = `
-                  SELECT b.id, b.brans_adi, COALESCE(COUNT(s.id) FILTER (WHERE s.durum = 'dizgi_bekliyor'), 0) as dizgi_bekliyor
-                  FROM branslar b
-                  LEFT JOIN sorular s ON b.id = s.brans_id
-                  GROUP BY b.id, b.brans_adi
-                  ORDER BY dizgi_bekliyor DESC
-                `;
-              } else {
-                query = `
-                  SELECT b.id, b.brans_adi, COALESCE(COUNT(s.id) FILTER (WHERE s.durum = 'dizgi_bekliyor'), 0) as dizgi_bekliyor
-                  FROM branslar b
-                  LEFT JOIN sorular s ON b.id = s.brans_id
-                  WHERE b.id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1)
-                     OR b.id = (SELECT brans_id FROM kullanicilar WHERE id = $1)
-                  GROUP BY b.id, b.brans_adi
-                  ORDER BY dizgi_bekliyor DESC
-                `;
-                params = [req.user.id];
-              }
-
-              const result = await pool.query(query, params);
-              res.json({ success: true, data: result.rows });
-            } catch (error) {
-              next(error);
-            }
-          });
-
         // Buffer'ı stream'e yaz
         uploadStream.end(file.buffer);
       });
@@ -431,6 +396,41 @@ router.get('/stats/inceleme-brans', authenticate, async (req, res, next) => {
            OR b.id = (SELECT brans_id FROM kullanicilar WHERE id = $1)
         GROUP BY b.id, b.brans_adi
         ORDER BY inceleme_bekliyor DESC
+      `;
+      params = [req.user.id];
+    }
+
+    const result = await pool.query(query, params);
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Dizgi için branş bazlı bekleyen soru sayıları
+router.get('/stats/dizgi-brans', authenticate, async (req, res, next) => {
+  try {
+    const isAdmin = req.user.rol === 'admin';
+    let query;
+    let params = [];
+
+    if (isAdmin) {
+      query = `
+        SELECT b.id, b.brans_adi, COALESCE(COUNT(s.id) FILTER (WHERE s.durum = 'dizgi_bekliyor'), 0) as dizgi_bekliyor
+        FROM branslar b
+        LEFT JOIN sorular s ON b.id = s.brans_id
+        GROUP BY b.id, b.brans_adi
+        ORDER BY dizgi_bekliyor DESC
+      `;
+    } else {
+      query = `
+        SELECT b.id, b.brans_adi, COALESCE(COUNT(s.id) FILTER (WHERE s.durum = 'dizgi_bekliyor'), 0) as dizgi_bekliyor
+        FROM branslar b
+        LEFT JOIN sorular s ON b.id = s.brans_id
+        WHERE b.id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1)
+           OR b.id = (SELECT brans_id FROM kullanicilar WHERE id = $1)
+        GROUP BY b.id, b.brans_adi
+        ORDER BY dizgi_bekliyor DESC
       `;
       params = [req.user.id];
     }

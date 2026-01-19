@@ -167,6 +167,18 @@ export default function Dashboard() {
   const [selectedStat, setSelectedStat] = useState(null);
   const [reviewMode, setReviewMode] = useState('alanci');
 
+  // Ensure reviewers only see their registered review type (unless admin)
+  useEffect(() => {
+    if (activeRole !== 'incelemeci') return;
+    if (isActualAdmin) {
+      // Admin keeps ability to toggle; default stays as 'alanci'
+      return;
+    }
+    // Non-admin reviewer: set mode according to their registered flag
+    if (user?.inceleme_alanci && !user?.inceleme_dilci) setReviewMode('alanci');
+    else if (user?.inceleme_dilci && !user?.inceleme_alanci) setReviewMode('dilci');
+  }, [activeRole, isActualAdmin, user?.inceleme_alanci, user?.inceleme_dilci]);
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -422,7 +434,7 @@ export default function Dashboard() {
             <span>Bilgi: İncelemesi biten veya dizgiye gönderilen soruları sol menüdeki <b>"Soru Havuzu"</b> sekmesinden takip edebilirsiniz.</span>
           </div>
 
-          {canAlanInceleme && canDilInceleme && (
+          {isActualAdmin && canAlanInceleme && canDilInceleme && (
             <div className="mt-6 flex flex-wrap gap-2">
               <button
                 type="button"
@@ -446,7 +458,7 @@ export default function Dashboard() {
           )}
 
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {canAlanInceleme && (
+            {canAlanInceleme && (isActualAdmin || user?.inceleme_alanci) && (
               <div>
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">Alan İnceleme</h4>
                 <div className="flex flex-wrap gap-3">
@@ -475,7 +487,7 @@ export default function Dashboard() {
               </div>
             )}
 
-            {canDilInceleme && (
+            {canDilInceleme && (isActualAdmin || user?.inceleme_dilci) && (
               <div>
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">Dil İnceleme</h4>
                 <div className="flex flex-wrap gap-3">
