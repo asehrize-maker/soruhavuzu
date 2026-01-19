@@ -377,13 +377,13 @@ export default function SoruDetay() {
   };
 
   const handleDizgiTamamla = async () => {
-    if (!confirm('Dizgi işlemini bitirip soruyu YAYINLAMAK (Tamamlandı durumuna getirmek) istediğinizden emin misiniz?')) return;
+    if (!confirm('Dizgi işlemini bitirip soruyu HAVUZA (Tamamlandı) göndermek istediğinizden emin misiniz?')) return;
     try {
       await soruAPI.updateDurum(id, {
         yeni_durum: 'tamamlandi',
-        aciklama: 'Dizgi işlemleri tamamlandı.'
+        aciklama: 'Dizgisi yapıldı ve havuza gönderildi.'
       });
-      alert('TEBRİKLER: Soru başarıyla tamamlandı ve havuzda yayınlandı.');
+      alert('Soru başarıyla tamamlandı ve Hazır Soru Havuzuna eklendi.');
       navigate('/');
     } catch (e) {
       alert('Hata: ' + (e.response?.data?.error || e.message));
@@ -570,7 +570,7 @@ export default function SoruDetay() {
                   onClick={handleDizgiTamamla}
                   className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-sm hover:bg-blue-700 transition shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] flex items-center gap-2 border-b-4 border-blue-800 active:border-b-0 active:translate-y-1"
                 >
-                  ✅ DİZGİYİ TAMAMLA VE YAYINLA
+                  ✅ DİZGİSİ YAPILDI
                 </button>
               )}
             </>

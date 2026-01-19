@@ -813,36 +813,70 @@ router.delete('/:id(\\d+)', authenticate, async (req, res, next) => {
 // İstatistikler
 router.get('/stats/genel', authenticate, async (req, res, next) => {
   try {
-    let whereClause = '';
-    const params = [];
+    let query = '';
+    let params = [];
 
     if (req.user.rol === 'soru_yazici') {
-      whereClause = 'WHERE olusturan_kullanici_id = $1';
-      params.push(req.user.id);
+      // Yazar: Kendi sorularını görür
+      query = `
+        SELECT
+          COUNT(*) as toplam,
+          COUNT(*) FILTER(WHERE durum = 'beklemede') as beklemede,
+          COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor') as inceleme_bekliyor,
+          COUNT(*) FILTER(WHERE durum = 'dizgi_bekliyor') as dizgi_bekliyor,
+          COUNT(*) FILTER(WHERE durum = 'dizgide') as dizgide,
+          COUNT(*) FILTER(WHERE durum = 'tamamlandi') as tamamlandi,
+          COUNT(*) FILTER(WHERE durum = 'revize_gerekli' OR durum = 'revize_istendi') as revize_gerekli
+        FROM sorular
+        WHERE olusturan_kullanici_id = $1
+      `;
+      params = [req.user.id];
     } else if (req.user.rol === 'dizgici') {
-      whereClause = `WHERE(
-            brans_id IN(SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1)
-        OR brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $2)
-      )`;
-      params.push(req.user.id, req.user.id);
+      // Dizgici: 
+      // dizgi_bekliyor: Branştaki atanmamış işler
+      // dizgide: Sadece benim üzerimdeki işler
+      // tamamlandi: Sadece benim bitirdiğim işler
+      query = `
+        SELECT
+          COUNT(*) FILTER(WHERE durum = 'dizgi_bekliyor' AND (
+            brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1)
+            OR brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1)
+          )) as dizgi_bekliyor,
+          COUNT(*) FILTER(WHERE durum = 'dizgide' AND dizgici_id = $1) as dizgide,
+          COUNT(*) FILTER(WHERE durum = 'tamamlandi' AND dizgici_id = $1) as tamamlandi
+        FROM sorular
+      `;
+      params = [req.user.id];
+    } else if (req.user.rol === 'alan_incelemeci') {
+      // Alan İncelemeci
+      query = `SELECT COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor' AND onay_alanci = false AND (brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1))) as inceleme_bekliyor FROM sorular`;
+      params = [req.user.id];
+    } else if (req.user.rol === 'dil_incelemeci') {
+      // Dil İncelemeci
+      query = `SELECT COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor' AND onay_dilci = false AND (brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1))) as inceleme_bekliyor FROM sorular`;
+      params = [req.user.id];
+    } else if (req.user.rol === 'incelemeci') {
+      query = `SELECT COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor' AND (brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1))) as inceleme_bekliyor FROM sorular`;
+      params = [req.user.id];
+    } else {
+      // Admin: Global istatistikler
+      query = `
+        SELECT
+          COUNT(*) as toplam,
+          COUNT(*) FILTER(WHERE durum = 'beklemede') as beklemede,
+          COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor') as inceleme_bekliyor,
+          COUNT(*) FILTER(WHERE durum = 'dizgi_bekliyor') as dizgi_bekliyor,
+          COUNT(*) FILTER(WHERE durum = 'dizgide') as dizgide,
+          COUNT(*) FILTER(WHERE durum = 'tamamlandi') as tamamlandi,
+          COUNT(*) FILTER(WHERE durum = 'revize_gerekli' OR durum = 'revize_istendi') as revize_gerekli
+        FROM sorular
+      `;
     }
 
-    const result = await pool.query(`
-      SELECT
-        COUNT(*) as toplam,
-        COUNT(*) FILTER(WHERE durum = 'beklemede') as beklemede,
-        COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor') as inceleme_bekliyor,
-        COUNT(*) FILTER(WHERE durum = 'dizgi_bekliyor') as dizgi_bekliyor,
-        COUNT(*) FILTER(WHERE durum = 'dizgide') as dizgide,
-        COUNT(*) FILTER(WHERE durum = 'tamamlandi') as tamamlandi,
-        COUNT(*) FILTER(WHERE durum = 'revize_gerekli' OR durum = 'revize_istendi') as revize_gerekli
-      FROM sorular
-      ${whereClause}
-      `, params);
-
+    const result = await pool.query(query, params);
     res.json({
       success: true,
-      data: result.rows[0]
+      data: result.rows[0] || { toplam: 0, beklemede: 0, inceleme_bekliyor: 0, dizgi_bekliyor: 0, dizgide: 0, tamamlandi: 0, revize_gerekli: 0 }
     });
   } catch (error) {
     next(error);
