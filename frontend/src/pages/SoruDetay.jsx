@@ -765,7 +765,6 @@ export default function SoruDetay() {
                   <option value="5">5 (?ok Zor)</option>
                 </select>
               </div>
-</div>
             </div>
           </div>
         ) : (
