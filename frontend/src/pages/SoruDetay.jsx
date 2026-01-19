@@ -233,6 +233,8 @@ export default function SoruDetay() {
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [branslar, setBranslar] = useState([]);
+  const [kazanims, setKazanims] = useState([]);
+  const [kazanimLoading, setKazanimLoading] = useState(false);
 
   // Editor States
   const [components, setComponents] = useState([]);
@@ -253,6 +255,35 @@ export default function SoruDetay() {
     loadRevizeNotlari();
     loadBranslar();
   }, [id]);
+
+  useEffect(() => {
+    const loadKazanims = async () => {
+      if (!editMetadata.brans_id) {
+        setKazanims([]);
+        setEditMetadata(prev => ({ ...prev, kazanim: '' }));
+        return;
+      }
+      try {
+        setKazanimLoading(true);
+        const res = await bransAPI.getKazanims(editMetadata.brans_id);
+        const list = res.data.data || [];
+        setKazanims(list);
+        if (list.length > 0) {
+          const codes = list.map(k => k.kod);
+          if (!editMetadata.kazanim || !codes.includes(editMetadata.kazanim)) {
+            setEditMetadata(prev => ({ ...prev, kazanim: list[0].kod }));
+          }
+        } else {
+          setEditMetadata(prev => ({ ...prev, kazanim: '' }));
+        }
+      } catch (err) {
+        setKazanims([]);
+      } finally {
+        setKazanimLoading(false);
+      }
+    };
+    loadKazanims();
+  }, [editMetadata.brans_id]);
 
   const loadBranslar = async () => {
     try {
@@ -690,13 +721,13 @@ export default function SoruDetay() {
 
             <div className="bg-white border-t p-4 grid grid-cols-1 md:grid-cols-4 gap-4 mt-auto">
               <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Bran?</label>
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Brans</label>
                 <select className="w-full border p-1 rounded text-xs" value={editMetadata.brans_id} onChange={e => setEditMetadata({ ...editMetadata, brans_id: e.target.value })}>
                   {branslar.map(b => <option key={b.id} value={b.id}>{b.brans_adi}</option>)}
                 </select>
               </div>
               <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Do?ru Cevap</label>
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Dogru Cevap</label>
                 <div className="flex gap-1 mt-1">
                   {['A', 'B', 'C', 'D', 'E'].map(opt => (
                     <button key={opt} onClick={() => setEditMetadata({ ...editMetadata, dogruCevap: opt })} className={`w-6 h-6 rounded-full border font-bold text-[10px] ${editMetadata.dogruCevap === opt ? 'bg-blue-600 text-white' : 'bg-gray-50'}`}>{opt}</button>
@@ -704,9 +735,9 @@ export default function SoruDetay() {
                 </div>
               </div>
               <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Kazan?m</label>
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Kazanim</label>
                 {kazanimLoading ? (
-                  <div className="text-[11px] text-gray-500 mt-1">Kazan?mlar y?kleniyor...</div>
+                  <div className="text-[11px] text-gray-500 mt-1">Kazanimlar yukleniyor...</div>
                 ) : (
                   <select
                     className="w-full border p-1 rounded text-xs"
@@ -714,8 +745,8 @@ export default function SoruDetay() {
                     onChange={e => setEditMetadata({ ...editMetadata, kazanim: e.target.value })}
                     disabled={!editMetadata.brans_id || kazanims.length === 0}
                   >
-                    {!editMetadata.brans_id && <option value="">?nce bran? se?in</option>}
-                    {editMetadata.brans_id && kazanims.length === 0 && <option value="">Bu bran?ta kazan?m yok</option>}
+                    {!editMetadata.brans_id && <option value="">Once brans secin</option>}
+                    {editMetadata.brans_id && kazanims.length === 0 && <option value="">Bu brans ta kazanim yok</option>}
                     {kazanims.map(k => (
                       <option key={k.id} value={k.kod}>
                         {k.kod} - {k.aciklama}

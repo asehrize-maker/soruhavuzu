@@ -199,7 +199,7 @@ export default function SoruEkle() {
       }
     };
     loadKazanims();
-  }, [metadata.brans_id, metadata.kazanim]);
+  }, [metadata.brans_id]);
 
   const addKoku = () => setComponents(prev => [...prev, { id: generateId(), type: 'text', subtype: 'koku', content: '', placeholder: '', label: 'Soru Kökü' }]);
   const addGovde = () => setComponents(prev => [...prev, { id: generateId(), type: 'text', subtype: 'govde', content: '', placeholder: '', label: 'Gövde' }]);
@@ -431,12 +431,12 @@ export default function SoruEkle() {
               value={metadata.brans_id}
               onChange={e => setMetadata({ ...metadata, brans_id: e.target.value })}
             >
-              <option value="">Se?iniz</option>
+              <option value="">Seciniz</option>
               {branslar.map(b => <option key={b.id} value={b.id}>{b.brans_adi}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-xs font-bold text-gray-500 uppercase">Do?ru Cevap</label>
+            <label className="text-xs font-bold text-gray-500 uppercase">Dogru Cevap</label>
             <div className="flex gap-2 mt-1">
               {['A', 'B', 'C', 'D', 'E'].map(opt => (
                 <button
