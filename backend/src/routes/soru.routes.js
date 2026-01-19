@@ -102,8 +102,8 @@ router.get('/', authenticate, async (req, res, next) => {
       )`;
       params.push(req.user.id, req.user.brans_id);
     } else if (req.user.rol === 'dizgici') {
-      // Dizgici atandığı tüm branşlardaki soruları görür
-      query += ` AND (
+      // Dizgici sadece 'dizgi_bekliyor' ve 'dizgide' olanları görür
+      query += ` AND (s.durum = 'dizgi_bekliyor' OR s.durum = 'dizgide') AND (
         b.id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount++})
         OR b.id = (SELECT brans_id FROM kullanicilar WHERE id = $${paramCount++})
       )`;
@@ -477,12 +477,12 @@ router.put('/:id(\\d+)', [
 });
 
 // Soru Durumunu Güncelle (İncelemeci Onay/Revize)
-router.put('/:id(\\d+)/durum', [authenticate, authorize('incelemeci', 'admin')], async (req, res, next) => {
+router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
   try {
     const { id } = req.params;
     const { yeni_durum, aciklama, inceleme_turu } = req.body; // inceleme_turu: 'alanci', 'dilci'
 
-    if (!['dizgi_bekliyor', 'revize_istendi', 'tamamlandi', 'inceleme_bekliyor'].includes(yeni_durum)) {
+    if (!['dizgi_bekliyor', 'revize_istendi', 'tamamlandi', 'inceleme_bekliyor', 'dizgide', 'inceleme_tamam'].includes(yeni_durum)) {
       throw new AppError('Geçersiz durum', 400);
     }
 
@@ -510,42 +510,55 @@ router.put('/:id(\\d+)/durum', [authenticate, authorize('incelemeci', 'admin')],
         await createNotification(soru.olusturan_kullanici_id, 'Revize İsteği', `#${id} nolu sorunuz için revize istendi: ${aciklama}`, 'warning', `/sorular/${id}`);
       }
 
-    } else if (yeni_durum === 'dizgi_bekliyor') {
-
+    } else if (yeni_durum === 'inceleme_tamam') {
+      // Kullanıcı talebi: Hem alan hem dil incelemesi bitmeden branşa dönmez.
       let updateField = '';
       if (inceleme_turu === 'alanci') updateField = 'onay_alanci';
       else if (inceleme_turu === 'dilci') updateField = 'onay_dilci';
       else if (req.user.rol === 'admin') {
-        // Admin direkt onaylıyorsa her iki tarafı da onaylamış sayalım
         await pool.query('UPDATE sorular SET onay_alanci = true, onay_dilci = true WHERE id = $1', [id]);
         updateField = 'all';
       } else {
-        throw new AppError('Geçersiz inceleme türü', 400);
+        throw new AppError('İnceleme yapmak için yetki veya inceleme türü eksik', 400);
       }
 
-      // İlgili onayı ver (Eğer admin değilse veya tekil onay ise)
       if (updateField !== 'all') {
         await pool.query(`UPDATE sorular SET ${updateField} = true WHERE id = $1`, [id]);
       }
 
-      // Kontrol et: İkisi de onaylandı mı?
-      const check = await pool.query('SELECT onay_alanci, onay_dilci FROM sorular WHERE id = $1', [id]);
-      const { onay_alanci, onay_dilci } = check.rows[0];
+      const check = await pool.query('SELECT onay_alanci, onay_dilci, olusturan_kullanici_id FROM sorular WHERE id = $1', [id]);
+      const { onay_alanci, onay_dilci, olusturan_kullanici_id } = check.rows[0];
 
       if (onay_alanci && onay_dilci) {
-        // İkisi de tamamsa durumu güncelle
+        // İkisi de tamamsa Branşa (Revize İstendi) gönder
         result = await pool.query(
-          `UPDATE sorular SET durum = 'dizgi_bekliyor', guncellenme_tarihi = NOW() WHERE id = $1 RETURNING *`,
+          `UPDATE sorular SET durum = 'revize_istendi', guncellenme_tarihi = NOW() WHERE id = $1 RETURNING *`,
           [id]
         );
-        message = 'Tüm onaylar tamamlandı, soru dizgiye gönderildi.';
-        // Bildirim gönderilebilir
+        message = 'Tüm incelemeler tamamlandı, soru Branşa geri gönderildi.';
+        if (olusturan_kullanici_id) {
+          await createNotification(olusturan_kullanici_id, 'İnceleme Tamamlandı', `#${id} nolu sorunuzun tüm incelemeleri bitti, kontrol edebilirsiniz.`, 'info', `/sorular/${id}`);
+        }
       } else {
-        // Sadece güncel hali dön
         const currentRes = await pool.query('SELECT * FROM sorular WHERE id = $1', [id]);
-        result = currentRes; // result.rows mantığı için
-        message = `${inceleme_turu === 'alanci' ? 'Alan' : 'Dil'} onayı kaydedildi. Diğer onay bekleniyor.`;
+        result = currentRes;
+        message = `${inceleme_turu === 'alanci' ? 'Alan' : 'Dil'} incelemesi bitti. Diğer inceleme bekleniyor.`;
       }
+
+    } else if (yeni_durum === 'dizgi_bekliyor') {
+      // Branş tarafından onaya gelen soru
+      result = await pool.query(
+        `UPDATE sorular SET durum = 'dizgi_bekliyor', guncellenme_tarihi = NOW() WHERE id = $1 RETURNING *`,
+        [id]
+      );
+      message = 'Soru dizgi sırasına alındı.';
+    } else if (yeni_durum === 'dizgide') {
+      // Dizgici soruyu üzerine alır
+      result = await pool.query(
+        `UPDATE sorular SET durum = 'dizgide', dizgici_id = $1, guncellenme_tarihi = NOW() WHERE id = $2 RETURNING *`,
+        [req.user.id, id]
+      );
+      message = 'Soru dizgiye alındı.';
 
     } else if (yeni_durum === 'tamamlandi') {
       // Final onay

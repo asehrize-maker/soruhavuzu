@@ -342,21 +342,20 @@ export default function SoruDetay() {
   const handleFinishReview = async () => {
     const hasNotes = revizeNotlari.length > 0;
     const msg = hasNotes
-      ? `İşaretlediğiniz ${revizeNotlari.length} adet notla birlikte incelemeyi bitirip Branşa geri göndermek istiyor musunuz?`
-      : 'Soru hatasız mı? ONAYLAYIP Branşa geri göndermek istediğinizden emin misiniz?';
+      ? `İşaretlediğiniz ${revizeNotlari.length} adet notla birlikte incelemeyi bitirmek istiyor musunuz?\n\n(Not: Hem alan hem dil incelemesi bittiğinde soru Branşa geri gönderilecektir.)`
+      : 'Soru hatasız mı? ONAYLAYIP incelemeyi bitirmek istediğinizden emin misiniz?\n\n(Not: Hem alan hem dil incelemesi bittiğinde soru Branşa geri gönderilecektir.)';
 
     if (!confirm(msg)) return;
 
     try {
       const type = incelemeTuru || (effectiveRole === 'incelemeci' ? 'alanci' : 'admin');
-      // Kullanıcı talebi: İnceleme sonrası soru dizgiye değil, branşa (yazara) geri döner.
-      const yeni_durum = 'revize_istendi';
+      // Kullanıcı talebi: İnceleme bittiğinde backend hem alan hem dil onayı var mı diye bakar.
       await soruAPI.updateDurum(id, {
-        yeni_durum,
-        aciklama: hasNotes ? (dizgiNotu || 'Metin üzerinde hatalar belirtildi.') : 'İnceleme hatasız tamamlandı. Branş onayı bekleniyor.',
+        yeni_durum: 'inceleme_tamam',
+        aciklama: hasNotes ? (dizgiNotu || 'Metin üzerinde hatalar belirtildi.') : 'İnceleme hatasız tamamlandı.',
         inceleme_turu: type
       });
-      alert('İŞLEM TAMAMLANDI: Soru Branşa geri gönderildi.');
+      alert('İncelemeniz kaydedildi. Tüm uzmanlar bitirdiğinde soru otomatik olarak Branşa iletilecektir.');
       navigate('/');
     } catch (e) {
       alert('Hata: ' + (e.response?.data?.error || e.message));

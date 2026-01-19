@@ -23,7 +23,9 @@ export default function DizgiYonetimi() {
   const loadSorular = async () => {
     try {
       const response = await soruAPI.getAll({ brans_id: user.brans_id });
-      setSorular(response.data.data);
+      // Sadece dizgi aşamasındaki soruları göster
+      const filtered = (response.data.data || []).filter(s => s.durum === 'dizgi_bekliyor' || s.durum === 'dizgide');
+      setSorular(filtered);
     } catch (error) {
       alert('Sorular yüklenemedi');
     } finally {
