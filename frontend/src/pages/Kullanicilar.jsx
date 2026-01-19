@@ -149,7 +149,7 @@ export default function Kullanicilar() {
     let color = '';
     switch (kullanici.rol) {
       case 'admin': label = 'Admin'; color = 'bg-purple-100 text-purple-800'; break;
-      case 'soru_yazici': label = 'Soru Yazıcı'; color = 'bg-blue-100 text-blue-800'; break;
+      case 'soru_yazici': label = 'Branş'; color = 'bg-blue-100 text-blue-800'; break;
       case 'dizgici': label = 'Dizgici'; color = 'bg-green-100 text-green-800'; break;
       case 'incelemeci':
         if (kullanici.inceleme_dilci && !kullanici.inceleme_alanci) { label = 'Dil İncelemeci'; color = 'bg-teal-100 text-teal-800'; }
@@ -279,7 +279,7 @@ export default function Kullanicilar() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
                 <select className="input" value={formData.rol} onChange={e => setFormData({ ...formData, rol: e.target.value })}>
-                  <option value="soru_yazici">Soru Yazıcı</option>
+                  <option value="soru_yazici">Branş</option>
                   <option value="dizgici">Dizgici</option>
                   <option value="incelemeci">İncelemeci</option>
                   <option value="admin">Admin</option>

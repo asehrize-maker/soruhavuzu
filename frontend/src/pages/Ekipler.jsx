@@ -228,9 +228,9 @@ export default function Ekipler() {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.rol === 'admin' ? 'bg-purple-100 text-purple-800' :
-                                  user.rol === 'soru_yazici' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                user.rol === 'soru_yazici' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                                 }`}>
-                                {user.rol === 'admin' ? 'Yönetici' : user.rol === 'soru_yazici' ? 'Öğretmen' : 'Dizgici'}
+                                {user.rol === 'admin' ? 'Yönetici' : user.rol === 'soru_yazici' ? 'Branş' : 'Dizgici'}
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

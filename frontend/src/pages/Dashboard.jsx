@@ -328,7 +328,7 @@ export default function Dashboard() {
                   <div className="space-y-4">
                     {[
                       { label: 'Yöneticiler', value: detayliStats?.sistem?.admin_sayisi },
-                      { label: 'Soru Yazıcılar', value: detayliStats?.sistem?.soru_yazici_sayisi },
+                      { label: 'Branşlar', value: detayliStats?.sistem?.soru_yazici_sayisi },
                       { label: 'Dizgiciler', value: detayliStats?.sistem?.dizgici_sayisi },
                     ].map((item, idx) => (
                       <div key={idx} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl">

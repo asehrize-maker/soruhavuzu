@@ -394,7 +394,7 @@ export default function Branslar() {
                                 <option value="">Kullanıcı Seçiniz...</option>
                                 {getAvailableTeachers(selectedBranch.id).map(teacher => (
                                   <option key={teacher.id} value={teacher.id}>
-                                    {teacher.ad_soyad} ({teacher.brans_adi ? teacher.brans_adi : 'Branşsız'} - {teacher.rol === 'soru_yazici' ? 'Yazar' : teacher.rol === 'dizgici' ? 'Dizgici' : teacher.rol === 'incelemeci' ? 'İncelemeci' : teacher.rol})
+                                    {teacher.ad_soyad} ({teacher.brans_adi ? teacher.brans_adi : 'Branşsız'} - {teacher.rol === 'soru_yazici' ? 'Branş' : teacher.rol === 'dizgici' ? 'Dizgici' : teacher.rol === 'incelemeci' ? 'İncelemeci' : teacher.rol})
                                   </option>
                                 ))}
                               </select>
@@ -407,7 +407,7 @@ export default function Branslar() {
                                 onChange={(e) => setSelectedRole(e.target.value)}
                                 className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                               >
-                                <option value="soru_yazici">Soru Yazarı</option>
+                                <option value="soru_yazici">Branş</option>
                                 <option value="dizgici">Dizgici</option>
                                 <option value="incelemeci">İncelemeci</option>
                               </select>
@@ -465,7 +465,7 @@ export default function Branslar() {
                                 onChange={(e) => setSelectedRole(e.target.value)}
                                 className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                               >
-                                <option value="soru_yazici">Soru Yazarı</option>
+                                <option value="soru_yazici">Branş</option>
                                 <option value="dizgici">Dizgici</option>
                                 <option value="incelemeci">İncelemeci</option>
                               </select>
@@ -510,7 +510,7 @@ export default function Branslar() {
                                           onChange={(e) => setEditingTeacher({ ...editingTeacher, rol: e.target.value })}
                                           className="text-xs border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 py-1"
                                         >
-                                          <option value="soru_yazici">Soru Yazarı</option>
+                                          <option value="soru_yazici">Branş</option>
                                           <option value="dizgici">Dizgici</option>
                                           <option value="incelemeci">İncelemeci</option>
                                         </select>
@@ -527,7 +527,7 @@ export default function Branslar() {
                                       </div>
                                     ) : (
                                       <p className="text-xs text-gray-500">
-                                        {teacher.email} • <span className="text-blue-600 font-semibold">{teacher.rol === 'soru_yazici' ? 'Yazar' : teacher.rol === 'dizgici' ? 'Dizgici' : teacher.rol === 'incelemeci' ? 'İncelemeci' : teacher.rol}</span>
+                                        {teacher.email} • <span className="text-blue-600 font-semibold">{teacher.rol === 'soru_yazici' ? 'Branş' : teacher.rol === 'dizgici' ? 'Dizgici' : teacher.rol === 'incelemeci' ? 'İncelemeci' : teacher.rol}</span>
                                       </p>
                                     )}
                                   </div>

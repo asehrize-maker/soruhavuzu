@@ -156,7 +156,7 @@ export default function Layout() {
               {(() => {
                 const r = effectiveRole;
                 if (r === 'admin') return 'Yönetici';
-                if (r === 'soru_yazici') return 'Soru Yazarı';
+                if (r === 'soru_yazici') return 'Branş';
                 if (r === 'dizgici') return 'Dizgici';
                 if (r === 'incelemeci') {
                   const alan = !!authUser?.inceleme_alanci;
@@ -171,7 +171,7 @@ export default function Layout() {
             </div>
             {actualRole === 'admin' && (
               <div className="mt-3">
-                <label className="block text-[11px] font-semibold text-gray-400 mb-1">Rol Gorunumu</label>
+                <label className="block text-[11px] font-semibold text-gray-400 mb-1">Görünüm Değiştir</label>
                 <select
                   className="w-full bg-[#0f172a] border border-gray-600 text-gray-200 text-xs rounded-md px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={effectiveRole || 'admin'}
@@ -182,7 +182,7 @@ export default function Layout() {
                   }}
                 >
                   <option value="admin">Admin</option>
-                  <option value="soru_yazici">Soru Yazici</option>
+                  <option value="soru_yazici">Branş</option>
                   <option value="dizgici">Dizgici</option>
                   <option value="incelemeci">İncelemeci</option>
                 </select>

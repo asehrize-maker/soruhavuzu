@@ -104,7 +104,7 @@ export default function Register() {
                 value={formData.rol}
                 onChange={handleChange}
               >
-                <option value="soru_yazici">Soru Yazıcı</option>
+                <option value="soru_yazici">Branş</option>
                 <option value="dizgici">Dizgici</option>
                 <option value="incelemeci">İncelemeci</option>
                 <option value="admin">Admin</option>
