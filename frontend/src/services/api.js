@@ -49,6 +49,7 @@ export const authAPI = {
 export const userAPI = {
   getAll: () => api.get('/users'),
   getById: (id) => api.get(`/users/${id}`),
+  adminCreate: (data) => api.post('/users/admin-create', data),
   update: (id, data) => api.put(`/users/${id}`, data),
   delete: (id) => api.delete(`/users/${id}`),
 };

@@ -10,6 +10,9 @@ export default function Kullanicilar() {
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({
+    ad_soyad: '',
+    email: '',
+    sifre: '',
     ekip_id: '',
     brans_id: '',
     brans_ids: [],
@@ -67,6 +70,8 @@ export default function Kullanicilar() {
       : (kullanici.brans_id ? [kullanici.brans_id] : []);
 
     setFormData({
+      ad_soyad: kullanici.ad_soyad || '',
+      email: kullanici.email || '',
       ekip_id: kullanici.ekip_id || '',
       brans_id: kullanici.brans_id || '',
       brans_ids: mevcutBransIds,
@@ -74,6 +79,23 @@ export default function Kullanicilar() {
       inceleme_alanci: !!kullanici.inceleme_alanci,
       inceleme_dilci: !!kullanici.inceleme_dilci,
       aktif: kullanici.aktif,
+    });
+    setShowModal(true);
+  };
+
+  const handleCreate = () => {
+    setEditingUser(null);
+    setFormData({
+      ad_soyad: '',
+      email: '',
+      sifre: '',
+      ekip_id: '',
+      brans_id: '',
+      brans_ids: [],
+      rol: 'soru_yazici',
+      inceleme_alanci: false,
+      inceleme_dilci: false,
+      aktif: true,
     });
     setShowModal(true);
   };
@@ -89,13 +111,21 @@ export default function Kullanicilar() {
         payload.inceleme_dilci = false;
       }
 
-      await userAPI.update(editingUser.id, payload);
-      alert('Kullanıcı güncellendi!');
+      if (editingUser) {
+        await userAPI.update(editingUser.id, payload);
+        alert('Kullanıcı güncellendi!');
+      } else {
+        // admin-create requires sifre
+        if (!payload.sifre) throw new Error('Şifre gerekli');
+        await userAPI.adminCreate(payload);
+        alert('Kullanıcı oluşturuldu!');
+      }
+
       setShowModal(false);
       setEditingUser(null);
       loadData();
     } catch (error) {
-      alert(error.response?.data?.error || 'Güncelleme başarısız');
+      alert(error.response?.data?.error || error.message || 'İşlem başarısız');
     }
   };
 
@@ -156,6 +186,9 @@ export default function Kullanicilar() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Kullanıcı Yönetimi</h1>
+        <div>
+          <button onClick={handleCreate} className="btn btn-primary">Yeni Kullanıcı Ekle</button>
+        </div>
       </div>
 
       {loading ? (
@@ -266,6 +299,39 @@ export default function Kullanicilar() {
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ad Soyad</label>
+                <input
+                  required
+                  className="input"
+                  value={formData.ad_soyad}
+                  onChange={(e) => setFormData({ ...formData, ad_soyad: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  required
+                  type="email"
+                  className="input"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+
+              {!editingUser && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Şifre</label>
+                  <input
+                    required
+                    type="password"
+                    className="input"
+                    value={formData.sifre}
+                    onChange={(e) => setFormData({ ...formData, sifre: e.target.value })}
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Ekip
@@ -399,7 +465,7 @@ export default function Kullanicilar() {
                   İptal
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  Güncelle
+                  {editingUser ? 'Güncelle' : 'Oluştur'}
                 </button>
               </div>
             </form>

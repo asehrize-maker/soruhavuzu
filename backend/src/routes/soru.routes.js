@@ -93,7 +93,8 @@ router.get('/', authenticate, async (req, res, next) => {
 
     // Rol bazlı filtreleme
     if (req.user.rol === 'soru_yazici') {
-      // Soru yazarı, iki inceleme onayı bitmeden kendi sorusunu göremez.
+      // Soru yazarı: kendi sorularını görebilir.
+      // Yazar, iki inceleme onayı bitmeden kendi sorusunu göremez.
       // Yalnızca kendi sorusu iki onay almışsa veya tamamlandıysa listeleyebilir.
       query += ` AND (
         (s.olusturan_kullanici_id = $${paramCount++} AND s.onay_alanci = true AND s.onay_dilci = true)
@@ -101,17 +102,19 @@ router.get('/', authenticate, async (req, res, next) => {
       )`;
       params.push(req.user.id);
     } else if (req.user.rol === 'dizgici') {
-      // Dizgici sadece üzerine gelen aktif dizgi işlerini (bekliyor/dizgide) görür
-      query += ` AND (s.durum = 'dizgi_bekliyor' OR s.durum = 'dizgide') AND (
+      // Dizgici: sadece çalıştığı branş(lar)ın sorularını görsün.
+      // Bu, brans_id'ye göre filtre uygular.
+      query += ` AND (
         b.id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount++})
         OR b.id = (SELECT brans_id FROM kullanicilar WHERE id = $${paramCount++})
       )`;
       params.push(req.user.id, req.user.id);
     } else if (req.user.rol === 'incelemeci') {
-      // İncelemeciler (Alan/Dil) şu an tüm soruları görebilir.
-      // İleride 'kullanici_branslari' ile kısıtlanabilir.
-      // Şimdilik pas geçiyoruz (WHERE 1=1 devam ediyor).
-      console.log(`İncelemeci (${req.user.rol}) talebi. Filtre uygulanmadı.`);
+      // İncelemeciler soru havuzunu görmesin — boş sonuç dön.
+      return res.json({ success: true, count: 0, data: [] });
+    } else {
+      // Diğer rollere (ör. misafir) soru havuzu gösterilmesin
+      return res.json({ success: true, count: 0, data: [] });
     }
 
     if (durum) {
@@ -461,7 +464,7 @@ router.put('/:id(\\d+)', [
       fotograf_konumu
     } = req.body;
 
-    // Soru sahibi kontrolü
+    // Soru sahibi kontrolü ve yetki doğrulama
     const checkResult = await pool.query('SELECT * FROM sorular WHERE id = $1', [id]);
 
     if (checkResult.rows.length === 0) {
@@ -477,7 +480,15 @@ router.put('/:id(\\d+)', [
       throw new AppError('İşlemdeki veya tamamlanmış sorular düzenlenemez.', 403);
     }
 
-    if (req.user.rol !== 'admin' && soru.olusturan_kullanici_id !== req.user.id) {
+    // Yetki kuralları:
+    // - Admin her zaman düzenleyebilir
+    // - Soru sahibi (olusturan_kullanici_id) her zaman düzenleyebilir
+    // Diğer kullanıcıların düzenleme yetkisi yoktur.
+    const isAdmin = req.user.rol === 'admin';
+    const isOwner = soru.olusturan_kullanici_id === req.user.id;
+
+    const hasPermission = isAdmin || isOwner;
+    if (!hasPermission) {
       throw new AppError('Bu soruyu düzenleme yetkiniz yok', 403);
     }
 

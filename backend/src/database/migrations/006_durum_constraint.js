@@ -12,11 +12,21 @@ export const updateDurumConstraint = async () => {
       DROP CONSTRAINT IF EXISTS sorular_durum_check
     `);
 
-        await client.query(`
-      ALTER TABLE sorular 
-      ADD CONSTRAINT sorular_durum_check 
-      CHECK (durum IN ('beklemede', 'dizgide', 'tamamlandi', 'revize_gerekli'))
-    `);
+                await client.query(`
+            ALTER TABLE sorular 
+            ADD CONSTRAINT sorular_durum_check 
+            CHECK (durum IN (
+                'beklemede',
+                'inceleme_bekliyor',
+                'revize_istendi',
+                'revize_gerekli',
+                'dizgi_bekliyor',
+                'dizgide',
+                'inceleme_tamam',
+                'tamamlandi',
+                'arsiv'
+            ))
+        `);
 
         await client.query('COMMIT');
         console.log('✅ Durum constraint güncellendi (revize_gerekli eklendi)');
