@@ -173,35 +173,31 @@ export default function SoruDetay() {
           <button onClick={() => navigate('/sorular')} className="btn btn-secondary">← Geri</button>
 
           {/* İNCELEME AKSİYONLARI (ÜSTTE) */}
-          {user?.rol === 'incelemeci' && ['inceleme_bekliyor', 'beklemede', 'revize_gerekli'].includes(soru.durum) && (
-            <div className="flex items-center bg-purple-50 p-1 rounded-lg border border-purple-100 shadow-sm ml-2">
+          {user?.rol === 'incelemeci' && (
+            <div className="flex items-center bg-purple-50 p-1.5 rounded-xl border border-purple-200 shadow-sm ml-2">
               <button
                 onClick={async () => {
-                  if (!confirm('Soruyu ONAYLAYIP Dizgiye göndermek istiyor musunuz?')) return;
+                  const hasNotes = revizeNotlari.length > 0;
+                  const msg = hasNotes
+                    ? "Notlarınız var. İncelemeyi bitirip bu notları Dizgiye göndermek istiyor musunuz?"
+                    : "Soruyu hatasız olarak ONAYLAYIP Dizgiye göndermek istiyor musunuz?";
+
+                  if (!confirm(msg)) return;
+
                   try {
-                    await soruAPI.updateDurum(id, { newStatus: 'dizgi_bekliyor', aciklama: 'İnceleme hatasız onaylandı.', inceleme_turu: incelemeTuru });
-                    alert('Onaylandı ve Dizgiye gönderildi.');
+                    const newStatus = hasNotes ? 'revize_istendi' : 'dizgi_bekliyor';
+                    await soruAPI.updateDurum(id, {
+                      newStatus,
+                      aciklama: hasNotes ? (dizgiNotu || 'Metin üzerinde hatalar belirtildi.') : 'İnceleme hatasız tamamlandı.',
+                      inceleme_turu: incelemeTuru
+                    });
+                    alert('İnceleme tamamlandı, Dizgiye gönderildi.');
                     navigate('/dashboard');
                   } catch (e) { alert('Hata oluştu'); }
                 }}
-                className="px-4 py-2 bg-green-600 text-white rounded font-bold text-sm hover:bg-green-700 transition"
+                className="px-6 py-2.5 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700 transition shadow-md flex items-center gap-2"
               >
-                ✓ Onayla ve Dizgiye Gönder
-              </button>
-              <div className="w-px h-6 bg-purple-200 mx-2"></div>
-              <button
-                onClick={async () => {
-                  if (revizeNotlari.length === 0 && !dizgiNotu) return alert('Lütfen metin üzerinde hata seçin veya not girin.');
-                  if (!confirm('Belirttiğiniz notlarla birlikte Dizgiye gönderilecek. Onaylıyor musunuz?')) return;
-                  try {
-                    await soruAPI.updateDurum(id, { newStatus: 'revize_istendi', aciklama: dizgiNotu || 'Metin üzerinde hatalar belirtildi.' });
-                    alert('Hata notları Dizgiciye iletildi.');
-                    navigate('/dashboard');
-                  } catch (e) { alert('Hata'); }
-                }}
-                className="px-4 py-2 bg-amber-600 text-white rounded font-bold text-sm hover:bg-amber-700 transition"
-              >
-                ⚠️ Notlarla Dizgiye Gönder
+                🚀 İncelemeyi Bitir ve Dizgiye Gönder
               </button>
             </div>
           )}
