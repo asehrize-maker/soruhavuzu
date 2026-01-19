@@ -2,8 +2,48 @@ import express from 'express';
 import pool from '../config/database.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
+import bcrypt from 'bcryptjs';
 
 const router = express.Router();
+
+// Admin: yeni kullanıcı oluştur
+router.post('/admin-create', authenticate, authorize('admin'), async (req, res, next) => {
+  try {
+    const { ad_soyad, email, sifre, rol, ekip_id, brans_id, inceleme_alanci, inceleme_dilci } = req.body;
+
+    if (!ad_soyad || !email || !sifre || !rol) {
+      throw new AppError('ad_soyad, email, sifre ve rol zorunludur', 400);
+    }
+
+    const allowedRoles = ['admin', 'soru_yazici', 'dizgici', 'incelemeci'];
+    if (!allowedRoles.includes(rol)) {
+      throw new AppError('Geçersiz rol', 400);
+    }
+
+    const emailCheck = await pool.query('SELECT id FROM kullanicilar WHERE email = $1', [email]);
+    if (emailCheck.rows.length > 0) {
+      throw new AppError('Bu email zaten kayıtlı', 400);
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashed = await bcrypt.hash(sifre, salt);
+
+    const isIncelemeci = rol === 'incelemeci';
+    const flagAlan = isIncelemeci ? !!inceleme_alanci : false;
+    const flagDil = isIncelemeci ? !!inceleme_dilci : false;
+
+    const insert = await pool.query(
+      `INSERT INTO kullanicilar (ad_soyad, email, sifre, rol, ekip_id, brans_id, inceleme_alanci, inceleme_dilci)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, ad_soyad, email, rol, ekip_id, brans_id, inceleme_alanci, inceleme_dilci, aktif`,
+      [ad_soyad, email, hashed, rol, ekip_id || null, brans_id || null, flagAlan, flagDil]
+    );
+
+    res.status(201).json({ success: true, data: insert.rows[0] });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Tüm kullanıcıları getir (Sadece admin)
 router.get('/', authenticate, authorize('admin'), async (req, res, next) => {

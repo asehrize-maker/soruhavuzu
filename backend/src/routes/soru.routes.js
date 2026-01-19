@@ -93,11 +93,10 @@ router.get('/', authenticate, async (req, res, next) => {
 
     // Rol bazlı filtreleme
     if (req.user.rol === 'soru_yazici') {
-      // Soru yazıcı:
-      // 1. Kendi oluşturduğu tüm soruları görür.
-      // 2. Kendi branşındaki 'tamamlandi' durumundaki soruları görür (Havuz mantığı).
+      // Soru yazarı, iki inceleme onayı bitmeden kendi sorusunu göremez.
+      // Yalnızca kendi sorusu iki onay almışsa veya tamamlandıysa listeleyebilir.
       query += ` AND (
-        s.olusturan_kullanici_id = $${paramCount++} 
+        (s.olusturan_kullanici_id = $${paramCount++} AND s.onay_alanci = true AND s.onay_dilci = true)
         OR s.durum = 'tamamlandi'
       )`;
       params.push(req.user.id);
@@ -175,8 +174,14 @@ router.get('/:id(\\d+)', authenticate, async (req, res, next) => {
     const soru = result.rows[0];
 
     // Yetki kontrolü
-    if (req.user.rol === 'soru_yazici' && soru.olusturan_kullanici_id !== req.user.id) {
-      throw new AppError('Bu soruyu görme yetkiniz yok', 403);
+    if (req.user.rol === 'soru_yazici') {
+      if (soru.olusturan_kullanici_id !== req.user.id) {
+        throw new AppError('Bu soruyu görme yetkiniz yok', 403);
+      }
+      // Yazar, iki inceleme onayı tamamlanmadan soruyu göremez
+      if (!(soru.onay_alanci && soru.onay_dilci) && soru.durum !== 'tamamlandi') {
+        throw new AppError('Bu soruyu inceleme tamamlanana kadar görüntüleyemezsiniz', 403);
+      }
     }
 
     // Dizgi geçmişi
@@ -562,14 +567,14 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
       const { onay_alanci, onay_dilci, olusturan_kullanici_id } = check.rows[0];
 
       if (onay_alanci && onay_dilci) {
-        // İkisi de tamamsa Branşa (Revize İstendi) gönder
+        // İkisi de tamamsa otomatik dizgi sırasına gönder
         result = await pool.query(
-          `UPDATE sorular SET durum = 'revize_istendi', guncellenme_tarihi = NOW() WHERE id = $1 RETURNING *`,
+          `UPDATE sorular SET durum = 'dizgi_bekliyor', guncellenme_tarihi = NOW() WHERE id = $1 RETURNING *`,
           [id]
         );
-        message = 'Tüm incelemeler tamamlandı, soru Branşa geri gönderildi.';
+        message = 'Tüm incelemeler tamamlandı, soru dizgiye gönderildi.';
         if (olusturan_kullanici_id) {
-          await createNotification(olusturan_kullanici_id, 'İnceleme Tamamlandı', `#${id} nolu sorunuzun tüm incelemeleri bitti, kontrol edebilirsiniz.`, 'info', `/sorular/${id}`);
+          await createNotification(olusturan_kullanici_id, 'İnceleme Tamamlandı', `#${id} nolu sorunuzun tüm incelemeleri bitti ve dizgiye gönderildi.`, 'info', `/sorular/${id}`);
         }
       } else {
         const currentRes = await pool.query('SELECT * FROM sorular WHERE id = $1', [id]);
@@ -742,17 +747,17 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
     try {
       await client.query('BEGIN');
 
-      // Soruyu güncelle -> Dizgiden dönen soru tekrar incelemeye gider
+      // Soruyu güncelle -> Dizgiden çıkan soru artık havuza gider
       const soruResult = await client.query(
         `UPDATE sorular 
-         SET durum = 'inceleme_bekliyor', guncellenme_tarihi = CURRENT_TIMESTAMP,
+         SET durum = 'tamamlandi',
+          guncellenme_tarihi = CURRENT_TIMESTAMP,
+          dizgi_bitis_tarihi = CURRENT_TIMESTAMP,
           versiyon = COALESCE(versiyon, 1) + 1
          WHERE id = $1 AND dizgici_id = $2
          RETURNING * `,
         [id, req.user.id]
       );
-
-      const soru = soruResult.rows[0];
 
       // Versiyon geçmişine kaydet (Dizgici değişikliği)
       // Önce mevcut halini kaydetmek gerekirdi ama burada update yaptık.
@@ -779,7 +784,7 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
       res.json({
         success: true,
         data: soruResult.rows[0],
-        message: 'Dizgi tamamlandı'
+        message: 'Dizgi tamamlandı ve soru havuza aktarıldı'
       });
     } catch (error) {
       await client.query('ROLLBACK');
