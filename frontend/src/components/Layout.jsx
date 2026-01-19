@@ -1,9 +1,100 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import { kullaniciMesajAPI, bildirimAPI } from '../services/api';
+import { kullaniciMesajAPI, bildirimAPI, soruAPI } from '../services/api';
 
 export default function Layout() {
+  function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
+    const [sorular, setSorular] = useState([]);
+    const [listLoading, setListLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+      const fetchSorular = async () => {
+        setListLoading(true);
+        setError(null);
+        try {
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Sunucu yanıt vermedi')), 10000));
+          const response = await Promise.race([soruAPI.getAll(), timeoutPromise]);
+
+          const allQuestions = response.data.data || [];
+
+          const filtered = allQuestions.filter(s => {
+            const isBransMatch = parseInt(s.brans_id) === parseInt(bransId);
+            if (!isBransMatch) return false;
+            const isStatusSuitable = ['inceleme_bekliyor', 'beklemede', 'incelemede', 'dizgide'].includes(s.durum);
+
+            let isPendingReview = false;
+            if (reviewMode === 'alanci') isPendingReview = !s.onay_alanci;
+            if (reviewMode === 'dilci') isPendingReview = !s.onay_dilci;
+
+            const notFinished = s.durum !== 'dizgi_bekliyor' && s.durum !== 'tamamlandi';
+
+            return isStatusSuitable && isPendingReview && notFinished;
+          });
+          setSorular(filtered);
+        } catch (err) {
+          console.error("Sorular çekilemedi", err);
+          setError("Bir hata oluştu: " + (err.message));
+        } finally {
+          setListLoading(false);
+        }
+      };
+
+      if (bransId) {
+        fetchSorular();
+      }
+    }, [bransId, reviewMode]);
+
+    const content = (
+      <div className="mt-8">
+        <h3 className="text-xl font-bold text-gray-800 mb-4">{bransAdi} - İnceleme Bekleyen Sorular</h3>
+        {sorular.length === 0 ? (
+          <div className="p-6 bg-gray-50 rounded-lg text-center text-gray-500 border border-gray-200">
+            Bu branşta incelenecek soru bulunamadı.
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {sorular.map(soru => (
+              <div key={soru.id} className="card flex justify-between items-center hover:bg-gray-50 border border-gray-100">
+                <div className="flex items-center gap-4">
+                  {soru.fotograf_url && (
+                    <img src={soru.fotograf_url} alt="" className="w-16 h-16 object-contain border rounded bg-white shadow-sm" />
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${soru.zorluk_seviyesi === 'kolay' || soru.zorluk_seviyesi === 1 ? 'bg-green-100 text-green-800' :
+                          soru.zorluk_seviyesi === 'orta' || soru.zorluk_seviyesi === 2 || soru.zorluk_seviyesi === 3 ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                        }`}>
+                        {['ÇOK KOLAY', 'KOLAY', 'ORTA', 'ZOR', 'ÇOK ZOR'][soru.zorluk_seviyesi - 1] || String(soru.zorluk_seviyesi).toUpperCase()}
+                      </span>
+                      <span className="text-xs text-gray-500">#{soru.id}</span>
+                    </div>
+                    <div className="mt-1 font-medium text-gray-900 line-clamp-2" dangerouslySetInnerHTML={{ __html: soru.soru_metni?.substring(0, 300) }} />
+                    <p className="text-xs text-gray-500 mt-1">Yazar: {soru.olusturan_kullanici_ad_soyad} • Tarih: {new Date(soru.olusturulma_tarihi).toLocaleDateString("tr-TR")}</p>
+                  </div>
+                </div>
+                <Link to={`/sorular/${soru.id}?incelemeTuru=${reviewMode}`} className={`px-4 py-2 text-white text-sm font-medium rounded hover:opacity-90 transition ${reviewMode === 'alanci' ? 'bg-blue-600' : 'bg-green-600'}`}>
+                  {reviewMode === 'alanci' ? 'Alan İncele' : 'Dil İncele'}
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+
+    if (error) return (
+      <div>
+        <div className="text-center py-2 text-red-800 bg-red-100 rounded-lg mb-4 border border-red-200">{error}</div>
+        {content}
+      </div>
+    );
+    if (listLoading) return <div className="text-center py-8">Yükleniyor...</div>;
+
+    return content;
+  }
   const { user: authUser, logout, viewRole, setViewRole } = useAuthStore();
   const navigate = useNavigate();
   const actualRole = authUser?.rol;
@@ -323,7 +414,7 @@ export default function Layout() {
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto bg-gray-50 p-6 md:p-8">
           <div className="max-w-7xl mx-auto">
-            <Outlet />
+            <Outlet context={{ effectiveRole }} />
           </div>
         </main>
       </div>
