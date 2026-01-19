@@ -293,7 +293,7 @@ export default function Sorular() {
             )}
           </h1>
         </div>
-        {user?.rol === 'soru_yazici' && (
+        {user?.rol === 'soru_yazici' && isTakipModu && (
           <Link to="/sorular/yeni" className="btn btn-primary">
             + Yeni Soru Ekle
           </Link>
@@ -384,7 +384,7 @@ export default function Sorular() {
               ? 'İlk soruyu ekleyerek soru havuzunu oluşturmaya başlayabilirsiniz.'
               : 'Bu kriterlere uygun henüz soru bulunmamaktadır.'}
           </p>
-          {user?.rol === 'soru_yazici' && (
+          {user?.rol === 'soru_yazici' && isTakipModu && (
             <div className="mt-6">
               <Link to="/sorular/yeni" className="btn btn-primary">
                 + İlk Soruyu Ekle
