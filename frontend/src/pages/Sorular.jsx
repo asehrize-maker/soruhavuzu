@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { soruAPI, bransAPI } from '../services/api';
 
@@ -8,13 +8,26 @@ export default function Sorular() {
   const effectiveRole = viewRole || authUser?.rol;
   const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
 
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const isTakipModu = queryParams.get('takip') === '1';
+
   const [sorular, setSorular] = useState([]);
   const [loading, setLoading] = useState(true);
   const [branslar, setBranslar] = useState([]);
   const [filters, setFilters] = useState({
-    durum: '',
+    durum: isTakipModu ? '' : 'tamamlandi',
     brans_id: '',
   });
+
+  // reset filter when switching modes
+  useEffect(() => {
+    setFilters(prev => ({
+      ...prev,
+      durum: isTakipModu ? '' : 'tamamlandi'
+    }));
+  }, [isTakipModu]);
+
   const [selectedQuestions, setSelectedQuestions] = useState([]);
 
   useEffect(() => {
@@ -230,7 +243,7 @@ export default function Sorular() {
             </button>
           )}
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            Sorular
+            {isTakipModu ? 'Soru Takibi' : 'Hazır Soru Havuzu'}
             {user?.rol === 'admin' && filters.brans_id && (
               <span className="text-gray-400 font-light ml-3 text-2xl flex items-center">
                 <span className="mx-2">/</span>
@@ -249,22 +262,24 @@ export default function Sorular() {
       {/* Filtreler */}
       <div className="card">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Durum</label>
-            <select
-              className="input"
-              value={filters.durum}
-              onChange={(e) => setFilters({ ...filters, durum: e.target.value })}
-            >
-              <option value="">Tümü</option>
-              <option value="beklemede">Beklemede</option>
-              <option value="dizgi_bekliyor">Dizgi Bekliyor</option>
-              <option value="dizgide">Dizgide</option>
-              <option value="tamamlandi">Tamamlandı</option>
-              <option value="revize_gerekli">Revize Gerekli</option>
-              <option value="revize_istendi">Revize İstendi</option>
-            </select>
-          </div>
+          {isTakipModu && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Durum</label>
+              <select
+                className="input"
+                value={filters.durum}
+                onChange={(e) => setFilters({ ...filters, durum: e.target.value })}
+              >
+                <option value="">Tümü</option>
+                <option value="beklemede">Beklemede</option>
+                <option value="dizgi_bekliyor">Dizgi Bekliyor</option>
+                <option value="dizgide">Dizgide</option>
+                <option value="tamamlandi">Tamamlandı</option>
+                <option value="revize_gerekli">Revize Gerekli</option>
+                <option value="revize_istendi">Revize İstendi</option>
+              </select>
+            </div>
+          )}
 
           {user?.rol === 'admin' && (
             <div>
