@@ -626,7 +626,7 @@ export default function SoruDetay() {
   const isOwner = soru.olusturan_kullanici_id == user?.id;
   const isAdmin = effectiveRole === 'admin';
 
-  const availableStatusesForEdit = ['beklemede', 'revize_gerekli', 'revize_istendi', 'inceleme_tamam'];
+  const availableStatusesForEdit = ['beklemede', 'revize_gerekli', 'revize_istendi', 'inceleme_tamam', 'dizgi_bekliyor'];
   const canEdit = !incelemeTuru && (
     isAdmin ||
     (isOwner && availableStatusesForEdit.includes(soru.durum))
@@ -663,7 +663,7 @@ export default function SoruDetay() {
               )}
 
               {/* BRANŞ (YAZAR) VEYA ADMIN İÇİN AKSİYONLAR (Dizgiye veya İncelemeye Gönder) */}
-              {(isAdmin || isOwner) && ['revize_istendi', 'tamamlandi', 'inceleme_tamam'].includes(soru.durum) && (
+              {(isAdmin || isOwner) && ['revize_istendi', 'tamamlandi', 'inceleme_tamam', 'dizgi_bekliyor'].includes(soru.durum) && (
                 <>
                   {/* Düzenle Butonu - Sadece gerekli durumlarda */}
                   {canEdit && (
