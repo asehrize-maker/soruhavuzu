@@ -5,8 +5,6 @@ import { soruAPI, bransAPI } from '../services/api';
 import {
   ArrowsPointingOutIcon,
   TrashIcon,
-  ArrowUpIcon,
-  ArrowDownIcon,
   PhotoIcon,
   Bars3BottomLeftIcon,
   Bars3Icon,
@@ -14,12 +12,20 @@ import {
   QueueListIcon,
   Squares2X2Icon,
   BoldIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  Bars4Icon // Handle icon for drag
 } from '@heroicons/react/24/outline';
 
 // --- İMLEÇ KORUMALI EDİTÖR ---
 const EditableBlock = memo(({ initialHtml, onChange, className, placeholder, style, label }) => {
   const ref = useRef(null);
+
+  // İçerik boşsa placeholder gösterimini CSS empty:before ile yapıyoruz ama
+  // Kullanıcı "yazı yazsın istemiyorum" dediği için placeholder'ı boş bırakabiliriz veya çok silik yapabiliriz.
+  // Kullanıcı "Soru kökü metin paragraf... gibi mantıklı bir şey yap" dediği için
+  // Placeholder yerine sadece FOCUS olunca görünen veya hiç görünmeyen bir yapı kuracağız.
+  // En iyisi placeholder'ı kaldırmak, sadece focus olunca border/bg değişimi ile "buraya yaz" hissi vermek.
+
   useEffect(() => {
     if (ref.current && ref.current.innerHTML !== initialHtml) {
       ref.current.innerHTML = initialHtml;
@@ -27,25 +33,31 @@ const EditableBlock = memo(({ initialHtml, onChange, className, placeholder, sty
   }, []);
 
   return (
-    <div className="relative group/edit">
-      {/* Etiket (Hoverda veya boşken görünür) */}
-      <div className="absolute -top-3 left-0 text-[9px] font-bold text-gray-400 bg-gray-50 px-1 rounded opacity-0 group-hover/edit:opacity-100 transition pointer-events-none uppercase tracking-wider border border-gray-100">
+    <div className="relative group/edit w-full">
+      {/* Etiket (Sadece hoverda görünen küçük ipucu) */}
+      <div className="absolute -top-2 left-0 text-[8px] text-gray-300 font-mono px-1 opacity-0 group-hover/edit:opacity-100 transition pointer-events-none uppercase">
         {label}
       </div>
       <div
         ref={ref}
         contentEditable
         suppressContentEditableWarning
-        className={`outline-none empty:before:content-[attr(placeholder)] empty:before:text-gray-400 min-h-[1.5em] focus:bg-blue-50/10 transition rounded px-1 ${className || ''}`}
+        className={`outline-none min-h-[1.5em] hover:bg-gray-50 focus:bg-blue-50/20 transition rounded px-1 ${className || ''}`}
         style={style}
-        placeholder={placeholder}
+        // placeholder={placeholder} // Placeholder'ı kaldırdık (User request: "o yazılar olmasın")
         onInput={(e) => onChange(e.currentTarget.innerHTML)}
       />
+      {/* Boşsa gösterilecek minimal rehber (Sadece focus değilken) */}
+      {(!initialHtml || initialHtml === '<br>') && (
+        <div className="absolute top-0 left-1 text-gray-200 text-sm pointer-events-none select-none italic pointer-events-none">
+          {placeholder}
+        </div>
+      )}
     </div>
   );
 }, () => true);
 
-// --- GELİŞMİŞ GÖRSEL EDİTÖRÜ ---
+// --- RESIZABLE IMAGE ---
 const ResizableImage = ({ src, width, height, align, onUpdate, onDelete }) => {
   const [isResizing, setIsResizing] = useState(false);
   const [resizeMode, setResizeMode] = useState(null);
@@ -76,7 +88,6 @@ const ResizableImage = ({ src, width, height, align, onUpdate, onDelete }) => {
         if (newWidthPercent > 100) newWidthPercent = 100;
         updates.width = newWidthPercent;
       }
-
       if (mode === 'se' || mode === 's') {
         if (mode === 's' || (mode === 'se' && height !== 'auto')) {
           let newHeightPx = startHeightPx + diffY;
@@ -135,22 +146,12 @@ export default function SoruEkle() {
   const { user } = useAuthStore();
   const [widthMode, setWidthMode] = useState('dar');
 
-  // VARSAYILAN BAŞLANGIÇ: GÖVDE + KÖK
-  const [components, setComponents] = useState([
-    {
-      id: 'init_govde', type: 'text', subtype: 'govde', content: '',
-      placeholder: 'Soru Gövdesi: Metin, paragraf veya ön bilgi buraya girilir.',
-      label: 'Gövde'
-    },
-    {
-      id: 'init_koku', type: 'text', subtype: 'koku', content: '',
-      placeholder: 'Soru Kökü: Soru cümlesi buraya girilir.',
-      label: 'Soru Kökü'
-    }
-  ]);
+  // DRAG & DROP İÇİN BAŞLANGIÇ: BOŞ ARRAY (Kullanıcı istediği için)
+  const [components, setComponents] = useState([]);
 
   const [metadata, setMetadata] = useState({ zorluk: '3', dogruCevap: '', brans_id: '', kazanim: '' });
   const [branslar, setBranslar] = useState([]);
+  const [draggedItemIndex, setDraggedItemIndex] = useState(null);
 
   useEffect(() => {
     const loadBranslar = async () => {
@@ -163,20 +164,20 @@ export default function SoruEkle() {
     loadBranslar();
   }, [user]);
 
-  const addGovde = () => setComponents([...components, { id: Date.now(), type: 'text', subtype: 'govde', content: '', placeholder: 'Soru Gövdesi...', label: 'Gövde' }]);
-  const addKoku = () => setComponents([...components, { id: Date.now(), type: 'text', subtype: 'koku', content: '', placeholder: 'Soru Kökü...', label: 'Soru Kökü' }]);
+  // Ekleme Fonksiyonları (Sidebar Tetiklemeli)
+  const addGovde = () => setComponents([...components, { id: Date.now(), type: 'text', subtype: 'govde', content: '', placeholder: 'Gövde', label: 'Gövde' }]);
+  const addKoku = () => setComponents([...components, { id: Date.now(), type: 'text', subtype: 'koku', content: '', placeholder: 'Soru Kökü', label: 'Kök' }]);
 
   const addSecenekler = (mode = 'list') => {
     const baseId = Date.now();
     const opts = ['A', 'B', 'C', 'D'];
-
     const newComps = opts.map((opt, idx) => {
       let styleProps = { width: 100, float: 'none' };
       if (mode === 'grid') { styleProps = { width: 48, float: 'left' }; }
       return {
         id: baseId + idx,
         type: 'text', subtype: 'secenek', content: `<b>${opt})</b> `,
-        placeholder: `${opt} seçeneği...`,
+        placeholder: `${opt}`,
         label: `Seçenek ${opt}`,
         ...styleProps
       };
@@ -193,16 +194,36 @@ export default function SoruEkle() {
 
   const updateComponent = (id, updates) => setComponents(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
   const removeComponent = (id) => setComponents(prev => prev.filter(c => c.id !== id));
-  const moveComponent = (index, direction) => {
-    if ((direction === -1 && index === 0) || (direction === 1 && index === components.length - 1)) return;
+
+  // --- DRAG & DROP LOGIC ---
+  const onDragStart = (e, index) => {
+    setDraggedItemIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    // Şeffaf görsel vs ayarlanabilir ama default yeterli
+  };
+
+  const onDragOver = (e, index) => {
+    e.preventDefault(); // Drop'a izin ver
+    if (draggedItemIndex === null || draggedItemIndex === index) return;
+
+    // Swap items in real-time (daha akıcı hissettirir)
     const newComps = [...components];
-    [newComps[index], newComps[index + direction]] = [newComps[index + direction], newComps[index]];
+    const draggedItem = newComps[draggedItemIndex];
+    newComps.splice(draggedItemIndex, 1);
+    newComps.splice(index, 0, draggedItem);
+
     setComponents(newComps);
+    setDraggedItemIndex(index);
+  };
+
+  const onDragEnd = () => {
+    setDraggedItemIndex(null);
   };
 
   const execCmd = (cmd) => document.execCommand(cmd, false, null);
 
   const handleSave = async () => {
+    if (components.length === 0) return alert("Soru içeriği boş!");
     if (!metadata.dogruCevap) return alert("Lütfen Doğru Cevabı seçiniz.");
     if (!metadata.brans_id) return alert("Lütfen Branş seçiniz!");
 
@@ -254,7 +275,7 @@ export default function SoruEkle() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F3F2F1] pb-32 font-sans">
+    <div className="min-h-screen bg-[#F3F2F1] pb-32 font-sans select-none">
       <div className="bg-[#0078D4] text-white p-3 shadow-md flex justify-between items-center sticky top-0 z-50">
         <div className="flex items-center gap-4">
           <h1 className="text-lg font-semibold flex items-center gap-2"><PhotoIcon className="w-5 h-5" /> Gelişmiş Dizgi Editörü</h1>
@@ -274,10 +295,10 @@ export default function SoruEkle() {
           {/* SIDEBAR TOOLS */}
           <div className="bg-white p-2 rounded shadow border flex flex-col gap-2 w-36">
             <span className="text-xs font-bold text-gray-400 uppercase text-center mb-1">Ekle</span>
-            <button onClick={addGovde} className="flex items-center gap-2 p-2 hover:bg-blue-50 text-blue-700 rounded text-sm font-bold border border-transparent hover:border-blue-200 transition text-left">
+            <button onClick={addGovde} className="flex items-center gap-2 p-2 hover:bg-blue-50 text-blue-700 rounded text-sm font-bold border border-transparent hover:border-blue-200 transition text-left group">
               <DocumentTextIcon className="w-5 h-5" /> Gövde
             </button>
-            <button onClick={addKoku} className="flex items-center gap-2 p-2 hover:bg-purple-50 text-purple-700 rounded text-sm font-bold border border-transparent hover:border-purple-200 transition text-left">
+            <button onClick={addKoku} className="flex items-center gap-2 p-2 hover:bg-purple-50 text-purple-700 rounded text-sm font-bold border border-transparent hover:border-purple-200 transition text-left group">
               <BoldIcon className="w-5 h-5" /> Kök
             </button>
 
@@ -302,6 +323,7 @@ export default function SoruEkle() {
         <div className="bg-white shadow-2xl transition-all duration-300 relative flex flex-col group"
           style={{ width: widthMode === 'dar' ? '82.4mm' : '169.6mm', minHeight: '120mm', padding: '10mm', paddingTop: '15mm' }}>
 
+          {/* FORMAT TOOLBAR */}
           <div className="absolute top-0 left-0 right-0 bg-gray-50 border-b p-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition duration-300">
             <RibbonButton cmd="bold" label="B" />
             <RibbonButton cmd="italic" label="I" />
@@ -312,26 +334,34 @@ export default function SoruEkle() {
           </div>
 
           <div className="space-y-1 relative" style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}>
-            {/* Soru No Kaldırıldı ve Silik Yazı Placeholder Olarak Düzenlendi */}
+
             {components.map((comp, index) => (
-              <div key={comp.id} className="relative group/item hover:ring-1 hover:ring-blue-100 rounded px-1 transition"
+              <div
+                key={comp.id}
+                className={`relative group/item rounded px-1 transition ${draggedItemIndex === index ? 'opacity-50 bg-blue-50' : 'hover:ring-1 hover:ring-blue-100'}`}
                 style={{
                   float: comp.float || 'none',
                   width: comp.width && comp.subtype === 'secenek' ? `${comp.width}%` : 'auto',
                   marginRight: comp.float === 'left' ? '2%' : '0'
-                }}>
-                <div className="absolute -left-6 top-1 flex flex-col gap-1 opacity-0 group-hover/item:opacity-100 transition z-10 w-5">
-                  <button onClick={() => moveComponent(index, -1)} className="p-0.5 bg-white hover:bg-gray-100 rounded border shadow text-gray-500"><ArrowUpIcon className="w-3 h-3" /></button>
-                  <button onClick={() => moveComponent(index, 1)} className="p-0.5 bg-white hover:bg-gray-100 rounded border shadow text-gray-500"><ArrowDownIcon className="w-3 h-3" /></button>
-                  <button onClick={() => removeComponent(comp.id)} className="p-0.5 bg-white hover:bg-red-50 rounded border shadow text-red-500"><TrashIcon className="w-3 h-3" /></button>
+                }}
+                draggable="true"
+                onDragStart={(e) => onDragStart(e, index)}
+                onDragOver={(e) => onDragOver(e, index)}
+                onDragEnd={onDragEnd}
+              >
+                {/* Drag Handle & Delete (Sol tarafta sade sap) */}
+                <div className="absolute -left-6 top-1 flex flex-col gap-1 opacity-0 group-hover/item:opacity-100 transition z-10 w-5 cursor-grab active:cursor-grabbing">
+                  <div title="Sürükle" className="p-0.5 text-gray-400 hover:text-blue-500"><Bars4Icon className="w-4 h-4" /></div>
+                  <button onClick={() => removeComponent(comp.id)} className="p-0.5 text-red-300 hover:text-red-500"><TrashIcon className="w-4 h-4" /></button>
                 </div>
+
                 {comp.type === 'text' ? (
                   <EditableBlock
                     initialHtml={comp.content}
                     onChange={(html) => updateComponent(comp.id, { content: html })}
                     placeholder={comp.placeholder}
-                    label={comp.label} // EKLENDİ: Üste etiket koyar ("Gövde", "Kök" vs)
-                    className={comp.subtype === 'koku' ? 'font-bold bg-purple-50/10' : comp.subtype === 'secenek' ? 'pl-4 hover:bg-green-50/10' : ''}
+                    label={comp.label}
+                    className={comp.subtype === 'koku' ? 'font-bold' : ''}
                   />
                 ) : (
                   <ResizableImage src={comp.content} width={comp.width} height={comp.height} align={comp.align} onUpdate={(updates) => updateComponent(comp.id, updates)} onDelete={() => removeComponent(comp.id)} />
@@ -339,8 +369,15 @@ export default function SoruEkle() {
                 {comp.float === 'none' && <div style={{ clear: 'both' }}></div>}
               </div>
             ))}
+
+            {components.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-40 text-gray-300 border-2 border-dashed border-gray-100 rounded-lg select-none">
+                <DocumentTextIcon className="w-12 h-12 mb-2" />
+                <p>Sol menüden öğe ekleyiniz.</p>
+              </div>
+            )}
+
             <div style={{ clear: 'both' }}></div>
-            <div className="min-h-[3rem] cursor-text" onClick={() => { if (components.length === 0) addGovde(); }}></div>
           </div>
         </div>
       </div>
