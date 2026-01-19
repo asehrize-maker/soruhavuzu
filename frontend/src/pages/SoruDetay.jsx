@@ -564,6 +564,16 @@ export default function SoruDetay() {
                 </button>
               )}
 
+              {/* DİZGİCİ İÇİN DİZGİYE AL BUTONU (EĞER BEKLEMEDEYSE) */}
+              {effectiveRole === 'dizgici' && soru.durum === 'dizgi_bekliyor' && (
+                <button
+                  onClick={() => handleStatusUpdate('dizgide')}
+                  className="px-6 py-3 bg-orange-600 text-white rounded-xl font-black text-sm hover:bg-orange-700 transition shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] flex items-center gap-2 border-b-4 border-orange-800 active:border-b-0 active:translate-y-1"
+                >
+                  🚀 DİZGİYE AL
+                </button>
+              )}
+
               {/* DİZGİCİ İÇİN TAMAMLAMA BUTONU */}
               {effectiveRole === 'dizgici' && soru.durum === 'dizgide' && (
                 <button

@@ -98,9 +98,9 @@ router.get('/', authenticate, async (req, res, next) => {
       // 2. Kendi branşındaki 'tamamlandi' durumundaki soruları görür (Havuz mantığı).
       query += ` AND (
         s.olusturan_kullanici_id = $${paramCount++} 
-        OR (s.durum = 'tamamlandi' AND s.brans_id = $${paramCount++})
+        OR s.durum = 'tamamlandi'
       )`;
-      params.push(req.user.id, req.user.brans_id);
+      params.push(req.user.id);
     } else if (req.user.rol === 'dizgici') {
       // Dizgici sadece üzerine gelen aktif dizgi işlerini (bekliyor/dizgide) görür
       query += ` AND (s.durum = 'dizgi_bekliyor' OR s.durum = 'dizgide') AND (
@@ -560,12 +560,12 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
       );
       message = 'Soru dizgiye alındı.';
     } else if (yeni_durum === 'tamamlandi') {
-      // Final onay (Dizgici veya Admin)
+      // Final onay (Dizgici veya Admin) - Versiyonu bir artırarak "Final" yap
       result = await pool.query(
-        `UPDATE sorular SET durum = $1, guncellenme_tarihi = NOW() WHERE id = $2 RETURNING *`,
+        `UPDATE sorular SET durum = $1, versiyon = COALESCE(versiyon, 1) + 1, guncellenme_tarihi = NOW() WHERE id = $2 RETURNING *`,
         [yeni_durum, id]
       );
-      message = 'Soru tamamlandı ve yayınlandı.';
+      message = 'Soru tamamlandı ve son haliyle havuzda yayınlandı.';
     }
 
     // Açıklama varsa yorum olarak ekle

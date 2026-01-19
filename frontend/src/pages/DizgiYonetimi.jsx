@@ -102,16 +102,12 @@ export default function DizgiYonetimi() {
                     <h3 className="font-bold text-lg">Soru #{soru.id}</h3>
                     {getDurumBadge(soru.durum)}
                   </div>
-                  <p className="text-gray-700 mb-2">{soru.soru_metni}</p>
-                  <div className="text-sm text-gray-500">
-                    <p>Branş: {soru.brans_adi}</p>
-                    <p>Oluşturan: {soru.olusturan_ad}</p>
-                    {soru.latex_kodu && (
-                      <p className="text-blue-600">✓ LaTeX kodu mevcut</p>
-                    )}
-                    {soru.fotograf_url && (
-                      <p className="text-green-600">✓ Fotoğraf mevcut</p>
-                    )}
+                  <div className="text-gray-900 mb-3 text-sm border-l-4 border-gray-100 pl-3 py-1" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-gray-400">
+                    <span className="font-bold text-amber-600">V{soru.versiyon || 1}</span>
+                    <span>Branş: {soru.brans_adi}</span>
+                    <span>Oluşturan: {soru.olusturan_ad}</span>
+                    {soru.latex_kodu && <span className="text-blue-600">✓ LaTeX</span>}
                   </div>
                 </div>
 
