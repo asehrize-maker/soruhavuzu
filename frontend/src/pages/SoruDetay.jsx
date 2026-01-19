@@ -93,7 +93,7 @@ export default function SoruDetay() {
   }, [soru, revizeNotlari]);
 
   const handleTextSelection = () => {
-    if (!incelemeTuru) return;
+    if (!incelemeTuru && effectiveRole !== 'incelemeci' && effectiveRole !== 'admin') return;
     const selection = window.getSelection();
     const text = selection.toString().trim();
     if (text) setSelectedText(text);
@@ -102,10 +102,11 @@ export default function SoruDetay() {
   const handleAddRevizeNot = async () => {
     if (!revizeNotuInput.trim()) return;
     try {
+      const type = incelemeTuru || (effectiveRole === 'incelemeci' ? 'alanci' : 'admin');
       await soruAPI.addRevizeNot(id, {
         secilen_metin: selectedText,
         not_metni: revizeNotuInput,
-        inceleme_turu: incelemeTuru
+        inceleme_turu: type
       });
       setRevizeNotuInput('');
       setSelectedText('');
@@ -152,7 +153,7 @@ export default function SoruDetay() {
   if (loading) return <div className="text-center py-12"><div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div></div>;
   if (!soru) return null;
 
-  const canEdit = !incelemeTuru && (user?.rol !== 'admin') && (user?.rol !== 'incelemeci') && (soru.olusturan_kullanici_id === user?.id) &&
+  const canEdit = !incelemeTuru && (effectiveRole !== 'admin') && (effectiveRole !== 'incelemeci') && (soru.olusturan_kullanici_id === user?.id) &&
     (soru.durum === 'beklemede' || soru.durum === 'revize_gerekli' || soru.durum === 'revize_istendi');
 
   const getDurumBadge = (durum) => {
@@ -166,59 +167,62 @@ export default function SoruDetay() {
       {/* Header Area */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">📝 Soru Detayı <span className="text-[10px] bg-red-500 text-white px-1 rounded shadow">V2</span></h1>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">📝 Soru Detayı <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded shadow pulse italic">V3 - CANLI</span></h1>
           <p className="mt-2 text-gray-600">Soru #{soru.id}</p>
         </div>
         <div className="flex items-center space-x-2">
           <button onClick={() => navigate('/sorular')} className="btn btn-secondary">← Geri</button>
 
-          {/* İNCELEME AKSİYONLARI (ÜSTTE) */}
-          {incelemeTuru && (
-            <div className="flex items-center bg-purple-50 p-1.5 rounded-xl border border-purple-200 shadow-sm ml-2">
+          {/* İNCELEME AKSİYONLARI (ZORUNLU GÖRÜNÜR) */}
+          {(incelemeTuru || effectiveRole === 'incelemeci' || effectiveRole === 'admin') && soru.durum !== 'tamamlandi' && (
+            <div className="flex items-center bg-purple-50 p-1.5 rounded-xl border-2 border-purple-200 shadow-lg ml-2">
               <button
                 onClick={async () => {
                   const hasNotes = revizeNotlari.length > 0;
                   const msg = hasNotes
-                    ? "Notlarınız var. İncelemeyi bitirip bu notları Dizgiye göndermek istiyor musunuz?"
-                    : "Soruyu hatasız olarak ONAYLAYIP Dizgiye göndermek istiyor musunuz?";
+                    ? "Eklediğiniz notlarla birlikte incelemeyi bitirip Dizgiye göndermek istiyor musunuz?"
+                    : "Soruyu hatasız onaylayıp incelemeyi bitirmek istiyor musunuz?";
 
                   if (!confirm(msg)) return;
 
                   try {
+                    const type = incelemeTuru || (effectiveRole === 'incelemeci' ? 'alanci' : 'admin');
                     const newStatus = hasNotes ? 'revize_istendi' : 'dizgi_bekliyor';
                     await soruAPI.updateDurum(id, {
                       newStatus,
                       aciklama: hasNotes ? (dizgiNotu || 'Metin üzerinde hatalar belirtildi.') : 'İnceleme hatasız tamamlandı.',
-                      inceleme_turu: incelemeTuru
+                      inceleme_turu: type
                     });
-                    alert('İnceleme tamamlandı, Dizgiye gönderildi.');
+                    alert('İŞLEM TAMAMLANDI: Soru Dizgiye gönderildi.');
                     navigate('/dashboard');
-                  } catch (e) { alert('Hata oluştu'); }
+                  } catch (e) {
+                    alert('Hata: ' + (e.response?.data?.error || e.message));
+                  }
                 }}
-                className="px-6 py-2.5 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700 transition shadow-md flex items-center gap-2"
+                className="px-6 py-2.5 bg-green-600 text-white rounded-lg font-bold text-base hover:bg-green-700 transition shadow-md flex items-center gap-2 active:scale-95"
               >
-                🚀 İncelemeyi Bitir ve Dizgiye Gönder
+                🚀 İNCELEMEYİ BİTİR VE DİZGİYE GÖNDER
               </button>
             </div>
           )}
 
           {canEdit && !editMode && <button onClick={handleEditStart} className="btn btn-primary ml-2">✏️ Düzenle</button>}
-          {(user?.rol === 'admin' || soru.olusturan_kullanici_id === user?.id) && <button onClick={handleSil} className="btn btn-danger">Sil</button>}
+          {(effectiveRole === 'admin' || soru.olusturan_kullanici_id === user?.id) && <button onClick={handleSil} className="btn btn-danger">Sil</button>}
         </div>
       </div>
 
-      {/* İncelemeci İşlemleri Panel (Sidebar / Contextual) */}
-      {user?.rol === 'incelemeci' && ['inceleme_bekliyor', 'beklemede', 'revize_gerekli'].includes(soru.durum) && (
+      {/* İnceleme Bilgi Barı */}
+      {(incelemeTuru || effectiveRole === 'incelemeci' || effectiveRole === 'admin') && soru.durum !== 'tamamlandi' && (
         <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 flex items-center justify-between shadow-sm">
           <div className="flex items-center">
             <span className="text-2xl mr-3">⚡</span>
             <div>
               <div className="font-bold text-purple-900">İnceleme Modu Aktif</div>
-              <div className="text-xs text-purple-600">Hatalı kısımları metni seçerek işaretleyin. İşlem bitince yukarıdaki butonları kullanın.</div>
+              <div className="text-xs text-purple-600">Ekranda bir kelimeyi seçerek not ekleyebilir, işiniz bitince sağ üstteki yeşil butona basabilirsiniz.</div>
             </div>
           </div>
-          <span className={`px-4 py-1.5 rounded-full text-xs font-bold shadow-sm ${incelemeTuru === 'alanci' ? 'bg-blue-600 text-white' : 'bg-green-600 text-white'}`}>
-            {incelemeTuru === 'alanci' ? 'ALAN UZMANI' : 'DİL UZMANI'}
+          <span className="px-4 py-1.5 rounded-full text-xs font-bold shadow-sm bg-blue-600 text-white uppercase">
+            MOD: {incelemeTuru || 'GENEL'}
           </span>
         </div>
       )}
@@ -232,7 +236,7 @@ export default function SoruDetay() {
 
       {/* SORU KALIBI / FRAME */}
       <div className="relative border-4 border-gray-200 rounded-xl overflow-hidden bg-white shadow-2xl transition-all">
-        <div className={`p-8 min-h-[400px] relative z-10 ${incelemeTuru ? 'cursor-text' : ''}`}>
+        <div className={`p-8 min-h-[400px] relative z-10 ${(incelemeTuru || effectiveRole === 'incelemeci' || effectiveRole === 'admin') ? 'cursor-text' : ''}`}>
           <div className="prose max-w-none">
             {editMode ? (
               <div className="space-y-4 pointer-events-auto">
@@ -299,7 +303,7 @@ export default function SoruDetay() {
                   </div>
                   <p className="text-gray-900 font-medium">{not.not_metni}</p>
                 </div>
-                {(user?.id === not.kullanici_id || user?.rol === 'admin') && (
+                {(effectiveRole === 'admin' || user?.id === not.kullanici_id) && (
                   <button onClick={() => handleDeleteRevizeNot(not.id)} className="text-red-400 hover:text-red-700 transition self-start">
                     ✕
                   </button>
@@ -313,17 +317,94 @@ export default function SoruDetay() {
       {/* Popover */}
       {selectedText && (
         <div className="fixed bottom-12 right-12 z-50 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-bounce-in">
-          <div className={`p-4 font-bold text-white flex justify-between items-center ${incelemeTuru === 'alanci' ? 'bg-blue-600' : 'bg-green-600'}`}>
+          <div className={`p-4 font-bold text-white flex justify-between items-center bg-purple-600 shadow-lg`}>
             <span>Not Ekle (Madde {revizeNotlari.length + 1})</span>
             <button onClick={() => setSelectedText('')}>✕</button>
           </div>
           <div className="p-4">
             <div className="text-[10px] text-gray-400 mb-2 italic">"{selectedText.substring(0, 60)}..."</div>
-            <textarea className="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-blue-500" rows="3" placeholder="Bu kısımdaki hatayı açıklayın..." value={revizeNotuInput} onChange={(e) => setRevizeNotuInput(e.target.value)} />
-            <button onClick={handleAddRevizeNot} className="w-full mt-2 py-2 bg-gray-800 text-white rounded-lg font-bold hover:bg-black">Kaydet</button>
+            <textarea className="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-purple-500" rows="3" placeholder="Bu kısımdaki hatayı açıklayın..." value={revizeNotuInput} onChange={(e) => setEditData({ ...editData, revize_input_temp: e.target.value })} />
+            <button onClick={() => {
+              const val = document.querySelector('textarea[placeholder="Bu kısımdaki hatayı açıklayın..."]').value;
+              setRevizeNotuInput(val);
+              handleAddRevizeNot();
+            }} className="w-full mt-2 py-2 bg-gray-800 text-white rounded-lg font-bold hover:bg-black">Kaydet</button>
           </div>
         </div>
       )}
+
+      {/* Yorumlar Paneli */}
+      <div className="card">
+        <h3 className="text-xl font-bold mb-6 text-gray-800">İnceleme Yorumları</h3>
+        <IncelemeYorumlari soruId={id} />
+      </div>
+
+      {/* Versiyon Geçmişi */}
+      {(effectiveRole === 'admin' || user?.id === soru.olusturan_kullanici_id) && (
+        <div className="card">
+          <h3 className="text-xl font-bold mb-6 text-gray-800">Sürüm Geçmişi</h3>
+          <VersiyonGecmisi soruId={id} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function IncelemeYorumlari({ soruId }) {
+  const [yorumlar, setYorumlar] = useState([]);
+  const [yeniYorum, setYeniYorum] = useState('');
+  const [loading, setLoading] = useState(true);
+  const loadYorumlar = async () => {
+    try { const res = await soruAPI.getComments(soruId); setYorumlar(res.data.data); } catch (e) { } finally { setLoading(false); }
+  };
+  useEffect(() => { loadYorumlar(); }, [soruId]);
+  const handleYorumEkle = async () => {
+    if (!yeniYorum.trim()) return;
+    try { await soruAPI.addComment(soruId, yeniYorum); setYeniYorum(''); loadYorumlar(); } catch (e) { }
+  };
+  return (
+    <div className="flex flex-col h-full min-h-[200px]">
+      <div className="flex-1 space-y-3">
+        {loading ? <p className="text-center text-gray-400">Yükleniyor...</p> : yorumlar.length === 0 ? <p className="text-center text-gray-400 italic text-sm">Hiç yorum yok.</p> :
+          yorumlar.map((y) => (
+            <div key={y.id} className="bg-white border rounded-xl p-4 shadow-sm">
+              <div className="flex justify-between items-baseline mb-2">
+                <span className="font-bold text-gray-900">{y.ad_soyad} <span className="text-[10px] font-normal text-gray-400 uppercase">({y.rol})</span></span>
+                <span className="text-[10px] text-gray-400">{new Date(y.tarih).toLocaleDateString()}</span>
+              </div>
+              <p className="text-gray-700 text-sm whitespace-pre-wrap">{y.yorum_metni}</p>
+            </div>
+          ))}
+      </div>
+      <div className="mt-6 flex gap-2">
+        <input type="text" className="input shadow-inner" placeholder="İnceleme notu yazın..." value={yeniYorum} onChange={(e) => setYeniYorum(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleYorumEkle()} />
+        <button onClick={handleYorumEkle} className="btn btn-primary px-8">Ekle</button>
+      </div>
+    </div>
+  );
+}
+
+function VersiyonGecmisi({ soruId }) {
+  const [versiyonlar, setVersiyonlar] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const load = async () => { try { const res = await soruAPI.getHistory(soruId); setVersiyonlar(res.data.data); } catch (e) { } finally { setLoading(false); } };
+    load();
+  }, [soruId]);
+  if (loading) return <div className="text-center py-4">Sürümler yükleniyor...</div>;
+  if (versiyonlar.length === 0) return <p className="text-center text-gray-400 italic">Henüz bir sürüm geçmişi yok.</p>;
+  return (
+    <div className="space-y-4">
+      {versiyonlar.map((v) => (
+        <div key={v.id} className="border rounded-xl p-4 bg-gray-50 hover:bg-white transition-all shadow-sm">
+          <div className="flex justify-between items-center mb-2">
+            <span className="bg-gray-800 text-white px-2 py-0.5 rounded text-[10px] font-bold">v{v.versiyon_no}</span>
+            <span className="text-[10px] text-gray-400">{new Date(v.degisim_tarihi).toLocaleString()}</span>
+          </div>
+          <div className="font-bold text-sm text-gray-900 mb-2">{v.ad_soyad}</div>
+          <div className="text-xs text-gray-600 line-clamp-2 italic">"{v.degisim_aciklamasi || 'Soru güncellendi'}"</div>
+        </div>
+      ))}
     </div>
   );
 }
