@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { userAPI, ekipAPI, bransAPI } from '../services/api';
 
 export default function Kullanicilar() {
   const [kullanicilar, setKullanicilar] = useState([]);
   const [ekipler, setEkipler] = useState([]);
   const [branslar, setBranslar] = useState([]);
-  const [filteredBranslar, setFilteredBranslar] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -26,11 +26,15 @@ export default function Kullanicilar() {
     loadData();
   }, []);
 
+  const filteredBranslar = useMemo(() => {
+    if (!formData.ekip_id) return [];
+    return branslar.filter(b => String(b.ekip_id) === String(formData.ekip_id));
+  }, [formData.ekip_id, branslar]);
+
+  // Branş seçimlerini ekip değiştiğinde temizle/doğrula
   useEffect(() => {
     if (formData.ekip_id) {
-      const ekipBranslar = branslar.filter(b => b.ekip_id === parseInt(formData.ekip_id));
-      setFilteredBranslar(ekipBranslar);
-      const ekipBransIds = ekipBranslar.map(b => b.id);
+      const ekipBransIds = filteredBranslar.map(b => b.id);
       const gecerliBransIds = formData.brans_ids.filter(id => ekipBransIds.includes(id));
       if (gecerliBransIds.length !== formData.brans_ids.length) {
         setFormData(prev => ({
@@ -39,10 +43,8 @@ export default function Kullanicilar() {
           brans_id: gecerliBransIds[0] || ''
         }));
       }
-    } else {
-      setFilteredBranslar([]);
     }
-  }, [formData.ekip_id, branslar]);
+  }, [formData.ekip_id, filteredBranslar]);
 
   const loadData = async () => {
     try {
