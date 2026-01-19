@@ -366,17 +366,28 @@ export default function Dashboard() {
                     {/* Ghost question detection assist */}
                     <div>
                       <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Sistemdeki Son Kayıtlar</h4>
-                      <div className="text-[11px] text-gray-500 border rounded-lg divide-y bg-gray-50/30">
-                        <div className="p-2 bg-gray-100 font-bold flex justify-between">
-                          <span>Soru ID</span>
-                          <span>Durum</span>
+                      <div className="text-[11px] text-gray-500 border rounded-lg overflow-hidden bg-gray-50/30">
+                        <div className="p-2 bg-gray-200 font-bold flex justify-between uppercase">
+                          <span className="w-12">ID</span>
+                          <span className="flex-1">Soru Metni</span>
+                          <span className="w-20 text-right">Durum</span>
                         </div>
-                        {/* We don't have the question list here, but we can tell the user how to find them */}
-                        <p className="p-4 text-center italic">
-                          Eğer burada rakam görüyor ancak havuzda göremiyorsanız, sorular farklı bir ekipte veya branşta olabilir.
-                          "Soru Havuzu" sayfasında filtreleri temizleyerek tümünü görebilirsiniz.
-                        </p>
+                        <div className="divide-y max-h-40 overflow-y-auto">
+                          {detayliStats?.son_sorular?.map((s, idx) => (
+                            <div key={idx} className="p-2 flex justify-between items-center hover:bg-white bg-white/50 transition-colors">
+                              <span className="w-12 font-mono font-bold text-blue-600">#{s.id}</span>
+                              <span className="flex-1 truncate pr-2" title={s.metin}>{s.metin}...</span>
+                              <span className="w-20 text-right opacity-70 italic">{s.durum}</span>
+                            </div>
+                          ))}
+                          {(!detayliStats?.son_sorular || detayliStats.son_sorular.length === 0) && (
+                            <p className="p-4 text-center italic text-gray-400">Herhangi bir soru kaydı bulunamadı.</p>
+                          )}
+                        </div>
                       </div>
+                      <p className="mt-3 text-[10px] text-amber-600 leading-tight italic">
+                        * Bu liste veritabanındaki ham kayıtları gösterir. Eğer burada soru görüyorsanız ama havuzda göremiyorsanız, lütfen "Soru Havuzu" sayfasındaki filtreleri temizleyerek tekrar kontrol edin.
+                      </p>
                     </div>
                   </div>
                 )}

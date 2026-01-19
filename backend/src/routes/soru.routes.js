@@ -1132,7 +1132,7 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
     // Genel istatistikler
     const genelStats = await pool.query(`
       SELECT
-      COUNT(*) as toplam_soru,
+        COUNT(*) as toplam_soru,
         COUNT(CASE WHEN durum = 'beklemede' THEN 1 END) as beklemede,
         COUNT(CASE WHEN durum = 'inceleme_bekliyor' THEN 1 END) as inceleme_bekliyor,
         COUNT(CASE WHEN durum = 'revize_istendi' OR durum = 'revize_gerekli' THEN 1 END) as revize_istendi,
@@ -1145,7 +1145,16 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
         COUNT(CASE WHEN fotograf_url IS NOT NULL THEN 1 END) as fotografli,
         COUNT(CASE WHEN latex_kodu IS NOT NULL AND latex_kodu != '' THEN 1 END) as latexli
       FROM sorular
-        `);
+    `);
+
+    // Son eklenen soruları getir (debug için)
+    const sonSorular = await pool.query(`
+      SELECT s.id, LEFT(s.soru_metni, 30) as metin, s.durum, k.ad_soyad as yazar
+      FROM sorular s
+      LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
+      ORDER BY s.olusturulma_tarihi DESC
+      LIMIT 10
+    `);
 
     // Branş bazlı istatistikler
     const bransStats = await pool.query(`
@@ -1238,6 +1247,7 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
       success: true,
       data: {
         genel: genelStats.rows[0],
+        son_sorular: sonSorular.rows,
         branslar: bransStats.rows,
         kullanicilar: kullaniciStats.rows,
         dizgiciler: dizgiStats.rows,
