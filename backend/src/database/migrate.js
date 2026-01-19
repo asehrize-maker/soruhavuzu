@@ -11,6 +11,7 @@ import { updateWorkflowStatus } from './migrations/010_update_workflow_status.js
 import { doubleApprovalSystem } from './migrations/011_double_approval_system.js';
 import { incelemeciRolVeAltRoller } from './migrations/012_incelemeci_rol_altroller.js';
 import { createBransKazanimlar } from './migrations/013_brans_kazanimlar.js';
+import { fixSorularDurumConstraint } from './migrations/014_fix_sorular_durum_constraint.js';
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -131,6 +132,8 @@ const createTables = async () => {
 
     // Branş kazanım tabloları
     await createBransKazanimlar();
+
+    await fixSorularDurumConstraint();
 
   } catch (error) {
     await client.query('ROLLBACK');
