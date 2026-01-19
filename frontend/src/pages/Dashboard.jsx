@@ -154,6 +154,8 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setStats(null);
+      setDetayliStats(null);
       try {
         if (activeRole === 'admin') {
           const res = await soruAPI.getDetayliStats();
@@ -339,11 +341,16 @@ export default function Dashboard() {
             </div>
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center items-center ring-2 ring-red-100">
               <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 text-red-600">REVİZE BEKLEYEN</span>
-              <span className="text-3xl font-black text-red-600">{stats?.revize_istendi || stats?.revize_gerekli || 0}</span>
+              <span className="text-3xl font-black text-red-600">{(stats?.revize_istendi || 0) + (stats?.revize_gerekli || 0)}</span>
             </div>
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center items-center">
-              <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">DİZGİ AŞAMASI</span>
-              <span className="text-3xl font-black text-orange-600">{(stats?.dizgi_bekliyor || 0) + (stats?.dizgide || 0)}</span>
+              <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 text-orange-600">DİZGİ AŞAMASI</span>
+              <div className="flex flex-col items-center">
+                <span className="text-3xl font-black text-orange-600">{stats?.dizgide || 0}</span>
+                {(stats?.dizgi_bekliyor || 0) > 0 && (
+                  <span className="text-[10px] font-bold text-orange-400 mt-1 uppercase">+{stats.dizgi_bekliyor} Sırada Bekliyor</span>
+                )}
+              </div>
             </div>
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center items-center">
               <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 text-green-600">TAMAMLANAN</span>

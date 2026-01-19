@@ -817,7 +817,7 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
     let params = [];
 
     // Admin simülasyonu için rol parametresi desteği
-    const targetRole = (req.user.rol === 'admin' && req.query.role) ? req.query.role : req.user.rol;
+    const targetRole = (req.user.rol === 'admin' && req.query.role) ? req.query.role.toLowerCase() : req.user.rol;
 
     if (targetRole === 'soru_yazici') {
       // Yazar: Kendi sorularını görür
