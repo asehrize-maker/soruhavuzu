@@ -151,6 +151,20 @@ export default function SoruDetay() {
     }
   };
 
+  const handleDizgiTamamla = async () => {
+    if (!confirm('Dizgi işlemini bitirip soruyu YAYINLAMAK (Tamamlandı durumuna getirmek) istediğinizden emin misiniz?')) return;
+    try {
+      await soruAPI.updateDurum(id, {
+        yeni_durum: 'tamamlandi',
+        aciklama: 'Dizgi işlemleri tamamlandı.'
+      });
+      alert('TEBRİKLER: Soru başarıyla tamamlandı ve havuzda yayınlandı.');
+      navigate('/');
+    } catch (e) {
+      alert('Hata: ' + (e.response?.data?.error || e.message));
+    }
+  };
+
   const handleSil = async () => {
     if (!confirm('Bu soruyu silmek istediğinizden emin misiniz?')) return;
     try {
@@ -182,8 +196,15 @@ export default function SoruDetay() {
   if (loading) return <div className="text-center py-12"><div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div></div>;
   if (!soru) return null;
 
-  const canEdit = !incelemeTuru && (effectiveRole !== 'admin') && (effectiveRole !== 'incelemeci') && (soru.olusturan_kullanici_id === user?.id) &&
-    (soru.durum === 'beklemede' || soru.durum === 'revize_gerekli' || soru.durum === 'revize_istendi');
+  const isOwner = soru.olusturan_kullanici_id === user?.id;
+  const isTypesetterInCharge = effectiveRole === 'dizgici' && soru.dizgici_id === user?.id && soru.durum === 'dizgide';
+  const isAdmin = effectiveRole === 'admin';
+
+  const canEdit = !incelemeTuru && (
+    isAdmin ||
+    isTypesetterInCharge ||
+    (isOwner && (soru.durum === 'beklemede' || soru.durum === 'revize_gerekli' || soru.durum === 'revize_istendi'))
+  );
 
   const getDurumBadge = (durum) => {
     const badges = { beklemede: 'badge badge-warning', inceleme_bekliyor: 'badge badge-primary', dizgi_bekliyor: 'badge badge-warning', dizgide: 'badge badge-info', tamamlandi: 'badge badge-success', revize_gerekli: 'badge badge-error', revize_istendi: 'badge badge-error' };
@@ -203,13 +224,23 @@ export default function SoruDetay() {
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/sorular')} className="btn btn-secondary btn-sm">← Geri</button>
 
-          {/* HER DURUMDA GÖRÜNMESİ İÇİN ŞARTLAR ESNETİLDİ */}
-          {soru.durum !== 'tamamlandi' && (
+          {/* İNCELEME MODUNDA VEYA ADMIN/İNCELEMECİ İSE GÖRÜNECEK BUTONLAR */}
+          {(incelemeTuru || ['admin', 'incelemeci', 'alan_incelemeci', 'dil_incelemeci'].includes(effectiveRole)) && soru.durum !== 'tamamlandi' && (
             <button
               onClick={handleFinishReview}
               className="px-6 py-3 bg-green-600 text-white rounded-xl font-black text-sm hover:bg-green-700 transition shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] flex items-center gap-2 border-b-4 border-green-800 active:border-b-0 active:translate-y-1"
             >
               🚀 İNCELEMEYİ BİTİR VE DİZGİYE GÖNDER
+            </button>
+          )}
+
+          {/* DİZGİCİ İÇİN TAMAMLAMA BUTONU */}
+          {effectiveRole === 'dizgici' && soru.durum === 'dizgide' && (
+            <button
+              onClick={handleDizgiTamamla}
+              className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-sm hover:bg-blue-700 transition shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] flex items-center gap-2 border-b-4 border-blue-800 active:border-b-0 active:translate-y-1"
+            >
+              ✅ DİZGİYİ TAMAMLA VE YAYINLA
             </button>
           )}
         </div>
@@ -306,8 +337,8 @@ export default function SoruDetay() {
 
 
 
-      {/* Popover */}
-      {selectedText && (
+      {/* Popover - Sadece İnceleme/Admin Modunda */}
+      {selectedText && (effectiveRole === 'admin' || effectiveRole === 'incelemeci' || effectiveRole === 'alan_incelemeci' || effectiveRole === 'dil_incelemeci') && (
         <div className="fixed bottom-12 right-12 z-50 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
           <div className="p-4 font-bold text-white flex justify-between items-center bg-purple-600 shadow-lg">
             <span>Not Ekle (Madde {revizeNotlari.length + 1})</span>
