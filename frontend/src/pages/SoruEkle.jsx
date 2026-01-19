@@ -13,10 +13,10 @@ import {
   Squares2X2Icon,
   BoldIcon,
   DocumentTextIcon,
-  Bars4Icon
+  Bars4Icon,
+  DocumentArrowUpIcon // Yeni ikon
 } from '@heroicons/react/24/outline';
 
-// --- GUVENLI ID URETECI ---
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 
 // --- İMLEÇ KORUMALI EDİTÖR ---
@@ -27,17 +27,14 @@ const EditableBlock = memo(({ initialHtml, onChange, className, style, label }) 
     if (ref.current && ref.current.innerHTML !== initialHtml) {
       ref.current.innerHTML = initialHtml;
     }
-    // Eklendiği an focusla (hafif gecikmeli - render safe)
     if (ref.current && !initialHtml) {
-      setTimeout(() => {
-        if (ref.current) ref.current.focus();
-      }, 50);
+      setTimeout(() => { if (ref.current) ref.current.focus(); }, 50);
     }
   }, []);
 
   return (
     <div className="relative group/edit w-full">
-      {/* Etiket (Sol üstte minik ipucu - Sadece hoverda) */}
+      {/* Etiket */}
       <div className="absolute -top-3 left-0 text-[10px] text-gray-500 font-bold px-1 opacity-0 group-hover/edit:opacity-100 transition pointer-events-none uppercase tracking-wider bg-white/80 rounded border shadow-sm">
         {label}
       </div>
@@ -93,7 +90,7 @@ const ResizableImage = ({ src, width, height, align, onUpdate, onDelete }) => {
         if (mode === 's' || (mode === 'se' && height !== 'auto')) {
           let newHeightPx = startHeightPx + diffY;
           if (newHeightPx < 50) newHeightPx = 50;
-          updates.height = newHeightPx; // Pixel olarak sakla
+          updates.height = newHeightPx;
         }
       }
       onUpdate(updates);
@@ -163,7 +160,6 @@ export default function SoruEkle() {
     loadBranslar();
   }, [user]);
 
-  // --- EKLEME LOGIC (UNIQUE ID FIX) ---
   const addKoku = () => setComponents(prev => [...prev, { id: generateId(), type: 'text', subtype: 'koku', content: '', placeholder: '', label: 'Soru Kökü' }]);
   const addGovde = () => setComponents(prev => [...prev, { id: generateId(), type: 'text', subtype: 'govde', content: '', placeholder: '', label: 'Gövde' }]);
 
@@ -191,6 +187,22 @@ export default function SoruEkle() {
     }
   };
 
+  // YENİ: Hazır Soru PNG (Full Width Başlar)
+  const handleReadyQuestionUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setComponents(prev => [...prev, {
+        id: generateId(),
+        type: 'image',
+        content: URL.createObjectURL(file),
+        file: file,
+        width: 100, // Varsayılan %100 Genişlik
+        height: 'auto',
+        align: 'center'
+      }]);
+    }
+  };
+
   const updateComponent = (id, updates) => setComponents(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
   const removeComponent = (id) => setComponents(prev => prev.filter(c => c.id !== id));
 
@@ -203,21 +215,15 @@ export default function SoruEkle() {
   const onDragOver = (e, index) => {
     e.preventDefault();
     if (draggedItemIndex === null || draggedItemIndex === index) return;
-
-    // Smooth Reorder with minimal glitch
     const newComps = [...components];
     const item = newComps[draggedItemIndex];
     newComps.splice(draggedItemIndex, 1);
     newComps.splice(index, 0, item);
-
     setComponents(newComps);
     setDraggedItemIndex(index);
   };
 
-  const onDragEnd = () => {
-    setDraggedItemIndex(null);
-  };
-
+  const onDragEnd = () => setDraggedItemIndex(null);
   const execCmd = (cmd) => document.execCommand(cmd, false, null);
 
   const handleSave = async () => {
@@ -290,9 +296,18 @@ export default function SoruEkle() {
 
       <div className="flex justify-center p-8 overflow-y-auto">
         <div className="flex flex-col gap-4 sticky top-20 h-fit mr-4">
-          {/* SIDEBAR TOOLS (YENİ SIRALAMA ve AÇIKLAMALAR) */}
+          {/* SIDEBAR TOOLS */}
           <div className="bg-white p-2 rounded shadow border flex flex-col gap-2 w-36">
             <span className="text-xs font-bold text-gray-400 uppercase text-center mb-1">Yeni Ekle</span>
+
+            {/* YENİ: HAZIR SORU PNG EKLEME BUTONU (ÜSTE EKLENDİ) */}
+            <label className="flex flex-col p-2 bg-blue-50 hover:bg-blue-100 rounded border border-blue-100 hover:border-blue-300 transition text-left cursor-pointer group mb-1">
+              <div className="flex items-center gap-2 text-blue-800 font-bold text-sm"><DocumentArrowUpIcon className="w-5 h-5" /> Soru PNG'si</div>
+              <span className="text-[10px] text-gray-500 ml-7">Hazır dizili soru resmi</span>
+              <input type="file" className="hidden" accept="image/*" onChange={handleReadyQuestionUpload} />
+            </label>
+
+            <div className="border-t my-1"></div>
 
             {/* 1. SORU KÖKÜ */}
             <button onClick={addKoku} className="flex flex-col p-2 hover:bg-purple-50 rounded border border-transparent hover:border-purple-200 transition text-left group">
@@ -303,7 +318,7 @@ export default function SoruEkle() {
             {/* 2. SORU GÖVDESİ */}
             <button onClick={addGovde} className="flex flex-col p-2 hover:bg-blue-50 rounded border border-transparent hover:border-blue-200 transition text-left group">
               <div className="flex items-center gap-2 text-blue-700 font-bold text-sm"><DocumentTextIcon className="w-4 h-4" /> Gövde</div>
-              <span className="text-[10px] text-gray-400 ml-6">Metin, paragraf, ön bilgi</span>
+              <span className="text-[10px] text-gray-400 ml-6">Metin, paragraf...</span>
             </button>
 
             <div className="border-t my-1"></div>
