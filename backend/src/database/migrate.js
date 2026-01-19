@@ -12,6 +12,7 @@ import { doubleApprovalSystem } from './migrations/011_double_approval_system.js
 import { incelemeciRolVeAltRoller } from './migrations/012_incelemeci_rol_altroller.js';
 import { createBransKazanimlar } from './migrations/013_brans_kazanimlar.js';
 import { fixSorularDurumConstraint } from './migrations/014_fix_sorular_durum_constraint.js';
+import { normalizeSorularDurum } from './migrations/015_normalize_sorular_durum.js';
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -68,7 +69,7 @@ const createTables = async () => {
         zorluk_seviyesi VARCHAR(20) CHECK (zorluk_seviyesi IN ('kolay', 'orta', 'zor')),
         brans_id INTEGER REFERENCES branslar(id) ON DELETE CASCADE,
         olusturan_kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
-        durum VARCHAR(50) DEFAULT 'beklemede' CHECK (durum IN ('beklemede', 'dizgide', 'tamamlandi')),
+        durum VARCHAR(50) DEFAULT 'beklemede' CHECK (durum IN ('beklemede','inceleme_bekliyor','revize_istendi','revize_gerekli','dizgi_bekliyor','dizgide','inceleme_tamam','tamamlandi','arsiv')),
         dizgici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
         olusturulma_tarihi TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         guncellenme_tarihi TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -134,6 +135,7 @@ const createTables = async () => {
     await createBransKazanimlar();
 
     await fixSorularDurumConstraint();
+    await normalizeSorularDurum();
 
   } catch (error) {
     await client.query('ROLLBACK');
