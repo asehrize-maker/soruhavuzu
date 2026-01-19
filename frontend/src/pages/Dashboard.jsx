@@ -151,6 +151,7 @@ export default function Dashboard() {
   const [detayliStats, setDetayliStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [branslar, setBranslar] = useState([]);
+  const [incelemeBransCounts, setIncelemeBransCounts] = useState([]);
   const [selectedBrans, setSelectedBrans] = useState(null);
   const [selectedStat, setSelectedStat] = useState(null);
   const [reviewMode, setReviewMode] = useState('alanci');
@@ -188,6 +189,21 @@ export default function Dashboard() {
 
     fetchData();
   }, [activeRole]);
+
+  // Load review counts per branch when reviewMode or branslar change
+  useEffect(() => {
+    const loadIncelemeCounts = async () => {
+      if (activeRole !== 'incelemeci' || !reviewMode) return;
+      try {
+        const res = await soruAPI.getIncelemeBransStats(reviewMode);
+        if (res.data && res.data.success) setIncelemeBransCounts(res.data.data || []);
+      } catch (err) {
+        console.error('İnceleme branş istatistikleri yüklenemedi', err);
+      }
+    };
+
+    loadIncelemeCounts();
+  }, [activeRole, reviewMode, branslar]);
 
   useEffect(() => {
     if (activeRole !== 'incelemeci') return;
@@ -412,18 +428,27 @@ export default function Dashboard() {
           )}
 
           <div className="mt-6 flex flex-wrap gap-3">
-            {branslar.map(brans => (
-              <button
-                key={brans.id}
-                onClick={() => setSelectedBrans(brans)}
-                className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.id
-                  ? 'bg-blue-600 text-white shadow-md transform scale-105'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-              >
-                <span>{brans.brans_adi}</span>
-              </button>
-            ))}
+            {branslar.map(brans => {
+              const countObj = incelemeBransCounts.find(b => Number(b.id) === Number(brans.id));
+              const count = countObj ? Number(countObj.inceleme_bekliyor || 0) : 0;
+              return (
+                <button
+                  key={brans.id}
+                  onClick={() => setSelectedBrans(brans)}
+                  className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.id
+                    ? 'bg-blue-600 text-white shadow-md transform scale-105'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                >
+                  <span>{brans.brans_adi}</span>
+                  {count > 0 && (
+                    <span className="ml-2 inline-flex items-center justify-center bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 

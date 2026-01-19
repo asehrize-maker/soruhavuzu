@@ -106,9 +106,28 @@ export default function Register() {
               >
                 <option value="soru_yazici">Soru Yazıcı</option>
                 <option value="dizgici">Dizgici</option>
+                <option value="incelemeci">İncelemeci</option>
                 <option value="admin">Admin</option>
               </select>
             </div>
+
+            {formData.rol === 'incelemeci' && (
+              <div>
+                <label htmlFor="inceleme_turu" className="block text-sm font-medium text-gray-700 mb-1">
+                  İnceleme Türü
+                </label>
+                <select
+                  id="inceleme_turu"
+                  name="inceleme_turu"
+                  className="input"
+                  value={formData.inceleme_turu || 'alanci'}
+                  onChange={handleChange}
+                >
+                  <option value="alanci">Alan Uzmanı</option>
+                  <option value="dilci">Dil Uzmanı</option>
+                </select>
+              </div>
+            )}
 
             {formData.rol === 'admin' && (
               <div>

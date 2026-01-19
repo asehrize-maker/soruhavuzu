@@ -10,6 +10,7 @@ export default function DizgiYonetimi() {
   const effectiveRole = viewRole || authUser?.rol;
   const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
   const [sorular, setSorular] = useState([]);
+  const [bransCounts, setBransCounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedSoru, setSelectedSoru] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -18,6 +19,7 @@ export default function DizgiYonetimi() {
 
   useEffect(() => {
     loadSorular();
+    loadBransCounts();
   }, []);
 
   const loadSorular = async () => {
@@ -33,11 +35,22 @@ export default function DizgiYonetimi() {
     }
   };
 
+  const loadBransCounts = async () => {
+    try {
+      const res = await soruAPI.getDizgiBransStats();
+      if (res.data && res.data.success) {
+        setBransCounts(res.data.data || []);
+      }
+    } catch (err) {
+      console.error('Branş istatistikleri yüklenemedi', err);
+    }
+  };
+
   const handleDurumGuncelle = async (soruId, durum) => {
     try {
-      const data = { durum };
+      const data = { yeni_durum: durum };
       if (durum === 'revize_gerekli' && revizeNotu) {
-        data.revize_notu = revizeNotu;
+        data.aciklama = revizeNotu;
       }
 
       await soruAPI.updateDurum(soruId, data);
@@ -45,7 +58,8 @@ export default function DizgiYonetimi() {
       setShowModal(false);
       setSelectedSoru(null);
       setRevizeNotu('');
-      loadSorular();
+      await loadSorular();
+      loadBransCounts();
     } catch (error) {
       alert(error.response?.data?.error || 'Durum güncellenemedi');
     }
@@ -83,6 +97,18 @@ export default function DizgiYonetimi() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-900">Dizgi Yönetimi</h1>
+
+      {/* Branş bazlı bekleyen soru sayıları */}
+      {bransCounts && bransCounts.length > 0 && (
+        <div className="flex flex-wrap gap-3">
+          {bransCounts.filter(b => Number(b.dizgi_bekliyor) > 0).map(b => (
+            <div key={b.id} className="px-3 py-1 rounded-full bg-gray-100 text-sm font-semibold flex items-center gap-2">
+              <span className="text-gray-700">{b.brans_adi}</span>
+              <span className="bg-purple-600 text-white px-2 py-0.5 rounded-full text-xs">{b.dizgi_bekliyor}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-12">

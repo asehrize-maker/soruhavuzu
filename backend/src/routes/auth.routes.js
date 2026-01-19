@@ -13,7 +13,8 @@ router.post('/register', [
   body('ad_soyad').trim().notEmpty().withMessage('Ad soyad gerekli'),
   body('email').isEmail().withMessage('Geçerli bir email girin'),
   body('sifre').isLength({ min: 6 }).withMessage('Şifre en az 6 karakter olmalı'),
-  body('rol').isIn(['admin', 'soru_yazici', 'dizgici', 'incelemeci']).withMessage('Geçersiz rol')
+  body('rol').isIn(['admin', 'soru_yazici', 'dizgici', 'incelemeci']).withMessage('Geçersiz rol'),
+  body('inceleme_turu').optional().isIn(['alanci', 'dilci']).withMessage('İnceleme türü alanci veya dilci olmalı')
 ], async (req, res, next) => {
   try {
     const errors = validationResult(req);
@@ -21,7 +22,7 @@ router.post('/register', [
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const { ad_soyad, email, sifre, rol, ekip_id, brans_id, admin_secret } = req.body;
+    const { ad_soyad, email, sifre, rol, ekip_id, brans_id, admin_secret, inceleme_turu } = req.body;
 
     // Email kontrolü
     const userExists = await pool.query('SELECT id FROM kullanicilar WHERE email = $1', [email]);
@@ -60,10 +61,18 @@ router.post('/register', [
     const hashedPassword = await bcrypt.hash(sifre, salt);
 
     // Kullanıcı oluştur
+    // Determine inceleme flags
+    let inceleme_alanci = false;
+    let inceleme_dilci = false;
+    if (finalRole === 'incelemeci') {
+      if (inceleme_turu === 'alanci') inceleme_alanci = true;
+      if (inceleme_turu === 'dilci') inceleme_dilci = true;
+    }
+
     const result = await pool.query(
-      `INSERT INTO kullanicilar (ad_soyad, email, sifre, rol, ekip_id, brans_id) 
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, ad_soyad, email, rol, inceleme_alanci, inceleme_dilci`,
-      [ad_soyad, email, hashedPassword, finalRole, ekip_id || null, brans_id || null]
+      `INSERT INTO kullanicilar (ad_soyad, email, sifre, rol, ekip_id, brans_id, inceleme_alanci, inceleme_dilci) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, ad_soyad, email, rol, inceleme_alanci, inceleme_dilci`,
+      [ad_soyad, email, hashedPassword, finalRole, ekip_id || null, brans_id || null, inceleme_alanci, inceleme_dilci]
     );
 
     const user = result.rows[0];
