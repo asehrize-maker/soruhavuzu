@@ -367,9 +367,9 @@ export default function SoruDetay() {
     try {
       await soruAPI.updateDurum(id, {
         yeni_durum: 'dizgi_bekliyor',
-        aciklama: 'Branş onayı verildi, dizgiye hazır.'
+        aciklama: 'Branş onayı verildi, dizgi ve havuz aşamasına hazır.'
       });
-      alert('Soru başarıyla Dizgi birimine gönderildi.');
+      alert('Soru başarıyla Dizgi ve Havuza gönderildi.');
       navigate('/');
     } catch (e) {
       alert('Hata: ' + (e.response?.data?.error || e.message));
@@ -560,7 +560,7 @@ export default function SoruDetay() {
                   onClick={handleSendToDizgi}
                   className="px-6 py-3 bg-green-600 text-white rounded-xl font-black text-sm hover:bg-green-700 transition shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] flex items-center gap-2 border-b-4 border-green-800 active:border-b-0 active:translate-y-1"
                 >
-                  🚀 DİZGİYE GÖNDER
+                  🚀 DİZGİYE VE HAVUZA GÖNDER
                 </button>
               )}
 
@@ -583,7 +583,7 @@ export default function SoruDetay() {
       {/* Soru İçeriği */}
       <div className="flex items-center gap-3 mb-2 px-1">
         {getDurumBadge(soru.durum)}
-        <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-bold border border-amber-200 uppercase tracking-tighter">Versiyon 1</span>
+        <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-bold border border-amber-200 uppercase tracking-tighter">V{soru.versiyon || 1}</span>
         <span className="badge bg-green-100 text-green-800 font-bold">✅ Doğru: {soru.dogru_cevap}</span>
         {soru.kazanim && <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-[10px] font-bold border border-blue-200 uppercase tracking-tighter">Kazanım: {soru.kazanim}</span>}
       </div>

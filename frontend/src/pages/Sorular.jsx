@@ -378,7 +378,7 @@ export default function Sorular() {
                   <div className="flex items-center space-x-3 mb-2">
                     {getDurumBadge(soru.durum)}
                     <span className="text-sm text-gray-500">
-                      {soru.brans_adi} • {soru.ekip_adi}
+                      {soru.brans_adi} • {soru.ekip_adi} • <span className="font-bold text-amber-600">V{soru.versiyon || 1}</span>
                     </span>
                     {soru.zorluk_seviyesi && (
                       <span className="text-sm text-gray-500">
@@ -408,7 +408,7 @@ export default function Sorular() {
                     Detay
                   </Link>
 
-                  {(user?.rol === 'admin' || (user?.rol === 'soru_yazici' && soru.olusturan_kullanici_id === user?.id)) && (
+                  {(user?.rol === 'admin' || (user?.rol === 'soru_yazici' && soru.olusturan_kullanici_id === user?.id && soru.durum !== 'tamamlandi')) && (
                     <button
                       onClick={() => handleSil(soru.id)}
                       className="btn bg-white text-red-600 border border-red-200 hover:bg-red-50 text-sm"

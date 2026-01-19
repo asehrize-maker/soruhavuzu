@@ -275,7 +275,8 @@ export default function SoruEkle() {
       ['a', 'b', 'c', 'd'].forEach(opt => formData.append(`secenek_${opt}`, ''));
 
       await soruAPI.create(formData);
-      alert("✅ Soru başarıyla kaydedildi!");
+      alert("✅ Soru başarıyla kaydedildi ve incelemeye gönderildi!");
+      navigate('/sorular');
     } catch (error) { console.error(error); alert("Hata: " + error.message); }
   };
 
@@ -294,7 +295,7 @@ export default function SoruEkle() {
           </div>
         </div>
         <div className="flex gap-3">
-          <button onClick={handleSave} className="px-6 py-1.5 bg-white text-[#0078D4] font-bold rounded hover:bg-blue-50 transition shadow">Kaydet</button>
+          <button onClick={handleSave} className="px-6 py-1.5 bg-white text-[#0078D4] font-bold rounded hover:bg-blue-50 transition shadow">Kaydet ve İncelemeye Gönder</button>
           <button onClick={() => navigate('/sorular')} className="px-4 py-1.5 bg-red-500 hover:bg-red-600 rounded font-medium text-sm transition">Çıkış</button>
         </div>
       </div>
