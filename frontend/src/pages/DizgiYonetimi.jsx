@@ -130,7 +130,7 @@ export default function DizgiYonetimi() {
                     💬 Mesaj
                   </button>
 
-                  {(soru.durum === 'beklemede' || soru.durum === 'dizgi_bekliyor') && (
+                  {soru.durum === 'dizgi_bekliyor' && (
                     <button
                       onClick={() => handleDurumGuncelle(soru.id, 'dizgide')}
                       className="btn btn-primary btn-sm"

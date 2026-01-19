@@ -423,7 +423,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
             <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">BEKLEYEN DİZGİ</p>
-            <h3 className="text-4xl font-black text-orange-600">{stats?.beklemede || 0}</h3>
+            <h3 className="text-4xl font-black text-orange-600">{stats?.dizgi_bekliyor || 0}</h3>
           </div>
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
             <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">DİZGİSİ SÜREN</p>

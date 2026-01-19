@@ -102,8 +102,8 @@ router.get('/', authenticate, async (req, res, next) => {
       )`;
       params.push(req.user.id, req.user.brans_id);
     } else if (req.user.rol === 'dizgici') {
-      // Dizgici sadece 'dizgi_bekliyor' ve 'dizgide' olanları görür
-      query += ` AND (s.durum = 'dizgi_bekliyor' OR s.durum = 'dizgide') AND (
+      // Dizgici sadece havuzdaki (tamamlandi) ve dizgi aşamasındaki (bekliyor/dizgide) soruları görür
+      query += ` AND (s.durum = 'dizgi_bekliyor' OR s.durum = 'dizgide' OR s.durum = 'tamamlandi') AND (
         b.id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount++})
         OR b.id = (SELECT brans_id FROM kullanicilar WHERE id = $${paramCount++})
       )`;
@@ -559,9 +559,8 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         [req.user.id, id]
       );
       message = 'Soru dizgiye alındı.';
-
     } else if (yeni_durum === 'tamamlandi') {
-      // Final onay
+      // Final onay (Dizgici veya Admin)
       result = await pool.query(
         `UPDATE sorular SET durum = $1, guncellenme_tarihi = NOW() WHERE id = $2 RETURNING *`,
         [yeni_durum, id]
@@ -830,11 +829,13 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
 
     const result = await pool.query(`
       SELECT
-      COUNT(*) as toplam,
+        COUNT(*) as toplam,
         COUNT(*) FILTER(WHERE durum = 'beklemede') as beklemede,
-          COUNT(*) FILTER(WHERE durum = 'dizgide') as dizgide,
-            COUNT(*) FILTER(WHERE durum = 'tamamlandi') as tamamlandi,
-              COUNT(*) FILTER(WHERE durum = 'revize_gerekli') as revize_gerekli
+        COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor') as inceleme_bekliyor,
+        COUNT(*) FILTER(WHERE durum = 'dizgi_bekliyor') as dizgi_bekliyor,
+        COUNT(*) FILTER(WHERE durum = 'dizgide') as dizgide,
+        COUNT(*) FILTER(WHERE durum = 'tamamlandi') as tamamlandi,
+        COUNT(*) FILTER(WHERE durum = 'revize_gerekli' OR durum = 'revize_istendi') as revize_gerekli
       FROM sorular
       ${whereClause}
       `, params);
@@ -848,85 +849,10 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
   }
 });
 
-// Soru durumunu güncelle (Dizgici)
-router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { durum, revize_notu } = req.body;
+// Redundant code block cleaned up.
 
-    const validDurumlar = ['beklemede', 'dizgide', 'tamamlandi', 'revize_gerekli'];
-    if (!validDurumlar.includes(durum)) {
-      throw new AppError('Geçersiz durum', 400);
-    }
+// Redundant code block cleaned up.
 
-    // Soruyu kontrol et
-    const soruResult = await pool.query(
-      'SELECT * FROM sorular WHERE id = $1',
-      [id]
-    );
-
-    if (soruResult.rows.length === 0) {
-      throw new AppError('Soru bulunamadı', 404);
-    }
-
-    const soru = soruResult.rows[0];
-
-    // Durum bazlı kontroller
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-
-      let updateQuery = 'UPDATE sorular SET durum = $1';
-      let params = [durum];
-      let paramCount = 2;
-
-      // Dizgiye alındıysa dizgici_id ve tarihleri güncelle
-      if (durum === 'dizgide' && soru.durum === 'beklemede') {
-        updateQuery += `, dizgici_id = $${paramCount++}, dizgi_baslama_tarihi = CURRENT_TIMESTAMP`;
-        params.push(req.user.id);
-      }
-
-      // Tamamlandıysa dizgi bitiş tarihini kaydet
-      if (durum === 'tamamlandi') {
-        updateQuery += `, dizgi_bitis_tarihi = CURRENT_TIMESTAMP`;
-      }
-
-      // Revize isteniyorsa notu kaydet
-      if (durum === 'revize_gerekli') {
-        updateQuery += `, revize_notu = $${paramCount++} `;
-        params.push(revize_notu || '');
-
-        // Soru yazıcıya bildirim gönder
-        await createNotification(
-          soru.olusturan_kullanici_id,
-          'Revize Talebi',
-          `Soru #${id} için revize talep edildi: ${revize_notu || 'Detay yok'} `,
-          'revize',
-          `/ sorular / ${id} `
-        );
-      }
-
-      updateQuery += ` WHERE id = $${paramCount} RETURNING * `;
-      params.push(id);
-
-      const result = await client.query(updateQuery, params);
-
-      await client.query('COMMIT');
-
-      res.json({
-        success: true,
-        data: result.rows[0]
-      });
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    next(error);
-  }
-});
 
 // Admin detaylı istatistikler
 router.get('/stats/detayli', authenticate, async (req, res, next) => {

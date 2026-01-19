@@ -57,7 +57,16 @@ export default function Sorular() {
           brans_id: filters.brans_id || undefined,
         };
         const response = await soruAPI.getAll(params);
-        setSorular(response.data.data || []);
+        let data = response.data.data || [];
+
+        // Frontend tarafında da rol kısıtlamasını simüle et (Admin viewRole kullanıyorsa)
+        if (effectiveRole === 'dizgici') {
+          data = data.filter(s => ['dizgi_bekliyor', 'dizgide', 'tamamlandi'].includes(s.durum));
+        } else if (effectiveRole === 'soru_yazici') {
+          data = data.filter(s => s.olusturan_kullanici_id === user.id || s.durum === 'tamamlandi');
+        }
+
+        setSorular(data);
       } catch (error) {
         console.error('Sorular yüklenemedi:', error);
         setSorular([]);
@@ -67,7 +76,7 @@ export default function Sorular() {
     };
 
     loadSorular();
-  }, [user?.id, user?.rol, filters.durum, filters.brans_id]);
+  }, [user?.id, effectiveRole, filters.durum, filters.brans_id]);
 
   const handleSil = async (id) => {
     if (window.confirm('Bu soruyu kalıcı olarak silmek istediğinize emin misiniz?')) {
