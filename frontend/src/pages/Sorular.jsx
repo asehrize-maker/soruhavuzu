@@ -284,7 +284,7 @@ export default function Sorular() {
             </button>
           )}
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            {isTakipModu ? 'Soru Takibi' : 'Hazır Soru Havuzu'}
+            {isTakipModu ? 'Soru Takibi' : 'Ortak Soru Havuzu'}
             {user?.rol === 'admin' && filters.brans_id && (
               <span className="text-gray-400 font-light ml-3 text-2xl flex items-center">
                 <span className="mx-2">/</span>
@@ -293,11 +293,6 @@ export default function Sorular() {
             )}
           </h1>
         </div>
-        {user?.rol === 'soru_yazici' && isTakipModu && (
-          <Link to="/sorular/yeni" className="btn btn-primary">
-            + Yeni Soru Ekle
-          </Link>
-        )}
       </div>
 
       {/* Filtreler */}
@@ -384,13 +379,6 @@ export default function Sorular() {
               ? 'İlk soruyu ekleyerek soru havuzunu oluşturmaya başlayabilirsiniz.'
               : 'Bu kriterlere uygun henüz soru bulunmamaktadır.'}
           </p>
-          {user?.rol === 'soru_yazici' && isTakipModu && (
-            <div className="mt-6">
-              <Link to="/sorular/yeni" className="btn btn-primary">
-                + İlk Soruyu Ekle
-              </Link>
-            </div>
-          )}
           {/* Empty State Cleaned */}
         </div>
       ) : (
