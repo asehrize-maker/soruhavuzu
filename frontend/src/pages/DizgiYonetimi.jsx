@@ -57,15 +57,19 @@ export default function DizgiYonetimi() {
   const getDurumBadge = (durum) => {
     const badges = {
       beklemede: 'bg-yellow-100 text-yellow-800',
+      dizgi_bekliyor: 'bg-purple-100 text-purple-800',
       dizgide: 'bg-blue-100 text-blue-800',
       tamamlandi: 'bg-green-100 text-green-800',
       revize_gerekli: 'bg-red-100 text-red-800',
+      revize_istendi: 'bg-red-100 text-red-800',
     };
     const labels = {
       beklemede: 'Beklemede',
+      dizgi_bekliyor: 'Dizgi Bekliyor',
       dizgide: 'Dizgide',
       tamamlandi: 'Tamamlandı',
       revize_gerekli: 'Revize Gerekli',
+      revize_istendi: 'Revize İstendi',
     };
     return (
       <span className={`px-3 py-1 rounded-full text-sm font-medium ${badges[durum]}`}>
@@ -124,7 +128,7 @@ export default function DizgiYonetimi() {
                     💬 Mesaj
                   </button>
 
-                  {soru.durum === 'beklemede' && (
+                  {(soru.durum === 'beklemede' || soru.durum === 'dizgi_bekliyor') && (
                     <button
                       onClick={() => handleDurumGuncelle(soru.id, 'dizgide')}
                       className="btn btn-primary btn-sm"
@@ -193,7 +197,7 @@ export default function DizgiYonetimi() {
             <h2 className="text-2xl font-bold mb-4">
               Revize Talebi - Soru #{selectedSoru.id}
             </h2>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

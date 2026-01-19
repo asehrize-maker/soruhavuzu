@@ -86,10 +86,10 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <span className={`px-2 py-0.5 text-xs rounded-full font-bold uppercase tracking-wide ${soru.zorluk_seviyesi == 1 ? 'bg-green-100 text-green-700' :
-                        soru.zorluk_seviyesi == 2 ? 'bg-green-50 text-green-600' :
-                          soru.zorluk_seviyesi == 3 ? 'bg-yellow-100 text-yellow-700' :
-                            soru.zorluk_seviyesi == 4 ? 'bg-orange-100 text-orange-700' :
-                              'bg-red-100 text-red-700'
+                      soru.zorluk_seviyesi == 2 ? 'bg-green-50 text-green-600' :
+                        soru.zorluk_seviyesi == 3 ? 'bg-yellow-100 text-yellow-700' :
+                          soru.zorluk_seviyesi == 4 ? 'bg-orange-100 text-orange-700' :
+                            'bg-red-100 text-red-700'
                       }`}>
                       {['ÇOK KOLAY', 'KOLAY', 'ORTA', 'ZOR', 'ÇOK ZOR'][soru.zorluk_seviyesi - 1] || 'BELİRSİZ'}
                     </span>
@@ -372,8 +372,8 @@ export default function Dashboard() {
                 key={brans.id}
                 onClick={() => setSelectedBrans(brans)}
                 className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.id
-                    ? 'bg-blue-600 text-white shadow-md transform scale-105'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-blue-600 text-white shadow-md transform scale-105'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
               >
                 <span>{brans.brans_adi}</span>
@@ -398,7 +398,43 @@ export default function Dashboard() {
     );
   }
 
-  // 4. DEFAULT
+  // 4. DİZGİCİ
+  if (activeRole === 'dizgici') {
+    return (
+      <div className="space-y-8 animate-fade-in">
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center bg-gradient-to-r from-orange-600 to-orange-500 text-white">
+          <div>
+            <h1 className="text-3xl font-bold">Hoş Geldiniz, {user?.ad_soyad}</h1>
+            <p className="text-orange-50 mt-2 text-lg font-medium opacity-90">Dizgi ve mizanpaj görevleriniz burada yönetilmeyi bekliyor.</p>
+          </div>
+          <Link
+            to="/dizgi-yonetimi"
+            className="mt-4 md:mt-0 flex items-center gap-3 px-8 py-4 bg-white text-orange-600 rounded-xl hover:bg-orange-50 transition shadow-xl font-bold text-lg"
+          >
+            <DocumentTextIcon className="w-6 h-6" />
+            Dizgi Yönetimine Git
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
+            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">BEKLEYEN DİZGİ</p>
+            <h3 className="text-4xl font-black text-orange-600">{stats?.beklemede || 0}</h3>
+          </div>
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
+            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">DİZGİSİ SÜREN</p>
+            <h3 className="text-4xl font-black text-blue-600">{stats?.dizgide || 0}</h3>
+          </div>
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
+            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">TAMAMLANAN</p>
+            <h3 className="text-4xl font-black text-green-600">{stats?.tamamlandi || 0}</h3>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 5. DEFAULT
   return (
     <div className="p-8 text-center text-gray-500">
       <h2 className="text-xl font-semibold text-gray-700">Panel Hazırlanıyor</h2>
