@@ -189,6 +189,21 @@ export default function Dashboard() {
   if (activeRole === 'admin') {
     return (
       <div className="space-y-6">
+        {/* Header - Genel Bakış */}
+        <div className="card bg-white border-l-4 border-blue-600 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">Genel Bakış</h1>
+              <p className="text-gray-600 mt-1">Hoş geldiniz, {user?.ad_soyad}. Sistem durumunu buradan takip edebilirsiniz.</p>
+            </div>
+            <div className="hidden md:block">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                Yönetici Paneli
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* İstatistik Modal */}
         {selectedStat && (
           <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
