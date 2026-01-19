@@ -627,10 +627,7 @@ export default function SoruDetay() {
   const isAdmin = effectiveRole === 'admin';
 
   const availableStatusesForEdit = ['beklemede', 'revize_gerekli', 'revize_istendi', 'inceleme_tamam', 'dizgi_bekliyor'];
-  const canEdit = !incelemeTuru && (
-    isAdmin ||
-    (isOwner && availableStatusesForEdit.includes(soru.durum))
-  );
+  const canEdit = isAdmin || (isOwner && availableStatusesForEdit.includes(soru.durum));
 
   const getDurumBadge = (durum) => {
     const badges = { beklemede: 'badge badge-warning', inceleme_bekliyor: 'badge badge-primary', dizgi_bekliyor: 'badge badge-warning', dizgide: 'badge badge-info', tamamlandi: 'badge badge-success', revize_gerekli: 'badge badge-error', revize_istendi: 'badge badge-error', inceleme_tamam: 'badge badge-emerald' };
@@ -640,6 +637,17 @@ export default function SoruDetay() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
+      {/* DEBUG INFO - REMOVE LATER */}
+      {isOwner && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded relative text-xs">
+          <strong className="font-bold">DEBUG:</strong>
+          <span className="block sm:inline"> Role: {effectiveRole}, Status: "{soru.durum}", Owner: Yes</span>
+          <span className="block">Status Allowed: {availableStatusesForEdit.includes(soru.durum) ? 'YES' : 'NO'}</span>
+          <span className="block">Can Edit: {canEdit ? 'YES' : 'NO'}</span>
+          <span className="block">Conditions: Admin={isAdmin ? 'T' : 'F'}, Owner={isOwner ? 'T' : 'F'}, InList={availableStatusesForEdit.includes(soru.durum) ? 'T' : 'F'}</span>
+        </div>
+      )}
+
       {/* Header Area */}
       <div className="bg-white border-b-2 border-gray-100 p-6 flex justify-between items-center mb-6 rounded-xl">
         <div className="flex items-center gap-4">
