@@ -813,6 +813,11 @@ router.post('/:id(\\d+)/dizgi-al', authenticate, authorize('dizgici', 'admin'), 
 router.post('/:id(\\d+)/dizgi-tamamla', [
   authenticate,
   authorize('dizgici', 'admin'),
+  // İsteğe bağlı olarak dizgi tamamlanırken PNG/PDF/diğer dosya eklenebilir
+  uploadFields.fields([
+    { name: 'fotograf', maxCount: 1 },
+    { name: 'dosya', maxCount: 1 }
+  ]),
   body('notlar').optional()
 ], async (req, res, next) => {
   try {
@@ -847,6 +852,63 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
 
       if (soruResult.rows.length === 0) {
         throw new AppError('Soru bulunamadı veya bu sorunun dizgicisi değilsiniz', 404);
+      }
+
+      // Eğer dosya/fotograf yüklendiyse Cloudinary'e yükle ve soruyu güncelle
+      if (req.files && (req.files.fotograf || req.files.dosya)) {
+        let fotograf_url = null;
+        let fotograf_public_id = null;
+        let dosya_url = null;
+        let dosya_public_id = null;
+        let dosya_adi = null;
+        let dosya_boyutu = null;
+
+        // Fotoğraf yükleme
+        if (req.files.fotograf && req.files.fotograf[0]) {
+          const file = req.files.fotograf[0];
+          const b64 = Buffer.from(file.buffer).toString('base64');
+          const dataURI = `data:${file.mimetype};base64,${b64}`;
+
+          const uploadResult = await cloudinary.uploader.upload(dataURI, {
+            folder: 'soru-havuzu',
+            resource_type: 'image',
+            transformation: [{ quality: 'auto:good', fetch_format: 'auto' }]
+          });
+
+          fotograf_url = uploadResult.secure_url;
+          fotograf_public_id = uploadResult.public_id;
+        }
+
+        // Dosya yükleme (raw)
+        if (req.files.dosya && req.files.dosya[0]) {
+          const file = req.files.dosya[0];
+          // 1MB kontrolü
+          if (file.size > 1 * 1024 * 1024) {
+            throw new AppError('Dosya boyutu 1MB\'dan büyük olamaz', 400);
+          }
+          const timestamp = Date.now();
+          const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const publicId = `soru-havuzu/dosyalar/${timestamp}_${sanitizedFilename}`;
+
+          const uploadResult = await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+              { public_id: publicId, resource_type: 'raw', type: 'upload' },
+              (err, result) => (err ? reject(err) : resolve(result))
+            );
+            uploadStream.end(file.buffer);
+          });
+
+          dosya_url = uploadResult.secure_url;
+          dosya_public_id = uploadResult.public_id;
+          dosya_adi = file.originalname;
+          dosya_boyutu = file.size;
+        }
+
+        // Soruyu güncelle
+        await client.query(
+          `UPDATE sorular SET fotograf_url = COALESCE($1, fotograf_url), fotograf_public_id = COALESCE($2, fotograf_public_id), dosya_url = COALESCE($3, dosya_url), dosya_public_id = COALESCE($4, dosya_public_id), dosya_adi = COALESCE($5, dosya_adi), dosya_boyutu = COALESCE($6, dosya_boyutu) WHERE id = $7`,
+          [fotograf_url, fotograf_public_id, dosya_url, dosya_public_id, dosya_adi, dosya_boyutu, id]
+        );
       }
 
       // Dizgi geçmişine ekle

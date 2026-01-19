@@ -93,6 +93,9 @@ export const soruAPI = {
   updateDurum: (id, data) => api.put(`/sorular/${id}/durum`, data),
   dizgiAl: (id) => api.post(`/sorular/${id}/dizgi-al`),
   dizgiTamamla: (id, data) => api.post(`/sorular/${id}/dizgi-tamamla`, data),
+  dizgiTamamlaWithFile: (id, formData) => api.post(`/sorular/${id}/dizgi-tamamla`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
   getStats: (params) => api.get('/sorular/stats/genel', { params }),
   getDetayliStats: () => api.get('/sorular/stats/detayli'),
   getDizgiBransStats: () => api.get('/sorular/stats/dizgi-brans'),

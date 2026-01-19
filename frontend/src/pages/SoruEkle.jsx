@@ -155,7 +155,7 @@ export default function SoruEkle() {
   const [widthMode, setWidthMode] = useState('dar');
   const [components, setComponents] = useState([]);
 
-  const [metadata, setMetadata] = useState({ zorluk: '3', dogruCevap: '', brans_id: '', kazanim: '' });
+  const [metadata, setMetadata] = useState({ zorluk: '3', dogruCevap: '', brans_id: '', kazanim: '', kazanim_is_custom: false });
   const [branslar, setBranslar] = useState([]);
   const [kazanims, setKazanims] = useState([]);
   const [kazanimLoading, setKazanimLoading] = useState(false);
@@ -172,11 +172,11 @@ export default function SoruEkle() {
     loadBranslar();
   }, [user]);
 
-  useEffect(() => {
+      useEffect(() => {
     const loadKazanims = async () => {
       if (!metadata.brans_id) {
         setKazanims([]);
-        setMetadata(prev => ({ ...prev, kazanim: '' }));
+        setMetadata(prev => ({ ...prev, kazanim: '', kazanim_is_custom: false }));
         return;
       }
       try {
@@ -186,11 +186,12 @@ export default function SoruEkle() {
         setKazanims(list);
         if (list.length > 0) {
           const codes = list.map(k => k.kod);
+          // If current kazanım is not in the new list, pick the first one and clear custom flag
           if (!metadata.kazanim || !codes.includes(metadata.kazanim)) {
-            setMetadata(prev => ({ ...prev, kazanim: list[0].kod }));
+            setMetadata(prev => ({ ...prev, kazanim: list[0].kod, kazanim_is_custom: false }));
           }
         } else {
-          setMetadata(prev => ({ ...prev, kazanim: '' }));
+          setMetadata(prev => ({ ...prev, kazanim: '', kazanim_is_custom: true }));
         }
       } catch (err) {
         setKazanims([]);
@@ -455,20 +456,54 @@ export default function SoruEkle() {
             {kazanimLoading ? (
               <div className="text-xs text-gray-500 mt-2">Kazanımlar yükleniyor...</div>
             ) : (
-              <select
-                className="w-full border p-2 rounded bg-gray-50 text-sm"
-                value={metadata.kazanim}
-                onChange={e => setMetadata({ ...metadata, kazanim: e.target.value })}
-                disabled={!metadata.brans_id || kazanims.length === 0}
-              >
-                {!metadata.brans_id && <option value="">Önce branş seçin</option>}
-                {metadata.brans_id && kazanims.length === 0 && <option value="">Bu branşta kazanım yok</option>}
-                {kazanims.map(k => (
-                  <option key={k.id} value={k.kod}>
-                    {k.kod} - {k.aciklama}
-                  </option>
-                ))}
-              </select>
+              <>
+                {kazanims.length > 0 ? (
+                  <select
+                    className="w-full border p-2 rounded bg-gray-50 text-sm"
+                    value={metadata.kazanim_is_custom ? '__manuel' : (metadata.kazanim || '')}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '__manuel') {
+                        setMetadata(prev => ({ ...prev, kazanim: '', kazanim_is_custom: true }));
+                      } else {
+                        setMetadata(prev => ({ ...prev, kazanim: val, kazanim_is_custom: false }));
+                      }
+                    }}
+                    disabled={!metadata.brans_id}
+                  >
+                    <option value="">Seçiniz</option>
+                    {kazanims.map(k => (
+                      <option key={k.id} value={k.kod}>
+                        {k.kod} - {k.aciklama}
+                      </option>
+                    ))}
+                    <option value="__manuel">Diğer / Manuel gir</option>
+                  </select>
+                ) : (
+                  <div>
+                    <input
+                      type="text"
+                      className="w-full border p-2 rounded bg-white text-sm"
+                      placeholder="Kazanımı manuel girin"
+                      value={metadata.kazanim}
+                      onChange={e => setMetadata(prev => ({ ...prev, kazanim: e.target.value, kazanim_is_custom: true }))}
+                      disabled={!metadata.brans_id}
+                    />
+                    <div className="text-xs text-gray-500 mt-1">Bu branşta kayıtlı kazanım yok — manuel girebilirsiniz.</div>
+                  </div>
+                )}
+
+                {metadata.kazanim_is_custom && kazanims.length > 0 && (
+                  <input
+                    type="text"
+                    className="w-full border p-2 rounded bg-white text-sm mt-2"
+                    placeholder="Kazanımı manuel girin"
+                    value={metadata.kazanim}
+                    onChange={e => setMetadata(prev => ({ ...prev, kazanim: e.target.value }))}
+                    disabled={!metadata.brans_id}
+                  />
+                )}
+              </>
             )}
           </div>
         </div>

@@ -10,6 +10,9 @@ export default function DizgiYonetimi() {
   const effectiveRole = viewRole || authUser?.rol;
   const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
   const [sorular, setSorular] = useState([]);
+  const [pending, setPending] = useState([]);
+  const [inProgress, setInProgress] = useState([]);
+  const [completed, setCompleted] = useState([]);
   const [bransCounts, setBransCounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedSoru, setSelectedSoru] = useState(null);
@@ -25,9 +28,11 @@ export default function DizgiYonetimi() {
   const loadSorular = async () => {
     try {
       const response = await soruAPI.getAll({ brans_id: user.brans_id });
-      // Sadece dizgi aşamasındaki soruları göster
-      const filtered = (response.data.data || []).filter(s => s.durum === 'dizgi_bekliyor' || s.durum === 'dizgide');
-      setSorular(filtered);
+      const all = (response.data.data || []);
+      setPending(all.filter(s => s.durum === 'dizgi_bekliyor'));
+      setInProgress(all.filter(s => s.durum === 'dizgide'));
+      setCompleted(all.filter(s => s.durum === 'tamamlandi'));
+      setSorular(all);
     } catch (error) {
       alert('Sorular yüklenemedi');
     } finally {
@@ -119,98 +124,83 @@ export default function DizgiYonetimi() {
           <h3 className="text-lg font-medium text-gray-900">Henüz soru yok</h3>
         </div>
       ) : (
-        <div className="grid gap-4">
-          {sorular.map((soru) => (
-            <div key={soru.id} className="card">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-bold text-lg">Soru #{soru.id}</h3>
-                    {getDurumBadge(soru.durum)}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-3">
+            <h2 className="font-semibold">Dizgi Bekleyen</h2>
+            {pending.map(soru => (
+              <div key={soru.id} className="card">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-bold">Soru #{soru.id}</h4>
+                    <div className="text-xs text-gray-700" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
                   </div>
-                  <div className="text-gray-900 mb-3 text-sm border-l-4 border-gray-100 pl-3 py-1" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-gray-400">
-                    <span className="font-bold text-amber-600">V{soru.versiyon || 1}</span>
-                    <span>Branş: {soru.brans_adi}</span>
-                    <span>Oluşturan: {soru.olusturan_ad}</span>
-                    {soru.latex_kodu && <span className="text-blue-600">✓ LaTeX</span>}
+                  <div className="flex flex-col gap-2">
+                    <button onClick={() => navigate(`/sorular/${soru.id}`)} className="btn btn-secondary btn-sm">Detay</button>
+                    <button onClick={() => setShowMesaj(showMesaj === soru.id ? null : soru.id)} className="btn btn-info btn-sm">💬</button>
+                    <button onClick={() => handleDurumGuncelle(soru.id, 'dizgide')} className="btn btn-primary btn-sm">Dizgiye Al</button>
                   </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={() => navigate(`/sorular/${soru.id}`)}
-                    className="btn btn-secondary btn-sm"
-                  >
-                    Detay
-                  </button>
-
-                  <button
-                    onClick={() => setShowMesaj(showMesaj === soru.id ? null : soru.id)}
-                    className="btn btn-info btn-sm"
-                  >
-                    💬 Mesaj
-                  </button>
-
-                  {soru.durum === 'dizgi_bekliyor' && (
-                    <button
-                      onClick={() => handleDurumGuncelle(soru.id, 'dizgide')}
-                      className="btn btn-primary btn-sm"
-                    >
-                      Dizgiye Al
-                    </button>
-                  )}
-
-                  {soru.durum === 'dizgide' && (
-                    <>
-                      <button
-                        onClick={() => handleDurumGuncelle(soru.id, 'tamamlandi')}
-                        className="btn btn-success btn-sm"
-                      >
-                        ✅ Tamamlandı
-                      </button>
-                      <button
-                        onClick={() => openRevizeModal(soru)}
-                        className="btn btn-error btn-sm"
-                      >
-                        Revize İste
-                      </button>
-                    </>
-                  )}
-
-                  {soru.durum === 'revize_gerekli' && (
-                    <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
-                      Revize bekleniyor
-                      {soru.revize_notu && (
-                        <p className="text-xs mt-1">{soru.revize_notu}</p>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
+            ))}
+          </div>
 
-              {soru.fotograf_url && (
-                <img
-                  src={soru.fotograf_url}
-                  alt="Soru"
-                  className="max-w-md rounded border"
-                />
-              )}
-
-              {/* Mesajlaşma Alanı */}
-              {showMesaj === soru.id && (
-                <div className="mt-4 border-t pt-4">
-                  <div className="h-[400px]">
-                    <MesajKutusu
-                      soruId={soru.id}
-                      soruSahibi={{ ad_soyad: soru.olusturan_ad }}
-                      dizgici={{ ad_soyad: user.ad_soyad }}
-                    />
+          <div className="space-y-3">
+            <h2 className="font-semibold">Dizgide</h2>
+            {inProgress.map(soru => (
+              <div key={soru.id} className="card">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-bold">Soru #{soru.id}</h4>
+                    <div className="text-xs text-gray-700" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <button onClick={() => navigate(`/sorular/${soru.id}`)} className="btn btn-secondary btn-sm">Detay</button>
+                    <button onClick={() => setShowMesaj(showMesaj === soru.id ? null : soru.id)} className="btn btn-info btn-sm">💬</button>
+                    <button onClick={() => handleDurumGuncelle(soru.id, 'tamamlandi')} className="btn btn-success btn-sm">✅ Tamamlandı</button>
+                    <button onClick={() => openRevizeModal(soru)} className="btn btn-error btn-sm">Revize İste</button>
                   </div>
                 </div>
-              )}
-            </div>
-          ))}
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-3">
+            <h2 className="font-semibold">Tamamlanan</h2>
+            {completed.map(soru => (
+              <div key={soru.id} className="card">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-bold">Soru #{soru.id}</h4>
+                    <div className="text-xs text-gray-700" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <button onClick={() => navigate(`/sorular/${soru.id}`)} className="btn btn-secondary btn-sm">Detay</button>
+                    <button onClick={() => setShowMesaj(showMesaj === soru.id ? null : soru.id)} className="btn btn-info btn-sm">💬</button>
+                    <label className="btn btn-outline btn-sm">
+                      Dosya Ekle
+                      <input type="file" className="hidden" accept="image/*,application/pdf" onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        const fd = new FormData();
+                        if (file.type.startsWith('image/')) fd.append('fotograf', file);
+                        else fd.append('dosya', file);
+                        try {
+                          await soruAPI.dizgiTamamlaWithFile(soru.id, fd);
+                          alert('Dosya yüklendi ve havuza aktarıldı');
+                          await loadSorular();
+                          loadBransCounts();
+                        } catch (err) {
+                          alert(err.response?.data?.error || 'Dosya yüklenemedi');
+                        }
+                      }} />
+                    </label>
+                  </div>
+                </div>
+                {soru.fotograf_url && <img src={soru.fotograf_url} className="max-w-xs mt-2 rounded border" />}
+                {soru.dosya_url && <a href={soru.dosya_url} target="_blank" rel="noreferrer" className="text-sm text-blue-600">Dosya (PDF/Diğer)</a>}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

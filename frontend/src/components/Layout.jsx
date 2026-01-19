@@ -126,8 +126,22 @@ export default function Layout() {
   }
 
   // Sidebar'daki aktif link kontrolü için
+  // Eğer menu item path'i sorgu parametresi içeriyorsa (örn. /sorular?takip=1)
+  // hem pathname hem de search kısmını karşılaştır
   const isActive = (path) => {
-    return window.location.pathname === path;
+    try {
+      const [pPath, pQuery] = path.split('?');
+      const currentPath = window.location.pathname;
+      const currentSearch = window.location.search ? window.location.search.replace(/^\?/, '') : '';
+      const itemSearch = pQuery || '';
+      if (itemSearch) {
+        return currentPath === pPath && currentSearch === itemSearch;
+      }
+      // item has no query -> active only when current has no query and pathname matches
+      return currentPath === pPath && currentSearch === '';
+    } catch (err) {
+      return window.location.pathname === path;
+    }
   };
 
   return (
