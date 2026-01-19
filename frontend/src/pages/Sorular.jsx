@@ -61,7 +61,7 @@ export default function Sorular() {
 
         // Frontend tarafında da rol kısıtlamasını simüle et (Admin viewRole kullanıyorsa)
         if (effectiveRole === 'dizgici') {
-          data = data.filter(s => ['dizgi_bekliyor', 'dizgide', 'tamamlandi'].includes(s.durum));
+          data = data.filter(s => ['dizgi_bekliyor', 'dizgide'].includes(s.durum));
         } else if (effectiveRole === 'soru_yazici') {
           data = data.filter(s => s.olusturan_kullanici_id === user.id || s.durum === 'tamamlandi');
         }

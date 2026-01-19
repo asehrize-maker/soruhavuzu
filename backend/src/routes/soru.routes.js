@@ -102,8 +102,8 @@ router.get('/', authenticate, async (req, res, next) => {
       )`;
       params.push(req.user.id, req.user.brans_id);
     } else if (req.user.rol === 'dizgici') {
-      // Dizgici sadece havuzdaki (tamamlandi) ve dizgi aşamasındaki (bekliyor/dizgide) soruları görür
-      query += ` AND (s.durum = 'dizgi_bekliyor' OR s.durum = 'dizgide' OR s.durum = 'tamamlandi') AND (
+      // Dizgici sadece üzerine gelen aktif dizgi işlerini (bekliyor/dizgide) görür
+      query += ` AND (s.durum = 'dizgi_bekliyor' OR s.durum = 'dizgide') AND (
         b.id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount++})
         OR b.id = (SELECT brans_id FROM kullanicilar WHERE id = $${paramCount++})
       )`;
