@@ -253,7 +253,6 @@ export default function SoruDetay() {
         {getDurumBadge(soru.durum)}
         <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-bold border border-amber-200 uppercase tracking-tighter">Versiyon 1</span>
         <span className="badge bg-green-100 text-green-800 font-bold">✅ Doğru: {soru.dogru_cevap}</span>
-        {soru.kazanim && <span className="badge bg-purple-50 text-purple-700 border border-purple-100">🎯 {soru.kazanim}</span>}
       </div>
 
       {/* SORU KALIBI / FRAME */}
@@ -296,7 +295,7 @@ export default function SoruDetay() {
 
         <div className={`p-8 min-h-[400px] relative z-10 ${incelemeTuru ? 'select-none' : ''}`}>
           <div className="prose max-w-none">
-            <h3 className="text-gray-400 uppercase text-[10px] tracking-widest mb-4 border-b pb-1">Soru Metni</h3>
+            {/* Soru Metni Başlığı Kaldırıldı */}
             {editMode ? (
               <div className="space-y-4 pointer-events-auto">
                 <textarea className="input font-mono" rows="8" value={editData.soru_metni} onChange={(e) => setEditData({ ...editData, soru_metni: e.target.value })} />
@@ -310,7 +309,7 @@ export default function SoruDetay() {
 
           {/* Seçenekler */}
           <div className="mt-10">
-            <h4 className="text-gray-400 uppercase text-[10px] tracking-widest mb-4 border-b pb-1">Seçenekler</h4>
+            {/* Seçenekler Başlığı Kaldırıldı */}
             <div className="grid grid-cols-1 gap-4">
               {['a', 'b', 'c', 'd', 'e'].map((opt) => {
                 const text = soru[`secenek_${opt}`];
@@ -328,14 +327,14 @@ export default function SoruDetay() {
 
           {soru.latex_kodu && (
             <div className="mt-10 p-6 bg-blue-50 rounded-xl border-2 border-blue-100">
-              <h4 className="text-sm font-bold text-blue-900 mb-4 flex items-center gap-2">📐 Matematiksel İfadeler</h4>
+              {/* Başlık Kaldırıldı */}
               <div ref={latexKoduRef} className="bg-white p-6 rounded-lg border border-blue-50 shadow-inner" />
             </div>
           )}
 
           {soru.fotograf_url && (
             <div className="mt-10">
-              <h4 className="text-xs font-bold text-gray-400 mb-4 uppercase tracking-widest">🖼️ Görsel</h4>
+              {/* Başlık Kaldırıldı */}
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 inline-block shadow-lg">
                 <img src={soru.fotograf_url} alt="Soru" className="max-w-full rounded-lg" />
               </div>
