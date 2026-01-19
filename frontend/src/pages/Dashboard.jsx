@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import { soruAPI, istatistikAPI, bransAPI } from '../services/api';
+import { soruAPI, bransAPI } from '../services/api';
 import {
   ChartBarIcon,
   UserGroupIcon,
@@ -71,8 +71,8 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
                 <div className="flex-1">
                   <div className="flex items-center space-x-2">
                     <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${soru.zorluk_seviyesi === 'kolay' || soru.zorluk_seviyesi === 1 ? 'bg-green-100 text-green-800' :
-                        soru.zorluk_seviyesi === 'orta' || soru.zorluk_seviyesi === 2 || soru.zorluk_seviyesi === 3 ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
+                      soru.zorluk_seviyesi === 'orta' || soru.zorluk_seviyesi === 2 || soru.zorluk_seviyesi === 3 ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
                       }`}>
                       {['ÇOK KOLAY', 'KOLAY', 'ORTA', 'ZOR', 'ÇOK ZOR'][soru.zorluk_seviyesi - 1] || String(soru.zorluk_seviyesi).toUpperCase()}
                     </span>
@@ -139,13 +139,13 @@ export default function Dashboard() {
       setLoading(true);
       try {
         if (activeRole === 'admin') {
-          const res = await istatistikAPI.getDetayliStats();
+          const res = await soruAPI.getDetayliStats();
           if (res.data.success) {
             setDetayliStats(res.data.data);
           }
         } else {
           // Diğer roller için genel stats (veya rolüne özel endpoint varsa o)
-          const res = await istatistikAPI.getGenelStats();
+          const res = await soruAPI.getStats();
           if (res.data.success) {
             setStats(res.data.data);
           }
