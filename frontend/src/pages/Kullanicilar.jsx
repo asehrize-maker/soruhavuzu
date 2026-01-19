@@ -295,7 +295,7 @@ export default function Kullanicilar() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h2 className="text-2xl font-bold mb-4">
-              Kullanıcı Düzenle: {editingUser.ad_soyad}
+              {editingUser ? `Kullanıcı Düzenle: ${editingUser.ad_soyad}` : 'Yeni Kullanıcı Oluştur'}
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">
