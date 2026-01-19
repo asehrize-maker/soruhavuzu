@@ -131,8 +131,8 @@ export default function SoruDetay() {
   const handleFinishReview = async () => {
     const hasNotes = revizeNotlari.length > 0;
     const msg = hasNotes
-      ? "İşaretlediğiniz " + revizeNotlari.length + " adet notla birlikte incelemeyi bitirip Dizgiye göndermek istiyor musunuz?"
-      : "Soruda hiç hata bulmadınız. Hatasız ONAYLAYIP incelemeyi bitirmek istiyor musunuz?";
+      ? `İşaretlediğiniz ${revizeNotlari.length} adet notla birlikte incelemeyi bitirip Dizgiye göndermek istiyor musunuz?\n\n(Not: Gönderilen soruları "Soru Havuzu" sekmesinden takip edebilirsiniz.)`
+      : 'Soruda hiç hata bulmadınız. Hatasız ONAYLAYIP incelemeyi bitirmek istiyor musunuz?\n\n(Not: Gönderilen soruları "Soru Havuzu" sekmesinden takip edebilirsiniz.)';
 
     if (!confirm(msg)) return;
 
@@ -144,7 +144,7 @@ export default function SoruDetay() {
         aciklama: hasNotes ? (dizgiNotu || 'Metin üzerinde hatalar belirtildi.') : 'İnceleme hatasız tamamlandı.',
         inceleme_turu: type
       });
-      alert('İŞLEM TAMAMLANDI: Soru Dizgiye gönderildi.');
+      alert('İŞLEM TAMAMLANDI: Soru Dizgiye gönderildi. Soruyu "Soru Havuzu" sekmesinden takip edebilirsiniz.');
       navigate('/');
     } catch (e) {
       alert('Hata: ' + (e.response?.data?.error || e.message));
