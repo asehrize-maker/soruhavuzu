@@ -235,6 +235,8 @@ export default function SoruEkle() {
       formData.append('dogru_cevap', metadata.dogruCevap);
       formData.append('brans_id', metadata.brans_id);
       formData.append('kazanim', metadata.kazanim || 'Genel');
+      // Otomatik İncelemeye Gönder
+      formData.append('durum', 'inceleme_bekliyor');
 
       let htmlContent = components.map(c => {
         let style = "";
