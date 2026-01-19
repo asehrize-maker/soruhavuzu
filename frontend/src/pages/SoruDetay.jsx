@@ -637,17 +637,6 @@ export default function SoruDetay() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
-      {/* DEBUG INFO - REMOVE LATER */}
-      {isOwner && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded relative text-xs">
-          <strong className="font-bold">DEBUG:</strong>
-          <span className="block sm:inline"> Role: {effectiveRole}, Status: "{soru.durum}", Owner: Yes</span>
-          <span className="block">Status Allowed: {availableStatusesForEdit.includes(soru.durum) ? 'YES' : 'NO'}</span>
-          <span className="block">Can Edit: {canEdit ? 'YES' : 'NO'}</span>
-          <span className="block">Conditions: Admin={isAdmin ? 'T' : 'F'}, Owner={isOwner ? 'T' : 'F'}, InList={availableStatusesForEdit.includes(soru.durum) ? 'T' : 'F'}</span>
-        </div>
-      )}
-
       {/* Header Area */}
       <div className="bg-white border-b-2 border-gray-100 p-6 flex justify-between items-center mb-6 rounded-xl">
         <div className="flex items-center gap-4">
@@ -747,7 +736,6 @@ export default function SoruDetay() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <button onClick={handleEditAndAction} disabled={saving} className="px-4 py-1 bg-green-400 text-white text-xs font-bold rounded hover:bg-green-500 shadow-sm border border-green-500">KAYDET & AKSİYON SEÇ</button>
                 <button onClick={handleEditSave} disabled={saving} className="px-4 py-1 bg-white text-blue-700 text-xs font-bold rounded hover:bg-blue-50">KAYDET</button>
                 <button onClick={() => setEditMode(false)} className="px-4 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600">İPTAL</button>
               </div>
