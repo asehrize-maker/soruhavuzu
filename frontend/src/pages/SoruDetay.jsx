@@ -228,6 +228,22 @@ export default function SoruDetay() {
   const canReview = effectiveRole === 'admin' || (effectiveRole === 'incelemeci' && !!effectiveIncelemeTuru);
 
   const [soru, setSoru] = useState(null);
+
+  // DEBUG LOGS
+  useEffect(() => {
+    if (soru && user) {
+      console.log('--- SORU DETAY DEBUG ---');
+      console.log('User:', user);
+      console.log('Soru:', soru);
+      console.log('Effective Role:', effectiveRole);
+      console.log('Is Owner Check:', soru.olusturan_kullanici_id, '==', user.id, '->', soru.olusturan_kullanici_id == user.id);
+      console.log('Soru Durum:', soru.durum);
+      const availableStatuses = ['beklemede', 'revize_gerekli', 'revize_istendi', 'inceleme_tamam'];
+      console.log('Durum Allowed?:', availableStatuses.includes(soru.durum));
+      console.log('Can Edit Final:', !incelemeTuru && (effectiveRole === 'admin' || ((soru.olusturan_kullanici_id == user.id) && availableStatuses.includes(soru.durum))));
+      console.log('------------------------');
+    }
+  }, [soru, user, effectiveRole]);
   const [loading, setLoading] = useState(true);
   const [dizgiNotu, setDizgiNotu] = useState('');
   const [editMode, setEditMode] = useState(false);
