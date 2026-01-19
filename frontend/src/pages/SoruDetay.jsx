@@ -616,6 +616,17 @@ export default function SoruDetay() {
     }, 500);
   };
 
+  const handleSaveAndInceleme = async () => {
+    await handleEditSave();
+    // Kısa bir gecikme ile aksiyonu tetikle ki state güncellensin
+    setTimeout(() => handleSendToInceleme(), 500);
+  };
+
+  const handleSaveAndDizgi = async () => {
+    await handleEditSave();
+    setTimeout(() => handleSendToDizgi(), 500);
+  };
+
   const RibbonButton = ({ cmd, label, icon }) => (
     <button onMouseDown={(e) => { e.preventDefault(); execCmd(cmd); }} className="w-8 h-8 flex items-center justify-center hover:bg-gray-200 rounded text-gray-700 font-medium">{icon || label}</button>
   );
@@ -736,6 +747,8 @@ export default function SoruDetay() {
                 </div>
               </div>
               <div className="flex gap-2">
+                <button onClick={handleSaveAndInceleme} disabled={saving} className="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded hover:bg-indigo-200 border border-indigo-300">🔍 KAYDET & İNCELEME</button>
+                <button onClick={handleSaveAndDizgi} disabled={saving} className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded hover:bg-green-600 border border-green-600">🚀 KAYDET & DİZGİ</button>
                 <button onClick={handleEditSave} disabled={saving} className="px-4 py-1 bg-white text-blue-700 text-xs font-bold rounded hover:bg-blue-50">KAYDET</button>
                 <button onClick={() => setEditMode(false)} className="px-4 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600">İPTAL</button>
               </div>
