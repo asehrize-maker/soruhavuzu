@@ -271,7 +271,7 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold text-gray-800 tracking-tight">Yönetim Paneli</h1>
             <p className="text-gray-500 mt-1 font-medium">Sistem özetini ve aktiviteleri buradan yönetebilirsiniz.</p>
           </div>
-          <div className="hidden md:flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={async () => {
                 if (confirm('Veritabanındaki tüm soruları kalıcı olarak silip rakamı sıfırlamak istiyor musunuz? Bu işlem geri alınamaz.')) {
@@ -351,6 +351,34 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition"></div>
+          </div>
+
+          {/* Sistem Kurtarma (Admin Only) */}
+          <div className="relative overflow-hidden rounded-2xl bg-white p-6 shadow-lg shadow-gray-100 border border-red-100 transition-all hover:shadow-xl group">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-red-500 text-xs font-bold uppercase tracking-widest">SİSTEM KURTARMA</p>
+                <h3 className="text-xl font-bold mt-2 text-gray-800">Veriyi Sıfırla</h3>
+                <p className="text-xs text-gray-500 mt-1 max-w-[150px]">Tüm soru kayıtlarını kalıcı olarak temizler.</p>
+              </div>
+              <div className="p-2 bg-red-50 rounded-lg group-hover:bg-red-100 transition">
+                <ExclamationTriangleIcon className="w-6 h-6 text-red-600" />
+              </div>
+            </div>
+            <button
+              onClick={async () => {
+                if (confirm('DİKKAT: Veritabanındaki TÜM soruları silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) {
+                  try {
+                    const res = await soruAPI.adminCleanup({ action: 'clear_all' });
+                    alert(res.data.message);
+                    fetchData();
+                  } catch (e) { alert('Hata: ' + (e.response?.data?.error || e.message)); }
+                }
+              }}
+              className="mt-4 w-full py-2 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition shadow-md shadow-red-100"
+            >
+              Şimdi Sıfırla
+            </button>
           </div>
         </div>
 
