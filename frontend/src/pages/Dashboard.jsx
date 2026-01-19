@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { soruAPI, bransAPI } from '../services/api';
@@ -10,7 +10,8 @@ import {
   ClockIcon,
   BookOpenIcon,
   PencilSquareIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 
 // --- ALT BİLEŞEN: İNCELEME LİSTESİ ---
@@ -150,6 +151,17 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
   return content;
 }
 
+const RefreshButton = ({ onRefresh, loading }) => (
+  <button
+    onClick={onRefresh}
+    disabled={loading}
+    className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-xl hover:bg-gray-50 transition shadow-sm border border-gray-100 font-bold text-sm disabled:opacity-50 group"
+  >
+    <ArrowPathIcon className={`w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors ${loading ? 'animate-spin' : ''}`} />
+    Yenile
+  </button>
+);
+
 export default function Dashboard() {
   const { user } = useAuthStore();
   const { effectiveRole } = useOutletContext() || {};
@@ -179,39 +191,39 @@ export default function Dashboard() {
     else if (user?.inceleme_dilci && !user?.inceleme_alanci) setReviewMode('dilci');
   }, [activeRole, isActualAdmin, user?.inceleme_alanci, user?.inceleme_dilci]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setStats(null);
-      setDetayliStats(null);
-      try {
-        if (activeRole === 'admin') {
-          const res = await soruAPI.getDetayliStats();
-          if (res.data.success) {
-            setDetayliStats(res.data.data);
-          }
-        } else {
-          const res = await soruAPI.getStats({ role: activeRole });
-          if (res.data.success) {
-            setStats(res.data.data);
-          }
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setStats(null);
+    setDetayliStats(null);
+    try {
+      if (activeRole === 'admin') {
+        const res = await soruAPI.getDetayliStats();
+        if (res.data.success) {
+          setDetayliStats(res.data.data);
         }
-
-        if (activeRole === 'incelemeci') {
-          const bransRes = await bransAPI.getAll();
-          if (bransRes.data.success) {
-            setBranslar(bransRes.data.data);
-          }
+      } else {
+        const res = await soruAPI.getStats({ role: activeRole });
+        if (res.data.success) {
+          setStats(res.data.data);
         }
-      } catch (error) {
-        console.error("Dashboard veri hatası:", error);
-      } finally {
-        setLoading(false);
       }
-    };
 
-    fetchData();
+      if (activeRole === 'incelemeci') {
+        const bransRes = await bransAPI.getAll();
+        if (bransRes.data.success) {
+          setBranslar(bransRes.data.data);
+        }
+      }
+    } catch (error) {
+      console.error("Dashboard veri hatası:", error);
+    } finally {
+      setLoading(false);
+    }
   }, [activeRole]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // Compute review counts per branch for both alan and dil roles (client-side)
   useEffect(() => {
@@ -258,7 +270,8 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold text-gray-800 tracking-tight">Yönetim Paneli</h1>
             <p className="text-gray-500 mt-1 font-medium">Sistem özetini ve aktiviteleri buradan yönetebilirsiniz.</p>
           </div>
-          <div className="hidden md:block">
+          <div className="hidden md:flex items-center gap-3">
+            <RefreshButton onRefresh={fetchData} loading={loading} />
             <span className="px-4 py-2 bg-gray-100 text-gray-600 rounded-full text-sm font-semibold border border-gray-200">
               {new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </span>
@@ -359,13 +372,16 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold">Hoş Geldiniz, {user?.ad_soyad}</h1>
             <p className="text-blue-100 mt-2 text-lg">Soru hazırlama stüdyosuna erişiminiz hazır.</p>
           </div>
-          <Link
-            to="/sorular/yeni"
-            className="mt-4 md:mt-0 flex items-center gap-3 px-8 py-4 bg-white text-blue-700 rounded-xl hover:bg-blue-50 transition shadow-xl font-bold text-lg transform hover:scale-105"
-          >
-            <PencilSquareIcon className="w-6 h-6" />
-            Yeni Soru Başlat
-          </Link>
+          <div className="flex items-center gap-4 mt-4 md:mt-0">
+            <RefreshButton onRefresh={fetchData} loading={loading} />
+            <Link
+              to="/sorular/yeni"
+              className="flex items-center gap-3 px-8 py-4 bg-white text-blue-700 rounded-xl hover:bg-blue-50 transition shadow-xl font-bold text-lg transform hover:scale-105"
+            >
+              <PencilSquareIcon className="w-6 h-6" />
+              Yeni Soru Başlat
+            </Link>
+          </div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
@@ -423,12 +439,17 @@ export default function Dashboard() {
     return (
       <div className="space-y-6 animate-fade-in">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            {reviewMode === 'alanci' ? 'Alan İnceleme Paneli' : 'Dil İnceleme Paneli'}
-          </h1>
-          <p className="text-gray-500">
-            Lütfen incelemek istediğiniz branşı seçiniz.
-          </p>
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                {reviewMode === 'alanci' ? 'Alan İnceleme Paneli' : 'Dil İnceleme Paneli'}
+              </h1>
+              <p className="text-gray-500">
+                Lütfen incelemek istediğiniz branşı seçiniz.
+              </p>
+            </div>
+            <RefreshButton onRefresh={fetchData} loading={loading} />
+          </div>
           <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-700 flex items-center gap-2">
             <InformationCircleIcon className="w-5 h-5 flex-shrink-0" />
             <span>Bilgi: İncelemesi biten veya dizgiye gönderilen soruları sol menüdeki <b>"Soru Havuzu"</b> sekmesinden takip edebilirsiniz.</span>
@@ -543,13 +564,16 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold">Hoş Geldiniz, {user?.ad_soyad}</h1>
             <p className="text-orange-50 mt-2 text-lg font-medium opacity-90">Dizgi ve mizanpaj görevleriniz burada yönetilmeyi bekliyor.</p>
           </div>
-          <Link
-            to="/dizgi-yonetimi"
-            className="mt-4 md:mt-0 flex items-center gap-3 px-8 py-4 bg-white text-orange-600 rounded-xl hover:bg-orange-50 transition shadow-xl font-bold text-lg"
-          >
-            <DocumentTextIcon className="w-6 h-6" />
-            Dizgi Yönetimine Git
-          </Link>
+          <div className="flex items-center gap-4 mt-4 md:mt-0">
+            <RefreshButton onRefresh={fetchData} loading={loading} />
+            <Link
+              to="/dizgi-yonetimi"
+              className="flex items-center gap-3 px-8 py-4 bg-white text-orange-600 rounded-xl hover:bg-orange-50 transition shadow-xl font-bold text-lg"
+            >
+              <DocumentTextIcon className="w-6 h-6" />
+              Dizgi Yönetimine Git
+            </Link>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

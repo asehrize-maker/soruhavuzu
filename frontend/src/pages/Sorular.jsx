@@ -16,7 +16,7 @@ export default function Sorular() {
   const [loading, setLoading] = useState(true);
   const [branslar, setBranslar] = useState([]);
   const [filters, setFilters] = useState({
-    durum: isTakipModu ? '' : 'tamamlandi',
+    durum: (user?.rol === 'admin' && !isTakipModu) ? '' : (isTakipModu ? '' : 'tamamlandi'),
     brans_id: '',
   });
 
