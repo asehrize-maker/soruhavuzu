@@ -22,7 +22,7 @@ services:
       - key: CLOUDINARY_API_SECRET
         sync: false
       - key: FRONTEND_URL
-        value: https://soruhavuzu.onrender.com
+        value: https://soruhavuzufrontend.onrender.com
 
   - type: web
     name: soru-havuzu-frontend
