@@ -287,7 +287,7 @@ export default function SoruDetay() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Soru Detayı</h1>
+          <h1 className="text-3xl font-bold text-gray-900">📝 Soru Detayı</h1>
           <p className="mt-2 text-gray-600">Soru #{soru.id}</p>
         </div>
         <div className="flex space-x-2">
