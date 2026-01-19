@@ -151,7 +151,20 @@ export default function Dashboard() {
   const [incelemeBransCounts, setIncelemeBransCounts] = useState([]);
   const [selectedBrans, setSelectedBrans] = useState(null);
   const [selectedStat, setSelectedStat] = useState(null);
-  const [reviewMode, setReviewMode] = useState('alanci');
+  const [reviewMode, setReviewMode] = useState(() => {
+    const params = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
+    const mode = params.get('mode');
+    return (mode === 'alanci' || mode === 'dilci') ? mode : 'alanci';
+  });
+
+  // Sync reviewMode with URL param if it changes
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
+    const mode = params.get('mode');
+    if (mode && (mode === 'alanci' || mode === 'dilci')) {
+      setReviewMode(mode);
+    }
+  }, [window.location.hash]);
 
   useEffect(() => {
     if (activeRole !== 'incelemeci') return;
