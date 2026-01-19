@@ -88,10 +88,10 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <span className={`px-2 py-0.5 text-xs rounded-full font-bold uppercase tracking-wide ${soru.zorluk_seviyesi == 1 ? 'bg-green-100 text-green-700' :
-                        soru.zorluk_seviyesi == 2 ? 'bg-green-50 text-green-600' :
-                          soru.zorluk_seviyesi == 3 ? 'bg-yellow-100 text-yellow-700' :
-                            soru.zorluk_seviyesi == 4 ? 'bg-orange-100 text-orange-700' :
-                              'bg-red-100 text-red-700'
+                      soru.zorluk_seviyesi == 2 ? 'bg-green-50 text-green-600' :
+                        soru.zorluk_seviyesi == 3 ? 'bg-yellow-100 text-yellow-700' :
+                          soru.zorluk_seviyesi == 4 ? 'bg-orange-100 text-orange-700' :
+                            'bg-red-100 text-red-700'
                       }`}>
                       {['ÇOK KOLAY', 'KOLAY', 'ORTA', 'ZOR', 'ÇOK ZOR'][soru.zorluk_seviyesi - 1] || 'BELİRSİZ'}
                     </span>
@@ -248,7 +248,31 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Diğer Admin Kartları (Branş, Ekip vs) eklenebilir ama mockup zaten doluydu */}
+          {/* Branşlar */}
+          <div className="card bg-white hover:shadow-lg transition p-6 border-l-4 border-purple-500 group">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Branşlar</p>
+                <h3 className="text-3xl font-bold text-gray-900 mt-2">{detayliStats?.branslar?.length || 0}</h3>
+              </div>
+              <div className="p-3 bg-purple-50 text-purple-600 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition">
+                <BookOpenIcon className="w-6 h-6" />
+              </div>
+            </div>
+          </div>
+
+          {/* Ekipler */}
+          <div className="card bg-white hover:shadow-lg transition p-6 border-l-4 border-orange-500 group">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Ekipler</p>
+                <h3 className="text-3xl font-bold text-gray-900 mt-2">{detayliStats?.genel?.toplam_ekip || 0}</h3>
+              </div>
+              <div className="p-3 bg-orange-50 text-orange-600 rounded-lg group-hover:bg-orange-600 group-hover:text-white transition">
+                <UserGroupIcon className="w-6 h-6" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Detaylı Stats Modal Logic */}
@@ -359,8 +383,8 @@ export default function Dashboard() {
                 key={brans.id}
                 onClick={() => setSelectedBrans(brans)}
                 className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.id
-                    ? 'bg-blue-600 text-white shadow-md transform scale-105'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-blue-600 text-white shadow-md transform scale-105'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
               >
                 <span>{brans.brans_adi}</span>
