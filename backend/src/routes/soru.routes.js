@@ -672,14 +672,15 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
       const { onay_alanci, onay_dilci, olusturan_kullanici_id } = check.rows[0];
 
       if (onay_alanci && onay_dilci) {
-        // İkisi de tamamsa otomatik dizgi sırasına gönder
+        // İkisi de tamamsa 'inceleme_tamam' durumuna çek, böylece Branş son kararı verebilir
         result = await pool.query(
-          `UPDATE sorular SET durum = 'dizgi_bekliyor', guncellenme_tarihi = NOW() WHERE id = $1 RETURNING *`,
+          `UPDATE sorular SET durum = 'inceleme_tamam', guncellenme_tarihi = NOW() WHERE id = $1 RETURNING *`,
           [id]
         );
-        message = 'Tüm incelemeler tamamlandı, soru dizgiye gönderildi.';
+        message = 'Tüm incelemeler tamamlandı, son kontrol için Branşa gönderildi.';
+
         if (olusturan_kullanici_id) {
-          await createNotification(olusturan_kullanici_id, 'İnceleme Tamamlandı', `#${id} nolu sorunuzun tüm incelemeleri bitti ve dizgiye gönderildi.`, 'info', `/sorular/${id}`);
+          await createNotification(olusturan_kullanici_id, 'İnceleme Tamamlandı', `#${id} nolu sorunuz incelendi ve onaylandı. Lütfen kontrol edip dizgiye gönderiniz.`, 'success', `/sorular/${id}`);
         }
       } else {
         const currentRes = await pool.query('SELECT * FROM sorular WHERE id = $1', [id]);
