@@ -99,7 +99,7 @@ export const soruAPI = {
   getStats: (params) => api.get('/sorular/stats/genel', { params }),
   getDetayliStats: () => api.get('/sorular/stats/detayli'),
   getDizgiBransStats: () => api.get('/sorular/stats/dizgi-brans'),
-  getIncelemeBransStats: (turu) => api.get('/sorular/stats/inceleme-brans', { params: { turu } }),
+  getIncelemeBransStats: () => api.get('/sorular/stats/inceleme-brans'),
   getRapor: (params) => api.get('/sorular/rapor', { params }),
   getYedek: () => api.get('/sorular/yedek'),
   getComments: (id) => api.get(`/sorular/${id}/yorumlar`),
@@ -108,6 +108,7 @@ export const soruAPI = {
   addRevizeNot: (id, data) => api.post(`/sorular/${id}/revize-not`, data),
   getRevizeNotlari: (id) => api.get(`/sorular/${id}/revize-notlari`),
   deleteRevizeNot: (id, notId) => api.delete(`/sorular/${id}/revize-not/${notId}`),
+  
 };
 
 // Bildirim API

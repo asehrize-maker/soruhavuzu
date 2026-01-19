@@ -18,6 +18,7 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
   const [sorular, setSorular] = useState([]);
   const [listLoading, setListLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { user: authUser } = useAuthStore();
 
   useEffect(() => {
     const fetchSorular = async () => {
@@ -36,9 +37,13 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
 
           const isStatusSuitable = ['inceleme_bekliyor', 'beklemede', 'incelemede', 'dizgide'].includes(s.durum);
 
+          // Determine pending review based on current user's flags
+          const alan = !!authUser?.inceleme_alanci;
+          const dil = !!authUser?.inceleme_dilci;
           let isPendingReview = false;
-          if (reviewMode === 'alanci') isPendingReview = !s.onay_alanci;
-          if (reviewMode === 'dilci') isPendingReview = !s.onay_dilci;
+          if (alan && !dil) isPendingReview = !s.onay_alanci;
+          else if (dil && !alan) isPendingReview = !s.onay_dilci;
+          else if (alan && dil) isPendingReview = (!s.onay_alanci || !s.onay_dilci);
 
           const notFinished = s.durum !== 'tamamlandi';
 
@@ -56,7 +61,7 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
     if (bransId) {
       fetchSorular();
     }
-  }, [bransId, reviewMode]);
+  }, [bransId]);
 
   const content = (
     <div className="mt-8 animate-fade-in">
@@ -190,12 +195,12 @@ export default function Dashboard() {
     fetchData();
   }, [activeRole]);
 
-  // Load review counts per branch when reviewMode or branslar change
+  // Load review counts per branch (backend infers which type based on user's flags)
   useEffect(() => {
     const loadIncelemeCounts = async () => {
-      if (activeRole !== 'incelemeci' || !reviewMode) return;
+      if (activeRole !== 'incelemeci') return;
       try {
-        const res = await soruAPI.getIncelemeBransStats(reviewMode);
+        const res = await soruAPI.getIncelemeBransStats();
         if (res.data && res.data.success) setIncelemeBransCounts(res.data.data || []);
       } catch (err) {
         console.error('İnceleme branş istatistikleri yüklenemedi', err);
@@ -203,13 +208,7 @@ export default function Dashboard() {
     };
 
     loadIncelemeCounts();
-  }, [activeRole, reviewMode, branslar]);
-
-  useEffect(() => {
-    if (activeRole !== 'incelemeci') return;
-    if (canAlanInceleme) setReviewMode('alanci');
-    else if (canDilInceleme) setReviewMode('dilci');
-  }, [activeRole, canAlanInceleme, canDilInceleme]);
+  }, [activeRole, branslar]);
 
   if (loading) {
     return (

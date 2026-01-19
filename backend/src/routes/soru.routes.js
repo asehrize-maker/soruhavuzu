@@ -391,19 +391,31 @@ router.post('/', [
 // İnceleme için branş bazlı bekleyen soru sayıları (turu: 'alanci'|'dilci')
 router.get('/stats/inceleme-brans', authenticate, async (req, res, next) => {
   try {
-    const turu = req.query.turu; // expected 'alanci' or 'dilci'
-    if (!turu || !['alanci', 'dilci'].includes(turu)) {
-      throw new AppError('inceleme türü belirtilmeli (alanci|dilci)', 400);
+    // Determine review capabilities from user flags
+    const isAdmin = req.user.rol === 'admin';
+    const canAlan = isAdmin || !!req.user.inceleme_alanci;
+    const canDil = isAdmin || !!req.user.inceleme_dilci;
+
+    // Build SQL condition depending on capabilities
+    let condition = '';
+    if (canAlan && canDil) {
+      condition = `(s.onay_alanci = false OR s.onay_dilci = false)`;
+    } else if (canAlan) {
+      condition = `s.onay_alanci = false`;
+    } else if (canDil) {
+      condition = `s.onay_dilci = false`;
+    } else {
+      // No review capability
+      return res.json({ success: true, data: [] });
     }
 
-    const isAdmin = req.user.rol === 'admin';
     let query;
     let params = [];
 
     if (isAdmin) {
       query = `
         SELECT b.id, b.brans_adi,
-          COALESCE(COUNT(s.id) FILTER (WHERE s.durum = 'inceleme_bekliyor' AND ${turu === 'alanci' ? "s.onay_alanci = false" : "s.onay_dilci = false"}), 0) as inceleme_bekliyor
+          COALESCE(COUNT(s.id) FILTER (WHERE s.durum = 'inceleme_bekliyor' AND ${condition}), 0) as inceleme_bekliyor
         FROM branslar b
         LEFT JOIN sorular s ON b.id = s.brans_id
         GROUP BY b.id, b.brans_adi
@@ -412,7 +424,7 @@ router.get('/stats/inceleme-brans', authenticate, async (req, res, next) => {
     } else {
       query = `
         SELECT b.id, b.brans_adi,
-          COALESCE(COUNT(s.id) FILTER (WHERE s.durum = 'inceleme_bekliyor' AND ${turu === 'alanci' ? "s.onay_alanci = false" : "s.onay_dilci = false"}), 0) as inceleme_bekliyor
+          COALESCE(COUNT(s.id) FILTER (WHERE s.durum = 'inceleme_bekliyor' AND ${condition}), 0) as inceleme_bekliyor
         FROM branslar b
         LEFT JOIN sorular s ON b.id = s.brans_id
         WHERE b.id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1)
