@@ -37,13 +37,19 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
 
           const isStatusSuitable = ['inceleme_bekliyor', 'beklemede', 'incelemede', 'dizgide'].includes(s.durum);
 
-          // Determine pending review based on current user's flags
-          const alan = !!authUser?.inceleme_alanci;
-          const dil = !!authUser?.inceleme_dilci;
+          // Determine pending review. Prefer explicit reviewMode (admin can select),
+          // otherwise fallback to user's inceleme flags.
           let isPendingReview = false;
-          if (alan && !dil) isPendingReview = !s.onay_alanci;
-          else if (dil && !alan) isPendingReview = !s.onay_dilci;
-          else if (alan && dil) isPendingReview = (!s.onay_alanci || !s.onay_dilci);
+          if (typeof reviewMode !== 'undefined' && reviewMode) {
+            if (reviewMode === 'alanci') isPendingReview = !s.onay_alanci;
+            else if (reviewMode === 'dilci') isPendingReview = !s.onay_dilci;
+          } else {
+            const alan = !!authUser?.inceleme_alanci;
+            const dil = !!authUser?.inceleme_dilci;
+            if (alan && !dil) isPendingReview = !s.onay_alanci;
+            else if (dil && !alan) isPendingReview = !s.onay_dilci;
+            else if (alan && dil) isPendingReview = (!s.onay_alanci || !s.onay_dilci);
+          }
 
           const notFinished = s.durum !== 'tamamlandi';
 
@@ -195,19 +201,32 @@ export default function Dashboard() {
     fetchData();
   }, [activeRole]);
 
-  // Load review counts per branch (backend infers which type based on user's flags)
+  // Compute review counts per branch for both alan and dil roles (client-side)
   useEffect(() => {
-    const loadIncelemeCounts = async () => {
+    const loadCounts = async () => {
       if (activeRole !== 'incelemeci') return;
       try {
-        const res = await soruAPI.getIncelemeBransStats();
-        if (res.data && res.data.success) setIncelemeBransCounts(res.data.data || []);
+        const res = await soruAPI.getAll();
+        const allQuestions = res.data.data || [];
+        const map = {};
+        // initialize map with branches
+        branslar.forEach(b => { map[b.id] = { id: b.id, brans_adi: b.brans_adi, alanci: 0, dilci: 0 }; });
+        allQuestions.forEach(s => {
+          const isStatusSuitable = ['inceleme_bekliyor', 'beklemede', 'incelemede', 'dizgide'].includes(s.durum);
+          if (!isStatusSuitable) return;
+          const bid = Number(s.brans_id);
+          if (!map[bid]) return;
+          if (!s.onay_alanci) map[bid].alanci += 1;
+          if (!s.onay_dilci) map[bid].dilci += 1;
+        });
+        setIncelemeBransCounts(Object.values(map));
       } catch (err) {
         console.error('İnceleme branş istatistikleri yüklenemedi', err);
+        setIncelemeBransCounts([]);
       }
     };
 
-    loadIncelemeCounts();
+    loadCounts();
   }, [activeRole, branslar]);
 
   if (loading) {
@@ -426,28 +445,64 @@ export default function Dashboard() {
             </div>
           )}
 
-          <div className="mt-6 flex flex-wrap gap-3">
-            {branslar.map(brans => {
-              const countObj = incelemeBransCounts.find(b => Number(b.id) === Number(brans.id));
-              const count = countObj ? Number(countObj.inceleme_bekliyor || 0) : 0;
-              return (
-                <button
-                  key={brans.id}
-                  onClick={() => setSelectedBrans(brans)}
-                  className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.id
-                    ? 'bg-blue-600 text-white shadow-md transform scale-105'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                >
-                  <span>{brans.brans_adi}</span>
-                  {count > 0 && (
-                    <span className="ml-2 inline-flex items-center justify-center bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {canAlanInceleme && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Alan İnceleme</h4>
+                <div className="flex flex-wrap gap-3">
+                  {branslar.map(brans => {
+                    const countObj = incelemeBransCounts.find(b => Number(b.id) === Number(brans.id));
+                    const count = countObj ? Number(countObj.alanci || 0) : 0;
+                    return (
+                      <button
+                        key={`alan-${brans.id}`}
+                        onClick={() => { setSelectedBrans(brans); setReviewMode('alanci'); }}
+                        className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.id && reviewMode === 'alanci'
+                          ? 'bg-blue-600 text-white shadow-md transform scale-105'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                      >
+                        <span>{brans.brans_adi}</span>
+                        {count > 0 && (
+                          <span className="ml-2 inline-flex items-center justify-center bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                            {count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {canDilInceleme && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Dil İnceleme</h4>
+                <div className="flex flex-wrap gap-3">
+                  {branslar.map(brans => {
+                    const countObj = incelemeBransCounts.find(b => Number(b.id) === Number(brans.id));
+                    const count = countObj ? Number(countObj.dilci || 0) : 0;
+                    return (
+                      <button
+                        key={`dil-${brans.id}`}
+                        onClick={() => { setSelectedBrans(brans); setReviewMode('dilci'); }}
+                        className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.id && reviewMode === 'dilci'
+                          ? 'bg-purple-600 text-white shadow-md transform scale-105'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                      >
+                        <span>{brans.brans_adi}</span>
+                        {count > 0 && (
+                          <span className="ml-2 inline-flex items-center justify-center bg-purple-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                            {count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
