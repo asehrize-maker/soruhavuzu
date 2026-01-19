@@ -126,9 +126,9 @@ export default function Layout() {
     else menuItems.push(dizgiItem);
   }
 
-  // Hide Soru Havuzu for Reviewers (Incelemeci)
+  // Hide Soru Havuzu & Soru Takibi for Reviewers (Incelemeci)
   if (effectiveRole === 'incelemeci') {
-    menuItems = menuItems.filter(i => i.path !== '/sorular');
+    menuItems = menuItems.filter(i => !i.path.startsWith('/sorular'));
   }
 
   if (user?.rol === 'admin') {
