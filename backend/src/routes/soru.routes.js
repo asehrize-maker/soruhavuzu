@@ -516,15 +516,17 @@ router.put('/:id(\\d+)/durum', [authenticate, authorize('incelemeci', 'admin')],
       if (inceleme_turu === 'alanci') updateField = 'onay_alanci';
       else if (inceleme_turu === 'dilci') updateField = 'onay_dilci';
       else if (req.user.rol === 'admin') {
-        // Admin "inceleme_turu" göndermezse hata dönsün, UI'da seçsin.
-        // Ancak kolaylık olsun diye parametre yoksa hata verelim.
-        throw new AppError('İnceleme türü (Alan/Dil) seçilmelidir', 400);
+        // Admin direkt onaylıyorsa her iki tarafı da onaylamış sayalım
+        await pool.query('UPDATE sorular SET onay_alanci = true, onay_dilci = true WHERE id = $1', [id]);
+        updateField = 'all';
       } else {
         throw new AppError('Geçersiz inceleme türü', 400);
       }
 
-      // İlgili onayı ver
-      await pool.query(`UPDATE sorular SET ${updateField} = true WHERE id = $1`, [id]);
+      // İlgili onayı ver (Eğer admin değilse veya tekil onay ise)
+      if (updateField !== 'all') {
+        await pool.query(`UPDATE sorular SET ${updateField} = true WHERE id = $1`, [id]);
+      }
 
       // Kontrol et: İkisi de onaylandı mı?
       const check = await pool.query('SELECT onay_alanci, onay_dilci FROM sorular WHERE id = $1', [id]);
@@ -1246,7 +1248,12 @@ s.*,
 router.post('/:id/revize-not', authenticate, async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { secilen_metin, not_metni, inceleme_turu } = req.body;
+    let { secilen_metin, not_metni, inceleme_turu } = req.body;
+
+    // Admin ekliyorsa ve tür belirtilmemişse veya 'admin' ise, DB kısıtlamasına takılmamak için 'alanci' yapalım
+    if (inceleme_turu === 'admin' || !inceleme_turu) {
+      inceleme_turu = 'alanci';
+    }
 
     await pool.query(
       `INSERT INTO soru_revize_notlari (soru_id, kullanici_id, secilen_metin, not_metni, inceleme_turu) 
