@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import { soruAPI, bransAPI } from '../services/api';
+import { soruAPI, bransAPI, api } from '../services/api';
 import {
   ChartBarIcon,
   UserGroupIcon,
@@ -11,7 +11,8 @@ import {
   BookOpenIcon,
   PencilSquareIcon,
   InformationCircleIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 
 // --- ALT BİLEŞEN: İNCELEME LİSTESİ ---
@@ -271,6 +272,21 @@ export default function Dashboard() {
             <p className="text-gray-500 mt-1 font-medium">Sistem özetini ve aktiviteleri buradan yönetebilirsiniz.</p>
           </div>
           <div className="hidden md:flex items-center gap-3">
+            <button
+              onClick={async () => {
+                if (confirm('Veritabanındaki tüm soruları kalıcı olarak silip rakamı sıfırlamak istiyor musunuz? Bu işlem geri alınamaz.')) {
+                  try {
+                    const res = await api.post('/sorular/admin-cleanup', { action: 'clear_all' });
+                    alert(res.data.message);
+                    fetchData();
+                  } catch (e) { alert('Hata: ' + (e.response?.data?.error || e.message)); }
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition border border-red-100 font-bold text-sm"
+            >
+              <ExclamationTriangleIcon className="w-4 h-4" />
+              Veritabanını Sıfırla
+            </button>
             <RefreshButton onRefresh={fetchData} loading={loading} />
             <span className="px-4 py-2 bg-gray-100 text-gray-600 rounded-full text-sm font-semibold border border-gray-200">
               {new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}

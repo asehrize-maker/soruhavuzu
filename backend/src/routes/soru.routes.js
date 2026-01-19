@@ -1402,6 +1402,36 @@ DATE(olusturulma_tarihi) as tarih,
   }
 });
 
+// Yönetimsel Veritabanı Temizliği ve Analizi (Admin)
+router.post('/admin-cleanup', authenticate, authorize(['admin']), async (req, res, next) => {
+  try {
+    const { action } = req.body; // 'view' or 'clear_all'
+
+    if (action === 'view') {
+      const result = await pool.query('SELECT id, durum, olusturan_kullanici_id, brans_id, olusturulma_tarihi FROM sorular ORDER BY id DESC');
+      return res.json({
+        success: true,
+        data: result.rows,
+        message: `Sistemde toplam ${result.rows.length} kayıt bulundu.`
+      });
+    }
+
+    if (action === 'clear_all') {
+      const result = await pool.query('DELETE FROM sorular RETURNING id');
+      console.log(`⚠️ ADMIN CLEANUP: ${result.rows.length} soru silindi.`);
+      return res.json({
+        success: true,
+        count: result.rows.length,
+        message: 'Tüm soru kayıtları ve ilgili geçmişler temizlendi.'
+      });
+    }
+
+    throw new AppError('Geçersiz işlem', 400);
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Admin için yedekleme endpoint'i
 router.get('/yedek', authenticate, authorize(['admin']), async (req, res, next) => {
   try {
