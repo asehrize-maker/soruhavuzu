@@ -109,7 +109,7 @@ export const soruAPI = {
   addRevizeNot: (id, data) => api.post(`/sorular/${id}/revize-not`, data),
   getRevizeNotlari: (id) => api.get(`/sorular/${id}/revize-notlari`),
   deleteRevizeNot: (id, notId) => api.delete(`/sorular/${id}/revize-not/${notId}`),
-
+  adminCleanup: (data) => api.post('/sorular/admin-cleanup', data),
 };
 
 // Bildirim API

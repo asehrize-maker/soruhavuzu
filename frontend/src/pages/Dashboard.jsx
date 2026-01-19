@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import { soruAPI, bransAPI, api } from '../services/api';
+import { soruAPI, bransAPI } from '../services/api';
 import {
   ChartBarIcon,
   UserGroupIcon,
@@ -276,7 +276,7 @@ export default function Dashboard() {
               onClick={async () => {
                 if (confirm('Veritabanındaki tüm soruları kalıcı olarak silip rakamı sıfırlamak istiyor musunuz? Bu işlem geri alınamaz.')) {
                   try {
-                    const res = await api.post('/sorular/admin-cleanup', { action: 'clear_all' });
+                    const res = await soruAPI.adminCleanup({ action: 'clear_all' });
                     alert(res.data.message);
                     fetchData();
                   } catch (e) { alert('Hata: ' + (e.response?.data?.error || e.message)); }
