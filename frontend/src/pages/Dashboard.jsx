@@ -8,9 +8,12 @@ import {
   DocumentTextIcon,
   CheckCircleIcon,
   ClockIcon,
-  BookOpenIcon
+  BookOpenIcon,
+  PencilSquareIcon,
+  InformationCircleIcon
 } from '@heroicons/react/24/outline';
 
+// --- ALT BİLEŞEN: İNCELEME LİSTESİ ---
 function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
   const [sorular, setSorular] = useState([]);
   const [listLoading, setListLoading] = useState(true);
@@ -22,20 +25,24 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
       setError(null);
       try {
         const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Sunucu yanıt vermedi')), 10000));
-        const res = await Promise.race([soruAPI.getAll(), timeoutPromise]);
+        const response = await Promise.race([soruAPI.getAll(), timeoutPromise]);
 
-        const allQuestions = res.data.data || [];
+        const allQuestions = response.data.data || [];
 
+        // Filtreleme
         const filtered = allQuestions.filter(s => {
           const isBransMatch = parseInt(s.brans_id) === parseInt(bransId);
           if (!isBransMatch) return false;
+
+          // Durum kontrolü: İnceleme bekleyen veya süreçteki sorular
           const isStatusSuitable = ['inceleme_bekliyor', 'beklemede', 'incelemede', 'dizgide'].includes(s.durum);
 
           let isPendingReview = false;
           if (reviewMode === 'alanci') isPendingReview = !s.onay_alanci;
           if (reviewMode === 'dilci') isPendingReview = !s.onay_dilci;
+          // Eğer genel 'incelemeci' ise (koordinatör gibi), her şeyi görsün mü? Şimdilik evet.
 
-          const notFinished = s.durum !== 'dizgi_bekliyor' && s.durum !== 'tamamlandi';
+          const notFinished = s.durum !== 'tamamlandi'; // Dizgi bekleyenler görülebilir
 
           return isStatusSuitable && isPendingReview && notFinished;
         });
@@ -54,36 +61,62 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
   }, [bransId, reviewMode]);
 
   const content = (
-    <div className="mt-8">
-      <h3 className="text-xl font-bold text-gray-800 mb-4">{bransAdi} - İnceleme Bekleyen Sorular</h3>
+    <div className="mt-8 animate-fade-in">
+      <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <DocumentTextIcon className="w-6 h-6 text-blue-600" />
+        {bransAdi} - İnceleme Bekleyen Sorular
+      </h3>
+
       {sorular.length === 0 ? (
-        <div className="p-6 bg-gray-50 rounded-lg text-center text-gray-500 border border-gray-200">
-          Bu branşta incelenecek soru bulunamadı.
+        <div className="p-8 bg-gray-50 rounded-xl text-center text-gray-500 border border-gray-200 shadow-sm flex flex-col items-center">
+          <BookOpenIcon className="w-12 h-12 text-gray-300 mb-2" />
+          <p>Bu branşta şu an incelenecek soru bulunmuyor.</p>
         </div>
       ) : (
         <div className="grid gap-4">
           {sorular.map(soru => (
-            <div key={soru.id} className="card flex justify-between items-center hover:bg-gray-50 border border-gray-100">
-              <div className="flex items-center gap-4">
-                {soru.fotograf_url && (
-                  <img src={soru.fotograf_url} alt="" className="w-16 h-16 object-contain border rounded bg-white shadow-sm" />
-                )}
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2">
-                    <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${soru.zorluk_seviyesi === 'kolay' || soru.zorluk_seviyesi === 1 ? 'bg-green-100 text-green-800' :
-                      soru.zorluk_seviyesi === 'orta' || soru.zorluk_seviyesi === 2 || soru.zorluk_seviyesi === 3 ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                      {['ÇOK KOLAY', 'KOLAY', 'ORTA', 'ZOR', 'ÇOK ZOR'][soru.zorluk_seviyesi - 1] || String(soru.zorluk_seviyesi).toUpperCase()}
-                    </span>
-                    <span className="text-xs text-gray-500">#{soru.id}</span>
+            <div key={soru.id} className="card bg-white p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition flex justify-between items-start group">
+              <div className="flex gap-4">
+                {soru.fotograf_url ? (
+                  <img src={soru.fotograf_url} alt="Soru" className="w-20 h-20 object-contain border rounded bg-gray-50 p-1" />
+                ) : (
+                  <div className="w-20 h-20 bg-gray-100 rounded flex items-center justify-center text-gray-400 text-xs text-center p-1">
+                    Görsel Yok
                   </div>
-                  <div className="mt-1 font-medium text-gray-900 line-clamp-2" dangerouslySetInnerHTML={{ __html: soru.soru_metni?.substring(0, 300) }} />
-                  <p className="text-xs text-gray-500 mt-1">Yazar: {soru.olusturan_kullanici_ad_soyad} • Tarih: {new Date(soru.olusturulma_tarihi).toLocaleDateString("tr-TR")}</p>
+                )}
+
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <span className={`px-2 py-0.5 text-xs rounded-full font-bold uppercase tracking-wide ${soru.zorluk_seviyesi == 1 ? 'bg-green-100 text-green-700' :
+                        soru.zorluk_seviyesi == 2 ? 'bg-green-50 text-green-600' :
+                          soru.zorluk_seviyesi == 3 ? 'bg-yellow-100 text-yellow-700' :
+                            soru.zorluk_seviyesi == 4 ? 'bg-orange-100 text-orange-700' :
+                              'bg-red-100 text-red-700'
+                      }`}>
+                      {['ÇOK KOLAY', 'KOLAY', 'ORTA', 'ZOR', 'ÇOK ZOR'][soru.zorluk_seviyesi - 1] || 'BELİRSİZ'}
+                    </span>
+                    <span className="text-xs text-gray-400 font-mono">#{soru.id}</span>
+                  </div>
+
+                  <div className="text-gray-900 font-medium line-clamp-2 text-sm max-w-2xl" dangerouslySetInnerHTML={{ __html: soru.soru_metni?.substring(0, 300) }} />
+
+                  <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <UserGroupIcon className="w-3 h-3" /> {soru.olusturan_kullanici_ad_soyad}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <ClockIcon className="w-3 h-3" /> {new Date(soru.olusturulma_tarihi).toLocaleDateString("tr-TR")}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <Link to={`/sorular/${soru.id}?incelemeTuru=${reviewMode}`} className={`px-4 py-2 text-white text-sm font-medium rounded hover:opacity-90 transition ${reviewMode === 'alanci' ? 'bg-blue-600' : 'bg-green-600'}`}>
-                {reviewMode === 'alanci' ? 'Alan İncele' : 'Dil İncele'}
+
+              <Link
+                to={`/sorular/${soru.id}?incelemeTuru=${reviewMode}`}
+                className={`px-5 py-2.5 rounded-lg text-sm font-semibold text-white shadow-sm transition transform group-hover:scale-105 ${reviewMode === 'alanci' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-purple-600 hover:bg-purple-700'
+                  }`}
+              >
+                {reviewMode === 'alanci' ? 'Alan İncele' : 'Dil İncele'} &rarr;
               </Link>
             </div>
           ))}
@@ -93,46 +126,39 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
   );
 
   if (error) return (
-    <div>
-      <div className="text-center py-2 text-red-800 bg-red-100 rounded-lg mb-4 border border-red-200">{error}</div>
-      {content}
+    <div className="p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 flex items-center gap-2">
+      <InformationCircleIcon className="w-5 h-5" />
+      {error}
     </div>
   );
-  if (listLoading) return <div className="text-center py-8">Yükleniyor...</div>;
+
+  if (listLoading) return (
+    <div className="flex justify-center p-12">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    </div>
+  );
 
   return content;
 }
 
 export default function Dashboard() {
   const { user } = useAuthStore();
+  // Layout'tan gelen context ile simüle edilen rolü al
   const { effectiveRole } = useOutletContext() || {};
 
-  // Logic: Eğer admin ise ve bir rol seçilmişse onu kullan, yoksa kendi rolü.
+  // Eğer admin ise ve effectiveRole varsa (simülasyon), onu kullan. Yoksa kendi rolünü.
   const activeRole = (user?.rol === 'admin' && effectiveRole) ? effectiveRole : (user?.rol || effectiveRole);
 
   const [stats, setStats] = useState(null);
   const [detayliStats, setDetayliStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // İncelemeci modu state
+  // İncelemeci modu için states
   const [branslar, setBranslar] = useState([]);
-  const [selectedBranchId, setSelectedBranchId] = useState(null);
-  const [selectedBranchName, setSelectedBranchName] = useState(null);
+  const [selectedBrans, setSelectedBrans] = useState(null);
 
-  // İstatistik Detay Modal
+  // Admin stats modal
   const [selectedStat, setSelectedStat] = useState(null);
-
-  const getRoleGreeting = () => {
-    const greetings = {
-      admin: 'Sistem Yöneticisi',
-      soru_yazici: 'Soru Yazıcı',
-      dizgici: 'Dizgici',
-      incelemeci: 'İncelemeci',
-      alan_incelemeci: 'Alan İncelemeci',
-      dil_incelemeci: 'Dil İncelemeci'
-    };
-    return greetings[activeRole] || '';
-  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -144,304 +170,227 @@ export default function Dashboard() {
             setDetayliStats(res.data.data);
           }
         } else {
-          // Diğer roller için genel stats (veya rolüne özel endpoint varsa o)
+          // Diğer roller için genel stats
           const res = await soruAPI.getStats();
           if (res.data.success) {
             setStats(res.data.data);
           }
         }
 
-        // Eğer incelemeci modundaysak branşları çekmeliyiz
+        // İncelemeci ise branşları çek
         if (['alan_incelemeci', 'dil_incelemeci', 'incelemeci'].includes(activeRole)) {
-          try {
-            const bransRes = await bransAPI.getAll();
-            if (bransRes.data.success) {
-              setBranslar(bransRes.data.data);
-            }
-          } catch (err) {
-            console.error("Branşlar çekilemedi", err);
+          const bransRes = await bransAPI.getAll();
+          if (bransRes.data.success) {
+            setBranslar(bransRes.data.data);
           }
         }
-
       } catch (error) {
-        console.error('İstatistikler yüklenirken hata:', error);
+        console.error("Dashboard veri hatası:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    if (user || activeRole) {
-      fetchData();
-    }
-  }, [user, activeRole]);
+    fetchData();
+  }, [activeRole]);
 
-  // Loading durumu
+  // Loading Screen
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        <p className="mt-4 text-gray-600">İstatistikler yükleniyor...</p>
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-600"></div>
       </div>
     );
   }
 
-  // --- ADMIN DASHBOARD ---
+  // --- RENDER LOGIC ---
+
+  // 1. ADMIN DASHBOARD
   if (activeRole === 'admin') {
     return (
-      <div className="space-y-6">
-        {/* Header - Genel Bakış */}
-        <div className="card bg-white border-l-4 border-blue-600 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">Genel Bakış</h1>
-              <p className="text-gray-600 mt-1">Hoş geldiniz, {user?.ad_soyad}. Sistem durumunu buradan takip edebilirsiniz.</p>
-            </div>
-            <div className="hidden md:block">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                Yönetici Paneli
-              </span>
-            </div>
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Genel Bakış</h1>
+            <p className="text-gray-500 mt-1">Sistem istatistikleri ve aktivite özeti.</p>
+          </div>
+          <div className="hidden md:flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg font-medium text-sm">
+            <ChartBarIcon className="w-5 h-5" /> Yönetici Paneli
           </div>
         </div>
 
-        {/* İstatistik Modal */}
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div onClick={() => setSelectedStat({ key: 'toplam_soru', title: 'Toplam Soru' })}
+            className="card bg-white hover:shadow-lg transition cursor-pointer p-6 border-l-4 border-blue-500 group">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Toplam Soru</p>
+                <h3 className="text-3xl font-bold text-gray-900 mt-2">{detayliStats?.genel?.toplam_soru || 0}</h3>
+              </div>
+              <div className="p-3 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition">
+                <DocumentTextIcon className="w-6 h-6" />
+              </div>
+            </div>
+          </div>
+
+          <div onClick={() => setSelectedStat({ key: 'toplam_kullanici', title: 'Kullanıcılar' })}
+            className="card bg-white hover:shadow-lg transition cursor-pointer p-6 border-l-4 border-green-500 group">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Kullanıcılar</p>
+                <h3 className="text-3xl font-bold text-gray-900 mt-2">{detayliStats?.genel?.toplam_kullanici || 0}</h3>
+              </div>
+              <div className="p-3 bg-green-50 text-green-600 rounded-lg group-hover:bg-green-600 group-hover:text-white transition">
+                <UserGroupIcon className="w-6 h-6" />
+              </div>
+            </div>
+          </div>
+
+          {/* Diğer Admin Kartları (Branş, Ekip vs) eklenebilir ama mockup zaten doluydu */}
+        </div>
+
+        {/* Detaylı Stats Modal Logic */}
         {selectedStat && (
-          <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-              <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setSelectedStat(null)}></div>
-              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-              <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                  <div className="sm:flex sm:items-start">
-                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                      <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                        {selectedStat.title}
-                      </h3>
-                      <div className="mt-4 grid grid-cols-1 gap-4">
-                        {['TÜRKÇE', 'FEN BİLİMLERİ', 'SOSYAL BİLGİLER', 'MATEMATİK', 'İNGİLİZCE'].map((bransAdi) => {
-                          const statKey = selectedStat.key;
-                          const findCount = () => {
-                            if (!detayliStats?.branslar) return 0;
-                            const matchingBranches = detayliStats.branslar.filter(b =>
-                              b.brans_adi.trim().toUpperCase() === bransAdi.trim().toUpperCase() ||
-                              (bransAdi === 'TÜRKÇE' && b.brans_adi.toUpperCase().includes('TURKCE')) ||
-                              (bransAdi === 'İNGİLİZCE' && b.brans_adi.toUpperCase().includes('INGILIZCE'))
-                            );
-                            return matchingBranches.reduce((acc, curr) => {
-                              const val = (statKey === 'toplam_soru' ? curr.soru_sayisi : curr[statKey]);
-                              return acc + (parseInt(val) || 0);
-                            }, 0);
-                          };
-                          const count = findCount();
-                          return (
-                            <div key={bransAdi} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                              <span className="font-medium text-gray-700">{bransAdi}</span>
-                              <span className="font-bold text-gray-900">{count}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h3 className="text-lg font-bold text-gray-900">{selectedStat.title} Detayları</h3>
+                <button onClick={() => setSelectedStat(null)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+              </div>
+              <div className="p-6 max-h-[60vh] overflow-y-auto">
+                {/* Modal içeriği (basit listeleme) */}
+                <div className="space-y-3">
+                  {detayliStats?.branslar?.map((b, idx) => (
+                    <div key={idx} className="flex justify-between items-center p-3 hover:bg-gray-50 rounded border border-transparent hover:border-gray-100 transition">
+                      <span className="font-medium text-gray-700">{b.brans_adi}</span>
+                      <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">{b.soru_sayisi}</span>
                     </div>
-                  </div>
-                </div>
-                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                  <button
-                    type="button"
-                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                    onClick={() => setSelectedStat(null)}
-                  >
-                    Kapat
-                  </button>
+                  ))}
                 </div>
               </div>
             </div>
           </div>
         )}
-
-        {/* Ana İstatistikler */}
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-4">📊 Genel İstatistikler</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div onClick={() => setSelectedStat({ key: 'toplam_soru', title: 'Toplam Soru' })} className="card bg-gradient-to-br from-blue-500 to-blue-600 text-white cursor-pointer transform transition hover:scale-105">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-medium opacity-90">Toplam Soru</h3>
-                  <p className="text-3xl font-bold mt-2">{detayliStats?.genel?.toplam_soru || 0}</p>
-                </div>
-                <DocumentTextIcon className="w-8 h-8 opacity-75" />
-              </div>
-            </div>
-            {/* Diğer istatistik kartları... (Kısaltıldı ama temel yapı aynı) */}
-            <div className="card bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
-              <h3 className="text-sm font-medium opacity-90">Beklemede</h3>
-              <p className="text-3xl font-bold mt-2">{detayliStats?.genel?.beklemede || 0}</p>
-            </div>
-            <div className="card bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-              <h3 className="text-sm font-medium opacity-90">Dizgide</h3>
-              <p className="text-3xl font-bold mt-2">{detayliStats?.genel?.dizgide || 0}</p>
-            </div>
-            <div className="card bg-gradient-to-br from-green-500 to-green-600 text-white">
-              <h3 className="text-sm font-medium opacity-90">Tamamlandı</h3>
-              <p className="text-3xl font-bold mt-2">{detayliStats?.genel?.tamamlandi || 0}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Sistem Bilgileri */}
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-4">🖥️ Sistem Bilgileri</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="card bg-purple-50 border-l-4 border-purple-500">
-              <h3 className="text-sm font-medium text-purple-900">Toplam Kullanıcı</h3>
-              <p className="text-2xl font-bold text-purple-700 mt-2">{detayliStats?.sistem?.toplam_kullanici || 0}</p>
-              <p className="text-xs text-purple-600 mt-1">
-                {detayliStats?.sistem?.admin_sayisi} Admin, {detayliStats?.sistem?.soru_yazici_sayisi} Yazıcı
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
     );
   }
 
-  // --- İNCELEMECİ MODU (Alan ve Dil) ---
-  if (['alan_incelemeci', 'dil_incelemeci', 'incelemeci'].includes(activeRole)) {
-    const reviewMode = activeRole === 'alan_incelemeci' ? 'alanci' :
-      activeRole === 'dil_incelemeci' ? 'dilci' : 'genel';
-
-    return (
-      <div className="space-y-6">
-        {/* Hoşgeldin Mesajı */}
-        <div className="card bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
-          <h1 className="text-3xl font-bold">
-            Hoş Geldiniz, {user?.ad_soyad}
-          </h1>
-          <p className="mt-2 text-purple-100">
-            {activeRole === 'incelemeci' ? 'İncelemeci paneli.' : `İncelemeci paneline hoş geldiniz (${reviewMode === 'alanci' ? 'ALAN' : 'DİL'}). İncelemek istediğiniz branşı seçin.`}
-          </p>
-        </div>
-
-        {/* Branş Seçimi */}
-        <div className="flex items-center space-x-4">
-          <h2 className="text-xl font-bold text-gray-800">Branşlar</h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {branslar.map(brans => (
-            <div
-              key={brans.id}
-              onClick={() => { setSelectedBranchId(brans.id); setSelectedBranchName(brans.brans_adi); }}
-              className={`card cursor-pointer transition-all hover:scale-105 border-l-4 ${selectedBranchId === brans.id ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-200' : 'hover:bg-gray-50'
-                } ${brans.brans_adi === 'TÜRKÇE' ? 'border-blue-500' :
-                  brans.brans_adi === 'MATEMATİK' ? 'border-red-500' :
-                    brans.brans_adi === 'FEN BİLİMLERİ' ? 'border-green-500' :
-                      brans.brans_adi === 'İNGİLİZCE' ? 'border-indigo-500' :
-                        'border-yellow-500'
-                }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-gray-700">{brans.brans_adi}</span>
-                {selectedBranchId === brans.id && <CheckCircleIcon className="w-5 h-5 text-blue-500" />}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Seçili Branşın Soruları */}
-        {selectedBranchId && (
-          <IncelemeListesi
-            bransId={selectedBranchId}
-            bransAdi={selectedBranchName}
-            reviewMode={reviewMode}
-          />
-        )}
-      </div>
-    );
-  }
-
-  // --- SORU YAZICI MODU ---
+  // 2. SORU YAZICI DASHBOARD
   if (activeRole === 'soru_yazici') {
     return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+      <div className="space-y-8 animate-fade-in">
+        <div className="flex flex-col md:flex-row justify-between items-center bg-gradient-to-r from-blue-700 to-blue-600 p-8 rounded-2xl shadow-lg text-white">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Hoş Geldiniz, {user?.ad_soyad}</h1>
-            <p className="text-gray-600 mt-1">Soru hazırlama paneline hoş geldiniz.</p>
+            <h1 className="text-3xl font-bold">Hoş Geldiniz, {user?.ad_soyad}</h1>
+            <p className="text-blue-100 mt-2 text-lg">Soru hazırlama stüdyosuna erişiminiz hazır.</p>
           </div>
-          <Link to="/soru-ekle" className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md font-medium transform hover:scale-105">
-            <span className="text-2xl font-light leading-none mb-1">+</span>
-            <span>Yeni Soru Ekle</span>
+          <Link
+            to="/sorular/yeni" // DÜZELTİLMİŞ LİNK
+            className="mt-4 md:mt-0 flex items-center gap-3 px-8 py-4 bg-white text-blue-700 rounded-xl hover:bg-blue-50 transition shadow-xl font-bold text-lg transform hover:scale-105"
+          >
+            <PencilSquareIcon className="w-6 h-6" />
+            Yeni Soru Başlat
           </Link>
         </div>
 
-        {/* Bilgilendirme / Şartlar */}
-        <div className="card bg-blue-50 border-l-4 border-blue-500 p-6">
-          <h3 className="text-lg font-bold text-blue-900 mb-3 flex items-center gap-2">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
-            Soru Hazırlama & Yükleme Şartları
-          </h3>
-          <ul className="list-disc list-inside space-y-2 text-blue-800 text-sm ml-2">
-            <li>Hazırladığınız soruların <strong>özgün</strong> olması ve telif hakkı ihlali içermemesi gerekmektedir.</li>
-            <li>Soru metinlerinde ve seçeneklerde <strong>Türkçe imla kurallarına</strong> azami özen gösteriniz.</li>
-            <li>Görsel kullanımlarında çözünürlüğün net olmasına ve görselin soruyu açıkladığına emin olunuz.</li>
-            <li>Ekleme işlemi tamamlandıktan sonra sorunuz otomatik olarak <strong>dizgi havuzuna</strong> düşecektir.</li>
-            <li>Onaylanan sorular üzerinde sonradan düzenleme yapılamaz.</li>
-          </ul>
-        </div>
+        {/* TEKNİK BİLGİLENDİRME KARTI (Kullanıcının isteği) */}
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="card bg-white border border-gray-200 p-6 rounded-xl shadow-sm">
+            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <InformationCircleIcon className="w-6 h-6 text-blue-500" />
+              Soru Ekleme Şablon Bilgileri
+            </h3>
+            <ul className="space-y-3 text-gray-600">
+              <li className="flex items-start gap-3">
+                <span className="px-2 py-0.5 bg-gray-100 rounded text-xs font-mono font-bold text-gray-500 mt-0.5">DAR</span>
+                <span><strong>82mm Sütun Genişliği:</strong> Tek sütunlu dizgi formatına uygun sorular için bu modu kullanın.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="px-2 py-0.5 bg-gray-100 rounded text-xs font-mono font-bold text-gray-500 mt-0.5">GENİŞ</span>
+                <span><strong>169mm Sütun Genişliği:</strong> Tam sayfa genişliğindeki veya yan yana tablolu sorular için uygundur.</span>
+              </li>
+            </ul>
+            <div className="mt-4 p-3 bg-yellow-50 text-yellow-800 text-sm rounded border border-yellow-100">
+              ℹ️ Editör içerisinde sol üst köşeden genişlik modunu (Dar/Geniş) seçebilirsiniz.
+            </div>
+          </div>
 
-        {/* İstatistikler */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="card bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-            <h3 className="text-lg font-medium opacity-90">Toplam Soru</h3>
-            <p className="text-4xl font-bold mt-2">{stats?.toplam || 0}</p>
-          </div>
-          <div className="card bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
-            <h3 className="text-lg font-medium opacity-90">Beklemede</h3>
-            <p className="text-4xl font-bold mt-2">{stats?.beklemede || 0}</p>
-          </div>
-          <div className="card bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-            <h3 className="text-lg font-medium opacity-90">Dizgide</h3>
-            <p className="text-4xl font-bold mt-2">{stats?.dizgide || 0}</p>
-          </div>
-          <div className="card bg-gradient-to-br from-green-500 to-green-600 text-white">
-            <h3 className="text-lg font-medium opacity-90">Tamamlandı</h3>
-            <p className="text-4xl font-bold mt-2">{stats?.tamamlandi || 0}</p>
+          {/* Hızlı İstatistikler */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center items-center">
+              <span className="text-gray-500 text-sm font-medium uppercase">Bekleyen</span>
+              <span className="text-3xl font-bold text-yellow-600">{stats?.beklemede || 0}</span>
+            </div>
+            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center items-center">
+              <span className="text-gray-500 text-sm font-medium uppercase">Dizgide</span>
+              <span className="text-3xl font-bold text-orange-600">{stats?.dizgide || 0}</span>
+            </div>
+            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center items-center col-span-2">
+              <span className="text-gray-500 text-sm font-medium uppercase">Yayında (Tamamlandı)</span>
+              <span className="text-4xl font-bold text-green-600">{stats?.tamamlandi || 0}</span>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  // --- DİĞER ROLLER (Dizgici vs) ---
-  return (
-    <div className="space-y-6">
-      <div className="card">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Hoş Geldiniz, {user?.ad_soyad}
-        </h1>
-        <p className="mt-2 text-gray-600">
-          {getRoleGreeting()} paneline hoş geldiniz.
-        </p>
-      </div>
+  // 3. İNCELEMECİ DASHBOARD (Alan ve Dil)
+  if (['alan_incelemeci', 'dil_incelemeci', 'incelemeci'].includes(activeRole)) {
+    // Review Mode: Admin simüle ediyorsa effectiveRole'a göre, yoksa kendi rolüne göre
+    const reviewMode = activeRole === 'alan_incelemeci' ? 'alanci' : (activeRole === 'dil_incelemeci' ? 'dilci' : 'genel');
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="card bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-          <h3 className="text-lg font-medium opacity-90">Toplam Soru</h3>
-          <p className="text-4xl font-bold mt-2">{stats?.toplam || 0}</p>
+    return (
+      <div className="space-y-6">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            {activeRole === 'alan_incelemeci' ? 'Alan İnceleme Paneli' :
+              activeRole === 'dil_incelemeci' ? 'Dil İnceleme Paneli' : 'İnceleme Yönetimi'}
+          </h1>
+          <p className="text-gray-500">
+            Lütfen incelemek istediğiniz branşı seçiniz.
+          </p>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            {branslar.map(brans => (
+              <button
+                key={brans.id}
+                onClick={() => setSelectedBrans(brans)}
+                className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.id
+                    ? 'bg-blue-600 text-white shadow-md transform scale-105'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+              >
+                <span>{brans.brans_adi}</span>
+                {/* Opsiyonel: Branş bazlı sayı badge'i eklenebilir */}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="card bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
-          <h3 className="text-lg font-medium opacity-90">Beklemede</h3>
-          <p className="text-4xl font-bold mt-2">{stats?.beklemede || 0}</p>
-        </div>
-        <div className="card bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-          <h3 className="text-lg font-medium opacity-90">Dizgide</h3>
-          <p className="text-4xl font-bold mt-2">{stats?.dizgide || 0}</p>
-        </div>
-        <div className="card bg-gradient-to-br from-green-500 to-green-600 text-white">
-          <h3 className="text-lg font-medium opacity-90">Tamamlandı</h3>
-          <p className="text-4xl font-bold mt-2">{stats?.tamamlandi || 0}</p>
-        </div>
+
+        {selectedBrans ? (
+          <IncelemeListesi
+            bransId={selectedBrans.id}
+            bransAdi={selectedBrans.brans_adi}
+            reviewMode={reviewMode}
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center p-12 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400">
+            <BookOpenIcon className="w-16 h-16 mb-4 opacity-50" />
+            <p className="text-lg">Soruları görüntülemek için yukarıdan bir branş seçiniz.</p>
+          </div>
+        )}
       </div>
+    );
+  }
+
+  // 4. DEFAULT VIEW (Diğer roller veya yüklenemeyen durumlar)
+  return (
+    <div className="p-8 text-center text-gray-500">
+      <h2 className="text-xl font-semibold text-gray-700">Panel Hazırlanıyor</h2>
+      <p>Rolünüze uygun içerik yüklenemedi veya yetkiniz kısıtlı.</p>
     </div>
   );
 }
