@@ -671,7 +671,7 @@ export default function SoruDetay() {
               )}
 
               {/* BRANŞ (YAZAR) VEYA ADMIN İÇİN AKSİYONLAR (Dizgiye veya İncelemeye Gönder) */}
-              {(isAdmin || isOwner) && ['revize_istendi', 'tamamlandi', 'inceleme_tamam', 'dizgi_bekliyor'].includes(soru.durum) && (
+              {(isAdmin || isOwner) && ['revize_istendi', 'revize_gerekli', 'tamamlandi', 'inceleme_tamam', 'dizgi_bekliyor', 'beklemede'].includes(soru.durum) && (
                 <>
                   {/* Düzenle Butonu - Sadece gerekli durumlarda */}
                   {canEdit && (
