@@ -930,9 +930,8 @@ export default function SoruDetay() {
         </div>
       )}
 
-      {/* Alt Araç Çubuğu */}
+      {/* Alt Araç Çubuğu - Sadece Sil butonu */}
       <div className="flex gap-2">
-        {canEdit && !editMode && <button onClick={handleEditStart} className="btn btn-primary">✏️ Düzenle</button>}
         {/* SADECE ADMIN VE SAHİBİ SİLEBİLİR - İNCELEMECİ SİLEMEZ */}
         {(effectiveRole === 'admin' || (soru.olusturan_kullanici_id === user?.id && effectiveRole !== 'incelemeci')) && (
           <button onClick={handleSil} className="btn btn-danger">Sil</button>
