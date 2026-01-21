@@ -737,6 +737,16 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         await createNotification(soru.olusturan_kullanici_id, 'Revize İsteği', `#${id} nolu sorunuz için revize istendi: ${aciklama}`, 'warning', `/sorular/${id}`);
       }
 
+    } else if (yeni_durum === 'inceleme_bekliyor') {
+      // Tekrar incelemeye gönder: Onayları sıfırla
+      result = await pool.query(
+        `UPDATE sorular 
+         SET durum = $1, onay_alanci = false, onay_dilci = false, guncellenme_tarihi = NOW()
+         WHERE id = $2 RETURNING *`,
+        [yeni_durum, id]
+      );
+      message = 'Soru tekrar inceleme havuzuna gönderildi. Önceki onaylar sıfırlandı.';
+
     } else if (yeni_durum === 'inceleme_tamam') {
       // Kullanıcı talebi: Hem alan hem dil incelemesi bitmeden branşa dönmez.
       let updateField = '';
