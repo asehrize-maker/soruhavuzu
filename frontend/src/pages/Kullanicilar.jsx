@@ -28,7 +28,7 @@ export default function Kullanicilar() {
 
   const filteredBranslar = useMemo(() => {
     if (!formData.ekip_id) return [];
-    return branslar.filter(b => String(b.ekip_id) === String(formData.ekip_id));
+    return branslar.filter(b => Number(b.ekip_id) === Number(formData.ekip_id));
   }, [formData.ekip_id, branslar]);
 
   // Branş seçimlerini ekip değiştiğinde temizle/doğrula
@@ -247,7 +247,10 @@ export default function Kullanicilar() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Branşlar</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-700">Branşlar</label>
+                  <button type="button" onClick={loadData} className="text-[10px] text-blue-600 hover:underline font-bold uppercase">Branşları Yenile</button>
+                </div>
                 <div className="max-h-40 overflow-y-auto border rounded p-2 space-y-1 bg-gray-50/50">
                   {!formData.ekip_id ? (
                     <p className="text-xs text-amber-600 font-medium py-2 text-center italic">Lütfen önce bir ekip seçin</p>
@@ -311,8 +314,9 @@ export default function Kullanicilar() {
               </div>
             </form>
           </div>
-        </div>
-      )}
-    </div>
+        </div >
+      )
+      }
+    </div >
   );
 }

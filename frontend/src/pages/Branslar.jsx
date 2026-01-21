@@ -30,6 +30,8 @@ export default function Branslar() {
   const [activeTab, setActiveTab] = useState('add'); // 'add' (existing) or 'create' (new)
   const [selectedRole, setSelectedRole] = useState('soru_yazici');
   const [editingTeacher, setEditingTeacher] = useState(null);
+  const [showAddBranchForm, setShowAddBranchForm] = useState(false);
+  const [newBranchData, setNewBranchData] = useState({ brans_adi: '', ekip_id: '', aciklama: '' });
 
   useEffect(() => {
     loadData();
@@ -76,12 +78,26 @@ export default function Branslar() {
   };
 
   const handleBranchClick = async (branchName) => {
-    // Find the real branch object from DB (case insensitive match)
-    let foundBranch = branslar.find(b =>
+    // If there are multiple branches with the same name across different teams
+    const matchingBranches = branslar.filter(b =>
       b.brans_adi.toLowerCase() === branchName.toLowerCase() ||
       (branchName === 'TÜRKÇE' && b.brans_adi.toLowerCase().includes('turkce')) ||
       (branchName === 'İNGİLİZCE' && b.brans_adi.toLowerCase().includes('ingilizce'))
     );
+
+    let foundBranch = null;
+
+    if (matchingBranches.length > 1) {
+      const branchOptions = matchingBranches.map((b, idx) => `${idx + 1}: ${b.brans_adi} (${b.ekip_adi || 'Ekipsiz'})`).join('\n');
+      const selection = prompt(`${branchName} branşı için seçim yapın:\n\n${branchOptions}\n\n(Yönetmek istediğiniz numarasını giriniz)`, "1");
+      if (selection) {
+        foundBranch = matchingBranches[parseInt(selection) - 1];
+      } else {
+        return;
+      }
+    } else if (matchingBranches.length === 1) {
+      foundBranch = matchingBranches[0];
+    }
 
     // If branch doesn't exist, try to create it automatically
     if (!foundBranch) {
@@ -97,18 +113,30 @@ export default function Branslar() {
       // User said "ekipleri de kaldır". This means UI removal. Data might remain.
 
       if (!defaultTeamId) {
-        // If absolutely no team, try to create a dummy one?
-        // Or just alert.
         alert('Sistem altyapısı için en az bir Ekip gereklidir. Bu aşamada otomatik oluşturulamıyor.');
         return;
       }
 
-      if (confirm(`"${branchName}" branşı sistemde bulunamadı. Otomatik oluşturulsun mu?`)) {
+      let targetTeamId = defaultTeamId;
+      if (ekipler.length > 1) {
+        const teamNames = ekipler.map((e, idx) => `${idx + 1}: ${e.ekip_adi}`).join('\n');
+        const selection = prompt(`${branchName} branşı hangi ekibe eklensin?\n\n${teamNames}\n\n(Ekip numarasını giriniz)`, "1");
+        if (!selection) return;
+        const selectedIdx = parseInt(selection) - 1;
+        if (ekipler[selectedIdx]) {
+          targetTeamId = ekipler[selectedIdx].id;
+        } else {
+          alert('Geçersiz seçim');
+          return;
+        }
+      }
+
+      if (confirm(`"${branchName}" branşı ${ekipler.find(e => e.id === targetTeamId)?.ekip_adi} ekibine eklensin mi?`)) {
         setCreatingBranch(true);
         try {
           await bransAPI.create({
             brans_adi: branchName,
-            ekip_id: defaultTeamId,
+            ekip_id: targetTeamId,
             aciklama: 'Otomatik oluşturulan branş'
           });
 
@@ -263,12 +291,82 @@ export default function Branslar() {
     }
   };
 
+  const handleCreateBranch = async (e) => {
+    e.preventDefault();
+    if (!newBranchData.brans_adi || !newBranchData.ekip_id) {
+      alert('Branş adı ve ekip seçimi zorunludur');
+      return;
+    }
+    try {
+      setCreatingBranch(true);
+      await bransAPI.create(newBranchData);
+      alert('Branş oluşturuldu!');
+      setNewBranchData({ brans_adi: '', ekip_id: '', aciklama: '' });
+      setShowAddBranchForm(false);
+      await loadData();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Branş oluşturulamadı');
+    } finally {
+      setCreatingBranch(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Branş ve Öğretmen Yönetimi</h1>
-        <p className="text-gray-500">Branş seçerek öğretmen ataması yapabilirsiniz.</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Branş ve Öğretmen Yönetimi</h1>
+          <p className="text-gray-500">Branş seçerek öğretmen ataması yapabilirsiniz.</p>
+        </div>
+        <button
+          onClick={() => setShowAddBranchForm(!showAddBranchForm)}
+          className="btn btn-primary flex items-center gap-2"
+        >
+          {showAddBranchForm ? 'Formu Kapat' : '+ Yeni Branş Ekle'}
+        </button>
       </div>
+
+      {showAddBranchForm && (
+        <div className="card bg-blue-50 border-blue-100">
+          <h2 className="text-lg font-bold mb-4 text-blue-800">Yeni Branş Tanımla</h2>
+          <form onSubmit={handleCreateBranch} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Branş Adı</label>
+              <input
+                required
+                className="input bg-white"
+                placeholder="Örn: MATEMATİK"
+                value={newBranchData.brans_adi}
+                onChange={e => setNewBranchData({ ...newBranchData, brans_adi: e.target.value.toUpperCase() })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Dahil Olacağı Ekip</label>
+              <select
+                required
+                className="input bg-white"
+                value={newBranchData.ekip_id}
+                onChange={e => setNewBranchData({ ...newBranchData, ekip_id: e.target.value })}
+              >
+                <option value="">Ekip Seçin...</option>
+                {ekipler.map(e => <option key={e.id} value={e.id}>{e.ekip_adi}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama (Opsiyonel)</label>
+              <input
+                className="input bg-white"
+                placeholder="Branş hakkında not..."
+                value={newBranchData.aciklama}
+                onChange={e => setNewBranchData({ ...newBranchData, aciklama: e.target.value })}
+              />
+            </div>
+            <button type="submit" className="btn btn-primary h-[42px]">
+              Branşı Kaydet
+            </button>
+          </form>
+        </div>
+      )}
 
       <div className="card grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
         <div>
@@ -577,30 +675,34 @@ export default function Branslar() {
         </div>
       )
       }
-      {/* Other Branches Section */}
-      {
-        branslar.filter(b => !MAIN_BRANCHES.some(mb =>
-          b.brans_adi.toUpperCase().trim() === mb.name.toUpperCase().trim() ||
-          (mb.name === 'TÜRKÇE' && b.brans_adi.toUpperCase().includes('TURKCE')) ||
-          (mb.name === 'İNGİLİZCE' && b.brans_adi.toUpperCase().includes('INGILIZCE'))
-        )).length > 0 && (
-          <div className="mt-12 pt-8 border-t border-gray-200">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Diğer Branşlar</h2>
-            <p className="text-sm text-gray-500 mb-4">Sistem dışı veya manuel eklenmiş diğer branşlar.</p>
-            <div className="bg-white shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
-              <ul className="divide-y divide-gray-200">
-                {branslar.filter(b => !MAIN_BRANCHES.some(mb =>
-                  b.brans_adi.toUpperCase().trim() === mb.name.toUpperCase().trim() ||
-                  (mb.name === 'TÜRKÇE' && b.brans_adi.toUpperCase().includes('TURKCE')) ||
-                  (mb.name === 'İNGİLİZCE' && b.brans_adi.toUpperCase().includes('INGILIZCE'))
-                )).map(branch => (
-                  <li key={branch.id} className="px-4 py-4 flex items-center justify-between hover:bg-gray-50">
+      {/* All Branches Section */}
+      {branslar.length > 0 && (
+        <div className="mt-12 pt-8 border-t border-gray-200">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Sistemdeki Tüm Branşlar</h2>
+          <p className="text-sm text-gray-500 mb-4">Ekiplere göre tanımlanmış tüm branşların listesi.</p>
+          <div className="bg-white shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+            <ul className="divide-y divide-gray-200">
+              {branslar.map(branch => (
+                <li key={branch.id} className="px-4 py-4 flex items-center justify-between hover:bg-gray-50">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-2 h-10 rounded ${MAIN_BRANCHES.find(mb => branch.brans_adi.toUpperCase().includes(mb.name.split(' ')[0]))?.color.split(' ')[0] || 'bg-gray-400'}`}></div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{branch.brans_adi}</p>
-                      <p className="text-xs text-gray-500">
-                        {ekipler.find(e => e.id === branch.ekip_id)?.ekip_adi || 'Ekip Yok'}
+                      <p className="text-sm font-bold text-gray-900">{branch.brans_adi}</p>
+                      <p className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded inline-block mt-1">
+                        Ekip: {branch.ekip_adi || 'Ekip Yok'}
                       </p>
                     </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => {
+                        setSelectedBranch(branch);
+                        setShowModal(true);
+                      }}
+                      className="text-blue-600 hover:text-blue-900 text-sm font-medium"
+                    >
+                      Yönet
+                    </button>
                     <button
                       onClick={async () => {
                         if (confirm(`"${branch.brans_adi}" branşını silmek istediğinize emin misiniz? Bu işlem geri alınamaz!`)) {
@@ -616,13 +718,13 @@ export default function Branslar() {
                     >
                       Sil
                     </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
-        )
-      }
+        </div>
+      )}
     </div >
   );
 }
