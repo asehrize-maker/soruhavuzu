@@ -65,10 +65,10 @@ export default function Sorular({ scope }) {
         // Branş Havuzu için Sekme Bazlı Filtreleme
         if (scope === 'brans') {
           if (activeTab === 'taslaklar') {
-            // Yazılan/Revize bekleyen sorular (Dizgiye henüz gitmemiş veya revize bekleyenler)
-            data = data.filter(s => ['beklemede', 'revize_istendi', 'revize_gerekli'].includes(s.durum));
+            // Yazılan / Revize bekleyen / İşlemde olan sorular
+            data = data.filter(s => ['beklemede', 'revize_istendi', 'revize_gerekli', 'dizgi_bekliyor', 'dizgide', 'inceleme_bekliyor'].includes(s.durum));
           } else {
-            // Dizgiden gelenler (Kontrol edilip incelemeye gönderilecekler)
+            // Dizgiden gelenler veya İncelemesi bitenler (Kontrol edilip onaylanacaklar)
             data = data.filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum));
           }
         }
@@ -485,9 +485,9 @@ export default function Sorular({ scope }) {
             <div key={soru.id} className={`card hover:shadow-lg transition-shadow border-l-4 ${selectedQuestions.includes(soru.id) ? 'border-primary-500 bg-blue-50' : 'border-transparent'}`}>
               <div className="flex items-start">
 
-                {/* Checkbox Seçimi */}
+                {/* Checkbox Seçimi: Sadece işlem yapılabilir statülerde çıksın */}
                 {(soru.durum === 'tamamlandi' || user?.rol === 'admin' || (scope === 'brans' && (
-                  (activeTab === 'taslaklar' && ['beklemede', 'revize_istendi', 'revize_gerekli', 'inceleme_tamam'].includes(soru.durum)) ||
+                  (activeTab === 'taslaklar' && ['beklemede', 'revize_istendi', 'revize_gerekli'].includes(soru.durum)) ||
                   (activeTab === 'dizgi_sonrasi' && ['dizgi_tamam', 'inceleme_tamam'].includes(soru.durum))
                 ))) && (
                     <div className="mr-4 mt-1">
