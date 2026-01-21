@@ -598,10 +598,10 @@ router.put('/:id/final-upload', [authenticate, upload.single('final_png')], asyn
     if (soruRes.rows.length === 0) throw new AppError('Soru bulunamadı', 404);
     const soru = soruRes.rows[0];
 
-    // Durum kontrolü: Sadece dizgide veya dizgi_tamam olan soruya dosya yüklenebilir (Admin hariç)
+    // Durum kontrolü: Sadece dizgide, dizgi_tamam veya tamamlandi (dosya güncelleme) olan soruya dosya yüklenebilir.
     // Ancak dizgi_bekliyor ise ve dizgici kendine aldıysa da yükleyebilmeli.
-    // Şimdilik 'dizgide' veya 'dizgi_tamam' olması mantıklı.
-    if (!isAdmin && soru.durum !== 'dizgide' && soru.durum !== 'dizgi_tamam') {
+    // Şimdilik 'dizgide', 'dizgi_tamam' veya 'tamamlandi' olması mantıklı.
+    if (!isAdmin && soru.durum !== 'dizgide' && soru.durum !== 'dizgi_tamam' && soru.durum !== 'tamamlandi') {
       throw new AppError('Soru dizgi aşamasında değil.', 403);
     }
 
