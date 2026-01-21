@@ -687,7 +687,7 @@ export default function SoruDetay() {
   const isOwner = soru.olusturan_kullanici_id == user?.id;
   const isAdmin = effectiveRole === 'admin';
 
-  const availableStatusesForEdit = ['beklemede', 'revize_gerekli', 'revize_istendi', 'inceleme_tamam', 'dizgi_bekliyor'];
+  const availableStatusesForEdit = ['beklemede', 'revize_gerekli', 'revize_istendi', 'inceleme_tamam', 'dizgi_bekliyor', 'inceleme_bekliyor'];
   const canEdit = isAdmin || (isOwner && availableStatusesForEdit.includes(soru.durum));
 
   const getDurumBadge = (durum) => {
@@ -740,7 +740,7 @@ export default function SoruDetay() {
               )}
 
               {/* BRANŞ (YAZAR) VEYA ADMIN İÇİN AKSİYONLAR (Dizgiye veya İncelemeye Gönder) */}
-              {(isAdmin || isOwner) && ['revize_istendi', 'revize_gerekli', 'tamamlandi', 'inceleme_tamam', 'dizgi_bekliyor', 'beklemede'].includes(soru.durum) && (
+              {(isAdmin || isOwner) && ['revize_istendi', 'revize_gerekli', 'tamamlandi', 'inceleme_tamam', 'dizgi_bekliyor', 'beklemede', 'inceleme_bekliyor'].includes(soru.durum) && (
                 <>
                   {/* Düzenle Butonu - Sadece gerekli durumlarda */}
                   {canEdit && (
