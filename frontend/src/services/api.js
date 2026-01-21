@@ -102,6 +102,7 @@ export const soruAPI = {
   getDetayliStats: () => api.get('/sorular/stats/detayli'),
   getDizgiBransStats: () => api.get('/sorular/stats/dizgi-brans'),
   getIncelemeBransStats: () => api.get('/sorular/stats/inceleme-brans'),
+  getIncelemeDetayliStats: () => api.get('/sorular/stats/inceleme-detayli'),
   getRapor: (params) => api.get('/sorular/rapor', { params }),
   getYedek: () => api.get('/sorular/yedek'),
   getComments: (id) => api.get(`/sorular/${id}/yorumlar`),

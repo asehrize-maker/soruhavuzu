@@ -19,7 +19,7 @@ router.get('/', authenticate, async (req, res, next) => {
     `;
     const params = [];
 
-    if (req.user.rol !== 'admin') {
+    if (req.user.rol !== 'admin' && req.user.rol !== 'incelemeci') {
       query += ` WHERE e.id = $1`;
       params.push(req.user.ekip_id);
     }

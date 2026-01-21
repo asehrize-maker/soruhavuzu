@@ -197,8 +197,8 @@ export default function Dashboard() {
         if (res.data.success) setStats(res.data.data);
       }
       if (activeRole === 'incelemeci') {
-        const bransRes = await bransAPI.getAll();
-        if (bransRes.data.success) setBranslar(bransRes.data.data);
+        const res = await soruAPI.getIncelemeDetayliStats();
+        if (res.data.success) setIncelemeBransCounts(res.data.data);
       }
     } catch (error) {
       console.error("Dashboard veri hatası:", error);
@@ -210,29 +210,6 @@ export default function Dashboard() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  useEffect(() => {
-    const loadCounts = async () => {
-      if (activeRole !== 'incelemeci') return;
-      try {
-        const res = await soruAPI.getAll();
-        const allQuestions = res.data.data || [];
-        const map = {};
-        branslar.forEach(b => { map[b.id] = { id: b.id, brans_adi: b.brans_adi, alanci: 0, dilci: 0 }; });
-        allQuestions.forEach(s => {
-          if (!['inceleme_bekliyor', 'beklemede', 'incelemede', 'dizgide'].includes(s.durum)) return;
-          const bid = Number(s.brans_id);
-          if (!map[bid]) return;
-          if (!s.onay_alanci) map[bid].alanci += 1;
-          if (!s.onay_dilci) map[bid].dilci += 1;
-        });
-        setIncelemeBransCounts(Object.values(map).filter(item => item.alanci > 0 || item.dilci > 0));
-      } catch (err) {
-        setIncelemeBransCounts([]);
-      }
-    };
-    loadCounts();
-  }, [activeRole, branslar]);
 
   if (loading) {
     return (
@@ -688,31 +665,57 @@ export default function Dashboard() {
 
           <div className="mt-6">
             <h4 className="text-sm font-semibold text-gray-700 mb-3">{reviewMode === 'alanci' ? 'Alan İnceleme Branşları' : 'Dil İnceleme Branşları'}</h4>
-            <div className="flex flex-wrap gap-3">
-              {incelemeBransCounts
-                .filter(b => {
-                  const count = reviewMode === 'alanci' ? (b.alanci || 0) : (b.dilci || 0);
-                  return count > 0;
-                })
-                .map(brans => {
-                  const count = reviewMode === 'alanci' ? (brans.alanci || 0) : (brans.dilci || 0);
+            <div className="space-y-6">
+              {(() => {
+                // Veriyi ekiplere göre grupla
+                const groupedTeams = incelemeBransCounts.reduce((acc, item) => {
+                  if (!acc[item.ekip_adi]) acc[item.ekip_adi] = [];
+                  acc[item.ekip_adi].push(item);
+                  return acc;
+                }, {});
+
+                const renderedTeams = Object.entries(groupedTeams).map(([ekipAdi, items]) => {
+                  const visibleItems = items.filter(item => {
+                    const count = reviewMode === 'alanci' ? (Number(item.alanci_bekleyen) || 0) : (Number(item.dilci_bekleyen) || 0);
+                    return count > 0;
+                  });
+
+                  if (visibleItems.length === 0) return null;
 
                   return (
-                    <button
-                      key={`${reviewMode}-${brans.id}`}
-                      onClick={() => setSelectedBrans(brans)}
-                      className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.id ? (reviewMode === 'alanci' ? 'bg-blue-600 text-white shadow-md' : 'bg-purple-600 text-white shadow-md') : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                    >
-                      <span>{brans.brans_adi}</span>
-                      <span className={`${reviewMode === 'alanci' ? 'bg-blue-600 border border-blue-400' : 'bg-purple-600 border border-purple-400'} text-white text-xs font-bold px-2 py-0.5 rounded-full`}>{count}</span>
-                    </button>
+                    <div key={ekipAdi} className="p-5 border border-gray-200 rounded-xl bg-gray-50/50 hover:bg-gray-50 transition">
+                      <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 border-b border-gray-200 pb-2">
+                        <UserGroupIcon className="w-5 h-5 text-blue-600" />
+                        {ekipAdi}
+                      </h3>
+                      <div className="flex flex-wrap gap-3">
+                        {visibleItems.map(brans => {
+                          const count = reviewMode === 'alanci' ? (Number(brans.alanci_bekleyen) || 0) : (Number(brans.dilci_bekleyen) || 0);
+                          return (
+                            <button
+                              key={`${reviewMode}-${brans.brans_id}`}
+                              onClick={() => setSelectedBrans({ id: brans.brans_id, brans_adi: brans.brans_adi })}
+                              className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.brans_id ? (reviewMode === 'alanci' ? 'bg-blue-600 text-white shadow-md' : 'bg-purple-600 text-white shadow-md') : 'bg-white border border-gray-200 text-gray-700 hover:border-blue-300 hover:shadow-sm'}`}
+                            >
+                              <span>{brans.brans_adi}</span>
+                              <span className={`${reviewMode === 'alanci' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'} text-xs font-bold px-2 py-0.5 rounded-full`}>{count}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   );
-                })}
-              {incelemeBransCounts.filter(b => (reviewMode === 'alanci' ? b.alanci : b.dilci) > 0).length === 0 && (
-                <div className="w-full p-4 bg-gray-50 rounded-lg text-center text-gray-500 italic">
-                  Şu an incelenmesi gereken soru bulunmuyor.
-                </div>
-              )}
+                });
+
+                if (renderedTeams.every(t => t === null)) {
+                  return (
+                    <div className="w-full p-8 bg-gray-50 rounded-xl text-center text-gray-500 border border-dashed border-gray-300">
+                      <p className="italic">Şu an incelemesi beklenen soru bulunmuyor.</p>
+                    </div>
+                  );
+                }
+                return renderedTeams;
+              })()}
             </div>
           </div>
         </div>
