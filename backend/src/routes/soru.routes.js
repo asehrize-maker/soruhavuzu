@@ -103,8 +103,8 @@ router.get('/', authenticate, async (req, res, next) => {
         // Soru yazarı: Kendi ekibindeki sorulardan sadece kendi yazdıklarını veya tamamlanmış olanları görsün.
         query += ` AND (s.olusturan_kullanici_id = $${paramCount++} OR s.durum = 'tamamlandi')`;
         params.push(req.user.id);
-      } else if (req.user.rol === 'dizgici' || req.user.rol === 'incelemeci') {
-        // Dizgici/İncelemeci: Kendi ekibindeki sorulardan sadece yetkili olduğu branşları görsün.
+      } else if (req.user.rol === 'dizgici') {
+        // Dizgici: Yetkili olduğu branşlar
         query += ` AND (
           s.brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount})
           OR s.brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $${paramCount})
@@ -112,6 +112,17 @@ router.get('/', authenticate, async (req, res, next) => {
         )`;
         params.push(req.user.id);
         paramCount++;
+      } else if (req.user.rol === 'incelemeci') {
+        // İncelemeci: Dilci değilse, sadece kendi branşlarını görsün. Dilci ise tüm branşları görsün.
+        if (!req.user.inceleme_dilci) {
+          query += ` AND (
+              s.brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount})
+              OR s.brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $${paramCount})
+              OR s.durum = 'tamamlandi'
+            )`;
+          params.push(req.user.id);
+          paramCount++;
+        }
       } else {
         // Diğer rollere (ör. misafir) soru havuzu gösterilmesin
         return res.json({ success: true, count: 0, data: [] });
