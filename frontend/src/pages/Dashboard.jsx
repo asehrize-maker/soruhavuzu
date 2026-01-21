@@ -197,12 +197,8 @@ export default function Dashboard() {
         if (res.data.success) setStats(res.data.data);
       }
       if (activeRole === 'incelemeci') {
-        const [bransRes, ekipRes] = await Promise.all([
-          bransAPI.getAll(),
-          ekipAPI.getAll()
-        ]);
+        const bransRes = await bransAPI.getAll();
         if (bransRes.data.success) setBranslar(bransRes.data.data);
-        if (ekipRes.data.success) setEkipler(ekipRes.data.data);
       }
     } catch (error) {
       console.error("Dashboard veri hatası:", error);
@@ -230,7 +226,7 @@ export default function Dashboard() {
           if (!s.onay_alanci) map[bid].alanci += 1;
           if (!s.onay_dilci) map[bid].dilci += 1;
         });
-        setIncelemeBransCounts(Object.values(map));
+        setIncelemeBransCounts(Object.values(map).filter(item => item.alanci > 0 || item.dilci > 0));
       } catch (err) {
         setIncelemeBransCounts([]);
       }

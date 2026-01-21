@@ -9,16 +9,24 @@ const router = express.Router();
 // Tüm ekipleri getir
 router.get('/', authenticate, async (req, res, next) => {
   try {
-    const result = await pool.query(`
+    let query = `
       SELECT e.*, 
              COUNT(DISTINCT b.id) as brans_sayisi,
              COUNT(DISTINCT k.id) as kullanici_sayisi
       FROM ekipler e
       LEFT JOIN branslar b ON e.id = b.ekip_id
       LEFT JOIN kullanicilar k ON e.id = k.ekip_id
-      GROUP BY e.id
-      ORDER BY e.olusturulma_tarihi DESC
-    `);
+    `;
+    const params = [];
+
+    if (req.user.rol !== 'admin') {
+      query += ` WHERE e.id = $1`;
+      params.push(req.user.ekip_id);
+    }
+
+    query += ` GROUP BY e.id ORDER BY e.olusturulma_tarihi DESC`;
+
+    const result = await pool.query(query, params);
 
     res.json({
       success: true,
@@ -33,15 +41,15 @@ router.get('/', authenticate, async (req, res, next) => {
 router.get('/:id', authenticate, async (req, res, next) => {
   try {
     const { id } = req.params;
-    
+
     const ekipResult = await pool.query('SELECT * FROM ekipler WHERE id = $1', [id]);
-    
+
     if (ekipResult.rows.length === 0) {
       throw new AppError('Ekip bulunamadı', 404);
     }
 
     const branslarResult = await pool.query('SELECT * FROM branslar WHERE ekip_id = $1', [id]);
-    
+
     res.json({
       success: true,
       data: {
