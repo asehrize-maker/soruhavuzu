@@ -81,6 +81,12 @@ const startServer = async () => {
     if (fixRes.rowCount > 0) {
       console.log(`✅ FIX APPLIED: ${fixRes.rowCount} eski soru 'dizgi_tamam' statüsüne alındı.`);
     }
+
+    // FIX: İnceleme bekleyen soruların onaylarını sıfırla (Görünürlük sorunu için)
+    const fixReviewsRes = await pool.query("UPDATE sorular SET onay_alanci = false, onay_dilci = false WHERE durum = 'inceleme_bekliyor' AND (onay_alanci = true OR onay_dilci = true)");
+    if (fixReviewsRes.rowCount > 0) {
+      console.log(`✅ FIX APPLIED: ${fixReviewsRes.rowCount} inceleme bekleyen sorunun onayı sıfırlandı.`);
+    }
   } catch (error) {
     console.error('❌ Veritabanı bağlantı hatası:', error);
     console.log('⚠️ Sunucu veritabanı olmadan çalışmaya devam ediyor...');
