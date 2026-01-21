@@ -15,6 +15,7 @@ import { fixSorularDurumConstraint } from './migrations/014_fix_sorular_durum_co
 import { normalizeSorularDurum } from './migrations/015_normalize_sorular_durum.js';
 import { addIncelemeFlags } from './migrations/016_add_inceleme_flags.js';
 import { addFinalPngFields } from './migrations/017_add_final_png_fields.js';
+import { makeBranslarGlobal } from './migrations/018_make_branslar_global.js';
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -140,6 +141,7 @@ const createTables = async () => {
     await normalizeSorularDurum();
     await addIncelemeFlags();
     await addFinalPngFields();
+    await makeBranslarGlobal();
 
   } catch (error) {
     await client.query('ROLLBACK');

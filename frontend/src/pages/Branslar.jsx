@@ -31,8 +31,7 @@ export default function Branslar() {
   const [selectedRole, setSelectedRole] = useState('soru_yazici');
   const [editingTeacher, setEditingTeacher] = useState(null);
   const [showAddBranchForm, setShowAddBranchForm] = useState(false);
-  const [newBranchData, setNewBranchData] = useState({ brans_adi: '', ekip_id: '', aciklama: '' });
-  const [teamSelectionModal, setTeamSelectionModal] = useState({ show: false, branchName: '', action: 'manage' }); // action: 'manage' or 'create'
+  const [newBranchData, setNewBranchData] = useState({ brans_adi: '', aciklama: '' });
 
   useEffect(() => {
     loadData();
@@ -79,30 +78,21 @@ export default function Branslar() {
   };
 
   const handleBranchClick = async (branchName) => {
-    const matchingBranches = branslar.filter(b =>
+    const foundBranch = branslar.find(b =>
       b.brans_adi.toLowerCase() === branchName.toLowerCase() ||
       (branchName === 'TÜRKÇE' && b.brans_adi.toLowerCase().includes('turkce')) ||
       (branchName === 'İNGİLİZCE' && b.brans_adi.toLowerCase().includes('ingilizce'))
     );
 
-    if (matchingBranches.length > 1) {
-      setTeamSelectionModal({ show: true, branchName, action: 'manage' });
-      return;
-    } else if (matchingBranches.length === 1) {
-      setSelectedBranch(matchingBranches[0]);
+    if (foundBranch) {
+      setSelectedBranch(foundBranch);
       setShowModal(true);
       resetTeacherForm();
       return;
     }
 
-    if (ekipler.length > 1) {
-      setTeamSelectionModal({ show: true, branchName, action: 'create' });
-    } else if (ekipler.length === 1) {
-      if (confirm(`"${branchName}" branşı ${ekipler[0].ekip_adi} ekibine eklensin mi?`)) {
-        createBranchAuto(branchName, ekipler[0].id);
-      }
-    } else {
-      alert('Önce en az bir ekip oluşturmalısınız.');
+    if (confirm(`"${branchName}" branşı sisteme eklensin mi?`)) {
+      createBranchAuto(branchName);
     }
   };
 
@@ -113,18 +103,17 @@ export default function Branslar() {
     setActiveTab('add');
   };
 
-  const createBranchAuto = async (branchName, teamId) => {
+  const createBranchAuto = async (branchName) => {
     setCreatingBranch(true);
     try {
       await bransAPI.create({
         brans_adi: branchName,
-        ekip_id: teamId,
         aciklama: 'Otomatik oluşturulan branş'
       });
       const res = await bransAPI.getAll();
       setBranslar(res.data.data);
       const newBranch = res.data.data.find(b =>
-        b.brans_adi.toLowerCase() === branchName.toLowerCase() && b.ekip_id === teamId
+        b.brans_adi.toLowerCase() === branchName.toLowerCase()
       );
       if (newBranch) {
         setSelectedBranch(newBranch);
@@ -250,15 +239,15 @@ export default function Branslar() {
 
   const handleCreateBranch = async (e) => {
     e.preventDefault();
-    if (!newBranchData.brans_adi || !newBranchData.ekip_id) {
-      alert('Branş adı ve ekip seçimi zorunludur');
+    if (!newBranchData.brans_adi) {
+      alert('Branş adı zorunludur');
       return;
     }
     try {
       setCreatingBranch(true);
       await bransAPI.create(newBranchData);
       alert('Branş oluşturuldu!');
-      setNewBranchData({ brans_adi: '', ekip_id: '', aciklama: '' });
+      setNewBranchData({ brans_adi: '', aciklama: '' });
       setShowAddBranchForm(false);
       await loadData();
     } catch (error) {
@@ -298,18 +287,6 @@ export default function Branslar() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Dahil Olacağı Ekip</label>
-              <select
-                required
-                className="input bg-white"
-                value={newBranchData.ekip_id}
-                onChange={e => setNewBranchData({ ...newBranchData, ekip_id: e.target.value })}
-              >
-                <option value="">Ekip Seçin...</option>
-                {ekipler.map(e => <option key={e.id} value={e.id}>{e.ekip_adi}</option>)}
-              </select>
-            </div>
-            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama (Opsiyonel)</label>
               <input
                 className="input bg-white"
@@ -318,7 +295,7 @@ export default function Branslar() {
                 onChange={e => setNewBranchData({ ...newBranchData, aciklama: e.target.value })}
               />
             </div>
-            <button type="submit" className="btn btn-primary h-[42px]">
+            <button type="submit" className="btn btn-primary h-[42px] mt-6 md:mt-0">
               Branşı Kaydet
             </button>
           </form>
@@ -334,7 +311,7 @@ export default function Branslar() {
             onChange={(e) => setImportBranchId(e.target.value)}
           >
             {branslar.map((b) => (
-              <option key={b.id} value={b.id}>{b.brans_adi} ({b.ekip_adi})</option>
+              <option key={b.id} value={b.id}>{b.brans_adi}</option>
             ))}
           </select>
         </div>
@@ -636,7 +613,7 @@ export default function Branslar() {
       {branslar.length > 0 && (
         <div className="mt-12 pt-8 border-t border-gray-200">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Sistemdeki Tüm Branşlar</h2>
-          <p className="text-sm text-gray-500 mb-4">Ekiplere göre tanımlanmış tüm branşların listesi.</p>
+          <p className="text-sm text-gray-500 mb-4">Sistem genelinde tanımlanmış branşların listesi.</p>
           <div className="bg-white shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
             <ul className="divide-y divide-gray-200">
               {branslar.map(branch => (
@@ -645,9 +622,6 @@ export default function Branslar() {
                     <div className={`w-2 h-10 rounded ${MAIN_BRANCHES.find(mb => branch.brans_adi.toUpperCase().includes(mb.name.split(' ')[0]))?.color.split(' ')[0] || 'bg-gray-400'}`}></div>
                     <div>
                       <p className="text-sm font-bold text-gray-900">{branch.brans_adi}</p>
-                      <p className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded inline-block mt-1">
-                        Ekip: {branch.ekip_adi || 'Ekip Yok'}
-                      </p>
                     </div>
                   </div>
                   <div className="flex gap-4">
@@ -679,62 +653,6 @@ export default function Branslar() {
                 </li>
               ))}
             </ul>
-          </div>
-        </div>
-      )}
-      {/* Team Selection Modal */}
-      {teamSelectionModal.show && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-2xl">
-            <h2 className="text-xl font-bold mb-2">{teamSelectionModal.branchName} Branşı</h2>
-            <p className="text-sm text-gray-500 mb-6">
-              {teamSelectionModal.action === 'manage'
-                ? 'Hangi ekibe ait branşı yönetmek istiyorsunuz?'
-                : 'Hangi ekibe bu branşı tanımlamak istersiniz?'}
-            </p>
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-              {teamSelectionModal.action === 'manage' ? (
-                branslar.filter(b =>
-                  b.brans_adi.toLowerCase() === teamSelectionModal.branchName.toLowerCase() ||
-                  (teamSelectionModal.branchName === 'TÜRKÇE' && b.brans_adi.toLowerCase().includes('turkce')) ||
-                  (teamSelectionModal.branchName === 'İNGİLİZCE' && b.brans_adi.toLowerCase().includes('ingilizce'))
-                ).map(b => (
-                  <button
-                    key={b.id}
-                    onClick={() => {
-                      setSelectedBranch(b);
-                      setShowModal(true);
-                      resetTeacherForm();
-                      setTeamSelectionModal({ show: false, branchName: '', action: 'manage' });
-                    }}
-                    className="w-full text-left p-3 rounded-lg border border-gray-100 hover:bg-blue-50 hover:border-blue-200 transition-all font-medium flex justify-between items-center"
-                  >
-                    <span>{b.ekip_adi}</span>
-                    <span className="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded">Seç</span>
-                  </button>
-                ))
-              ) : (
-                ekipler.map(e => (
-                  <button
-                    key={e.id}
-                    onClick={() => {
-                      createBranchAuto(teamSelectionModal.branchName, e.id);
-                      setTeamSelectionModal({ show: false, branchName: '', action: 'manage' });
-                    }}
-                    className="w-full text-left p-3 rounded-lg border border-gray-100 hover:bg-green-50 hover:border-green-200 transition-all font-medium flex justify-between items-center"
-                  >
-                    <span>{e.ekip_adi}</span>
-                    <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded">+ Ekle</span>
-                  </button>
-                ))
-              )}
-            </div>
-            <button
-              onClick={() => setTeamSelectionModal({ show: false, branchName: '', action: 'manage' })}
-              className="mt-6 w-full py-2 text-sm text-gray-500 hover:text-gray-700 font-bold"
-            >
-              Vazgeç
-            </button>
           </div>
         </div>
       )}

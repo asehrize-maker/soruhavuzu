@@ -14,7 +14,7 @@ const router = express.Router();
 router.get('/', authenticate, async (req, res, next) => {
   try {
     const { ekip_id } = req.query;
-    
+
     let query = `
       SELECT b.*, e.ekip_adi,
              COUNT(DISTINCT s.id) as soru_sayisi
@@ -22,16 +22,16 @@ router.get('/', authenticate, async (req, res, next) => {
       LEFT JOIN ekipler e ON b.ekip_id = e.id
       LEFT JOIN sorular s ON b.id = s.brans_id
     `;
-    
+
     const params = [];
-    
+
     if (ekip_id) {
       query += ' WHERE b.ekip_id = $1';
       params.push(ekip_id);
     }
-    
+
     query += ' GROUP BY b.id, e.ekip_adi ORDER BY b.olusturulma_tarihi DESC';
-    
+
     const result = await pool.query(query, params);
 
     res.json({
@@ -47,14 +47,14 @@ router.get('/', authenticate, async (req, res, next) => {
 router.get('/:id', authenticate, async (req, res, next) => {
   try {
     const { id } = req.params;
-    
+
     const result = await pool.query(`
       SELECT b.*, e.ekip_adi
       FROM branslar b
       LEFT JOIN ekipler e ON b.ekip_id = e.id
       WHERE b.id = $1
     `, [id]);
-    
+
     if (result.rows.length === 0) {
       throw new AppError('Branş bulunamadı', 404);
     }
