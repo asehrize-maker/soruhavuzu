@@ -309,7 +309,7 @@ export default function Dashboard() {
 
             <div className="flex-1 p-4 bg-yellow-50 rounded-xl border border-yellow-200 w-full relative group hover:border-yellow-400 transition">
               <p className="text-xs font-bold text-yellow-600 uppercase">İNCELEME BEKLİYOR</p>
-              <p className="text-3xl font-black text-yellow-700 mt-1">{detayliStats?.genel?.inceleme_bekliyor || 0}</p>
+              <p className="text-3xl font-black text-yellow-700 mt-1">{(parseInt(detayliStats?.genel?.inceleme_bekliyor) || 0) + (parseInt(detayliStats?.genel?.incelemede) || 0)}</p>
             </div>
 
             <div className="flex-1 p-4 bg-red-50 rounded-xl border border-red-200 w-full relative group hover:border-red-400 transition">
@@ -319,7 +319,7 @@ export default function Dashboard() {
 
             <div className="flex-1 p-4 bg-orange-50 rounded-xl border border-orange-200 w-full relative group hover:border-orange-400 transition">
               <p className="text-xs font-bold text-orange-600 uppercase">DİZGİ AŞAMASI</p>
-              <p className="text-2xl font-black text-orange-700 mt-1">{(parseInt(detayliStats?.genel?.dizgi_bekliyor) || 0) + (parseInt(detayliStats?.genel?.dizgide) || 0)}</p>
+              <p className="text-2xl font-black text-orange-700 mt-1">{(parseInt(detayliStats?.genel?.dizgi_bekliyor) || 0) + (parseInt(detayliStats?.genel?.dizgide) || 0) + (parseInt(detayliStats?.genel?.inceleme_tamam) || 0)}</p>
             </div>
 
             <div className="flex-1 p-4 bg-green-50 rounded-xl border border-green-200 w-full hover:border-green-400 transition">
