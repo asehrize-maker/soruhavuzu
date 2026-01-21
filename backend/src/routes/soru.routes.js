@@ -576,6 +576,87 @@ router.put('/:id(\\d+)', [
   }
 });
 
+// Dizgici Final Dosya Yükleme
+router.put('/:id/final-upload', [authenticate, upload.single('final_png')], async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Yetki Kontrolü
+    const isDizgici = req.user.rol === 'dizgici';
+    const isAdmin = req.user.rol === 'admin';
+
+    if (!isDizgici && !isAdmin) {
+      throw new AppError('Sadece dizgici veya admin dosya yükleyebilir', 403);
+    }
+
+    if (!req.file) {
+      throw new AppError('Dosya seçilmedi', 400);
+    }
+
+    // Soruyu kontrol et
+    const soruRes = await pool.query('SELECT * FROM sorular WHERE id = $1', [id]);
+    if (soruRes.rows.length === 0) throw new AppError('Soru bulunamadı', 404);
+    const soru = soruRes.rows[0];
+
+    // Durum kontrolü: Sadece dizgide olan soruya dosya yüklenebilir (Admin hariç)
+    // Ancak dizgi_bekliyor ise ve dizgici kendine aldıysa da yükleyebilmeli.
+    // Şimdilik 'dizgide' olması mantıklı.
+    if (!isAdmin && soru.durum !== 'dizgide') {
+      throw new AppError('Soru dizgi aşamasında değil.', 403);
+    }
+
+    // Dizgici ise, sorunun dizgicisi o mu?
+    if (isDizgici && soru.dizgici_id !== req.user.id) {
+      // Belki de dizgici atanmamıştır? (Genelde 'dizgide' durumunda atanmış olur)
+      // Eğer atanmamışsa ve dizgide ise, yükleyen kişi dizgici olur.
+      if (soru.dizgici_id && soru.dizgici_id !== req.user.id) {
+        throw new AppError('Bu soru başka bir dizgicide.', 403);
+      }
+    }
+
+    // Eski final görselini sil (varsa)
+    if (soru.final_png_public_id) {
+      try {
+        await cloudinary.uploader.destroy(soru.final_png_public_id);
+      } catch (err) { console.error('Eski final silinemedi', err); }
+    }
+
+    // Yeni görseli yükle
+    const b64 = Buffer.from(req.file.buffer).toString('base64');
+    const dataURI = `data:${req.file.mimetype};base64,${b64}`;
+
+    const uploadResult = await cloudinary.uploader.upload(dataURI, {
+      folder: 'soru-havuzu/finals',
+      resource_type: 'auto',
+      quality: 'auto:good'
+    });
+
+    const finalUrl = uploadResult.secure_url;
+    const finalPublicId = uploadResult.public_id;
+
+    // DB güncelle - Eğer dizgici_id yoksa yükleyen kişiyi ata
+    const updateQuery = `
+      UPDATE sorular 
+      SET final_png_url = $1, final_png_public_id = $2,
+          dizgici_id = COALESCE(dizgici_id, $3),
+          guncellenme_tarihi = CURRENT_TIMESTAMP
+      WHERE id = $4 
+      RETURNING *
+    `;
+
+    const updateRes = await pool.query(updateQuery, [finalUrl, finalPublicId, req.user.id, id]);
+
+    res.json({
+      success: true,
+      data: updateRes.rows[0],
+      message: 'Dizgi dosyası başarıyla yüklendi.'
+    });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Soru Durumunu Güncelle (İncelemeci Onay/Revize)
 router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
   try {

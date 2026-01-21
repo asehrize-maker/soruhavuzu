@@ -111,6 +111,9 @@ export const soruAPI = {
   addRevizeNot: (id, data) => api.post(`/sorular/${id}/revize-not`, data),
   getRevizeNotlari: (id) => api.get(`/sorular/${id}/revize-notlari`),
   deleteRevizeNot: (id, notId) => api.delete(`/sorular/${id}/revize-not/${notId}`),
+  uploadFinal: (id, formData) => api.put(`/sorular/${id}/final-upload`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
   adminCleanup: (data) => api.post('/sorular/admin-cleanup', data),
 };
 

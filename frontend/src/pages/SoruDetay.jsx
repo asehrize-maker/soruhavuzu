@@ -484,8 +484,36 @@ export default function SoruDetay() {
     }
   };
 
+  const finalFileInputRef = useRef(null);
+
+  const handleFinalUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      return alert('Lütfen geçerli bir resim dosyası (PNG/JPG) seçin.');
+    }
+
+    if (confirm("Seçilen görsel DİZGİ SONUCU olarak yüklenecek. Onaylıyor musunuz?")) {
+      try {
+        const formData = new FormData();
+        formData.append('final_png', file);
+        await soruAPI.uploadFinal(id, formData);
+        alert('Dizgi görseli yüklendi!');
+        loadSoru(); // Yenile
+      } catch (err) {
+        alert('Yükleme başarısız: ' + (err.response?.data?.error || err.message));
+      }
+    }
+  };
+
   const handleDizgiTamamla = async () => {
-    if (!confirm('Dizgi işlemini bitirip soruyu HAVUZA (Tamamlandı) göndermek istediğinizden emin misiniz?')) return;
+    if (!soru.final_png_url) {
+      if (!confirm('UYARI: Henüz final dizgi görseli (PNG) yüklenmemiş!\n\nDizgisi yapılmamış soruyu tamamlamak istediğinize emin misiniz?')) return;
+    } else {
+      if (!confirm('Dizgi işlemini bitirip soruyu HAVUZA (Tamamlandı) göndermek istediğinizden emin misiniz?')) return;
+    }
+
     try {
       await soruAPI.updateDurum(id, {
         yeni_durum: 'tamamlandi',
@@ -752,14 +780,31 @@ export default function SoruDetay() {
                 </button>
               )}
 
-              {/* DİZGİCİ İÇİN TAMAMLAMA BUTONU */}
+              {/* DİZGİCİ İÇİN DOSYA YÜKLEME VE TAMAMLAMA */}
               {effectiveRole === 'dizgici' && soru.durum === 'dizgide' && (
-                <button
-                  onClick={handleDizgiTamamla}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-sm hover:bg-blue-700 transition shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] flex items-center gap-2 border-b-4 border-blue-800 active:border-b-0 active:translate-y-1"
-                >
-                  ✅ TAMAMLANDI
-                </button>
+                <>
+                  <input
+                    type="file"
+                    ref={finalFileInputRef}
+                    className="hidden"
+                    accept="image/png,image/jpeg"
+                    onChange={handleFinalUpload}
+                  />
+                  <button
+                    onClick={() => finalFileInputRef.current.click()}
+                    className="px-6 py-3 bg-purple-600 text-white rounded-xl font-black text-sm hover:bg-purple-700 transition shadow-[0_4px_14px_0_rgba(147,51,234,0.39)] flex items-center gap-2 border-b-4 border-purple-800 active:border-b-0 active:translate-y-1"
+                  >
+                    <PhotoIcon className="w-5 h-5" />
+                    📤 DİZGİ GÖRSELİ YÜKLE (PNG)
+                  </button>
+
+                  <button
+                    onClick={handleDizgiTamamla}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-sm hover:bg-blue-700 transition shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] flex items-center gap-2 border-b-4 border-blue-800 active:border-b-0 active:translate-y-1"
+                  >
+                    ✅ TAMAMLANDI
+                  </button>
+                </>
               )}
             </>
           )}
