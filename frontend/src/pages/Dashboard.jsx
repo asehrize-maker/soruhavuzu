@@ -787,7 +787,7 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
             <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">BEKLEYEN DİZGİ</p>
             <h3 className="text-4xl font-black text-orange-600">{stats?.dizgi_bekliyor || 0}</h3>
@@ -795,6 +795,10 @@ export default function Dashboard() {
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
             <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">DİZGİSİ SÜREN</p>
             <h3 className="text-4xl font-black text-blue-600">{stats?.dizgide || 0}</h3>
+          </div>
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center ring-2 ring-purple-100">
+            <p className="text-purple-400 text-xs font-bold uppercase tracking-widest mb-1">DOSYA BEKLEYEN</p>
+            <h3 className="text-4xl font-black text-purple-600">{stats?.dosya_bekliyor || 0}</h3>
           </div>
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
             <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">TAMAMLANAN</p>

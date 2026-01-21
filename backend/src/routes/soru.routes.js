@@ -1153,7 +1153,8 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
             OR s.brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1)
           ) AND k.ekip_id = (SELECT ekip_id FROM kullanicilar WHERE id = $1)) as dizgi_bekliyor,
           COUNT(*) FILTER(WHERE s.durum = 'dizgide' AND s.dizgici_id = $1) as dizgide,
-          COUNT(*) FILTER(WHERE s.durum = 'tamamlandi' AND k.ekip_id = (SELECT ekip_id FROM kullanicilar WHERE id = $1)) as tamamlandi
+          COUNT(*) FILTER(WHERE (s.durum = 'dizgi_tamam' AND s.dizgici_id = $1) OR (s.durum = 'tamamlandi' AND s.final_png_url IS NULL AND s.dizgici_id = $1)) as dosya_bekliyor,
+          COUNT(*) FILTER(WHERE s.durum = 'tamamlandi' AND s.final_png_url IS NOT NULL AND k.ekip_id = (SELECT ekip_id FROM kullanicilar WHERE id = $1)) as tamamlandi
         FROM sorular s
         JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
       `;
