@@ -175,15 +175,15 @@ export default function Layout() {
                 {(() => {
                   const r = effectiveRole;
                   if (r === 'admin') return 'Yönetici';
-                  if (r === 'soru_yazici') return 'Branş';
+                  if (r === 'soru_yazici') return 'Branş Öğretmeni';
                   if (r === 'dizgici') return 'Dizgici';
                   if (r === 'incelemeci') {
                     const alan = !!authUser?.inceleme_alanci;
                     const dil = !!authUser?.inceleme_dilci;
-                    if (alan && dil) return 'İncelemeci (Alan + Dil)';
-                    if (alan) return 'İncelemeci (Alan)';
-                    if (dil) return 'İncelemeci (Dil)';
-                    return 'İncelemeci';
+                    if (alan && dil) return 'Tashih (Alan + Dil)';
+                    if (alan) return 'Tashih (Alan)';
+                    if (dil) return 'Tashih (Dil)';
+                    return 'Tashih';
                   }
                   return 'Kullanıcı';
                 })()}
@@ -224,9 +224,9 @@ export default function Layout() {
                   }}
                 >
                   <option value="admin">Admin</option>
-                  <option value="soru_yazici">Branş</option>
+                  <option value="soru_yazici">Branş Öğretmeni</option>
                   <option value="dizgici">Dizgici</option>
-                  <option value="incelemeci">İncelemeci</option>
+                  <option value="incelemeci">Tashih</option>
                 </select>
               </div>
             )}
