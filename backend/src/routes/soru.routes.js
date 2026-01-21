@@ -68,6 +68,8 @@ const uploadFields = multer({
 // Eski upload değişkenini koru (geriye uyumluluk için)
 const upload = uploadFotograf;
 
+
+
 // Tüm soruları getir (filtreleme ile)
 router.get('/', authenticate, async (req, res, next) => {
   try {
