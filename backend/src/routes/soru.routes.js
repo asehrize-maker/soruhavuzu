@@ -143,16 +143,7 @@ router.get('/', authenticate, async (req, res, next) => {
         params.push(req.user.id);
         paramCount++;
       } else if (req.user.rol === 'incelemeci') {
-        // İncelemeci: Dilci değilse, sadece kendi branşlarını görsün. Dilci ise tüm branşları görsün.
-        if (!req.user.inceleme_dilci) {
-          query += ` AND (
-              s.brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount})
-              OR s.brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $${paramCount})
-              OR s.durum = 'tamamlandi'
-            )`;
-          params.push(req.user.id);
-          paramCount++;
-        }
+        // İncelemeciler tüm branşların sorularını görebilir.
       } else {
         // Diğer rollere (ör. misafir) soru havuzu gösterilmesin
         return res.json({ success: true, count: 0, data: [] });
@@ -271,7 +262,7 @@ router.post('/', [
     const {
       soru_metni, zorluk_seviyesi, brans_id, latex_kodu, kazanim,
       secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap,
-      fotograf_konumu
+      fotograf_konumu, durum
     } = req.body;
 
     let fotograf_url = null;
@@ -371,14 +362,16 @@ router.post('/', [
         soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, 
         latex_kodu, kazanim, olusturan_kullanici_id, 
         dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
-        secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap, fotograf_konumu
+        secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap, fotograf_konumu,
+        durum
       ) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) RETURNING *`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
       [
         soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi || null, brans_id,
         latex_kodu || null, kazanim || null, req.user.id,
         dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
-        secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust'
+        secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust',
+        durum || 'beklemede'
       ]
     );
 
@@ -393,59 +386,7 @@ router.post('/', [
   }
 });
 
-// İnceleme için branş bazlı bekleyen soru sayıları (turu: 'alanci'|'dilci')
-router.get('/stats/inceleme-brans', authenticate, async (req, res, next) => {
-  try {
-    // Determine review capabilities from user flags
-    const isAdmin = req.user.rol === 'admin';
-    const canAlan = isAdmin || !!req.user.inceleme_alanci;
-    const canDil = isAdmin || !!req.user.inceleme_dilci;
 
-    // Build SQL condition depending on capabilities
-    let condition = '';
-    if (canAlan && canDil) {
-      condition = `(s.onay_alanci = false OR s.onay_dilci = false)`;
-    } else if (canAlan) {
-      condition = `s.onay_alanci = false`;
-    } else if (canDil) {
-      condition = `s.onay_dilci = false`;
-    } else {
-      // No review capability
-      return res.json({ success: true, data: [] });
-    }
-
-    let query;
-    let params = [];
-
-    if (isAdmin) {
-      query = `
-        SELECT b.id, b.brans_adi,
-          COALESCE(COUNT(s.id) FILTER (WHERE s.durum = 'inceleme_bekliyor' AND ${condition}), 0) as inceleme_bekliyor
-        FROM branslar b
-        LEFT JOIN sorular s ON b.id = s.brans_id
-        GROUP BY b.id, b.brans_adi
-        ORDER BY inceleme_bekliyor DESC
-      `;
-    } else {
-      query = `
-        SELECT b.id, b.brans_adi,
-          COALESCE(COUNT(s.id) FILTER (WHERE s.durum = 'inceleme_bekliyor' AND ${condition}), 0) as inceleme_bekliyor
-        FROM branslar b
-        LEFT JOIN sorular s ON b.id = s.brans_id
-        WHERE b.id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1)
-           OR b.id = (SELECT brans_id FROM kullanicilar WHERE id = $1)
-        GROUP BY b.id, b.brans_adi
-        ORDER BY inceleme_bekliyor DESC
-      `;
-      params = [req.user.id];
-    }
-
-    const result = await pool.query(query, params);
-    res.json({ success: true, data: result.rows });
-  } catch (error) {
-    next(error);
-  }
-});
 
 // Dizgi için branş bazlı bekleyen soru sayıları
 router.get('/stats/dizgi-brans', authenticate, async (req, res, next) => {
@@ -1272,9 +1213,7 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
   }
 });
 
-// Redundant code block cleaned up.
 
-// Redundant code block cleaned up.
 
 
 // Admin detaylı istatistikler

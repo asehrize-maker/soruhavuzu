@@ -34,22 +34,25 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
           const isBransMatch = parseInt(s.brans_id) === parseInt(bransId);
           if (!isBransMatch) return false;
 
-          const isStatusSuitable = ['inceleme_bekliyor', 'beklemede', 'incelemede', 'dizgide'].includes(s.durum);
+          const isStatusSuitable = ['inceleme_bekliyor', 'incelemede', 'dizgide', 'revize_istendi', 'inceleme_tamam'].includes(s.durum);
 
           let isPendingReview = false;
-          if (typeof reviewMode !== 'undefined' && reviewMode) {
-            if (reviewMode === 'alanci') isPendingReview = !s.onay_alanci;
-            else if (reviewMode === 'dilci') isPendingReview = !s.onay_dilci;
+          // Değerleri authUser veya adminlik durumuna göre belirle
+          const isAlanci = !!authUser?.inceleme_alanci || authUser?.rol === 'admin';
+          const isDilci = !!authUser?.inceleme_dilci || authUser?.rol === 'admin';
+
+          if (reviewMode === 'alanci') {
+            isPendingReview = !s.onay_alanci;
+          } else if (reviewMode === 'dilci') {
+            isPendingReview = !s.onay_dilci;
           } else {
-            const alan = !!authUser?.inceleme_alanci;
-            const dil = !!authUser?.inceleme_dilci;
-            if (alan && !dil) isPendingReview = !s.onay_alanci;
-            else if (dil && !alan) isPendingReview = !s.onay_dilci;
-            else if (alan && dil) isPendingReview = (!s.onay_alanci || !s.onay_dilci);
+            // Varsayılan mod (mod seçilmemişse yetkiye göre)
+            if (isAlanci && !isDilci) isPendingReview = !s.onay_alanci;
+            else if (isDilci && !isAlanci) isPendingReview = !s.onay_dilci;
+            else if (isAlanci && isDilci) isPendingReview = (!s.onay_alanci || !s.onay_dilci);
           }
 
-          const notFinished = s.durum !== 'tamamlandi';
-          return isStatusSuitable && isPendingReview && notFinished;
+          return isStatusSuitable && isPendingReview;
         });
         setSorular(filtered);
       } catch (err) {
@@ -302,25 +305,21 @@ export default function Dashboard() {
             <div className="flex-1 p-4 bg-gray-50 rounded-xl border border-gray-200 w-full relative group hover:border-blue-300 transition">
               <p className="text-xs font-bold text-gray-400 uppercase">TASLAK / BEKLİYOR</p>
               <p className="text-2xl font-black text-gray-700 mt-1">{detayliStats?.genel?.beklemede || 0}</p>
-              <div className="absolute top-1/2 -right-3 w-6 h-6 bg-white border-t border-r border-gray-200 transform rotate-45 z-10 hidden md:block group-hover:border-blue-300"></div>
             </div>
 
             <div className="flex-1 p-4 bg-yellow-50 rounded-xl border border-yellow-200 w-full relative group hover:border-yellow-400 transition">
               <p className="text-xs font-bold text-yellow-600 uppercase">İNCELEME BEKLİYOR</p>
               <p className="text-3xl font-black text-yellow-700 mt-1">{detayliStats?.genel?.inceleme_bekliyor || 0}</p>
-              <div className="absolute top-1/2 -right-3 w-6 h-6 bg-yellow-50 border-t border-r border-yellow-200 transform rotate-45 z-10 hidden md:block group-hover:border-yellow-400"></div>
             </div>
 
             <div className="flex-1 p-4 bg-red-50 rounded-xl border border-red-200 w-full relative group hover:border-red-400 transition">
               <p className="text-xs font-bold text-red-600 uppercase">REVİZE / DÜZELTME</p>
               <p className="text-2xl font-black text-red-700 mt-1">{detayliStats?.genel?.revize_istendi || 0}</p>
-              <div className="absolute top-1/2 -right-3 w-6 h-6 bg-red-50 border-t border-r border-red-200 transform rotate-45 z-10 hidden md:block group-hover:border-red-400"></div>
             </div>
 
             <div className="flex-1 p-4 bg-orange-50 rounded-xl border border-orange-200 w-full relative group hover:border-orange-400 transition">
               <p className="text-xs font-bold text-orange-600 uppercase">DİZGİ AŞAMASI</p>
               <p className="text-2xl font-black text-orange-700 mt-1">{(parseInt(detayliStats?.genel?.dizgi_bekliyor) || 0) + (parseInt(detayliStats?.genel?.dizgide) || 0)}</p>
-              <div className="absolute top-1/2 -right-3 w-6 h-6 bg-orange-50 border-t border-r border-orange-200 transform rotate-45 z-10 hidden md:block group-hover:border-orange-400"></div>
             </div>
 
             <div className="flex-1 p-4 bg-green-50 rounded-xl border border-green-200 w-full hover:border-green-400 transition">
@@ -687,19 +686,23 @@ export default function Dashboard() {
     }
 
     // Mode parametresi varsa (Alan İnceleme veya Dil İnceleme), branş seçim ekranını göster
-    // Veriyi ekiplere göre grupla (Helper function inside component or useMemo)
-    const groupedTeams = incelemeBransCounts.reduce((acc, item) => {
-      if (!acc[item.ekip_adi]) acc[item.ekip_adi] = [];
-      acc[item.ekip_adi].push(item);
-      return acc;
-    }, {});
+    // Veriyi ekiplere ve takımlara göre grupla (useMemo ile optimize edildi)
+    const { groupedTeams, teamAggregates } = useMemo(() => {
+      const grouped = incelemeBransCounts.reduce((acc, item) => {
+        if (!acc[item.ekip_adi]) acc[item.ekip_adi] = [];
+        acc[item.ekip_adi].push(item);
+        return acc;
+      }, {});
 
-    const teamAggregates = Object.entries(groupedTeams).map(([ekipAdi, items]) => {
-      const totalPending = items.reduce((sum, item) => {
-        return sum + (reviewMode === 'alanci' ? (Number(item.alanci_bekleyen) || 0) : (Number(item.dilci_bekleyen) || 0));
-      }, 0);
-      return { ekipAdi, totalPending, items };
-    }); // Filtre kaldırıldı: Boş ekipler de görünsün
+      const aggregates = Object.entries(grouped).map(([ekipAdi, items]) => {
+        const totalPending = items.reduce((sum, item) => {
+          return sum + (reviewMode === 'alanci' ? (Number(item.alanci_bekleyen) || 0) : (Number(item.dilci_bekleyen) || 0));
+        }, 0);
+        return { ekipAdi, totalPending, items };
+      });
+
+      return { groupedTeams: grouped, teamAggregates: aggregates };
+    }, [incelemeBransCounts, reviewMode]);
 
     return (
       <div className="space-y-6 animate-fade-in">
