@@ -16,6 +16,7 @@ export default function Kullanicilar() {
     ekip_id: '',
     brans_id: '',
     brans_ids: [],
+    showAllBrans: false,
     rol: 'soru_yazici',
     inceleme_alanci: false,
     inceleme_dilci: false,
@@ -27,9 +28,10 @@ export default function Kullanicilar() {
   }, []);
 
   const filteredBranslar = useMemo(() => {
+    if (formData.showAllBrans) return branslar;
     if (!formData.ekip_id) return [];
     return branslar.filter(b => Number(b.ekip_id) === Number(formData.ekip_id));
-  }, [formData.ekip_id, branslar]);
+  }, [formData.ekip_id, branslar, formData.showAllBrans]);
 
   // Branş seçimlerini ekip değiştiğinde temizle/doğrula
   useEffect(() => {
@@ -248,14 +250,34 @@ export default function Kullanicilar() {
               </div>
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <label className="block text-sm font-medium text-gray-700">Branşlar</label>
-                  <button type="button" onClick={loadData} className="text-[10px] text-blue-600 hover:underline font-bold uppercase">Branşları Yenile</button>
+                  <div className="flex items-center gap-2">
+                    <label className="block text-sm font-medium text-gray-700">Branşlar</label>
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="w-3 h-3"
+                        checked={formData.showAllBrans}
+                        onChange={e => setFormData({ ...formData, showAllBrans: e.target.checked })}
+                      />
+                      <span className="text-[10px] text-gray-500 font-bold uppercase">Tümünü Göster</span>
+                    </label>
+                  </div>
+                  <button type="button" onClick={loadData} className="text-[10px] text-blue-600 hover:underline font-bold uppercase">Yenile</button>
                 </div>
                 <div className="max-h-40 overflow-y-auto border rounded p-2 space-y-1 bg-gray-50/50">
                   {!formData.ekip_id ? (
                     <p className="text-xs text-amber-600 font-medium py-2 text-center italic">Lütfen önce bir ekip seçin</p>
                   ) : filteredBranslar.length === 0 ? (
-                    <p className="text-xs text-gray-500 py-2 text-center italic">Bu ekibe ait branş bulunamadı</p>
+                    <div className="py-4 text-center">
+                      <p className="text-xs text-gray-500 italic mb-1">Bu ekibe ait branş bulunamadı</p>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, showAllBrans: true })}
+                        className="text-[10px] text-blue-600 font-bold hover:underline"
+                      >
+                        TÜM SİSTEMDEKİ BRANŞLARI GÖSTER
+                      </button>
+                    </div>
                   ) : (
                     filteredBranslar.map(b => (
                       <label key={b.id} className="flex items-center gap-2 cursor-pointer p-1.5 hover:bg-white hover:shadow-sm rounded transition-all">
@@ -268,7 +290,12 @@ export default function Kullanicilar() {
                             setFormData({ ...formData, brans_ids: newIds, brans_id: newIds[0] || '' });
                           }}
                         />
-                        <span className="text-sm text-gray-700">{b.brans_adi}</span>
+                        <span className="text-sm text-gray-700">
+                          {b.brans_adi}
+                          {formData.showAllBrans && (
+                            <span className="text-[10px] text-gray-400 ml-1">({b.ekip_adi || 'Ekipsiz'})</span>
+                          )}
+                        </span>
                       </label>
                     ))
                   )}

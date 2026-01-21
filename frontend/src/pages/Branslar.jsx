@@ -32,6 +32,7 @@ export default function Branslar() {
   const [editingTeacher, setEditingTeacher] = useState(null);
   const [showAddBranchForm, setShowAddBranchForm] = useState(false);
   const [newBranchData, setNewBranchData] = useState({ brans_adi: '', ekip_id: '', aciklama: '' });
+  const [teamSelectionModal, setTeamSelectionModal] = useState({ show: false, branchName: '', action: 'manage' }); // action: 'manage' or 'create'
 
   useEffect(() => {
     loadData();
@@ -78,105 +79,62 @@ export default function Branslar() {
   };
 
   const handleBranchClick = async (branchName) => {
-    // If there are multiple branches with the same name across different teams
     const matchingBranches = branslar.filter(b =>
       b.brans_adi.toLowerCase() === branchName.toLowerCase() ||
       (branchName === 'TÜRKÇE' && b.brans_adi.toLowerCase().includes('turkce')) ||
       (branchName === 'İNGİLİZCE' && b.brans_adi.toLowerCase().includes('ingilizce'))
     );
 
-    let foundBranch = null;
-
     if (matchingBranches.length > 1) {
-      const branchOptions = matchingBranches.map((b, idx) => `${idx + 1}: ${b.brans_adi} (${b.ekip_adi || 'Ekipsiz'})`).join('\n');
-      const selection = prompt(`${branchName} branşı için seçim yapın:\n\n${branchOptions}\n\n(Yönetmek istediğiniz numarasını giriniz)`, "1");
-      if (selection) {
-        foundBranch = matchingBranches[parseInt(selection) - 1];
-      } else {
-        return;
-      }
+      setTeamSelectionModal({ show: true, branchName, action: 'manage' });
+      return;
     } else if (matchingBranches.length === 1) {
-      foundBranch = matchingBranches[0];
-    }
-
-    // If branch doesn't exist, try to create it automatically
-    if (!foundBranch) {
-      // Since the user wants to remove "Teams" UI but create users, we might need a default team.
-      // We'll proceed even if no teams exist (sending null for team_id if allowed, or alert if needed).
-      // But Brans MUST have an ekip_id usually.
-
-      let defaultTeamId = ekipler.length > 0 ? ekipler[0].id : null;
-
-      // If no teams exist, and we must create one?
-      // For now, let's assume we can create a branch without teams IF the backend allows, OR warn.
-      // But wait, the previous code warned if teams=0.
-      // User said "ekipleri de kaldır". This means UI removal. Data might remain.
-
-      if (!defaultTeamId) {
-        alert('Sistem altyapısı için en az bir Ekip gereklidir. Bu aşamada otomatik oluşturulamıyor.');
-        return;
-      }
-
-      let targetTeamId = defaultTeamId;
-      if (ekipler.length > 1) {
-        const teamNames = ekipler.map((e, idx) => `${idx + 1}: ${e.ekip_adi}`).join('\n');
-        const selection = prompt(`${branchName} branşı hangi ekibe eklensin?\n\n${teamNames}\n\n(Ekip numarasını giriniz)`, "1");
-        if (!selection) return;
-        const selectedIdx = parseInt(selection) - 1;
-        if (ekipler[selectedIdx]) {
-          targetTeamId = ekipler[selectedIdx].id;
-        } else {
-          alert('Geçersiz seçim');
-          return;
-        }
-      }
-
-      if (confirm(`"${branchName}" branşı ${ekipler.find(e => e.id === targetTeamId)?.ekip_adi} ekibine eklensin mi?`)) {
-        setCreatingBranch(true);
-        try {
-          await bransAPI.create({
-            brans_adi: branchName,
-            ekip_id: targetTeamId,
-            aciklama: 'Otomatik oluşturulan branş'
-          });
-
-          // Refresh data
-          const [bransResponse] = await Promise.all([bransAPI.getAll()]);
-          setBranslar(bransResponse.data.data);
-          const newBranchList = bransResponse.data.data;
-
-          // Find the newly created branch in the refreshed list
-          foundBranch = newBranchList.find(b => b.brans_adi.toLowerCase() === branchName.toLowerCase());
-
-          if (!foundBranch) {
-            // Try looser match
-            foundBranch = newBranchList.find(b => b.brans_adi.toUpperCase().includes(branchName.toUpperCase()));
-          }
-
-          if (!foundBranch) {
-            alert('Branş oluşturuldu ancak listelenemedi. Lütfen sayfayı yenileyin.');
-            return;
-          }
-        } catch (error) {
-          console.error('Branş oluşturma hatası:', error);
-          alert('Branş oluşturulamadı: ' + (error.response?.data?.error || error.message));
-          return;
-        } finally {
-          setCreatingBranch(false);
-        }
-      } else {
-        return;
-      }
-    }
-
-    if (foundBranch) {
-      setSelectedBranch(foundBranch);
+      setSelectedBranch(matchingBranches[0]);
       setShowModal(true);
-      setSelectedTeacherId('');
-      setNewUser({ ad_soyad: '', email: '', sifre: '' });
-      setNewUser({ ad_soyad: '', email: '', sifre: '' });
-      setSelectedRole('soru_yazici');
-      setActiveTab('add');
+      resetTeacherForm();
+      return;
+    }
+
+    if (ekipler.length > 1) {
+      setTeamSelectionModal({ show: true, branchName, action: 'create' });
+    } else if (ekipler.length === 1) {
+      if (confirm(`"${branchName}" branşı ${ekipler[0].ekip_adi} ekibine eklensin mi?`)) {
+        createBranchAuto(branchName, ekipler[0].id);
+      }
+    } else {
+      alert('Önce en az bir ekip oluşturmalısınız.');
+    }
+  };
+
+  const resetTeacherForm = () => {
+    setSelectedTeacherId('');
+    setNewUser({ ad_soyad: '', email: '', sifre: '' });
+    setSelectedRole('soru_yazici');
+    setActiveTab('add');
+  };
+
+  const createBranchAuto = async (branchName, teamId) => {
+    setCreatingBranch(true);
+    try {
+      await bransAPI.create({
+        brans_adi: branchName,
+        ekip_id: teamId,
+        aciklama: 'Otomatik oluşturulan branş'
+      });
+      const res = await bransAPI.getAll();
+      setBranslar(res.data.data);
+      const newBranch = res.data.data.find(b =>
+        b.brans_adi.toLowerCase() === branchName.toLowerCase() && b.ekip_id === teamId
+      );
+      if (newBranch) {
+        setSelectedBranch(newBranch);
+        setShowModal(true);
+        resetTeacherForm();
+      }
+    } catch (err) {
+      alert('Hata: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setCreatingBranch(false);
     }
   };
 
@@ -227,7 +185,6 @@ export default function Branslar() {
       const defaultTeamId = ekipler.length > 0 ? ekipler[0].id : null;
 
       const registerData = {
-        ...newUser,
         ...newUser,
         rol: selectedRole,
         brans_id: selectedBranch.id,
@@ -722,6 +679,62 @@ export default function Branslar() {
                 </li>
               ))}
             </ul>
+          </div>
+        </div>
+      )}
+      {/* Team Selection Modal */}
+      {teamSelectionModal.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-2xl">
+            <h2 className="text-xl font-bold mb-2">{teamSelectionModal.branchName} Branşı</h2>
+            <p className="text-sm text-gray-500 mb-6">
+              {teamSelectionModal.action === 'manage'
+                ? 'Hangi ekibe ait branşı yönetmek istiyorsunuz?'
+                : 'Hangi ekibe bu branşı tanımlamak istersiniz?'}
+            </p>
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+              {teamSelectionModal.action === 'manage' ? (
+                branslar.filter(b =>
+                  b.brans_adi.toLowerCase() === teamSelectionModal.branchName.toLowerCase() ||
+                  (teamSelectionModal.branchName === 'TÜRKÇE' && b.brans_adi.toLowerCase().includes('turkce')) ||
+                  (teamSelectionModal.branchName === 'İNGİLİZCE' && b.brans_adi.toLowerCase().includes('ingilizce'))
+                ).map(b => (
+                  <button
+                    key={b.id}
+                    onClick={() => {
+                      setSelectedBranch(b);
+                      setShowModal(true);
+                      resetTeacherForm();
+                      setTeamSelectionModal({ show: false, branchName: '', action: 'manage' });
+                    }}
+                    className="w-full text-left p-3 rounded-lg border border-gray-100 hover:bg-blue-50 hover:border-blue-200 transition-all font-medium flex justify-between items-center"
+                  >
+                    <span>{b.ekip_adi}</span>
+                    <span className="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded">Seç</span>
+                  </button>
+                ))
+              ) : (
+                ekipler.map(e => (
+                  <button
+                    key={e.id}
+                    onClick={() => {
+                      createBranchAuto(teamSelectionModal.branchName, e.id);
+                      setTeamSelectionModal({ show: false, branchName: '', action: 'manage' });
+                    }}
+                    className="w-full text-left p-3 rounded-lg border border-gray-100 hover:bg-green-50 hover:border-green-200 transition-all font-medium flex justify-between items-center"
+                  >
+                    <span>{e.ekip_adi}</span>
+                    <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded">+ Ekle</span>
+                  </button>
+                ))
+              )}
+            </div>
+            <button
+              onClick={() => setTeamSelectionModal({ show: false, branchName: '', action: 'manage' })}
+              className="mt-6 w-full py-2 text-sm text-gray-500 hover:text-gray-700 font-bold"
+            >
+              Vazgeç
+            </button>
           </div>
         </div>
       )}
