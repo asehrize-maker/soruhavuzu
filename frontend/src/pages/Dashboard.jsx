@@ -572,13 +572,13 @@ export default function Dashboard() {
                         <h3 className="font-bold text-gray-800 text-lg">{tm.name}</h3>
                       </div>
                       <div className="space-y-2">
-                        {canAlanInceleme && tm.alanci > 0 && (
+                        {tm.alanci > 0 && (
                           <div className="flex justify-between items-center text-sm">
                             <span className="text-gray-600">Alan İnceleme:</span>
                             <span className="font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">{tm.alanci}</span>
                           </div>
                         )}
-                        {canDilInceleme && tm.dilci > 0 && (
+                        {tm.dilci > 0 && (
                           <div className="flex justify-between items-center text-sm">
                             <span className="text-gray-600">Dil İnceleme:</span>
                             <span className="font-bold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">{tm.dilci}</span>
