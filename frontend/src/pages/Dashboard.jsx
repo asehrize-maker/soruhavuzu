@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import { soruAPI, bransAPI } from '../services/api';
+import { soruAPI, bransAPI, ekipAPI } from '../services/api';
 import {
   ChartBarIcon,
   UserGroupIcon,
@@ -148,13 +148,15 @@ export default function Dashboard() {
   const [detayliStats, setDetayliStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [branslar, setBranslar] = useState([]);
+  const [ekipler, setEkipler] = useState([]);
   const [incelemeBransCounts, setIncelemeBransCounts] = useState([]);
   const [selectedBrans, setSelectedBrans] = useState(null);
   const [selectedStat, setSelectedStat] = useState(null);
+  const [showBransDetay, setShowBransDetay] = useState(false);
   const [reviewMode, setReviewMode] = useState(() => {
     const params = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
     const mode = params.get('mode');
-    return (mode === 'alanci' || mode === 'dilci') ? mode : 'alanci';
+    return (mode === 'alanci' || mode === 'dilci') ? mode : null;
   });
 
   // Sync reviewMode with URL param if it changes
@@ -163,14 +165,25 @@ export default function Dashboard() {
     const mode = params.get('mode');
     if (mode && (mode === 'alanci' || mode === 'dilci')) {
       setReviewMode(mode);
+    } else if (!mode) {
+      // URL'de mode yoksa null yap (ana sayfa için)
+      setReviewMode(null);
     }
-  }, [window.location.hash]);
+  }, [window.location.hash, window.location.search]);
 
+  // İncelemeci için mode yoksa ve kullanıcı sadece bir türde incelemeci ise otomatik ayarla
   useEffect(() => {
     if (activeRole !== 'incelemeci') return;
     if (isActualAdmin) return;
-    if (user?.inceleme_alanci && !user?.inceleme_dilci) setReviewMode('alanci');
-    else if (user?.inceleme_dilci && !user?.inceleme_alanci) setReviewMode('dilci');
+
+    const params = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
+    const urlMode = params.get('mode');
+
+    // Sadece URL'de mode parametresi varsa otomatik ayarla
+    if (urlMode && (urlMode === 'alanci' || urlMode === 'dilci')) {
+      if (user?.inceleme_alanci && !user?.inceleme_dilci) setReviewMode('alanci');
+      else if (user?.inceleme_dilci && !user?.inceleme_alanci) setReviewMode('dilci');
+    }
   }, [activeRole, isActualAdmin, user?.inceleme_alanci, user?.inceleme_dilci]);
 
   const fetchData = useCallback(async () => {
@@ -184,8 +197,12 @@ export default function Dashboard() {
         if (res.data.success) setStats(res.data.data);
       }
       if (activeRole === 'incelemeci') {
-        const bransRes = await bransAPI.getAll();
+        const [bransRes, ekipRes] = await Promise.all([
+          bransAPI.getAll(),
+          ekipAPI.getAll()
+        ]);
         if (bransRes.data.success) setBranslar(bransRes.data.data);
+        if (ekipRes.data.success) setEkipler(ekipRes.data.data);
       }
     } catch (error) {
       console.error("Dashboard veri hatası:", error);
@@ -439,7 +456,8 @@ export default function Dashboard() {
 
           {/* Genel İstatistikler */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-blue-400 p-6 text-white shadow-lg shadow-blue-200 transition-all hover:scale-105 hover:shadow-xl group">
+            <div onClick={() => setShowBransDetay(true)}
+              className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-blue-400 p-6 text-white shadow-lg shadow-blue-200 transition-all hover:scale-105 hover:shadow-xl group cursor-pointer">
               <div className="relative z-10 flex justify-between items-start">
                 <div>
                   <p className="text-blue-100 text-xs font-bold uppercase tracking-widest">TOPLAM BRANŞ</p>
@@ -585,6 +603,80 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+
+          {/* Branş ve Ekip Detay Modalı */}
+          {showBransDetay && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowBransDetay(false)}>
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                  <h3 className="text-lg font-bold text-gray-900">Branş ve Ekip Dağılımı</h3>
+                  <button onClick={() => setShowBransDetay(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                </div>
+                <div className="p-6 max-h-[70vh] overflow-y-auto">
+                  {ekipler.length === 0 ? (
+                    <p className="text-center text-gray-500 py-8">Ekip bilgisi bulunamadı.</p>
+                  ) : (
+                    <div className="space-y-6">
+                      {ekipler.map(ekip => {
+                        const ekipBranslar = branslar.filter(b => Number(b.ekip_id) === Number(ekip.id));
+                        if (ekipBranslar.length === 0) return null;
+
+                        return (
+                          <div key={ekip.id} className="border border-gray-100 rounded-xl overflow-hidden">
+                            <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+                              <span className="font-bold text-gray-800 flex items-center gap-2">
+                                <UserGroupIcon className="w-5 h-5 text-blue-600" />
+                                {ekip.ekip_adi}
+                              </span>
+                              <span className="text-xs font-semibold text-gray-500 bg-white px-2 py-1 rounded-md border border-gray-200">
+                                {ekipBranslar.length} Branş
+                              </span>
+                            </div>
+                            <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                              {ekipBranslar.map(b => (
+                                <div key={b.id} className="flex items-center gap-2 p-2 bg-blue-50/50 rounded-lg text-blue-800">
+                                  <BookOpenIcon className="w-4 h-4 opacity-70" />
+                                  {b.brans_adi}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Ekipsiz Branşlar (varsa) */}
+                      {branslar.filter(b => !b.ekip_id || !ekipler.find(e => Number(e.id) === Number(b.ekip_id))).length > 0 && (
+                        <div className="border border-gray-100 rounded-xl overflow-hidden">
+                          <div className="bg-gray-50 px-4 py-3 border-b border-gray-100">
+                            <span className="font-bold text-gray-800 flex items-center gap-2">
+                              <InformationCircleIcon className="w-5 h-5 text-gray-400" />
+                              Diğer Branşlar
+                            </span>
+                          </div>
+                          <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                            {branslar.filter(b => !b.ekip_id || !ekipler.find(e => Number(e.id) === Number(b.ekip_id))).map(b => (
+                              <div key={b.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-gray-600">
+                                <BookOpenIcon className="w-4 h-4 opacity-70" />
+                                {b.brans_adi}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="p-4 bg-gray-50 border-t border-gray-100 text-right">
+                  <button
+                    onClick={() => setShowBransDetay(false)}
+                    className="px-6 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 transition shadow-sm"
+                  >
+                    Kapat
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
