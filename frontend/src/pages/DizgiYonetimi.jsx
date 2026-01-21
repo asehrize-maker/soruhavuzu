@@ -35,7 +35,8 @@ export default function DizgiYonetimi() {
       const all = (response.data.data || []);
       setPending(all.filter(s => s.durum === 'dizgi_bekliyor'));
       setInProgress(all.filter(s => s.durum === 'dizgide'));
-      setCompleted(all.filter(s => s.durum === 'dizgi_tamam'));
+      // Hem yeni 'dizgi_tamam' statüsünü hem de eski sistemden kalan (PNG'si olmayan) 'tamamlandi' sorularını göster
+      setCompleted(all.filter(s => s.durum === 'dizgi_tamam' || (s.durum === 'tamamlandi' && !s.final_png_url)));
       setSorular(all);
     } catch (error) {
       alert('Sorular yüklenemedi');
