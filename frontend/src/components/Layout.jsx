@@ -175,6 +175,7 @@ export default function Layout() {
                 {(() => {
                   const r = effectiveRole;
                   if (r === 'admin') return 'Yönetici';
+                  if (r === 'koordinator') return 'Koordinatör';
                   if (r === 'soru_yazici') return 'Branş Öğretmeni';
                   if (r === 'dizgici') return 'Dizgici';
                   if (r === 'incelemeci') {
@@ -224,6 +225,7 @@ export default function Layout() {
                   }}
                 >
                   <option value="admin">Admin</option>
+                  <option value="koordinator">Koordinatör</option>
                   <option value="soru_yazici">Branş Öğretmeni</option>
                   <option value="dizgici">Dizgici</option>
                   <option value="incelemeci">Tashih</option>
