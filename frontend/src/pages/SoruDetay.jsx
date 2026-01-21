@@ -316,11 +316,11 @@ export default function SoruDetay() {
     // LaTeX Render
     html = html.replace(/\$\$([^\$]+)\$\$/g, (match, latex) => {
       try { return katex.renderToString(latex, { throwOnError: false, displayMode: true }); }
-      catch (e) { return `< span class="text-red-500 text-sm" > ${match}</span > `; }
+      catch (e) { return `<span class="text-red-500 text-sm">${match}</span>`; }
     });
     html = html.replace(/\$([^\$]+)\$/g, (match, latex) => {
       try { return katex.renderToString(latex, { throwOnError: false, displayMode: false }); }
-      catch (e) { return `< span class="text-red-500 text-sm" > ${match}</span > `; }
+      catch (e) { return `<span class="text-red-500 text-sm">${match}</span>`; }
     });
     html = html.replace(/\n/g, '<br>');
 
@@ -337,13 +337,7 @@ export default function SoruDetay() {
       visibleNotes.forEach((not, index) => {
         if (!not.secilen_metin) return;
         const colorClass = not.inceleme_turu === 'dilci' ? 'green' : 'blue';
-        const mark = `< mark class="bg-${colorClass}-100 border-b-2 border-${colorClass}-400 px-1 relative group cursor-help transition-colors hover:bg-${colorClass}-200" >
-  ${not.secilen_metin}
-          <sup class="text-${colorClass}-700 font-bold ml-0.5 select-none">[${revizeNotlari.indexOf(not) + 1}]</sup>
-          <span class="absolute bottom-full left-1/2 -translate-x-1/2 hidden group-hover:block bg-gray-900 text-white text-[10px] p-2 rounded w-48 z-50 shadow-xl mb-2">
-            <strong>${not.inceleme_turu.toUpperCase()} Notu:</strong> ${not.not_metni}
-          </span>
-        </mark > `;
+        const mark = `<mark class="bg-${colorClass}-100 border-b-2 border-${colorClass}-400 px-1 relative group cursor-help transition-colors hover:bg-${colorClass}-200">${not.secilen_metin}<sup class="text-${colorClass}-700 font-bold ml-0.5 select-none">[${revizeNotlari.indexOf(not) + 1}]</sup><span class="absolute bottom-full left-1/2 -translate-x-1/2 hidden group-hover:block bg-gray-900 text-white text-[10px] p-2 rounded w-48 z-50 shadow-xl mb-2"><strong>${not.inceleme_turu.toUpperCase()} Notu:</strong> ${not.not_metni}</span></mark>`;
         html = html.split(not.secilen_metin).join(mark);
       });
     }
@@ -566,23 +560,23 @@ export default function SoruDetay() {
           if (c.align === 'left') style += ' float: left; margin-right: 12px;';
           else if (c.align === 'right') style += ' float: right; margin-left: 12px;';
           else style += ' display: block; margin-left: auto; margin-right: auto;';
-          return `< div class="q-img" style = "${style}" > <img src="${c.content}" style="width:100%; height:100%;" /></div > `;
+          return `<div class="q-img" style="${style}"><img src="${c.content}" style="width:100%; height:100%;" /></div>`;
         }
         else {
           let commonStyle = "text-align: left; hyphens: none; -webkit-hyphens: none; line-height: 1.4;";
-          if (c.subtype === 'koku') style = `${commonStyle} font - weight: bold; margin - bottom: 12px; margin - top: 4px; font - size: 10pt; `;
+          if (c.subtype === 'koku') style = `${commonStyle} font-weight: bold; margin-bottom: 12px; margin-top: 4px; font-size: 10pt;`;
           else if (c.subtype === 'secenek') {
             let w = c.width !== 100 ? `width: ${c.width}%; ` : '';
             let f = c.float !== 'none' ? `float: ${c.float}; ` : '';
             let m = c.float === 'left' ? 'margin-right: 2%;' : '';
-            style = `${commonStyle} margin - bottom: 6px; padding - left: 24px; text - indent: -24px; ${w} ${f} ${m} `;
+            style = `${commonStyle} margin-bottom: 6px; padding-left: 24px; text-indent: -24px; ${w} ${f} ${m} `;
           }
-          else style = `${commonStyle} margin - bottom: 8px; font - size: 10pt; `;
-          return `< div class="q-txt q-${c.subtype}" style = "${style} clear: ${c.float === 'none' ? 'both' : 'none'};" > ${c.content}</div > `;
+          else style = `${commonStyle} margin-bottom: 8px; font-size: 10pt; `;
+          return `<div class="q-txt q-${c.subtype}" style="${style} clear: ${c.float === 'none' ? 'both' : 'none'};">${c.content}</div>`;
         }
       }).join('');
 
-      htmlContent += `< div style = "clear: both;" ></div > `;
+      htmlContent += `<div style="clear: both;"></div>`;
       formData.append('soru_metni', htmlContent);
 
       const firstNewImage = components.find(c => c.type === 'image' && c.file);
@@ -615,7 +609,7 @@ export default function SoruDetay() {
       if (mode === 'grid') { styleProps = { width: 48, float: 'left' }; }
       return {
         id: baseId + idx,
-        type: 'text', subtype: 'secenek', content: `< b > ${opt})</b > `,
+        type: 'text', subtype: 'secenek', content: `<b>${opt})</b>`,
         placeholder: ``,
         label: `Seçenek ${opt} `,
         ...styleProps
