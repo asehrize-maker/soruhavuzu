@@ -250,12 +250,7 @@ export default function Layout() {
           ))}
         </nav>
         <div className="p-4 border-t border-gray-700 bg-[#0f172a]">
-          <div className="px-3 py-2 mb-3 bg-gray-900/50 rounded-lg border border-gray-800">
-            <p className="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1">SUNUCU BAĞLANTISI</p>
-            <p className="text-[10px] text-blue-400 font-mono truncate" title={import.meta.env.VITE_API_URL || 'Geliştirme Modu'}>
-              {import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('https://', '').replace('http://', '').replace('/api', '') : 'localhost:5000'}
-            </p>
-          </div>
+
           <button onClick={handleLogout} className="group flex items-center w-full px-4 py-2 text-sm font-medium text-red-400 rounded-md hover:bg-red-900/20 hover:text-red-300 transition-colors">
             <svg className="mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
