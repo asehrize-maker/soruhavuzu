@@ -598,10 +598,10 @@ router.put('/:id/final-upload', [authenticate, upload.single('final_png')], asyn
     if (soruRes.rows.length === 0) throw new AppError('Soru bulunamadı', 404);
     const soru = soruRes.rows[0];
 
-    // Durum kontrolü: Sadece dizgide olan soruya dosya yüklenebilir (Admin hariç)
+    // Durum kontrolü: Sadece dizgide veya dizgi_tamam olan soruya dosya yüklenebilir (Admin hariç)
     // Ancak dizgi_bekliyor ise ve dizgici kendine aldıysa da yükleyebilmeli.
-    // Şimdilik 'dizgide' olması mantıklı.
-    if (!isAdmin && soru.durum !== 'dizgide') {
+    // Şimdilik 'dizgide' veya 'dizgi_tamam' olması mantıklı.
+    if (!isAdmin && soru.durum !== 'dizgide' && soru.durum !== 'dizgi_tamam') {
       throw new AppError('Soru dizgi aşamasında değil.', 403);
     }
 
@@ -635,10 +635,12 @@ router.put('/:id/final-upload', [authenticate, upload.single('final_png')], asyn
     const finalPublicId = uploadResult.public_id;
 
     // DB güncelle - Eğer dizgici_id yoksa yükleyen kişiyi ata
+    // AYRICA: Durumu 'tamamlandi' yap (Havuza gönder)
     const updateQuery = `
       UPDATE sorular 
       SET final_png_url = $1, final_png_public_id = $2,
           dizgici_id = COALESCE(dizgici_id, $3),
+          durum = 'tamamlandi',
           guncellenme_tarihi = CURRENT_TIMESTAMP
       WHERE id = $4 
       RETURNING *
@@ -663,7 +665,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
     const { id } = req.params;
     const { yeni_durum, aciklama, inceleme_turu } = req.body; // inceleme_turu: 'alanci', 'dilci'
 
-    if (!['dizgi_bekliyor', 'revize_istendi', 'tamamlandi', 'inceleme_bekliyor', 'dizgide', 'inceleme_tamam'].includes(yeni_durum)) {
+    if (!['dizgi_bekliyor', 'revize_istendi', 'tamamlandi', 'inceleme_bekliyor', 'dizgide', 'inceleme_tamam', 'dizgi_tamam'].includes(yeni_durum)) {
       throw new AppError('Geçersiz durum', 400);
     }
 

@@ -35,7 +35,7 @@ export default function DizgiYonetimi() {
       const all = (response.data.data || []);
       setPending(all.filter(s => s.durum === 'dizgi_bekliyor'));
       setInProgress(all.filter(s => s.durum === 'dizgide'));
-      setCompleted(all.filter(s => s.durum === 'tamamlandi'));
+      setCompleted(all.filter(s => s.durum === 'dizgi_tamam'));
       setSorular(all);
     } catch (error) {
       alert('Sorular yüklenemedi');
@@ -130,14 +130,16 @@ export default function DizgiYonetimi() {
       tamamlandi: 'bg-green-100 text-green-800',
       revize_gerekli: 'bg-red-100 text-red-800',
       revize_istendi: 'bg-red-100 text-red-800',
+      dizgi_tamam: 'bg-orange-100 text-orange-800',
     };
     const labels = {
       beklemede: 'Beklemede',
       dizgi_bekliyor: 'Dizgi Bekliyor',
       dizgide: 'Dizgide',
-      tamamlandi: 'Tamamlandı',
+      tamamlandi: 'Tamamlandı (Havuzda)',
       revize_gerekli: 'Revize Gerekli',
       revize_istendi: 'Revize İstendi',
+      dizgi_tamam: 'Dizgi Bitti / Dosya Bekliyor',
     };
     return (
       <span className={`px-3 py-1 rounded-full text-sm font-medium ${badges[durum]}`}>
@@ -216,7 +218,7 @@ export default function DizgiYonetimi() {
             </div>
 
             <div className="bg-white p-3 rounded shadow-sm">
-              <h2 className="font-semibold mb-2">Tamamlanan</h2>
+              <h2 className="font-semibold mb-2">Tamamlanan (Dosya Bekleyen)</h2>
               <div className="space-y-2">
                 {completed.map(soru => (
                   <div key={soru.id} className="p-2 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedSoru(soru)}>
@@ -244,7 +246,7 @@ export default function DizgiYonetimi() {
                     <button onClick={() => navigate(`/sorular/${selectedSoru.id}`)} className="btn btn-secondary btn-sm">Detay</button>
                     <button onClick={() => setShowMesaj(showMesaj === selectedSoru.id ? null : selectedSoru.id)} className="btn btn-info btn-sm">💬</button>
                     {selectedSoru.durum === 'dizgi_bekliyor' && <button onClick={() => handleDurumGuncelle(selectedSoru.id, 'dizgide')} className="btn btn-primary btn-sm">Dizgiye Al</button>}
-                    {selectedSoru.durum === 'dizgide' && <button onClick={() => setShowCompleteModal(true)} className="btn btn-success btn-sm">✅ Tamamlandı</button>}
+                    {selectedSoru.durum === 'dizgide' && <button onClick={() => handleDurumGuncelle(selectedSoru.id, 'dizgi_tamam')} className="btn btn-success btn-sm">✔ Dizgiyi Bitir</button>}
                   </div>
                 </div>
 
@@ -270,7 +272,7 @@ export default function DizgiYonetimi() {
                 )}
 
                 {/* Dosya ekleme ve PNG alma alanı for completed */}
-                {selectedSoru.durum === 'tamamlandi' && (
+                {(selectedSoru.durum === 'tamamlandi' || selectedSoru.durum === 'dizgi_tamam') && (
                   <div className="mt-4 flex gap-3">
                     <button onClick={handleCapturePNG} className="btn bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200">
                       🖼️ Sorunun PNG'sini Al
