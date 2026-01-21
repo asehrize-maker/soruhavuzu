@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import { kullaniciMesajAPI, bildirimAPI, soruAPI } from '../services/api';
+import { kullaniciMesajAPI, bildirimAPI, soruAPI, authAPI } from '../services/api';
 
 export default function Layout() {
 
@@ -20,9 +20,21 @@ export default function Layout() {
 
   useEffect(() => {
     loadOkunmamisSayilar();
+    refreshUserData();
     const interval = setInterval(loadOkunmamisSayilar, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  const refreshUserData = async () => {
+    try {
+      const response = await authAPI.me();
+      if (response.data.success && response.data.user) {
+        useAuthStore.getState().updateUser(response.data.user);
+      }
+    } catch (error) {
+      console.error('Kullanıcı bilgileri güncellenemedi:', error);
+    }
+  };
 
   const loadOkunmamisSayilar = async () => {
     try {
