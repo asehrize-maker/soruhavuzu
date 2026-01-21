@@ -65,6 +65,34 @@ const uploadFields = multer({
   }
 });
 
+// DEBUG ROUTE
+router.get('/debug/visibility', async (req, res) => {
+  try {
+    const questions = await pool.query(`
+      SELECT s.id, s.durum, s.onay_alanci, s.onay_dilci, s.brans_id, b.brans_adi, k.ad_soyad as yazar
+      FROM sorular s
+      LEFT JOIN branslar b ON s.brans_id = b.id
+      LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
+      WHERE s.durum = 'inceleme_bekliyor'
+    `);
+
+    const reviewers = await pool.query(`
+        SELECT k.id, k.ad_soyad, k.rol, k.inceleme_alanci, k.inceleme_dilci, 
+               k.brans_id as ana_brans_id,
+               array_agg(kb.brans_id) as yetkili_branslar
+        FROM kullanicilar k
+        LEFT JOIN kullanici_branslari kb ON k.id = kb.kullanici_id
+        WHERE k.rol = 'incelemeci'
+        GROUP BY k.id
+    `);
+
+    res.json({
+      pending_questions: questions.rows,
+      reviewers: reviewers.rows
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Eski upload değişkenini koru (geriye uyumluluk için)
 const upload = uploadFotograf;
 
