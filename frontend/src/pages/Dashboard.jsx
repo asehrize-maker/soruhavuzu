@@ -673,7 +673,7 @@ export default function Dashboard() {
         return sum + (reviewMode === 'alanci' ? (Number(item.alanci_bekleyen) || 0) : (Number(item.dilci_bekleyen) || 0));
       }, 0);
       return { ekipAdi, totalPending, items };
-    }).filter(t => t.totalPending > 0);
+    }); // Filtre kaldırıldı: Boş ekipler de görünsün
 
     return (
       <div className="space-y-6 animate-fade-in">
@@ -721,25 +721,40 @@ export default function Dashboard() {
                 <UserGroupIcon className="w-5 h-5 text-gray-400" /> {selectedEkip} Branşları
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {groupedTeams[selectedEkip]?.filter(item => {
-                  const count = reviewMode === 'alanci' ? (Number(item.alanci_bekleyen) || 0) : (Number(item.dilci_bekleyen) || 0);
-                  return count > 0;
-                }).map(brans => {
-                  const count = reviewMode === 'alanci' ? (Number(brans.alanci_bekleyen) || 0) : (Number(brans.dilci_bekleyen) || 0);
-                  return (
-                    <button
-                      key={brans.brans_id}
-                      onClick={() => setSelectedBrans({ id: brans.brans_id, brans_adi: brans.brans_adi })}
-                      className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-xl hover:bg-blue-50 hover:shadow-md transition border border-gray-200 group"
-                    >
-                      <BookOpenIcon className={`w-8 h-8 mb-3 ${reviewMode === 'alanci' ? 'text-blue-500' : 'text-purple-500'}`} />
-                      <span className="font-medium text-gray-800 text-center">{brans.brans_adi}</span>
-                      <span className={`mt-2 ${reviewMode === 'alanci' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'} text-xs font-bold px-3 py-1 rounded-full`}>
-                        {count} Soru
-                      </span>
-                    </button>
-                  )
-                })}
+                {(() => {
+                  const branches = groupedTeams[selectedEkip]?.filter(item => {
+                    // Branş yoksa veya null ise gösterme
+                    if (!item.brans_id) return false;
+                    const count = reviewMode === 'alanci' ? (Number(item.alanci_bekleyen) || 0) : (Number(item.dilci_bekleyen) || 0);
+                    return count > 0;
+                  });
+
+                  if (!branches || branches.length === 0) {
+                    return (
+                      <div className="col-span-full p-8 text-center text-gray-400 border-2 border-dashed border-gray-200 rounded-xl">
+                        <BookOpenIcon className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                        <p>Bu ekipte henüz bu kategoride incelenecek soru bulunmuyor.</p>
+                      </div>
+                    );
+                  }
+
+                  return branches.map(brans => {
+                    const count = reviewMode === 'alanci' ? (Number(brans.alanci_bekleyen) || 0) : (Number(brans.dilci_bekleyen) || 0);
+                    return (
+                      <button
+                        key={brans.brans_id}
+                        onClick={() => setSelectedBrans({ id: brans.brans_id, brans_adi: brans.brans_adi })}
+                        className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-xl hover:bg-blue-50 hover:shadow-md transition border border-gray-200 group"
+                      >
+                        <BookOpenIcon className={`w-8 h-8 mb-3 ${reviewMode === 'alanci' ? 'text-blue-500' : 'text-purple-500'}`} />
+                        <span className="font-medium text-gray-800 text-center">{brans.brans_adi}</span>
+                        <span className={`mt-2 ${reviewMode === 'alanci' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'} text-xs font-bold px-3 py-1 rounded-full`}>
+                          {count} Soru
+                        </span>
+                      </button>
+                    )
+                  });
+                })()}
               </div>
             </div>
           ) : (

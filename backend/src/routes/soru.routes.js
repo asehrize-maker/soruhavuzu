@@ -1467,13 +1467,12 @@ router.get('/stats/inceleme-detayli', authenticate, async (req, res, next) => {
         e.ekip_adi, 
         b.id as brans_id, 
         b.brans_adi,
-        COUNT(*) FILTER(WHERE s.durum = 'inceleme_bekliyor' AND s.onay_alanci = false) as alanci_bekleyen,
-        COUNT(*) FILTER(WHERE s.durum = 'inceleme_bekliyor' AND s.onay_dilci = false) as dilci_bekleyen
-      FROM sorular s
-      JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
-      JOIN ekipler e ON k.ekip_id = e.id
+        COUNT(s.id) FILTER(WHERE s.durum = 'inceleme_bekliyor' AND s.onay_alanci = false) as alanci_bekleyen,
+        COUNT(s.id) FILTER(WHERE s.durum = 'inceleme_bekliyor' AND s.onay_dilci = false) as dilci_bekleyen
+      FROM ekipler e
+      LEFT JOIN kullanicilar k ON k.ekip_id = e.id
+      LEFT JOIN sorular s ON s.olusturan_kullanici_id = k.id AND s.durum = 'inceleme_bekliyor'
       LEFT JOIN branslar b ON s.brans_id = b.id
-      WHERE s.durum = 'inceleme_bekliyor'
       GROUP BY e.id, e.ekip_adi, b.id, b.brans_adi
       ORDER BY e.ekip_adi, b.brans_adi
     `;
