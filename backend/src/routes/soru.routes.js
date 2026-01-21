@@ -102,7 +102,7 @@ const upload = uploadFotograf;
 router.get('/', authenticate, async (req, res, next) => {
   try {
     console.log('GET /sorular Request:', req.query, 'User Role:', req.user?.rol);
-    const { durum, brans_id, ekip_id, olusturan_id } = req.query;
+    const { durum, brans_id, ekip_id, olusturan_id, scope } = req.query;
 
     let query = `
       SELECT s.*, 
@@ -121,17 +121,11 @@ router.get('/', authenticate, async (req, res, next) => {
     const params = [];
     let paramCount = 1;
 
-    // Rol bazlı filtreleme ve EKİP İZOLASYONU
-    if (req.user.rol !== 'admin') {
-      // Admin ve İncelemeci dışındaki herkes sadece kendi ekibinin sorularını görebilir
-      if (req.user.rol !== 'incelemeci') {
-        query += ` AND k.ekip_id = $${paramCount++}`;
-        params.push(req.user.ekip_id);
-      }
+    // Rol bazlı filtreleme ve İZOLASYON
+    if (req.user.rol !== 'admin' && req.user.rol !== 'incelemeci') {
 
-      if (req.user.rol === 'soru_yazici') {
-        // Branş izolasyonu: Soru yazarı, sadece kendi branşına veya yetkili olduğu branşlara ait soruları görebilir.
-        // Kendi yazdıklarını (her durumda) veya branşına ait tamamlanmış (havuzdaki) soruları görür.
+      if (scope === 'brans' || brans_id) {
+        // Branş Havuzu: Sadece yetkili olduğu branşlar (Tüm durumlar)
         query += ` AND s.brans_id IN (
           SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount}
           UNION 
@@ -139,23 +133,17 @@ router.get('/', authenticate, async (req, res, next) => {
         )`;
         params.push(req.user.id);
         paramCount++;
-
-        query += ` AND (s.olusturan_kullanici_id = $${paramCount++} OR s.durum = 'tamamlandi')`;
-        params.push(req.user.id);
-      } else if (req.user.rol === 'dizgici') {
-        // Dizgici: Yetkili olduğu branşlar
-        query += ` AND (
-          s.brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount})
-          OR s.brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $${paramCount})
-          OR s.durum = 'tamamlandi'
-        )`;
+      } else {
+        // Ortak Havuz (Varsayılan): Tüm tamamlanmış sorular VEYA kendi yazdıkları
+        query += ` AND (s.durum = 'tamamlandi' OR s.olusturan_kullanici_id = $${paramCount})`;
         params.push(req.user.id);
         paramCount++;
-      } else if (req.user.rol === 'incelemeci') {
-        // İncelemeciler tüm branşların sorularını görebilir.
-      } else {
-        // Diğer rollere (ör. misafir) soru havuzu gösterilmesin
-        return res.json({ success: true, count: 0, data: [] });
+      }
+
+      // Ayrıca ekip izolasyonu (isteğe bağlı, branş zaten daraltıyor ama ekleyelim)
+      if (req.user.ekip_id) {
+        query += ` AND k.ekip_id = $${paramCount++}`;
+        params.push(req.user.ekip_id);
       }
     }
 

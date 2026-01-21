@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { soruAPI, bransAPI } from '../services/api';
 
-export default function Sorular() {
+export default function Sorular({ scope }) {
   const { user: authUser, viewRole } = useAuthStore();
   const effectiveRole = viewRole || authUser?.rol;
   const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
@@ -16,7 +16,7 @@ export default function Sorular() {
   const [loading, setLoading] = useState(true);
   const [branslar, setBranslar] = useState([]);
   const [filters, setFilters] = useState({
-    durum: (user?.rol === 'admin' && !isTakipModu) ? '' : (isTakipModu ? '' : 'tamamlandi'),
+    durum: (user?.rol === 'admin' && !isTakipModu) ? '' : (isTakipModu ? '' : (scope === 'brans' ? '' : 'tamamlandi')),
     brans_id: '',
   });
 
@@ -24,9 +24,9 @@ export default function Sorular() {
   useEffect(() => {
     setFilters(prev => ({
       ...prev,
-      durum: isTakipModu ? '' : 'tamamlandi'
+      durum: isTakipModu ? '' : (scope === 'brans' ? '' : 'tamamlandi')
     }));
-  }, [isTakipModu]);
+  }, [isTakipModu, scope]);
 
   const [selectedQuestions, setSelectedQuestions] = useState([]);
 
@@ -55,6 +55,7 @@ export default function Sorular() {
         const params = {
           durum: filters.durum || undefined,
           brans_id: filters.brans_id || undefined,
+          scope: scope || undefined
         };
         const response = await soruAPI.getAll(params);
         let data = response.data.data || [];
@@ -62,7 +63,7 @@ export default function Sorular() {
         // Frontend tarafında da rol kısıtlamasını simüle et (Admin viewRole kullanıyorsa)
         if (effectiveRole === 'dizgici') {
           data = data.filter(s => ['dizgi_bekliyor', 'dizgide'].includes(s.durum));
-        } else if (effectiveRole === 'soru_yazici') {
+        } else if (effectiveRole === 'soru_yazici' && scope !== 'brans') {
           data = data.filter(s => s.olusturan_kullanici_id === user.id || s.durum === 'tamamlandi');
         }
 
@@ -76,7 +77,7 @@ export default function Sorular() {
     };
 
     loadSorular();
-  }, [user?.id, effectiveRole, filters.durum, filters.brans_id]);
+  }, [user?.id, effectiveRole, filters.durum, filters.brans_id, scope]);
 
   const handleSil = async (id) => {
     if (window.confirm('Bu soruyu kalıcı olarak silmek istediğinize emin misiniz?')) {
@@ -96,6 +97,7 @@ export default function Sorular() {
       const response = await soruAPI.getAll({
         durum: filters.durum || undefined,
         brans_id: filters.brans_id || undefined,
+        scope: scope || undefined
       });
       setSorular(response.data.data || []);
     } catch (error) {
@@ -284,7 +286,7 @@ export default function Sorular() {
             </button>
           )}
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            {isTakipModu ? 'Bekleyen İş Takibi' : (effectiveRole === 'soru_yazici' ? 'Branş Soru Havuzu' : 'Ortak Soru Havuzu')}
+            {isTakipModu ? 'Bekleyen İş Takibi' : (scope === 'brans' ? 'Branş Havuzu' : 'Ortak Soru Havuzu')}
             {user?.rol === 'admin' && filters.brans_id && (
               <span className="text-gray-400 font-light ml-3 text-2xl flex items-center">
                 <span className="mx-2">/</span>
