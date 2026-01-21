@@ -87,6 +87,12 @@ const startServer = async () => {
     if (fixReviewsRes.rowCount > 0) {
       console.log(`✅ FIX APPLIED: ${fixReviewsRes.rowCount} inceleme bekleyen sorunun onayı sıfırlandı.`);
     }
+
+    // FIX: 'beklemede' kalan eski soruları incelemeye gönder
+    const fixBeklemedeRes = await pool.query("UPDATE sorular SET durum = 'inceleme_bekliyor' WHERE durum = 'beklemede'");
+    if (fixBeklemedeRes.rowCount > 0) {
+      console.log(`✅ FIX APPLIED: ${fixBeklemedeRes.rowCount} 'beklemede' olan soru 'inceleme_bekliyor' statüsüne çekildi.`);
+    }
   } catch (error) {
     console.error('❌ Veritabanı bağlantı hatası:', error);
     console.log('⚠️ Sunucu veritabanı olmadan çalışmaya devam ediyor...');
