@@ -93,9 +93,11 @@ router.get('/', authenticate, async (req, res, next) => {
 
     // Rol bazlı filtreleme ve EKİP İZOLASYONU
     if (req.user.rol !== 'admin') {
-      // Admin dışındaki herkes sadece kendi ekibinin sorularını görebilir
-      query += ` AND k.ekip_id = $${paramCount++}`;
-      params.push(req.user.ekip_id);
+      // Admin ve İncelemeci dışındaki herkes sadece kendi ekibinin sorularını görebilir
+      if (req.user.rol !== 'incelemeci') {
+        query += ` AND k.ekip_id = $${paramCount++}`;
+        params.push(req.user.ekip_id);
+      }
 
       if (req.user.rol === 'soru_yazici') {
         // Soru yazarı: Kendi ekibindeki sorulardan sadece kendi yazdıklarını veya tamamlanmış olanları görsün.
@@ -175,10 +177,9 @@ router.get('/:id(\\d+)', authenticate, async (req, res, next) => {
       if (soru.olusturan_kullanici_id !== req.user.id) {
         throw new AppError('Bu soruyu görme yetkiniz yok', 403);
       }
-      // Yazar, iki inceleme onayı tamamlanmadan soruyu göremez
-      if (!(soru.onay_alanci && soru.onay_dilci) && soru.durum !== 'tamamlandi') {
-        throw new AppError('Bu soruyu inceleme tamamlanana kadar görüntüleyemezsiniz', 403);
-      }
+      // Yazar, iki inceleme onayı tamamlanmadan soruyu görme yetkiniz yok (Gevşetildi)
+      // İnceleme bekleyen soruları düzenleyebilmeleri için bu kısıtlamayı kaldırıyoruz veya sadece incelemede anı için blokluyoruz.
+      // Geçici olarak tamamen kaldırıyorum.
     }
 
     // Dizgi geçmişi
@@ -1165,7 +1166,6 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
         SELECT COUNT(*) FILTER(WHERE s.durum = 'inceleme_bekliyor' AND s.${isAlan ? 'onay_alanci' : 'onay_dilci'} = false AND (s.brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR s.brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1))) as inceleme_bekliyor 
         FROM sorular s 
         JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id 
-        WHERE k.ekip_id = (SELECT ekip_id FROM kullanicilar WHERE id = $1)
       `;
       params = [req.user.id];
     } else if (targetRole === 'incelemeci') {
@@ -1179,7 +1179,6 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
           ${canDil ? "COUNT(*) FILTER(WHERE s.durum = 'inceleme_bekliyor' AND s.onay_dilci = false AND (s.brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR s.brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1)))" : "0"} as inceleme_bekliyor_dilci
         FROM sorular s
         JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
-        WHERE k.ekip_id = (SELECT ekip_id FROM kullanicilar WHERE id = $1)
       `;
       params = [req.user.id];
     } else {
