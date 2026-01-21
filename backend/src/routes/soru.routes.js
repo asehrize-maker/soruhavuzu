@@ -91,35 +91,29 @@ router.get('/', authenticate, async (req, res, next) => {
     const params = [];
     let paramCount = 1;
 
-    // Rol bazlı filtreleme
-    if (req.user.rol === 'admin') {
-      // Admin her şeyi görebilir, filtre ekleme
-    } else if (req.user.rol === 'soru_yazici') {
-      // Soru yazarı: Kendi sorularını TÜM durumlarda görebilir.
-      // Ayrıca tamamlanmış tüm soruları (ortak havuz) görebilir.
-      query += ` AND (s.olusturan_kullanici_id = $${paramCount++} OR s.durum = 'tamamlandi')`;
-      params.push(req.user.id);
-    } else if (req.user.rol === 'dizgici') {
-      // Dizgici: Sadece çalıştığı branşların sorularını ve tamamlanmış soruları görsün.
-      query += ` AND (
-        b.id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount++})
-        OR b.id = (SELECT brans_id FROM kullanicilar WHERE id = $${paramCount})
-        OR s.durum = 'tamamlandi'
-      )`;
-      params.push(req.user.id, req.user.id);
-      paramCount++; // used twice but param index incremented correctly now
-    } else if (req.user.rol === 'incelemeci') {
-      // İncelemeciler: Yetkili oldukları branşlar ve tamamlanmışlar
-      query += ` AND (
-        b.id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount++})
-        OR b.id = (SELECT brans_id FROM kullanicilar WHERE id = $${paramCount})
-        OR s.durum = 'tamamlandi'
-      )`;
-      params.push(req.user.id, req.user.id);
-      paramCount++;
-    } else {
-      // Diğer rollere (ör. misafir) soru havuzu gösterilmesin
-      return res.json({ success: true, count: 0, data: [] });
+    // Rol bazlı filtreleme ve EKİP İZOLASYONU
+    if (req.user.rol !== 'admin') {
+      // Admin dışındaki herkes sadece kendi ekibinin sorularını görebilir
+      query += ` AND k.ekip_id = $${paramCount++}`;
+      params.push(req.user.ekip_id);
+
+      if (req.user.rol === 'soru_yazici') {
+        // Soru yazarı: Kendi ekibindeki sorulardan sadece kendi yazdıklarını veya tamamlanmış olanları görsün.
+        query += ` AND (s.olusturan_kullanici_id = $${paramCount++} OR s.durum = 'tamamlandi')`;
+        params.push(req.user.id);
+      } else if (req.user.rol === 'dizgici' || req.user.rol === 'incelemeci') {
+        // Dizgici/İncelemeci: Kendi ekibindeki sorulardan sadece yetkili olduğu branşları görsün.
+        query += ` AND (
+          b.id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount++})
+          OR b.id = (SELECT brans_id FROM kullanicilar WHERE id = $${paramCount})
+          OR s.durum = 'tamamlandi'
+        )`;
+        params.push(req.user.id, req.user.id);
+        paramCount++;
+      } else {
+        // Diğer rollere (ör. misafir) soru havuzu gösterilmesin
+        return res.json({ success: true, count: 0, data: [] });
+      }
     }
 
     if (durum) {
@@ -130,11 +124,6 @@ router.get('/', authenticate, async (req, res, next) => {
     if (brans_id) {
       query += ` AND s.brans_id = $${paramCount++}`;
       params.push(brans_id);
-    }
-
-    if (ekip_id) {
-      query += ` AND b.ekip_id = $${paramCount++}`;
-      params.push(ekip_id);
     }
 
     if (olusturan_id) {
