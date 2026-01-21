@@ -284,7 +284,7 @@ export default function Sorular() {
             </button>
           )}
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            {isTakipModu ? 'Bekleyen İş Takibi' : 'Ortak Soru Havuzu'}
+            {isTakipModu ? 'Bekleyen İş Takibi' : (effectiveRole === 'soru_yazici' ? 'Branş Soru Havuzu' : 'Ortak Soru Havuzu')}
             {user?.rol === 'admin' && filters.brans_id && (
               <span className="text-gray-400 font-light ml-3 text-2xl flex items-center">
                 <span className="mx-2">/</span>
