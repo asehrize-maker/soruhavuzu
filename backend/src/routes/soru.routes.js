@@ -1124,6 +1124,7 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
           COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor') as inceleme_bekliyor,
           COUNT(*) FILTER(WHERE durum = 'dizgi_bekliyor') as dizgi_bekliyor,
           COUNT(*) FILTER(WHERE durum = 'dizgide') as dizgide,
+          COUNT(*) FILTER(WHERE durum = 'dizgi_tamam' OR durum = 'inceleme_tamam') as dizgi_tamam,
           COUNT(*) FILTER(WHERE durum = 'tamamlandi') as tamamlandi,
           COUNT(*) FILTER(WHERE durum = 'revize_gerekli' OR durum = 'revize_istendi') as revize_gerekli
         FROM sorular s

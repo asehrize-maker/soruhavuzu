@@ -328,13 +328,14 @@ export default function Dashboard() {
               <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest group-hover:text-amber-500">TASLAKLAR</p>
               <h3 className="text-3xl font-black text-gray-800 mt-1">{stats?.beklemede || 0}</h3>
             </Link>
-            <Link to="/brans-havuzu?durum=inceleme_bekliyor" className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition text-center group">
-              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest group-hover:text-blue-500">İNCELENECEK</p>
-              <h3 className="text-3xl font-black text-gray-800 mt-1">{stats?.inceleme_bekliyor || 0}</h3>
+            <Link to="/brans-havuzu" className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition text-center group">
+              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest group-hover:text-blue-500">İŞLEMDE OLAN</p>
+              <h3 className="text-3xl font-black text-gray-800 mt-1">{(Number(stats?.dizgi_bekliyor) || 0) + (Number(stats?.dizgide) || 0) + (Number(stats?.inceleme_bekliyor) || 0)}</h3>
             </Link>
-            <Link to="/brans-havuzu?durum=revize_istendi" className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition text-center group">
-              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest group-hover:text-red-500">DÜZELTME BEKLEYEN</p>
-              <h3 className="text-3xl font-black text-gray-800 mt-1">{stats?.revize_gerekli || 0}</h3>
+            <Link to="/brans-havuzu?tab=dizgi_sonrasi" className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100 shadow-sm hover:shadow-md transition text-center group">
+              <p className="text-emerald-600 text-[10px] font-bold uppercase tracking-widest">DİZGİ SONRASI</p>
+              <h3 className="text-3xl font-black text-emerald-700 mt-1">{stats?.dizgi_tamam || 0}</h3>
+              <p className="text-[10px] text-emerald-500 mt-1 font-bold">Onay Bekleyenler &rarr;</p>
             </Link>
             <Link to="/brans-havuzu?durum=tamamlandi" className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition text-center group">
               <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest group-hover:text-green-500">TAMAMLANAN</p>

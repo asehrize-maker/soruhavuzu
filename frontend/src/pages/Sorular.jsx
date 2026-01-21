@@ -30,7 +30,7 @@ export default function Sorular({ scope }) {
   }, [isTakipModu, scope, urlDurum]);
 
   const [selectedQuestions, setSelectedQuestions] = useState([]);
-  const [activeTab, setActiveTab] = useState('taslaklar'); // 'taslaklar' or 'dizgi_sonrasi'
+  const [activeTab, setActiveTab] = useState(queryParams.get('tab') || 'taslaklar'); // 'taslaklar' or 'dizgi_sonrasi'
 
   useEffect(() => {
     if (!user) return;
