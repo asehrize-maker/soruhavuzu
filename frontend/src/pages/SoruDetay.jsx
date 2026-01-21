@@ -451,13 +451,13 @@ export default function SoruDetay() {
   };
 
   const handleSendToDizgi = async () => {
-    if (!confirm('Soruyu inceledim/düzelttim. Dizgi birimine GÖNDERMEK istediğinizden emin misiniz?')) return;
+    if (!confirm('Soru hazır. Dizgi birimine GÖNDERMEK istediğinizden emin misiniz?')) return;
     try {
       await soruAPI.updateDurum(id, {
         yeni_durum: 'dizgi_bekliyor',
-        aciklama: 'Branş onayı verildi, dizgi ve havuz aşamasına hazır.'
+        aciklama: 'Hoca onayıyla dizgiye gönderildi.'
       });
-      alert('Soru başarıyla Dizgi ve Havuza gönderildi.');
+      alert('✅ Soru başarıyla dizgiye gönderildi.');
       navigate('/');
     } catch (e) {
       alert('Hata: ' + (e.response?.data?.error || e.message));
