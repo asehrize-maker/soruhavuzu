@@ -276,14 +276,33 @@ export default function DizgiYonetimi() {
                       🖼️ Sorunun PNG'sini Al
                     </button>
 
-                    <label className="btn btn-outline">
-                      Dosya Ekle (PNG/PDF)
+                    <label className="px-6 py-2 bg-purple-600 text-white rounded-xl font-bold text-sm hover:bg-purple-700 transition shadow-md flex items-center gap-2 cursor-pointer border-b-4 border-purple-800 active:border-b-0 active:translate-y-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                      </svg>
+                      📤 DOSYA EKLE (PNG/PDF)
                       <input type="file" className="hidden" accept="image/*,application/pdf" onChange={async (e) => {
                         const file = e.target.files[0];
                         if (!file) return;
+
+                        if (!confirm("Seçilen dosya yüklenecek ve soru güncellenecek. Emin misiniz?")) {
+                          e.target.value = null; // Reset input
+                          return;
+                        }
+
                         const fd = new FormData();
-                        if (file.type.startsWith('image/')) fd.append('fotograf', file);
-                        else fd.append('dosya', file);
+                        // DizgiTamamlaWithFile hem fotoğraf hem dosya (PDF) kabul eder.
+                        // Backend tarafında kontrol edilir ama isimlendirme önemlidir.
+                        // SoruRoutes.js incelendiğinde 'fotograf' veya 'dosya' field'ları kullanılıyor olabilir.
+                        // DizgiYonetimi.jsx bağlamında upload edilen dosyayı doğru field'a atayalım.
+                        // Mevcut kodda: if (file.type.startsWith('image/')) fd.append('fotograf', file); else fd.append('dosya', file);
+
+                        if (file.type.startsWith('image/')) {
+                          fd.append('fotograf', file);
+                        } else {
+                          fd.append('dosya', file);
+                        }
+
                         try {
                           await soruAPI.dizgiTamamlaWithFile(selectedSoru.id, fd);
                           alert('Dosya yüklendi ve havuza aktarıldı');
