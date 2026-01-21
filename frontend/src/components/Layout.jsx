@@ -27,7 +27,7 @@ export default function Layout() {
 
   const refreshUserData = async () => {
     try {
-      const response = await authAPI.me();
+      const response = await authAPI.getMe();
       if (response.data.success && response.data.user) {
         useAuthStore.getState().updateUser(response.data.user);
       }

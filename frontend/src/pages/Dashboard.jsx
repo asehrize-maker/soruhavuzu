@@ -689,22 +689,30 @@ export default function Dashboard() {
           <div className="mt-6">
             <h4 className="text-sm font-semibold text-gray-700 mb-3">{reviewMode === 'alanci' ? 'Alan İnceleme Branşları' : 'Dil İnceleme Branşları'}</h4>
             <div className="flex flex-wrap gap-3">
-              {branslar.map(brans => {
-                const countObj = incelemeBransCounts.find(b => Number(b.id) === Number(brans.id));
-                const count = reviewMode === 'alanci' ? (countObj?.alanci || 0) : (countObj?.dilci || 0);
+              {incelemeBransCounts
+                .filter(b => {
+                  const count = reviewMode === 'alanci' ? (b.alanci || 0) : (b.dilci || 0);
+                  return count > 0;
+                })
+                .map(brans => {
+                  const count = reviewMode === 'alanci' ? (brans.alanci || 0) : (brans.dilci || 0);
 
-                // Show if user has overall access or specifically to this branch (already handled by 'branslar' being what's available)
-                return (
-                  <button
-                    key={`${reviewMode}-${brans.id}`}
-                    onClick={() => setSelectedBrans(brans)}
-                    className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.id ? (reviewMode === 'alanci' ? 'bg-blue-600 text-white shadow-md' : 'bg-purple-600 text-white shadow-md') : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                  >
-                    <span>{brans.brans_adi}</span>
-                    {count > 0 && <span className={`${reviewMode === 'alanci' ? 'bg-blue-600 border border-blue-400' : 'bg-purple-600 border border-purple-400'} text-white text-xs font-bold px-2 py-0.5 rounded-full`}>{count}</span>}
-                  </button>
-                );
-              })}
+                  return (
+                    <button
+                      key={`${reviewMode}-${brans.id}`}
+                      onClick={() => setSelectedBrans(brans)}
+                      className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.id ? (reviewMode === 'alanci' ? 'bg-blue-600 text-white shadow-md' : 'bg-purple-600 text-white shadow-md') : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                    >
+                      <span>{brans.brans_adi}</span>
+                      <span className={`${reviewMode === 'alanci' ? 'bg-blue-600 border border-blue-400' : 'bg-purple-600 border border-purple-400'} text-white text-xs font-bold px-2 py-0.5 rounded-full`}>{count}</span>
+                    </button>
+                  );
+                })}
+              {incelemeBransCounts.filter(b => (reviewMode === 'alanci' ? b.alanci : b.dilci) > 0).length === 0 && (
+                <div className="w-full p-4 bg-gray-50 rounded-lg text-center text-gray-500 italic">
+                  Şu an incelenmesi gereken soru bulunmuyor.
+                </div>
+              )}
             </div>
           </div>
         </div>
