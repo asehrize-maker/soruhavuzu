@@ -214,26 +214,26 @@ export default function Dashboard() {
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">📊 İş Yükü Özeti</h2>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-              <p className="text-xs font-bold text-gray-400">TASLAK</p>
+            <Link to="/sorular?durum=beklemede" className="p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-300 transition group">
+              <p className="text-xs font-bold text-gray-400 group-hover:text-blue-500 transition">TASLAK</p>
               <p className="text-2xl font-black text-gray-700">{detayliStats?.genel?.beklemede || 0}</p>
-            </div>
-            <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-200">
+            </Link>
+            <Link to="/sorular?durum=inceleme_bekliyor" className="p-4 bg-yellow-50 rounded-xl border border-yellow-200 hover:border-yellow-400 transition group">
               <p className="text-xs font-bold text-yellow-600">İNCELEME</p>
               <p className="text-2xl font-black text-yellow-700">{(parseInt(detayliStats?.genel?.inceleme_bekliyor) || 0) + (parseInt(detayliStats?.genel?.incelemede) || 0)}</p>
-            </div>
-            <div className="p-4 bg-red-50 rounded-xl border border-red-200">
+            </Link>
+            <Link to="/sorular?durum=revize_istendi" className="p-4 bg-red-50 rounded-xl border border-red-200 hover:border-red-400 transition group">
               <p className="text-xs font-bold text-red-600">REVİZE</p>
               <p className="text-2xl font-black text-red-700">{detayliStats?.genel?.revize_istendi || 0}</p>
-            </div>
-            <div className="p-4 bg-orange-50 rounded-xl border border-orange-200">
+            </Link>
+            <Link to="/sorular?durum=dizgi_bekliyor" className="p-4 bg-orange-50 rounded-xl border border-orange-200 hover:border-orange-400 transition group">
               <p className="text-xs font-bold text-orange-600">DİZGİ</p>
               <p className="text-2xl font-black text-orange-700">{(parseInt(detayliStats?.genel?.dizgi_bekliyor) || 0) + (parseInt(detayliStats?.genel?.dizgide) || 0) + (parseInt(detayliStats?.genel?.inceleme_tamam) || 0)}</p>
-            </div>
-            <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+            </Link>
+            <Link to="/sorular?durum=tamamlandi" className="p-4 bg-green-50 rounded-xl border border-green-200 hover:border-green-400 transition group">
               <p className="text-xs font-bold text-green-600">TAMAM</p>
               <p className="text-2xl font-black text-green-700">{detayliStats?.genel?.tamamlandi || 0}</p>
-            </div>
+            </Link>
           </div>
         </div>
       </div>

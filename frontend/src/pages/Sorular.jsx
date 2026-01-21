@@ -11,12 +11,13 @@ export default function Sorular({ scope }) {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const isTakipModu = queryParams.get('takip') === '1';
+  const urlDurum = queryParams.get('durum');
 
   const [sorular, setSorular] = useState([]);
   const [loading, setLoading] = useState(true);
   const [branslar, setBranslar] = useState([]);
   const [filters, setFilters] = useState({
-    durum: (user?.rol === 'admin' && !isTakipModu) ? '' : (isTakipModu ? '' : (scope === 'brans' ? '' : 'tamamlandi')),
+    durum: urlDurum || ((user?.rol === 'admin' && !isTakipModu) ? '' : (isTakipModu ? '' : (scope === 'brans' ? '' : 'tamamlandi'))),
     brans_id: '',
   });
 
@@ -24,9 +25,9 @@ export default function Sorular({ scope }) {
   useEffect(() => {
     setFilters(prev => ({
       ...prev,
-      durum: isTakipModu ? '' : (scope === 'brans' ? '' : 'tamamlandi')
+      durum: urlDurum || (isTakipModu ? '' : (scope === 'brans' ? '' : 'tamamlandi'))
     }));
-  }, [isTakipModu, scope]);
+  }, [isTakipModu, scope, urlDurum]);
 
   const [selectedQuestions, setSelectedQuestions] = useState([]);
 
@@ -61,9 +62,10 @@ export default function Sorular({ scope }) {
         let data = response.data.data || [];
 
         // Frontend tarafında da rol kısıtlamasını simüle et (Admin viewRole kullanıyorsa)
-        if (effectiveRole === 'dizgici') {
+        // Admin her zaman her şeyi görmeli (Simülasyonda bile kafa karışıklığını önlemek için)
+        if (effectiveRole === 'dizgici' && authUser?.rol !== 'admin') {
           data = data.filter(s => ['dizgi_bekliyor', 'dizgide'].includes(s.durum));
-        } else if (effectiveRole === 'soru_yazici' && scope !== 'brans') {
+        } else if (effectiveRole === 'soru_yazici' && scope !== 'brans' && authUser?.rol !== 'admin') {
           data = data.filter(s => s.olusturan_kullanici_id === user.id || s.durum === 'tamamlandi');
         }
 
