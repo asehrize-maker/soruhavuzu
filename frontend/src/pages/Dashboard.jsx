@@ -151,6 +151,7 @@ export default function Dashboard() {
   const [ekipler, setEkipler] = useState([]);
   const [incelemeBransCounts, setIncelemeBransCounts] = useState([]);
   const [selectedBrans, setSelectedBrans] = useState(null);
+  const [selectedEkip, setSelectedEkip] = useState(null);
   const [selectedStat, setSelectedStat] = useState(null);
   const [showBransDetay, setShowBransDetay] = useState(false);
   const [reviewMode, setReviewMode] = useState(() => {
@@ -655,79 +656,126 @@ export default function Dashboard() {
     }
 
     // Mode parametresi varsa (Alan İnceleme veya Dil İnceleme), branş seçim ekranını göster
+    // Veriyi ekiplere göre grupla (Helper function inside component or useMemo)
+    const groupedTeams = incelemeBransCounts.reduce((acc, item) => {
+      if (!acc[item.ekip_adi]) acc[item.ekip_adi] = [];
+      acc[item.ekip_adi].push(item);
+      return acc;
+    }, {});
+
+    const teamAggregates = Object.entries(groupedTeams).map(([ekipAdi, items]) => {
+      const totalPending = items.reduce((sum, item) => {
+        return sum + (reviewMode === 'alanci' ? (Number(item.alanci_bekleyen) || 0) : (Number(item.dilci_bekleyen) || 0));
+      }, 0);
+      return { ekipAdi, totalPending, items };
+    }).filter(t => t.totalPending > 0);
+
     return (
       <div className="space-y-6 animate-fade-in">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            {reviewMode === 'alanci' ? 'Alan İnceleme Paneli' : 'Dil İnceleme Paneli'}
-          </h1>
-          <p className="text-gray-500">Lütfen incelemek istediğiniz branşı seçiniz.</p>
-
-          <div className="mt-6">
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">{reviewMode === 'alanci' ? 'Alan İnceleme Branşları' : 'Dil İnceleme Branşları'}</h4>
-            <div className="space-y-6">
-              {(() => {
-                // Veriyi ekiplere göre grupla
-                const groupedTeams = incelemeBransCounts.reduce((acc, item) => {
-                  if (!acc[item.ekip_adi]) acc[item.ekip_adi] = [];
-                  acc[item.ekip_adi].push(item);
-                  return acc;
-                }, {});
-
-                const renderedTeams = Object.entries(groupedTeams).map(([ekipAdi, items]) => {
-                  const visibleItems = items.filter(item => {
-                    const count = reviewMode === 'alanci' ? (Number(item.alanci_bekleyen) || 0) : (Number(item.dilci_bekleyen) || 0);
-                    return count > 0;
-                  });
-
-                  if (visibleItems.length === 0) return null;
-
-                  return (
-                    <div key={ekipAdi} className="p-5 border border-gray-200 rounded-xl bg-gray-50/50 hover:bg-gray-50 transition">
-                      <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 border-b border-gray-200 pb-2">
-                        <UserGroupIcon className="w-5 h-5 text-blue-600" />
-                        {ekipAdi}
-                      </h3>
-                      <div className="flex flex-wrap gap-3">
-                        {visibleItems.map(brans => {
-                          const count = reviewMode === 'alanci' ? (Number(brans.alanci_bekleyen) || 0) : (Number(brans.dilci_bekleyen) || 0);
-                          return (
-                            <button
-                              key={`${reviewMode}-${brans.brans_id}`}
-                              onClick={() => setSelectedBrans({ id: brans.brans_id, brans_adi: brans.brans_adi })}
-                              className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${selectedBrans?.id === brans.brans_id ? (reviewMode === 'alanci' ? 'bg-blue-600 text-white shadow-md' : 'bg-purple-600 text-white shadow-md') : 'bg-white border border-gray-200 text-gray-700 hover:border-blue-300 hover:shadow-sm'}`}
-                            >
-                              <span>{brans.brans_adi}</span>
-                              <span className={`${reviewMode === 'alanci' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'} text-xs font-bold px-2 py-0.5 rounded-full`}>{count}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                });
-
-                if (renderedTeams.every(t => t === null)) {
-                  return (
-                    <div className="w-full p-8 bg-gray-50 rounded-xl text-center text-gray-500 border border-dashed border-gray-300">
-                      <p className="italic">Şu an incelemesi beklenen soru bulunmuyor.</p>
-                    </div>
-                  );
-                }
-                return renderedTeams;
-              })()}
-            </div>
+        {/* HEADER & CRUMBS */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">
+              {reviewMode === 'alanci' ? 'Alan İnceleme Paneli' : 'Dil İnceleme Paneli'}
+            </h1>
+            <nav className="flex items-center text-sm text-gray-500 gap-2">
+              <span className={!selectedEkip ? "font-bold text-blue-600" : "hover:text-blue-600 cursor-pointer"} onClick={() => { setSelectedEkip(null); setSelectedBrans(null); }}>Ekipler</span>
+              {selectedEkip && (
+                <>
+                  <span>/</span>
+                  <span className={!selectedBrans ? "font-bold text-blue-600" : "hover:text-blue-600 cursor-pointer"} onClick={() => setSelectedBrans(null)}>{selectedEkip}</span>
+                </>
+              )}
+              {selectedBrans && (
+                <>
+                  <span>/</span>
+                  <span className="font-bold text-blue-600">{selectedBrans.brans_adi}</span>
+                </>
+              )}
+            </nav>
+          </div>
+          <div className="text-right">
+            {selectedBrans && (
+              <button onClick={() => setSelectedBrans(null)} className="text-sm text-gray-500 hover:text-gray-700 underline">Branşlara Dön</button>
+            )}
+            {!selectedBrans && selectedEkip && (
+              <button onClick={() => setSelectedEkip(null)} className="text-sm text-gray-500 hover:text-gray-700 underline">Tüm Ekiplere Dön</button>
+            )}
           </div>
         </div>
 
-        {selectedBrans ? (
-          <IncelemeListesi bransId={selectedBrans.id} bransAdi={selectedBrans.brans_adi} reviewMode={reviewMode} />
-        ) : (
-          <div className="flex flex-col items-center justify-center p-12 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400">
-            <BookOpenIcon className="w-16 h-16 mb-4 opacity-50" />
-            <p className="text-lg">Soruları görüntülemek için yukarıdan bir branş seçiniz.</p>
-          </div>
-        )}
+        {/* CONTENT AREA */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 min-h-[400px]">
+          {/* LEVEL 3: QUESTION LIST */}
+          {selectedBrans ? (
+            <IncelemeListesi bransId={selectedBrans.id} bransAdi={selectedBrans.brans_adi} reviewMode={reviewMode} />
+          ) : selectedEkip ? (
+            /* LEVEL 2: BRANCH LIST FOR TEAM */
+            <div>
+              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <UserGroupIcon className="w-5 h-5 text-gray-400" /> {selectedEkip} Branşları
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {groupedTeams[selectedEkip]?.filter(item => {
+                  const count = reviewMode === 'alanci' ? (Number(item.alanci_bekleyen) || 0) : (Number(item.dilci_bekleyen) || 0);
+                  return count > 0;
+                }).map(brans => {
+                  const count = reviewMode === 'alanci' ? (Number(brans.alanci_bekleyen) || 0) : (Number(brans.dilci_bekleyen) || 0);
+                  return (
+                    <button
+                      key={brans.brans_id}
+                      onClick={() => setSelectedBrans({ id: brans.brans_id, brans_adi: brans.brans_adi })}
+                      className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-xl hover:bg-blue-50 hover:shadow-md transition border border-gray-200 group"
+                    >
+                      <BookOpenIcon className={`w-8 h-8 mb-3 ${reviewMode === 'alanci' ? 'text-blue-500' : 'text-purple-500'}`} />
+                      <span className="font-medium text-gray-800 text-center">{brans.brans_adi}</span>
+                      <span className={`mt-2 ${reviewMode === 'alanci' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'} text-xs font-bold px-3 py-1 rounded-full`}>
+                        {count} Soru
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ) : (
+            /* LEVEL 1: TEAM LIST */
+            <div>
+              <h2 className="text-lg font-bold text-gray-800 mb-4">İnceleme Bekleyen Ekipler</h2>
+              {teamAggregates.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <CheckCircleIcon className="w-16 h-16 mx-auto mb-3 opacity-20" />
+                  <p>Harika! Şu an incelenmesi gereken hiç soru yok.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {teamAggregates.map(agg => (
+                    <button
+                      key={agg.ekipAdi}
+                      onClick={() => setSelectedEkip(agg.ekipAdi)}
+                      className="flex items-center justify-between p-6 bg-white border border-gray-200 rounded-xl hover:shadow-lg hover:border-blue-300 transition group text-left"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`p-3 rounded-full ${reviewMode === 'alanci' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'} group-hover:scale-110 transition`}>
+                          <UserGroupIcon className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-gray-800 text-lg group-hover:text-blue-700 transition">{agg.ekipAdi}</h3>
+                          <p className="text-xs text-gray-500 font-medium">{agg.items.length} farklı branşta</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className={`block text-2xl font-black ${reviewMode === 'alanci' ? 'text-blue-600' : 'text-purple-600'}`}>
+                          {agg.totalPending}
+                        </span>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">SORU</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
