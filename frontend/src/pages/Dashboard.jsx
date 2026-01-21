@@ -430,15 +430,17 @@ export default function Dashboard() {
 
           {/* Genel İstatistikler */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div onClick={() => setShowBransDetay(true)}
-              className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-blue-400 p-6 text-white shadow-lg shadow-blue-200 transition-all hover:scale-105 hover:shadow-xl group cursor-pointer">
+            <div
+              className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-blue-400 p-6 text-white shadow-lg shadow-blue-200 transition-all hover:scale-105 hover:shadow-xl group">
               <div className="relative z-10 flex justify-between items-start">
                 <div>
-                  <p className="text-blue-100 text-xs font-bold uppercase tracking-widest">TOPLAM BRANŞ</p>
-                  <h3 className="text-4xl font-extrabold mt-2">{branslar.length || 0}</h3>
+                  <p className="text-blue-100 text-xs font-bold uppercase tracking-widest">BEKLEYEN EKİP</p>
+                  <h3 className="text-4xl font-extrabold mt-2">
+                    {new Set(incelemeBransCounts.map(b => b.ekip_id)).size || 0}
+                  </h3>
                 </div>
                 <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm group-hover:bg-white/30 transition">
-                  <BookOpenIcon className="w-6 h-6 text-white" />
+                  <UserGroupIcon className="w-6 h-6 text-white" />
                 </div>
               </div>
               <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition"></div>
@@ -450,7 +452,7 @@ export default function Dashboard() {
                   <div>
                     <p className="text-emerald-100 text-xs font-bold uppercase tracking-widest">ALAN İNCELEME BEKLİYOR</p>
                     <h3 className="text-4xl font-extrabold mt-2">
-                      {incelemeBransCounts.reduce((sum, b) => sum + (b.alanci || 0), 0)}
+                      {incelemeBransCounts.reduce((sum, b) => sum + (Number(b.alanci_bekleyen) || 0), 0)}
                     </h3>
                   </div>
                   <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm group-hover:bg-white/30 transition">
@@ -467,7 +469,7 @@ export default function Dashboard() {
                   <div>
                     <p className="text-purple-100 text-xs font-bold uppercase tracking-widest">DİL İNCELEME BEKLİYOR</p>
                     <h3 className="text-4xl font-extrabold mt-2">
-                      {incelemeBransCounts.reduce((sum, b) => sum + (b.dilci || 0), 0)}
+                      {incelemeBransCounts.reduce((sum, b) => sum + (Number(b.dilci_bekleyen) || 0), 0)}
                     </h3>
                   </div>
                   <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm group-hover:bg-white/30 transition">
@@ -479,11 +481,11 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Branşlara Göre Soru Dağılımı */}
+          {/* Ekiplere Göre Soru Dağılımı */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
               <ChartBarIcon className="w-6 h-6 text-blue-600" />
-              Branşlara Göre İnceleme Bekleyen Sorular
+              Ekiplere Göre İnceleme Dağılımı
             </h2>
 
             {incelemeBransCounts.length === 0 ? (
@@ -492,43 +494,46 @@ export default function Dashboard() {
                 <p>Henüz inceleme bekleyen soru bulunmuyor.</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {incelemeBransCounts.map((brans) => {
-                  const totalPending = (canAlanInceleme ? (brans.alanci || 0) : 0) + (canDilInceleme ? (brans.dilci || 0) : 0);
-                  if (totalPending === 0 && !isActualAdmin) return null;
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(() => {
+                  const teamMap = {};
+                  incelemeBransCounts.forEach(item => {
+                    if (!teamMap[item.ekip_adi]) teamMap[item.ekip_adi] = { name: item.ekip_adi, alanci: 0, dilci: 0, branches: [] };
+                    const a = Number(item.alanci_bekleyen) || 0;
+                    const d = Number(item.dilci_bekleyen) || 0;
+                    teamMap[item.ekip_adi].alanci += a;
+                    teamMap[item.ekip_adi].dilci += d;
+                    teamMap[item.ekip_adi].branches.push({ name: item.brans_adi, a, d });
+                  });
 
-                  return (
-                    <div key={brans.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <BookOpenIcon className="w-5 h-5 text-blue-600" />
+                  return Object.values(teamMap).map(tm => (
+                    <div key={tm.name} className="p-4 bg-gray-50 rounded-xl border border-gray-100 hover:shadow-md transition">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                          <UserGroupIcon className="w-5 h-5" />
                         </div>
-                        <div>
-                          <h3 className="font-bold text-gray-800">{brans.brans_adi}</h3>
-                          <p className="text-xs text-gray-500">Branş ID: {brans.id}</p>
-                        </div>
+                        <h3 className="font-bold text-gray-800 text-lg">{tm.name}</h3>
                       </div>
-                      <div className="flex items-center gap-3">
-                        {canAlanInceleme && (
-                          <div className="text-center">
-                            <p className="text-xs text-gray-500 font-medium mb-1">Alan</p>
-                            <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-sm font-bold">
-                              {brans.alanci || 0}
-                            </span>
+                      <div className="space-y-2">
+                        {canAlanInceleme && tm.alanci > 0 && (
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-600">Alan İnceleme:</span>
+                            <span className="font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">{tm.alanci}</span>
                           </div>
                         )}
-                        {canDilInceleme && (
-                          <div className="text-center">
-                            <p className="text-xs text-gray-500 font-medium mb-1">Dil</p>
-                            <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-bold">
-                              {brans.dilci || 0}
-                            </span>
+                        {canDilInceleme && tm.dilci > 0 && (
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-600">Dil İnceleme:</span>
+                            <span className="font-bold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">{tm.dilci}</span>
                           </div>
                         )}
+                        <div className="text-xs text-gray-400 mt-2 pt-2 border-t border-gray-200">
+                          {tm.branches.length} Branşta Bekleyen Var
+                        </div>
                       </div>
                     </div>
-                  );
-                })}
+                  ));
+                })()}
               </div>
             )}
           </div>
