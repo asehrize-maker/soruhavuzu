@@ -172,7 +172,7 @@ export default function SoruEkle() {
     loadBranslar();
   }, [user]);
 
-      useEffect(() => {
+  useEffect(() => {
     const loadKazanims = async () => {
       if (!metadata.brans_id) {
         setKazanims([]);
@@ -267,8 +267,8 @@ export default function SoruEkle() {
       formData.append('dogru_cevap', metadata.dogruCevap);
       formData.append('brans_id', metadata.brans_id);
       formData.append('kazanim', metadata.kazanim || 'Genel');
-      // Otomatik İncelemeye Gönder
-      formData.append('durum', 'inceleme_bekliyor');
+      // Otomatik Branş Havuzuna Gönder (Taslak olarak)
+      formData.append('durum', 'beklemede');
 
       let htmlContent = components.map(c => {
         let style = "";
@@ -307,8 +307,8 @@ export default function SoruEkle() {
       ['a', 'b', 'c', 'd'].forEach(opt => formData.append(`secenek_${opt}`, ''));
 
       await soruAPI.create(formData);
-      alert("✅ Soru başarıyla kaydedildi ve incelemeye gönderildi!");
-      navigate('/sorular');
+      alert("✅ Soru başarıyla kaydedildi!");
+      navigate('/brans-havuzu');
     } catch (error) { console.error(error); alert("Hata: " + error.message); }
   };
 
@@ -327,7 +327,7 @@ export default function SoruEkle() {
           </div>
         </div>
         <div className="flex gap-3">
-          <button onClick={handleSave} className="px-6 py-1.5 bg-white text-[#0078D4] font-bold rounded hover:bg-blue-50 transition shadow">Kaydet ve İncelemeye Gönder</button>
+          <button onClick={handleSave} className="px-6 py-1.5 bg-white text-[#0078D4] font-bold rounded hover:bg-blue-50 transition shadow">Soruyu Kaydet</button>
           <button onClick={() => navigate('/sorular')} className="px-4 py-1.5 bg-red-500 hover:bg-red-600 rounded font-medium text-sm transition">Çıkış</button>
         </div>
       </div>
@@ -423,7 +423,7 @@ export default function SoruEkle() {
         </div>
       </div>
 
-            <div className="max-w-4xl mx-auto mt-6 pb-12">
+      <div className="max-w-4xl mx-auto mt-6 pb-12">
         <div className="bg-white border shadow-sm rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div>
             <label className="text-xs font-bold text-gray-500 uppercase">Branş</label>

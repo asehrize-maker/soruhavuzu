@@ -123,9 +123,8 @@ export default function Sorular({ scope }) {
       let data = response.data.data || [];
       if (effectiveRole === 'dizgici') {
         data = data.filter(s => ['dizgi_bekliyor', 'dizgide'].includes(s.durum));
-      } else if (effectiveRole === 'soru_yazici') {
-        data = data.filter(s => s.olusturan_kullanici_id === user.id || s.durum === 'tamamlandi');
       }
+      // Branş havuzu mantığı: Writer tüm branch sorularını görür (Backend zaten bunu sağlıyor)
       setSorular(data);
       setSelectedQuestions([]);
       alert(`✅ ${idList.length} soru başarıyla dizgiye gönderildi.`);

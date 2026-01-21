@@ -629,16 +629,8 @@ export default function SoruDetay() {
     if (components.length === 0) return alert("Soru içeriği boş!");
     if (!editMetadata.dogruCevap) return alert("Lütfen Doğru Cevabı seçiniz.");
 
-    // Kaydetme işlemi (EditSave fonksiyonunu çağırıyoruz ama alert vermesini engellemek için parametre özelleştiremiyoruz, o yüzden standart akış çalışacak)
-    // Ancak kullanıcı deneyimi için önce kaydedip sonra sormak mantıklı.
+    // Sadece kaydetme işlemi yapılır, yönlendirme veya sorma yapılmaz (Branş Havuzu akışı)
     await handleEditSave();
-
-    setTimeout(() => {
-      // Soru Yazıcı için sadece Dizgiye Gönder seçeneği (Yeni Sistem)
-      if (confirm("✅ Değişiklikler başarıyla kaydedildi.\n\n🚀 Soruyu DİZGİ birimine göndermek istiyor musunuz?")) {
-        handleSendToDizgi();
-      }
-    }, 500);
   };
 
   const handleSaveAndDizgi = async () => {
@@ -809,8 +801,7 @@ export default function SoruDetay() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <button onClick={handleSaveAndDizgi} disabled={saving} className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded hover:bg-green-600 border border-green-600">🚀 KAYDET & DİZGİ</button>
-                <button onClick={handleEditSave} disabled={saving} className="px-4 py-1 bg-white text-blue-700 text-xs font-bold rounded hover:bg-blue-50">KAYDET</button>
+                <button onClick={handleEditSave} disabled={saving} className="px-6 py-1 bg-white text-blue-700 text-xs font-black rounded hover:bg-blue-50 border-b-2 border-blue-200">💾 KAYDET VE BRANŞ HAVUZUNDA TUT</button>
                 <button onClick={() => setEditMode(false)} className="px-4 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600">İPTAL</button>
               </div>
             </div>
