@@ -116,6 +116,11 @@ export default function Layout() {
     { path: '/mesajlar', label: 'Mesajlar', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z' },
   ];
 
+  // Soru Havuzu sadece Admin ve Branş (soru_yazici) rolleri görebilir
+  if (effectiveRole !== 'admin' && effectiveRole !== 'soru_yazici') {
+    menuItems = menuItems.filter(i => i.path !== '/sorular');
+  }
+
   if (effectiveRole === 'dizgici') {
     menuItems = menuItems.filter(i => i.path !== '/sorular?takip=1');
     const dizgiItem = { path: '/dizgi-yonetimi', label: 'Dizgi Yönetimi', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' };
