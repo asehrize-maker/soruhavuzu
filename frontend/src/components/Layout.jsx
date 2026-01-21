@@ -152,22 +152,32 @@ export default function Layout() {
         <div className="px-6 py-6 bg-[#1e293b] border-b border-gray-700">
           <div className="text-left">
             <h2 className="text-sm font-bold text-gray-200 uppercase tracking-wide">{user?.ad_soyad}</h2>
-            <div className="mt-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-900 text-blue-100 border border-blue-700">
-              {(() => {
-                const r = effectiveRole;
-                if (r === 'admin') return 'Yönetici';
-                if (r === 'soru_yazici') return 'Branş';
-                if (r === 'dizgici') return 'Dizgici';
-                if (r === 'incelemeci') {
-                  const alan = !!authUser?.inceleme_alanci;
-                  const dil = !!authUser?.inceleme_dilci;
-                  if (alan && dil) return 'İncelemeci (Alan + Dil)';
-                  if (alan) return 'İncelemeci (Alan)';
-                  if (dil) return 'İncelemeci (Dil)';
-                  return 'İncelemeci';
-                }
-                return 'Kullanıcı';
-              })()}
+            <div className="mt-1 flex flex-col gap-1">
+              <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-900 text-blue-100 border border-blue-700 w-fit">
+                {(() => {
+                  const r = effectiveRole;
+                  if (r === 'admin') return 'Yönetici';
+                  if (r === 'soru_yazici') return 'Branş';
+                  if (r === 'dizgici') return 'Dizgici';
+                  if (r === 'incelemeci') {
+                    const alan = !!authUser?.inceleme_alanci;
+                    const dil = !!authUser?.inceleme_dilci;
+                    if (alan && dil) return 'İncelemeci (Alan + Dil)';
+                    if (alan) return 'İncelemeci (Alan)';
+                    if (dil) return 'İncelemeci (Dil)';
+                    return 'İncelemeci';
+                  }
+                  return 'Kullanıcı';
+                })()}
+              </div>
+              {user?.ekip_adi && (
+                <div className="text-[10px] text-gray-400 font-bold uppercase flex items-center gap-1 mt-1">
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  {user.ekip_adi}
+                </div>
+              )}
             </div>
             {actualRole === 'admin' && (
               <div className="mt-3">
