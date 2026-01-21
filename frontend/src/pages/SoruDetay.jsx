@@ -464,20 +464,6 @@ export default function SoruDetay() {
     }
   };
 
-  const handleSendToInceleme = async () => {
-    if (!confirm('Soruyu tekrar İNCELEME ekibine göndermek istediğinizden emin misiniz?')) return;
-    try {
-      await soruAPI.updateDurum(id, {
-        yeni_durum: 'inceleme_bekliyor',
-        aciklama: 'Branş tarafından tekrar incelemeye gönderildi.'
-      });
-      alert('Soru tekrar inceleme havuzuna gönderildi.');
-      navigate('/');
-    } catch (e) {
-      alert('Hata: ' + (e.response?.data?.error || e.message));
-    }
-  };
-
   const finalFileInputRef = useRef(null);
 
   const handleFinalUpload = async (e) => {
@@ -505,15 +491,15 @@ export default function SoruDetay() {
     if (!soru.final_png_url) {
       if (!confirm('UYARI: Henüz final dizgi görseli (PNG) yüklenmemiş!\n\nDizgisi yapılmamış soruyu tamamlamak istediğinize emin misiniz?')) return;
     } else {
-      if (!confirm('Dizgi işlemini bitirip soruyu HAVUZA (Tamamlandı) göndermek istediğinizden emin misiniz?')) return;
+      if (!confirm('Dizgi işlemini bitirip soruyu kontrol için BRANŞA göndermek istediğinizden emin misiniz?')) return;
     }
 
     try {
       await soruAPI.updateDurum(id, {
-        yeni_durum: 'tamamlandi',
-        aciklama: 'Dizgisi yapıldı ve havuza gönderildi.'
+        yeni_durum: 'inceleme_bekliyor',
+        aciklama: 'Dizgisi yapıldı ve branş kontrolüne gönderildi.'
       });
-      alert(`Soru başarıyla tamamlandı(V${soru.versiyon || 1}) ve Hazır Soru Havuzuna eklendi.`);
+      alert(`Soru başarıyla branş havuzuna (İnceleme Bekliyor) gönderildi.`);
       navigate('/');
     } catch (e) {
       alert('Hata: ' + (e.response?.data?.error || e.message));
@@ -648,22 +634,11 @@ export default function SoruDetay() {
     await handleEditSave();
 
     setTimeout(() => {
-      // 1. Seçenek: Dizgiye Gönder
-      if (confirm("✅ Değişiklikler başarıyla kaydedildi.\n\n🚀 Soruyu DİZGİ birimine göndermek istiyor musunuz?\n('Tamam' derseniz DİZGİYE gider, 'İptal' derseniz diğer seçeneğe geçilir)")) {
+      // Soru Yazıcı için sadece Dizgiye Gönder seçeneği (Yeni Sistem)
+      if (confirm("✅ Değişiklikler başarıyla kaydedildi.\n\n🚀 Soruyu DİZGİ birimine göndermek istiyor musunuz?")) {
         handleSendToDizgi();
-      } else {
-        // 2. Seçenek: İncelemeye Gönder
-        if (confirm("🔍 O zaman soruyu tekrar İNCELEME ekibine göndermek ister misiniz?\n('Tamam' derseniz İNCELEMEYE gider, 'İptal' derseniz sadece kaydedilmiş olarak kalır)")) {
-          handleSendToInceleme();
-        }
       }
     }, 500);
-  };
-
-  const handleSaveAndInceleme = async () => {
-    await handleEditSave();
-    // Kısa bir gecikme ile aksiyonu tetikle ki state güncellensin
-    setTimeout(() => handleSendToInceleme(), 500);
   };
 
   const handleSaveAndDizgi = async () => {
@@ -745,14 +720,6 @@ export default function SoruDetay() {
                       ✍️ DÜZENLE
                     </button>
                   )}
-
-                  {/* İncelemeye Gönder */}
-                  <button
-                    onClick={handleSendToInceleme}
-                    className="px-6 py-3 bg-indigo-100 text-indigo-700 rounded-xl font-black text-sm hover:bg-indigo-200 transition shadow-[0_4px_14px_0_rgba(79,70,229,0.2)] flex items-center gap-2 border-b-4 border-indigo-300 active:border-b-0 active:translate-y-1"
-                  >
-                    🔍 TEKRAR İNCELEMEYE GÖNDER
-                  </button>
 
                   {/* Dizgiye Gönder */}
                   <button
@@ -842,7 +809,6 @@ export default function SoruDetay() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <button onClick={handleSaveAndInceleme} disabled={saving} className="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded hover:bg-indigo-200 border border-indigo-300">🔍 KAYDET & İNCELEME</button>
                 <button onClick={handleSaveAndDizgi} disabled={saving} className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded hover:bg-green-600 border border-green-600">🚀 KAYDET & DİZGİ</button>
                 <button onClick={handleEditSave} disabled={saving} className="px-4 py-1 bg-white text-blue-700 text-xs font-bold rounded hover:bg-blue-50">KAYDET</button>
                 <button onClick={() => setEditMode(false)} className="px-4 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600">İPTAL</button>

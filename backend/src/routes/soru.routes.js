@@ -134,17 +134,10 @@ router.get('/', authenticate, async (req, res, next) => {
         params.push(req.user.id);
         paramCount++;
       } else {
-        // Ortak Havuz (Varsayılan): Tüm tamamlanmış sorular VEYA kendi yazdıkları
-        query += ` AND (s.durum = 'tamamlandi' OR s.olusturan_kullanici_id = $${paramCount})`;
-        params.push(req.user.id);
-        paramCount++;
+        // Ortak Havuz (Varsayılan): SADECE tamamlanmış sorular
+        query += ` AND s.durum = 'tamamlandi'`;
       }
 
-      // Ayrıca ekip izolasyonu (isteğe bağlı, branş zaten daraltıyor ama ekleyelim)
-      if (req.user.ekip_id) {
-        query += ` AND k.ekip_id = $${paramCount++}`;
-        params.push(req.user.ekip_id);
-      }
     }
 
     if (durum) {
@@ -201,14 +194,17 @@ router.get('/:id(\\d+)', authenticate, async (req, res, next) => {
 
     const soru = result.rows[0];
 
-    // Yetki kontrolü
+    // Yetki kontrolü (Soru Yazıcı yetkili olduğu branşlardaki soruları görebilir)
     if (req.user.rol === 'soru_yazici') {
-      if (soru.olusturan_kullanici_id !== req.user.id) {
-        throw new AppError('Bu soruyu görme yetkiniz yok', 403);
+      const authBransResult = await pool.query(`
+        SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1 AND brans_id = $2
+        UNION
+        SELECT 1 FROM kullanicilar WHERE id = $1 AND brans_id = $2
+      `, [req.user.id, soru.brans_id]);
+
+      if (authBransResult.rows.length === 0 && soru.olusturan_kullanici_id !== req.user.id && soru.durum !== 'tamamlandi') {
+        throw new AppError('Bu branştaki soruları görme yetkiniz yok', 403);
       }
-      // Yazar, iki inceleme onayı tamamlanmadan soruyu görme yetkiniz yok (Gevşetildi)
-      // İnceleme bekleyen soruları düzenleyebilmeleri için bu kısıtlamayı kaldırıyoruz veya sadece incelemede anı için blokluyoruz.
-      // Geçici olarak tamamen kaldırıyorum.
     }
 
     // Dizgi geçmişi
@@ -449,20 +445,23 @@ router.put('/:id(\\d+)', [
     const soru = checkResult.rows[0];
 
     // İncelemeye giden sorularda değişiklik yapılamamalı (Admin hariç)
-    // Ancak 'revize_istendi' durumundaysa yazar düzenleyebilir.
-    const isRevize = soru.durum === 'revize_istendi';
-    if (req.user.rol !== 'admin' && !isRevize && (soru.durum === 'dizgide' || soru.durum === 'tamamlandi' || soru.durum === 'dizgi_bekliyor')) {
+    // Ancak branş sahipleri revize bekleyen veya dizgi/inceleme bekleyen sorular üzerinde çalışabilir.
+    const isAllowedDurum = ['beklemede', 'revize_istendi', 'revize_gerekli', 'dizgi_bekliyor', 'inceleme_bekliyor', 'inceleme_tamam'].includes(soru.durum);
+    if (req.user.rol !== 'admin' && !isAllowedDurum && (soru.durum === 'dizgide' || soru.durum === 'tamamlandi')) {
       throw new AppError('İşlemdeki veya tamamlanmış sorular düzenlenemez.', 403);
     }
 
-    // Yetki kuralları:
-    // - Admin her zaman düzenleyebilir
-    // - Soru sahibi (olusturan_kullanici_id) her zaman düzenleyebilir
-    // Diğer kullanıcıların düzenleme yetkisi yoktur.
-    const isAdmin = req.user.rol === 'admin';
-    const isOwner = soru.olusturan_kullanici_id === req.user.id;
+    // Yetki kuralları: Admin veya Branş yetkilisi veya Sahibi düzenleyebilir
+    let hasPermission = req.user.rol === 'admin' || soru.olusturan_kullanici_id === req.user.id;
+    if (!hasPermission && req.user.rol === 'soru_yazici') {
+      const authBrans = await pool.query(`
+        SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1 AND brans_id = $2
+        UNION
+        SELECT 1 FROM kullanicilar WHERE id = $1 AND brans_id = $2
+      `, [req.user.id, soru.brans_id]);
+      if (authBrans.rows.length > 0) hasPermission = true;
+    }
 
-    const hasPermission = isAdmin || isOwner;
     if (!hasPermission) {
       throw new AppError('Bu soruyu düzenleme yetkiniz yok', 403);
     }
@@ -498,11 +497,12 @@ router.put('/:id(\\d+)', [
       fotograf_public_id = uploadResult.public_id;
     }
 
-    // Yazar güncelleme yaparsa (veya admin), sadece 'beklemede' ise incelemeye gönder.
-    // Revize aşamasındaki soru tekrar incelemeye düşmez, yazarın butona basması beklenir.
+    // Durum değişikliği otomatik yapılmaz (Branş havuzunda kalır)
     let yeniDurum = soru.durum;
-    if (soru.durum === 'beklemede' && (req.user.rol === 'soru_yazici' || req.user.rol === 'admin')) {
-      yeniDurum = 'inceleme_bekliyor';
+    // Eğer yazar 'beklemede' olan bir soruyu güncellerse beklemede kalsın (Artık elle dizgiye gönderilecek)
+    if (soru.durum === 'inceleme_tamam') {
+      // İnceleme tamamlandıysa ve düzenleme yapılıyorsa belki tekrar beklemeye alınabilir veya öyle kalabilir.
+      // Şimdilik dokunmuyoruz.
     }
 
     // 1. Mevcut halini versiyon geçmişine kaydet (Backup)
@@ -1119,7 +1119,7 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
     const targetRole = (req.user.rol === 'admin' && req.query.role) ? req.query.role.toLowerCase() : req.user.rol;
 
     if (targetRole === 'soru_yazici') {
-      // Yazar: Kendi ekibindeki soruları görür
+      // Yazar: Yetkili olduğu branşlardaki tüm soruların istatistiklerini görür
       query = `
         SELECT
           COUNT(*) as toplam,
@@ -1130,10 +1130,13 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
           COUNT(*) FILTER(WHERE durum = 'tamamlandi') as tamamlandi,
           COUNT(*) FILTER(WHERE durum = 'revize_gerekli' OR durum = 'revize_istendi') as revize_gerekli
         FROM sorular s
-        JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
-        WHERE k.ekip_id = $1
+        WHERE s.brans_id IN (
+          SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1
+          UNION 
+          SELECT brans_id FROM kullanicilar WHERE id = $1
+        )
       `;
-      params = [req.user.ekip_id];
+      params = [req.user.id];
     } else if (targetRole === 'dizgici') {
       // Dizgici: Kendi ekibindeki işler
       query = `

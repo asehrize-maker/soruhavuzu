@@ -65,8 +65,6 @@ export default function Sorular({ scope }) {
         // Admin her zaman her şeyi görmeli (Simülasyonda bile kafa karışıklığını önlemek için)
         if (effectiveRole === 'dizgici' && authUser?.rol !== 'admin') {
           data = data.filter(s => ['dizgi_bekliyor', 'dizgide'].includes(s.durum));
-        } else if (effectiveRole === 'soru_yazici' && scope !== 'brans' && authUser?.rol !== 'admin') {
-          data = data.filter(s => s.olusturan_kullanici_id === user.id || s.durum === 'tamamlandi');
         }
 
         setSorular(data);
@@ -391,8 +389,8 @@ export default function Sorular({ scope }) {
             <div key={soru.id} className={`card hover:shadow-lg transition-shadow border-l-4 ${selectedQuestions.includes(soru.id) ? 'border-primary-500 bg-blue-50' : 'border-transparent'}`}>
               <div className="flex items-start">
 
-                {/* Checkbox (Sadece Tamamlandı ise veya Admin ise) */}
-                {(soru.durum === 'tamamlandi' || user?.rol === 'admin') && (
+                {/* Checkbox (Tamamlandı ise, Admin ise VEYA Branş Havuzunda işlem bekleyenler) */}
+                {(soru.durum === 'tamamlandi' || user?.rol === 'admin' || (scope === 'brans' && ['beklemede', 'revize_istendi', 'revize_gerekli', 'inceleme_tamam'].includes(soru.durum))) && (
                   <div className="mr-4 mt-1">
                     <input
                       type="checkbox"

@@ -316,26 +316,70 @@ export default function Dashboard() {
   // Other roles (Soru Yazıcı, Dizgici)
   return (
     <div className="space-y-8 animate-fade-in">
-      <div className="bg-gradient-to-r from-blue-700 to-blue-600 p-8 rounded-2xl text-white">
+      <div className="bg-gradient-to-r from-blue-700 to-blue-600 p-8 rounded-2xl text-white shadow-xl">
         <h1 className="text-3xl font-bold">Hoş Geldiniz, {user?.ad_soyad}</h1>
-        <p className="mt-2 text-blue-100 uppercase font-black">{activeRole.replace('_', ' ')} Paneli</p>
+        <p className="mt-2 text-blue-100 uppercase font-black tracking-widest text-xs">{activeRole?.replace('_', ' ')} Paneli</p>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-xl border text-center shadow-sm">
-          <p className="text-gray-400 text-xs font-bold">TOPLAM İŞ</p>
-          <h3 className="text-3xl font-black text-gray-800">{stats?.toplam || stats?.tamamlandi || 0}</h3>
+
+      {activeRole === 'soru_yazici' ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Link to="/brans-havuzu?durum=beklemede" className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition text-center group">
+              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest group-hover:text-amber-500">TASLAKLAR</p>
+              <h3 className="text-3xl font-black text-gray-800 mt-1">{stats?.beklemede || 0}</h3>
+            </Link>
+            <Link to="/brans-havuzu?durum=inceleme_bekliyor" className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition text-center group">
+              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest group-hover:text-blue-500">İNCELENECEK</p>
+              <h3 className="text-3xl font-black text-gray-800 mt-1">{stats?.inceleme_bekliyor || 0}</h3>
+            </Link>
+            <Link to="/brans-havuzu?durum=revize_istendi" className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition text-center group">
+              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest group-hover:text-red-500">DÜZELTME BEKLEYEN</p>
+              <h3 className="text-3xl font-black text-gray-800 mt-1">{stats?.revize_gerekli || 0}</h3>
+            </Link>
+            <Link to="/brans-havuzu?durum=tamamlandi" className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition text-center group">
+              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest group-hover:text-green-500">TAMAMLANAN</p>
+              <h3 className="text-3xl font-black text-gray-800 mt-1">{stats?.tamamlandi || 0}</h3>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Link to="/sorular/yeni" className="bg-blue-600 text-white p-8 rounded-2xl flex flex-col items-center justify-center font-bold gap-4 hover:bg-blue-700 transition shadow-lg group">
+              <div className="p-3 bg-white/20 rounded-full group-hover:scale-110 transition">
+                <PencilSquareIcon className="w-8 h-8" />
+              </div>
+              <div className="text-center">
+                <div className="text-xl">Yeni Soru Yaz</div>
+                <p className="text-blue-200 font-normal text-sm mt-1">Soru havuzuna yeni bir içerik ekleyin</p>
+              </div>
+            </Link>
+            <Link to="/brans-havuzu" className="bg-indigo-600 text-white p-8 rounded-2xl flex flex-col items-center justify-center font-bold gap-4 hover:bg-indigo-700 transition shadow-lg group">
+              <div className="p-3 bg-white/20 rounded-full group-hover:scale-110 transition">
+                <BookOpenIcon className="w-8 h-8" />
+              </div>
+              <div className="text-center">
+                <div className="text-xl">Branş Soru Havuzu</div>
+                <p className="text-indigo-200 font-normal text-sm mt-1">Branşınızdaki tüm soruları yönetin</p>
+              </div>
+            </Link>
+          </div>
         </div>
-        {activeRole === 'soru_yazici' && (
-          <Link to="/sorular/yeni" className="bg-blue-600 text-white p-6 rounded-xl flex items-center justify-center font-bold gap-2 hover:bg-blue-700 transition lg:col-span-1">
-            <PencilSquareIcon className="w-5 h-5" /> Yeni Soru
+      ) : activeRole === 'dizgici' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-center">
+            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">BEKLEYEN DİZGİ</p>
+            <h3 className="text-4xl font-black text-gray-800 mt-2">{stats?.dizgi_bekliyor || 0}</h3>
+          </div>
+          <Link to="/dizgi-yonetimi" className="bg-orange-600 text-white p-8 rounded-2xl flex flex-col items-center justify-center font-bold gap-4 hover:bg-orange-700 transition shadow-lg group">
+            <div className="p-3 bg-white/20 rounded-full group-hover:scale-110 transition">
+              <DocumentTextIcon className="w-8 h-8" />
+            </div>
+            <div className="text-center">
+              <div className="text-xl">Dizgi Yönetimi</div>
+              <p className="text-orange-100 font-normal text-sm mt-1">Size atanan dizgi işlerini görüntüleyin</p>
+            </div>
           </Link>
-        )}
-        {activeRole === 'dizgici' && (
-          <Link to="/dizgi-yonetimi" className="bg-orange-600 text-white p-6 rounded-xl flex items-center justify-center font-bold gap-2 hover:bg-orange-700 transition lg:col-span-1">
-            <DocumentTextIcon className="w-5 h-5" /> Dizgi Yönetimi
-          </Link>
-        )}
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }
