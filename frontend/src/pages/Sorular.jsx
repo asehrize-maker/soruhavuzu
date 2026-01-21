@@ -425,6 +425,11 @@ export default function Sorular() {
                     {soru.fotograf_url && (
                       <span className="text-primary-600">📷 Görsel</span>
                     )}
+                    {soru.final_png_url && (
+                      <a href={soru.final_png_url} target="_blank" rel="noreferrer" className="text-green-600 font-bold flex items-center gap-1 bg-green-50 px-2 py-0.5 rounded border border-green-200">
+                        🖼️ PNG
+                      </a>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 mt-2 text-xs">

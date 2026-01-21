@@ -658,6 +658,18 @@ export default function SoruDetay() {
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/sorular')} className="btn btn-secondary btn-sm">← Geri</button>
 
+          {/* Final PNG Indirme (Admin ve Tamamlanmış sorularda herkes için) */}
+          {soru.final_png_url && (
+            <a
+              href={soru.final_png_url}
+              target="_blank"
+              rel="noreferrer"
+              className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg font-bold text-xs hover:bg-emerald-200 transition flex items-center gap-2 border border-emerald-300"
+            >
+              🖼️ FİNAL PNG İNDİR
+            </a>
+          )}
+
           {!editMode && (
             <>
               {/* İNCELEME MODUNDA VEYA ADMIN/İNCELEMECİ İSE GÖRÜNECEK BUTONLAR */}
@@ -734,6 +746,21 @@ export default function SoruDetay() {
         <span className="badge bg-green-100 text-green-800 font-bold">✅ Doğru: {soru.dogru_cevap}</span>
         {soru.kazanim && <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-[10px] font-bold border border-blue-200 uppercase tracking-tighter">Kazanım: {soru.kazanim}</span>}
       </div>
+
+      {/* Final PNG Önizleme (Dizgi Sonucu) */}
+      {soru.final_png_url && !editMode && (
+        <div className="card border-4 border-emerald-200 bg-emerald-50 rounded-xl overflow-hidden shadow-lg mb-6">
+          <div className="bg-emerald-200 px-4 py-2 flex justify-between items-center">
+            <span className="text-emerald-900 font-black text-xs uppercase tracking-widest flex items-center gap-2">
+              ✨ DİZGİ SONUCU (PNG)
+            </span>
+            <span className="text-[10px] text-emerald-700 font-bold italic">Bu görsel baskıya hazır final dosyasıdır</span>
+          </div>
+          <div className="p-4 flex justify-center bg-white/50">
+            <img src={soru.final_png_url} className="max-w-full rounded shadow-sm border border-emerald-100" alt="Final PNG" />
+          </div>
+        </div>
+      )}
 
       <div className="relative border-4 border-gray-200 rounded-xl overflow-hidden bg-white shadow-2xl transition-all">
         {editMode ? (

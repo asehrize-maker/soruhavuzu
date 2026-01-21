@@ -219,7 +219,8 @@ router.post('/', [
   authorize('admin', 'soru_yazici'),
   uploadFields.fields([
     { name: 'fotograf', maxCount: 1 },
-    { name: 'dosya', maxCount: 1 }
+    { name: 'dosya', maxCount: 1 },
+    { name: 'final_png', maxCount: 1 }
   ]),
   body('soru_metni').trim().notEmpty().withMessage('Soru metni gerekli'),
   body('brans_id').isInt().withMessage('Geçerli bir branş seçin')
@@ -845,7 +846,8 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
   // İsteğe bağlı olarak dizgi tamamlanırken PNG/PDF/diğer dosya eklenebilir
   uploadFields.fields([
     { name: 'fotograf', maxCount: 1 },
-    { name: 'dosya', maxCount: 1 }
+    { name: 'dosya', maxCount: 1 },
+    { name: 'final_png', maxCount: 1 }
   ]),
   body('notlar').optional()
 ], async (req, res, next) => {
@@ -891,6 +893,8 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
         let dosya_public_id = null;
         let dosya_adi = null;
         let dosya_boyutu = null;
+        let final_png_url = null;
+        let final_png_public_id = null;
 
         // Fotoğraf yükleme
         if (req.files.fotograf && req.files.fotograf[0]) {
@@ -906,6 +910,22 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
 
           fotograf_url = uploadResult.secure_url;
           fotograf_public_id = uploadResult.public_id;
+        }
+
+        // Final PNG yükleme
+        if (req.files.final_png && req.files.final_png[0]) {
+          const file = req.files.final_png[0];
+          const b64 = Buffer.from(file.buffer).toString('base64');
+          const dataURI = `data:${file.mimetype};base64,${b64}`;
+
+          const uploadResult = await cloudinary.uploader.upload(dataURI, {
+            folder: 'soru-havuzu/final-pngs',
+            resource_type: 'image',
+            transformation: [{ quality: 'auto:good', fetch_format: 'auto' }]
+          });
+
+          final_png_url = uploadResult.secure_url;
+          final_png_public_id = uploadResult.public_id;
         }
 
         // Dosya yükleme (raw)
@@ -935,8 +955,17 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
 
         // Soruyu güncelle
         await client.query(
-          `UPDATE sorular SET fotograf_url = COALESCE($1, fotograf_url), fotograf_public_id = COALESCE($2, fotograf_public_id), dosya_url = COALESCE($3, dosya_url), dosya_public_id = COALESCE($4, dosya_public_id), dosya_adi = COALESCE($5, dosya_adi), dosya_boyutu = COALESCE($6, dosya_boyutu) WHERE id = $7`,
-          [fotograf_url, fotograf_public_id, dosya_url, dosya_public_id, dosya_adi, dosya_boyutu, id]
+          `UPDATE sorular SET 
+            fotograf_url = COALESCE($1, fotograf_url), 
+            fotograf_public_id = COALESCE($2, fotograf_public_id), 
+            dosya_url = COALESCE($3, dosya_url), 
+            dosya_public_id = COALESCE($4, dosya_public_id), 
+            dosya_adi = COALESCE($5, dosya_adi), 
+            dosya_boyutu = COALESCE($6, dosya_boyutu),
+            final_png_url = COALESCE($7, final_png_url),
+            final_png_public_id = COALESCE($8, final_png_public_id)
+           WHERE id = $9`,
+          [fotograf_url, fotograf_public_id, dosya_url, dosya_public_id, dosya_adi, dosya_boyutu, final_png_url, final_png_public_id, id]
         );
       }
 

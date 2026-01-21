@@ -14,6 +14,7 @@ import { createBransKazanimlar } from './migrations/013_brans_kazanimlar.js';
 import { fixSorularDurumConstraint } from './migrations/014_fix_sorular_durum_constraint.js';
 import { normalizeSorularDurum } from './migrations/015_normalize_sorular_durum.js';
 import { addIncelemeFlags } from './migrations/016_add_inceleme_flags.js';
+import { addFinalPngFields } from './migrations/017_add_final_png_fields.js';
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -138,6 +139,7 @@ const createTables = async () => {
     await fixSorularDurumConstraint();
     await normalizeSorularDurum();
     await addIncelemeFlags();
+    await addFinalPngFields();
 
   } catch (error) {
     await client.query('ROLLBACK');
