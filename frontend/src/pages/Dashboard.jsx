@@ -417,6 +417,179 @@ export default function Dashboard() {
 
   // 3. İNCELEMECİ
   if (activeRole === 'incelemeci') {
+    // URL'den mode parametresini kontrol et
+    const params = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
+    const mode = params.get('mode');
+
+    // Eğer mode parametresi yoksa (Ana Sayfa), genel özet göster
+    if (!mode) {
+      return (
+        <div className="space-y-8 animate-fade-in">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800 tracking-tight">İnceleme Paneli</h1>
+              <p className="text-gray-500 mt-1 font-medium">Hoş geldiniz, {user?.ad_soyad}. İşte genel bakış.</p>
+            </div>
+            <div className="hidden md:block">
+              <span className="px-4 py-2 bg-gray-100 text-gray-600 rounded-full text-sm font-semibold border border-gray-200">
+                {new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              </span>
+            </div>
+          </div>
+
+          {/* Genel İstatistikler */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-blue-400 p-6 text-white shadow-lg shadow-blue-200 transition-all hover:scale-105 hover:shadow-xl group">
+              <div className="relative z-10 flex justify-between items-start">
+                <div>
+                  <p className="text-blue-100 text-xs font-bold uppercase tracking-widest">TOPLAM BRANŞ</p>
+                  <h3 className="text-4xl font-extrabold mt-2">{branslar.length || 0}</h3>
+                </div>
+                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm group-hover:bg-white/30 transition">
+                  <BookOpenIcon className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition"></div>
+            </div>
+
+            {canAlanInceleme && (
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-400 p-6 text-white shadow-lg shadow-emerald-200 transition-all hover:scale-105 hover:shadow-xl group">
+                <div className="relative z-10 flex justify-between items-start">
+                  <div>
+                    <p className="text-emerald-100 text-xs font-bold uppercase tracking-widest">ALAN İNCELEME BEKLİYOR</p>
+                    <h3 className="text-4xl font-extrabold mt-2">
+                      {incelemeBransCounts.reduce((sum, b) => sum + (b.alanci || 0), 0)}
+                    </h3>
+                  </div>
+                  <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm group-hover:bg-white/30 transition">
+                    <DocumentTextIcon className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+                <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition"></div>
+              </div>
+            )}
+
+            {canDilInceleme && (
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600 to-purple-400 p-6 text-white shadow-lg shadow-purple-200 transition-all hover:scale-105 hover:shadow-xl group">
+                <div className="relative z-10 flex justify-between items-start">
+                  <div>
+                    <p className="text-purple-100 text-xs font-bold uppercase tracking-widest">DİL İNCELEME BEKLİYOR</p>
+                    <h3 className="text-4xl font-extrabold mt-2">
+                      {incelemeBransCounts.reduce((sum, b) => sum + (b.dilci || 0), 0)}
+                    </h3>
+                  </div>
+                  <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm group-hover:bg-white/30 transition">
+                    <DocumentTextIcon className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+                <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition"></div>
+              </div>
+            )}
+          </div>
+
+          {/* Branşlara Göre Soru Dağılımı */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <ChartBarIcon className="w-6 h-6 text-blue-600" />
+              Branşlara Göre İnceleme Bekleyen Sorular
+            </h2>
+
+            {incelemeBransCounts.length === 0 ? (
+              <div className="p-8 bg-gray-50 rounded-xl text-center text-gray-500 border border-gray-200 shadow-sm flex flex-col items-center">
+                <BookOpenIcon className="w-12 h-12 text-gray-300 mb-2" />
+                <p>Henüz inceleme bekleyen soru bulunmuyor.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {incelemeBransCounts.map((brans) => {
+                  const totalPending = (canAlanInceleme ? (brans.alanci || 0) : 0) + (canDilInceleme ? (brans.dilci || 0) : 0);
+                  if (totalPending === 0 && !isActualAdmin) return null;
+
+                  return (
+                    <div key={brans.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <BookOpenIcon className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-gray-800">{brans.brans_adi}</h3>
+                          <p className="text-xs text-gray-500">Branş ID: {brans.id}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {canAlanInceleme && (
+                          <div className="text-center">
+                            <p className="text-xs text-gray-500 font-medium mb-1">Alan</p>
+                            <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-sm font-bold">
+                              {brans.alanci || 0}
+                            </span>
+                          </div>
+                        )}
+                        {canDilInceleme && (
+                          <div className="text-center">
+                            <p className="text-xs text-gray-500 font-medium mb-1">Dil</p>
+                            <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-bold">
+                              {brans.dilci || 0}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Hızlı Erişim */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Hızlı Erişim</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {canAlanInceleme && (
+                <Link
+                  to="/?mode=alanci"
+                  className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl hover:from-blue-100 hover:to-blue-200 transition group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition">
+                      <DocumentTextIcon className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-800">Alan İnceleme</h3>
+                      <p className="text-xs text-gray-600">Branş seçerek inceleyin</p>
+                    </div>
+                  </div>
+                  <svg className="w-5 h-5 text-blue-600 group-hover:translate-x-1 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              )}
+              {canDilInceleme && (
+                <Link
+                  to="/?mode=dilci"
+                  className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl hover:from-purple-100 hover:to-purple-200 transition group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition">
+                      <DocumentTextIcon className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-800">Dil İnceleme</h3>
+                      <p className="text-xs text-gray-600">Branş seçerek inceleyin</p>
+                    </div>
+                  </div>
+                  <svg className="w-5 h-5 text-purple-600 group-hover:translate-x-1 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Mode parametresi varsa (Alan İnceleme veya Dil İnceleme), branş seçim ekranını göster
     return (
       <div className="space-y-6 animate-fade-in">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
