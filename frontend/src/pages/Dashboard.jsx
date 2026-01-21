@@ -215,6 +215,25 @@ export default function Dashboard() {
     fetchData();
   }, [fetchData]);
 
+  // Hookları her zaman en üstte çağır (Hata #310 Çözümü)
+  const { groupedTeams, teamAggregates } = useMemo(() => {
+    const grouped = incelemeBransCounts.reduce((acc, item) => {
+      const ekipAdi = item.ekip_adi || 'Ekipsiz Branşlar';
+      if (!acc[ekipAdi]) acc[ekipAdi] = [];
+      acc[ekipAdi].push(item);
+      return acc;
+    }, {});
+
+    const aggregates = Object.entries(grouped).map(([ekipAdi, items]) => {
+      const totalPending = items.reduce((sum, item) => {
+        return sum + (reviewMode === 'alanci' ? (Number(item.alanci_bekleyen) || 0) : (Number(item.dilci_bekleyen) || 0));
+      }, 0);
+      return { ekipAdi, totalPending, items };
+    });
+
+    return { groupedTeams: grouped, teamAggregates: aggregates };
+  }, [incelemeBransCounts, reviewMode]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -686,23 +705,8 @@ export default function Dashboard() {
     }
 
     // Mode parametresi varsa (Alan İnceleme veya Dil İnceleme), branş seçim ekranını göster
-    // Veriyi ekiplere ve takımlara göre grupla (useMemo ile optimize edildi)
-    const { groupedTeams, teamAggregates } = useMemo(() => {
-      const grouped = incelemeBransCounts.reduce((acc, item) => {
-        if (!acc[item.ekip_adi]) acc[item.ekip_adi] = [];
-        acc[item.ekip_adi].push(item);
-        return acc;
-      }, {});
+    // Veriyi ekiplere ve takımlara göre grupla (useMemo yukarı taşındı)
 
-      const aggregates = Object.entries(grouped).map(([ekipAdi, items]) => {
-        const totalPending = items.reduce((sum, item) => {
-          return sum + (reviewMode === 'alanci' ? (Number(item.alanci_bekleyen) || 0) : (Number(item.dilci_bekleyen) || 0));
-        }, 0);
-        return { ekipAdi, totalPending, items };
-      });
-
-      return { groupedTeams: grouped, teamAggregates: aggregates };
-    }, [incelemeBransCounts, reviewMode]);
 
     return (
       <div className="space-y-6 animate-fade-in">
