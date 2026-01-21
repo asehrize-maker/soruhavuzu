@@ -430,11 +430,11 @@ export default function Dashboard() {
 
           {/* Genel İstatistikler */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div
-              className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-blue-400 p-6 text-white shadow-lg shadow-blue-200 transition-all hover:scale-105 hover:shadow-xl group">
+            <div onClick={() => setShowBransDetay(true)}
+              className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-blue-400 p-6 text-white shadow-lg shadow-blue-200 transition-all hover:scale-105 hover:shadow-xl group cursor-pointer">
               <div className="relative z-10 flex justify-between items-start">
                 <div>
-                  <p className="text-blue-100 text-xs font-bold uppercase tracking-widest">BEKLEYEN EKİP</p>
+                  <p className="text-blue-100 text-xs font-bold uppercase tracking-widest">EKİPLER</p>
                   <h3 className="text-4xl font-extrabold mt-2">
                     {new Set(incelemeBransCounts.map(b => b.ekip_id)).size || 0}
                   </h3>
@@ -586,72 +586,41 @@ export default function Dashboard() {
           {/* Branş ve Ekip Detay Modalı */}
           {showBransDetay && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowBransDetay(false)}>
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                  <h3 className="text-lg font-bold text-gray-900">Branş ve Ekip Dağılımı</h3>
+                  <h3 className="text-lg font-bold text-gray-900">Ekipler ve İnceleme Durumları</h3>
                   <button onClick={() => setShowBransDetay(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
                 </div>
                 <div className="p-6 max-h-[70vh] overflow-y-auto">
-                  {ekipler.length === 0 ? (
-                    <p className="text-center text-gray-500 py-8">Ekip bilgisi bulunamadı.</p>
-                  ) : (
-                    <div className="space-y-6">
-                      {ekipler.map(ekip => {
-                        const ekipBranslar = branslar.filter(b => Number(b.ekip_id) === Number(ekip.id));
-                        if (ekipBranslar.length === 0) return null;
+                  <div className="space-y-4">
+                    {(() => {
+                      const teamsStats = Object.values(incelemeBransCounts.reduce((acc, item) => {
+                        if (!acc[item.ekip_id]) {
+                          acc[item.ekip_id] = { id: item.ekip_id, name: item.ekip_adi, count: 0 };
+                        }
+                        if (canAlanInceleme) acc[item.ekip_id].count += (Number(item.alanci_bekleyen) || 0);
+                        if (canDilInceleme) acc[item.ekip_id].count += (Number(item.dilci_bekleyen) || 0);
+                        return acc;
+                      }, {}));
 
-                        return (
-                          <div key={ekip.id} className="border border-gray-100 rounded-xl overflow-hidden">
-                            <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
-                              <span className="font-bold text-gray-800 flex items-center gap-2">
-                                <UserGroupIcon className="w-5 h-5 text-blue-600" />
-                                {ekip.ekip_adi}
-                              </span>
-                              <span className="text-xs font-semibold text-gray-500 bg-white px-2 py-1 rounded-md border border-gray-200">
-                                {ekipBranslar.length} Branş
-                              </span>
-                            </div>
-                            <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                              {ekipBranslar.map(b => (
-                                <div key={b.id} className="flex items-center gap-2 p-2 bg-blue-50/50 rounded-lg text-blue-800">
-                                  <BookOpenIcon className="w-4 h-4 opacity-70" />
-                                  {b.brans_adi}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
+                      if (teamsStats.length === 0) return <p className="text-center text-gray-500">Kayıtlı ekip bulunamadı.</p>;
 
-                      {/* Ekipsiz Branşlar (varsa) */}
-                      {branslar.filter(b => !b.ekip_id || !ekipler.find(e => Number(e.id) === Number(b.ekip_id))).length > 0 && (
-                        <div className="border border-gray-100 rounded-xl overflow-hidden">
-                          <div className="bg-gray-50 px-4 py-3 border-b border-gray-100">
-                            <span className="font-bold text-gray-800 flex items-center gap-2">
-                              <InformationCircleIcon className="w-5 h-5 text-gray-400" />
-                              Diğer Branşlar
-                            </span>
+                      return teamsStats.sort((a, b) => b.count - a.count).map(team => (
+                        <div key={team.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl border border-gray-100 hover:bg-gray-100 transition">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
+                              {team.name ? team.name.substring(0, 2).toUpperCase() : '??'}
+                            </div>
+                            <span className="font-bold text-gray-800">{team.name}</span>
                           </div>
-                          <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                            {branslar.filter(b => !b.ekip_id || !ekipler.find(e => Number(e.id) === Number(b.ekip_id))).map(b => (
-                              <div key={b.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-gray-600">
-                                <BookOpenIcon className="w-4 h-4 opacity-70" />
-                                {b.brans_adi}
-                              </div>
-                            ))}
+                          <div className="text-right">
+                            <span className={`text-lg font-bold ${team.count > 0 ? 'text-blue-600' : 'text-gray-500'}`}>{team.count}</span>
+                            <span className="text-[10px] text-gray-400 block uppercase font-bold">BEKLEYEN</span>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div className="p-4 bg-gray-50 border-t border-gray-100 text-right">
-                  <button
-                    onClick={() => setShowBransDetay(false)}
-                    className="px-6 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 transition shadow-sm"
-                  >
-                    Kapat
-                  </button>
+                      ));
+                    })()}
+                  </div>
                 </div>
               </div>
             </div>
