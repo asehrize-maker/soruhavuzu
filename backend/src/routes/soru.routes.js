@@ -1083,7 +1083,10 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
             OR brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1)
           )) as dizgi_bekliyor,
           COUNT(*) FILTER(WHERE durum = 'dizgide' AND dizgici_id = $1) as dizgide,
-          COUNT(*) FILTER(WHERE durum = 'tamamlandi' AND dizgici_id = $1) as tamamlandi
+          COUNT(*) FILTER(WHERE durum = 'tamamlandi' AND (
+            brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1)
+            OR brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1)
+          )) as tamamlandi
         FROM sorular
       `;
       params = [req.user.id];

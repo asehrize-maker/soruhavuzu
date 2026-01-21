@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { soruAPI } from '../services/api';
 import useAuthStore from '../store/authStore';
 import MesajKutusu from '../components/MesajKutusu';
+import html2canvas from 'html2canvas';
 
 export default function DizgiYonetimi() {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ export default function DizgiYonetimi() {
   const [showMesaj, setShowMesaj] = useState(null);
   const [revizeNotu, setRevizeNotu] = useState('');
   const [completeData, setCompleteData] = useState({ notlar: '', finalPng: null });
+  const questionRef = useRef(null);
 
   useEffect(() => {
     loadSorular();
@@ -94,6 +96,24 @@ export default function DizgiYonetimi() {
       alert(err.response?.data?.error || 'Tamamlama işlemi başarısız');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCapturePNG = async () => {
+    if (!questionRef.current) return;
+    try {
+      const canvas = await html2canvas(questionRef.current, {
+        scale: 2, // Daha yüksek kalite
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+      const link = document.createElement('a');
+      link.download = `soru-${selectedSoru.id}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (err) {
+      console.error('PNG yakalama hatası:', err);
+      alert('Görsel oluşturulamadı.');
     }
   };
 
@@ -228,11 +248,13 @@ export default function DizgiYonetimi() {
                   </div>
                 </div>
 
-                <div className="mt-4 text-gray-900" dangerouslySetInnerHTML={{ __html: selectedSoru.soru_metni }} />
-
-                <div className="mt-4">
-                  {selectedSoru.fotograf_url && <img src={selectedSoru.fotograf_url} className="max-w-md rounded border" />}
-                  {selectedSoru.dosya_url && <div className="mt-2"><a href={selectedSoru.dosya_url} target="_blank" rel="noreferrer" className="text-sm text-blue-600">Dosya (PDF/Diğer)</a></div>}
+                <div className="mt-4 p-6 bg-white border rounded-lg shadow-sm" ref={questionRef}>
+                  <div className="text-gray-900 prose max-w-none" dangerouslySetInnerHTML={{ __html: selectedSoru.soru_metni }} />
+                  {(selectedSoru.fotograf_url) && (
+                    <div className="mt-4">
+                      <img src={selectedSoru.fotograf_url} className="max-w-full rounded border mx-auto" alt="Soru Görseli" />
+                    </div>
+                  )}
                 </div>
 
                 {showMesaj === selectedSoru.id && (
@@ -247,9 +269,13 @@ export default function DizgiYonetimi() {
                   </div>
                 )}
 
-                {/* Dosya ekleme alanı for completed */}
+                {/* Dosya ekleme ve PNG alma alanı for completed */}
                 {selectedSoru.durum === 'tamamlandi' && (
-                  <div className="mt-4">
+                  <div className="mt-4 flex gap-3">
+                    <button onClick={handleCapturePNG} className="btn bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200">
+                      🖼️ Sorunun PNG'sini Al
+                    </button>
+
                     <label className="btn btn-outline">
                       Dosya Ekle (PNG/PDF)
                       <input type="file" className="hidden" accept="image/*,application/pdf" onChange={async (e) => {

@@ -4,6 +4,7 @@ import useAuthStore from '../store/authStore';
 import { soruAPI, bransAPI } from '../services/api';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import html2canvas from 'html2canvas';
 import {
   ArrowsPointingOutIcon,
   TrashIcon,
@@ -315,11 +316,11 @@ export default function SoruDetay() {
     // LaTeX Render
     html = html.replace(/\$\$([^\$]+)\$\$/g, (match, latex) => {
       try { return katex.renderToString(latex, { throwOnError: false, displayMode: true }); }
-      catch (e) { return `<span class="text-red-500 text-sm">${match}</span>`; }
+      catch (e) { return `< span class="text-red-500 text-sm" > ${match}</span > `; }
     });
     html = html.replace(/\$([^\$]+)\$/g, (match, latex) => {
       try { return katex.renderToString(latex, { throwOnError: false, displayMode: false }); }
-      catch (e) { return `<span class="text-red-500 text-sm">${match}</span>`; }
+      catch (e) { return `< span class="text-red-500 text-sm" > ${match}</span > `; }
     });
     html = html.replace(/\n/g, '<br>');
 
@@ -336,13 +337,13 @@ export default function SoruDetay() {
       visibleNotes.forEach((not, index) => {
         if (!not.secilen_metin) return;
         const colorClass = not.inceleme_turu === 'dilci' ? 'green' : 'blue';
-        const mark = `<mark class="bg-${colorClass}-100 border-b-2 border-${colorClass}-400 px-1 relative group cursor-help transition-colors hover:bg-${colorClass}-200">
-          ${not.secilen_metin}
+        const mark = `< mark class="bg-${colorClass}-100 border-b-2 border-${colorClass}-400 px-1 relative group cursor-help transition-colors hover:bg-${colorClass}-200" >
+  ${not.secilen_metin}
           <sup class="text-${colorClass}-700 font-bold ml-0.5 select-none">[${revizeNotlari.indexOf(not) + 1}]</sup>
           <span class="absolute bottom-full left-1/2 -translate-x-1/2 hidden group-hover:block bg-gray-900 text-white text-[10px] p-2 rounded w-48 z-50 shadow-xl mb-2">
             <strong>${not.inceleme_turu.toUpperCase()} Notu:</strong> ${not.not_metni}
           </span>
-        </mark>`;
+        </mark > `;
         html = html.split(not.secilen_metin).join(mark);
       });
     }
@@ -365,6 +366,27 @@ export default function SoruDetay() {
       const res = await soruAPI.getRevizeNotlari(id);
       setRevizeNotlari(res.data.data);
     } catch (e) { console.error(e); }
+  };
+
+  const handleCapturePNG = async () => {
+    if (!soruMetniRef.current || !soruMetniRef.current.parentElement) return;
+    try {
+      // Capture the white card element
+      const element = soruMetniRef.current.parentElement.parentElement;
+      const canvas = await html2canvas(element, {
+        scale: 3, // Very high quality for print
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false
+      });
+      const link = document.createElement('a');
+      link.download = `soru-${id}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (err) {
+      console.error('PNG error:', err);
+      alert('Görsel oluşturulamadı.');
+    }
   };
 
   useEffect(() => {
@@ -469,7 +491,7 @@ export default function SoruDetay() {
         yeni_durum: 'tamamlandi',
         aciklama: 'Dizgisi yapıldı ve havuza gönderildi.'
       });
-      alert(`Soru başarıyla tamamlandı (V${soru.versiyon || 1}) ve Hazır Soru Havuzuna eklendi.`);
+      alert(`Soru başarıyla tamamlandı(V${soru.versiyon || 1}) ve Hazır Soru Havuzuna eklendi.`);
       navigate('/');
     } catch (e) {
       alert('Hata: ' + (e.response?.data?.error || e.message));
@@ -511,28 +533,28 @@ export default function SoruDetay() {
       let htmlContent = components.map(c => {
         let style = "";
         if (c.type === 'image') {
-          style = `width: ${c.width}%; margin-bottom: 12px;`;
-          if (c.height !== 'auto') style += ` height: ${c.height}px; object-fit: fill;`;
+          style = `width: ${c.width}%; margin - bottom: 12px; `;
+          if (c.height !== 'auto') style += ` height: ${c.height} px; object - fit: fill; `;
           if (c.align === 'left') style += ' float: left; margin-right: 12px;';
           else if (c.align === 'right') style += ' float: right; margin-left: 12px;';
           else style += ' display: block; margin-left: auto; margin-right: auto;';
-          return `<div class="q-img" style="${style}"><img src="${c.content}" style="width:100%; height:100%;" /></div>`;
+          return `< div class="q-img" style = "${style}" > <img src="${c.content}" style="width:100%; height:100%;" /></div > `;
         }
         else {
           let commonStyle = "text-align: left; hyphens: none; -webkit-hyphens: none; line-height: 1.4;";
-          if (c.subtype === 'koku') style = `${commonStyle} font-weight: bold; margin-bottom: 12px; margin-top: 4px; font-size: 10pt;`;
+          if (c.subtype === 'koku') style = `${commonStyle} font - weight: bold; margin - bottom: 12px; margin - top: 4px; font - size: 10pt; `;
           else if (c.subtype === 'secenek') {
-            let w = c.width !== 100 ? `width: ${c.width}%;` : '';
-            let f = c.float !== 'none' ? `float: ${c.float};` : '';
+            let w = c.width !== 100 ? `width: ${c.width}%; ` : '';
+            let f = c.float !== 'none' ? `float: ${c.float}; ` : '';
             let m = c.float === 'left' ? 'margin-right: 2%;' : '';
-            style = `${commonStyle} margin-bottom: 6px; padding-left: 24px; text-indent: -24px; ${w} ${f} ${m}`;
+            style = `${commonStyle} margin - bottom: 6px; padding - left: 24px; text - indent: -24px; ${w} ${f} ${m} `;
           }
-          else style = `${commonStyle} margin-bottom: 8px; font-size: 10pt;`;
-          return `<div class="q-txt q-${c.subtype}" style="${style} clear: ${c.float === 'none' ? 'both' : 'none'};">${c.content}</div>`;
+          else style = `${commonStyle} margin - bottom: 8px; font - size: 10pt; `;
+          return `< div class="q-txt q-${c.subtype}" style = "${style} clear: ${c.float === 'none' ? 'both' : 'none'};" > ${c.content}</div > `;
         }
       }).join('');
 
-      htmlContent += `<div style="clear: both;"></div>`;
+      htmlContent += `< div style = "clear: both;" ></div > `;
       formData.append('soru_metni', htmlContent);
 
       const firstNewImage = components.find(c => c.type === 'image' && c.file);
@@ -541,7 +563,7 @@ export default function SoruDetay() {
         formData.append('fotograf_konumu', 'ust');
       }
 
-      ['a', 'b', 'c', 'd', 'e'].forEach(opt => formData.append(`secenek_${opt}`, ''));
+      ['a', 'b', 'c', 'd', 'e'].forEach(opt => formData.append(`secenek_${opt} `, ''));
 
       await soruAPI.update(id, formData);
       alert('Soru güncellendi!');
@@ -565,9 +587,9 @@ export default function SoruDetay() {
       if (mode === 'grid') { styleProps = { width: 48, float: 'left' }; }
       return {
         id: baseId + idx,
-        type: 'text', subtype: 'secenek', content: `<b>${opt})</b> `,
+        type: 'text', subtype: 'secenek', content: `< b > ${opt})</b > `,
         placeholder: ``,
-        label: `Seçenek ${opt}`,
+        label: `Seçenek ${opt} `,
         ...styleProps
       };
     });
@@ -670,6 +692,13 @@ export default function SoruDetay() {
             </a>
           )}
 
+          <button
+            onClick={handleCapturePNG}
+            className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-bold text-xs hover:bg-blue-200 transition flex items-center gap-2 border border-blue-300"
+          >
+            📸 GÖRÜNÜMÜ PNG AL
+          </button>
+
           {!editMode && (
             <>
               {/* İNCELEME MODUNDA VEYA ADMIN/İNCELEMECİ İSE GÖRÜNECEK BUTONLAR */}
@@ -769,8 +798,8 @@ export default function SoruDetay() {
               <div className="flex items-center gap-4">
                 <h2 className="text-sm font-bold flex items-center gap-2"><PencilSquareIcon className="w-4 h-4" /> Düzenleme Modu</h2>
                 <div className="flex bg-[#005A9E] rounded p-0.5">
-                  <button onClick={() => setWidthMode('dar')} className={`px-2 py-0.5 text-[10px] font-bold rounded ${widthMode === 'dar' ? 'bg-white text-[#0078D4]' : 'text-white/80'}`}>82mm</button>
-                  <button onClick={() => setWidthMode('genis')} className={`px-2 py-0.5 text-[10px] font-bold rounded ${widthMode === 'genis' ? 'bg-white text-[#0078D4]' : 'text-white/80'}`}>169mm</button>
+                  <button onClick={() => setWidthMode('dar')} className={`px - 2 py - 0.5 text - [10px] font - bold rounded ${widthMode === 'dar' ? 'bg-white text-[#0078D4]' : 'text-white/80'} `}>82mm</button>
+                  <button onClick={() => setWidthMode('genis')} className={`px - 2 py - 0.5 text - [10px] font - bold rounded ${widthMode === 'genis' ? 'bg-white text-[#0078D4]' : 'text-white/80'} `}>169mm</button>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -805,8 +834,8 @@ export default function SoruDetay() {
                   {components.map((comp, index) => (
                     <div
                       key={comp.id}
-                      className={`relative group/item rounded px-1 transition ${draggedItemIndex === index ? 'opacity-50 bg-blue-50' : 'hover:ring-1 hover:ring-blue-100'}`}
-                      style={{ float: comp.float || 'none', width: comp.width && comp.subtype === 'secenek' ? `${comp.width}%` : 'auto', marginRight: comp.float === 'left' ? '2%' : '0' }}
+                      className={`relative group / item rounded px - 1 transition ${draggedItemIndex === index ? 'opacity-50 bg-blue-50' : 'hover:ring-1 hover:ring-blue-100'} `}
+                      style={{ float: comp.float || 'none', width: comp.width && comp.subtype === 'secenek' ? `${comp.width}% ` : 'auto', marginRight: comp.float === 'left' ? '2%' : '0' }}
                       draggable="true"
                       onDragStart={(e) => onDragStart(e, index)}
                       onDragOver={(e) => onDragOver(e, index)}
@@ -840,7 +869,7 @@ export default function SoruDetay() {
                 <label className="text-[10px] font-bold text-gray-400 uppercase">Dogru Cevap</label>
                 <div className="flex gap-1 mt-1">
                   {['A', 'B', 'C', 'D', 'E'].map(opt => (
-                    <button key={opt} onClick={() => setEditMetadata({ ...editMetadata, dogruCevap: opt })} className={`w-6 h-6 rounded-full border font-bold text-[10px] ${editMetadata.dogruCevap === opt ? 'bg-blue-600 text-white' : 'bg-gray-50'}`}>{opt}</button>
+                    <button key={opt} onClick={() => setEditMetadata({ ...editMetadata, dogruCevap: opt })} className={`w - 6 h - 6 rounded - full border font - bold text - [10px] ${editMetadata.dogruCevap === opt ? 'bg-blue-600 text-white' : 'bg-gray-50'} `}>{opt}</button>
                   ))}
                 </div>
               </div>
