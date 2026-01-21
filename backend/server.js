@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import pool from './src/config/database.js'; // Import pool
 
 // Routes
 import authRoutes from './src/routes/auth.routes.js';
@@ -74,6 +75,12 @@ const startServer = async () => {
   try {
     await createTables();
     console.log('✅ Veritabanı tabloları hazır');
+
+    // FIX: Eski soruları geri getir
+    const fixRes = await pool.query("UPDATE sorular SET durum = 'dizgi_tamam' WHERE durum = 'tamamlandi' AND final_png_url IS NULL");
+    if (fixRes.rowCount > 0) {
+      console.log(`✅ FIX APPLIED: ${fixRes.rowCount} eski soru 'dizgi_tamam' statüsüne alındı.`);
+    }
   } catch (error) {
     console.error('❌ Veritabanı bağlantı hatası:', error);
     console.log('⚠️ Sunucu veritabanı olmadan çalışmaya devam ediyor...');
