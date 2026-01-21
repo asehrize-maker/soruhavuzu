@@ -293,20 +293,11 @@ export default function DizgiYonetimi() {
                         }
 
                         const fd = new FormData();
-                        // DizgiTamamlaWithFile hem fotoğraf hem dosya (PDF) kabul eder.
-                        // Backend tarafında kontrol edilir ama isimlendirme önemlidir.
-                        // SoruRoutes.js incelendiğinde 'fotograf' veya 'dosya' field'ları kullanılıyor olabilir.
-                        // DizgiYonetimi.jsx bağlamında upload edilen dosyayı doğru field'a atayalım.
-                        // Mevcut kodda: if (file.type.startsWith('image/')) fd.append('fotograf', file); else fd.append('dosya', file);
-
-                        if (file.type.startsWith('image/')) {
-                          fd.append('fotograf', file);
-                        } else {
-                          fd.append('dosya', file);
-                        }
+                        // Backend 'final_png' field'ı bekliyor (resim veya pdf olsa da)
+                        fd.append('final_png', file);
 
                         try {
-                          await soruAPI.dizgiTamamlaWithFile(selectedSoru.id, fd);
+                          await soruAPI.uploadFinal(selectedSoru.id, fd);
                           alert('Dosya yüklendi ve havuza aktarıldı');
                           await loadSorular();
                           loadBransCounts();
