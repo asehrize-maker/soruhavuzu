@@ -292,6 +292,44 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* --- YENİ BÖLÜM: Soru Yaşam Döngüsü ve İş Yükü (Admin İçin) --- */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 table-responsive animate-fade-in-up">
+          <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+            <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" /></svg>
+            Soru Yaşam Döngüsü ve İş Yükü
+          </h2>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-center">
+            <div className="flex-1 p-4 bg-gray-50 rounded-xl border border-gray-200 w-full relative group hover:border-blue-300 transition">
+              <p className="text-xs font-bold text-gray-400 uppercase">TASLAK / BEKLİYOR</p>
+              <p className="text-2xl font-black text-gray-700 mt-1">{detayliStats?.genel?.beklemede || 0}</p>
+              <div className="absolute top-1/2 -right-3 w-6 h-6 bg-white border-t border-r border-gray-200 transform rotate-45 z-10 hidden md:block group-hover:border-blue-300"></div>
+            </div>
+
+            <div className="flex-1 p-4 bg-yellow-50 rounded-xl border border-yellow-200 w-full relative group hover:border-yellow-400 transition">
+              <p className="text-xs font-bold text-yellow-600 uppercase">İNCELEME BEKLİYOR</p>
+              <p className="text-3xl font-black text-yellow-700 mt-1">{detayliStats?.genel?.inceleme_bekliyor || 0}</p>
+              <div className="absolute top-1/2 -right-3 w-6 h-6 bg-yellow-50 border-t border-r border-yellow-200 transform rotate-45 z-10 hidden md:block group-hover:border-yellow-400"></div>
+            </div>
+
+            <div className="flex-1 p-4 bg-red-50 rounded-xl border border-red-200 w-full relative group hover:border-red-400 transition">
+              <p className="text-xs font-bold text-red-600 uppercase">REVİZE / DÜZELTME</p>
+              <p className="text-2xl font-black text-red-700 mt-1">{detayliStats?.genel?.revize_istendi || 0}</p>
+              <div className="absolute top-1/2 -right-3 w-6 h-6 bg-red-50 border-t border-r border-red-200 transform rotate-45 z-10 hidden md:block group-hover:border-red-400"></div>
+            </div>
+
+            <div className="flex-1 p-4 bg-orange-50 rounded-xl border border-orange-200 w-full relative group hover:border-orange-400 transition">
+              <p className="text-xs font-bold text-orange-600 uppercase">DİZGİ AŞAMASI</p>
+              <p className="text-2xl font-black text-orange-700 mt-1">{(parseInt(detayliStats?.genel?.dizgi_bekliyor) || 0) + (parseInt(detayliStats?.genel?.dizgide) || 0)}</p>
+              <div className="absolute top-1/2 -right-3 w-6 h-6 bg-orange-50 border-t border-r border-orange-200 transform rotate-45 z-10 hidden md:block group-hover:border-orange-400"></div>
+            </div>
+
+            <div className="flex-1 p-4 bg-green-50 rounded-xl border border-green-200 w-full hover:border-green-400 transition">
+              <p className="text-xs font-bold text-green-600 uppercase">HAVUZDA (TAMAM)</p>
+              <p className="text-3xl font-black text-green-700 mt-1">{detayliStats?.genel?.tamamlandi || 0}</p>
+            </div>
+          </div>
+        </div>
+
         {selectedStat && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedStat(null)}>
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
@@ -342,6 +380,25 @@ export default function Dashboard() {
   if (activeRole === 'soru_yazici') {
     return (
       <div className="space-y-8 animate-fade-in">
+
+        {/* Revize Uyarısı - Aksiyon Gerektiren Durum */}
+        {((stats?.revize_istendi || 0) + (stats?.revize_gerekli || 0)) > 0 && (
+          <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-r-xl shadow-sm flex flex-col md:flex-row justify-between items-center animate-pulse-slow gap-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-red-100 rounded-full text-red-600 shrink-0">
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+              </div>
+              <div>
+                <h3 className="font-bold text-red-800 text-xl">Aksiyon Gerekiyor!</h3>
+                <p className="text-red-700 font-medium mt-1">Toplam <span className="font-black text-2xl mx-1">{(stats?.revize_istendi || 0) + (stats?.revize_gerekli || 0)}</span> sorunuz için incelemeciler düzeltme talep etti.</p>
+              </div>
+            </div>
+            <Link to="/sorular?takip=1" className="px-6 py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition shadow-lg shadow-red-200 whitespace-nowrap">
+              Düzeltmeleri Gör &rarr;
+            </Link>
+          </div>
+        )}
+
         <div className="flex flex-col md:flex-row justify-between items-center bg-gradient-to-r from-blue-700 to-blue-600 p-8 rounded-2xl shadow-lg text-white">
           <div>
             <h1 className="text-3xl font-bold">Hoş Geldiniz, {user?.ad_soyad}</h1>
@@ -383,9 +440,9 @@ export default function Dashboard() {
               <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">İNCELENEN</span>
               <span className="text-3xl font-black text-blue-600">{stats?.inceleme_bekliyor || 0}</span>
             </div>
-            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center items-center ring-2 ring-red-100">
-              <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 text-red-600">REVİZE BEKLEYEN</span>
-              <span className="text-3xl font-black text-red-600">{(stats?.revize_istendi || 0) + (stats?.revize_gerekli || 0)}</span>
+            <div className={`bg-white p-5 rounded-xl border shadow-sm flex flex-col justify-center items-center ${((stats?.revize_istendi || 0) + (stats?.revize_gerekli || 0)) > 0 ? 'border-red-300 ring-2 ring-red-100 bg-red-50' : 'border-gray-200'}`}>
+              <span className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${((stats?.revize_istendi || 0) + (stats?.revize_gerekli || 0)) > 0 ? 'text-red-600' : 'text-gray-500'}`}>REVİZE BEKLEYEN</span>
+              <span className={`text-3xl font-black ${((stats?.revize_istendi || 0) + (stats?.revize_gerekli || 0)) > 0 ? 'text-red-600' : 'text-gray-600'}`}>{(stats?.revize_istendi || 0) + (stats?.revize_gerekli || 0)}</span>
             </div>
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center items-center">
               <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 text-orange-600">DİZGİ AŞAMASI</span>
