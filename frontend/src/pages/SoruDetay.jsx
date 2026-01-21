@@ -496,10 +496,10 @@ export default function SoruDetay() {
 
     try {
       await soruAPI.updateDurum(id, {
-        yeni_durum: 'inceleme_bekliyor',
+        yeni_durum: 'dizgi_tamam',
         aciklama: 'Dizgisi yapıldı ve branş kontrolüne gönderildi.'
       });
-      alert(`Soru başarıyla branş havuzuna (İnceleme Bekliyor) gönderildi.`);
+      alert(`✅ Soru başarıyla branş havuzuna (Dizgi Tamamlandı) gönderildi.`);
       navigate('/');
     } catch (e) {
       alert('Hata: ' + (e.response?.data?.error || e.message));
@@ -648,12 +648,32 @@ export default function SoruDetay() {
   const isOwner = soru.olusturan_kullanici_id == user?.id;
   const isAdmin = effectiveRole === 'admin';
 
-  const availableStatusesForEdit = ['beklemede', 'revize_gerekli', 'revize_istendi', 'inceleme_tamam', 'dizgi_bekliyor', 'inceleme_bekliyor'];
+  const availableStatusesForEdit = ['beklemede', 'revize_gerekli', 'revize_istendi', 'inceleme_tamam', 'dizgi_bekliyor', 'inceleme_bekliyor', 'dizgi_tamam'];
   const canEdit = isAdmin || (isOwner && availableStatusesForEdit.includes(soru.durum));
 
   const getDurumBadge = (durum) => {
-    const badges = { beklemede: 'badge badge-warning', inceleme_bekliyor: 'badge badge-primary', dizgi_bekliyor: 'badge badge-warning', dizgide: 'badge badge-info', tamamlandi: 'badge badge-success', revize_gerekli: 'badge badge-error', revize_istendi: 'badge badge-error', inceleme_tamam: 'badge badge-emerald' };
-    const labels = { beklemede: 'Beklemede', inceleme_bekliyor: 'İnceleme Bekliyor', dizgi_bekliyor: 'Dizgi Bekliyor', dizgide: 'Dizgide', tamamlandi: 'Tamamlandı', revize_gerekli: 'Revize Gerekli', revize_istendi: 'Revize İstendi', inceleme_tamam: 'İnceleme Tamamlandı' };
+    const badges = {
+      beklemede: 'badge badge-warning',
+      inceleme_bekliyor: 'badge badge-primary',
+      dizgi_bekliyor: 'badge badge-warning',
+      dizgide: 'badge badge-info',
+      tamamlandi: 'badge badge-success',
+      revize_gerekli: 'badge badge-error',
+      revize_istendi: 'badge badge-error',
+      inceleme_tamam: 'badge bg-teal-100 text-teal-700',
+      dizgi_tamam: 'badge bg-emerald-100 text-emerald-700 border border-emerald-200'
+    };
+    const labels = {
+      beklemede: 'Hazırlanıyor',
+      inceleme_bekliyor: 'İnceleme Bekliyor',
+      dizgi_bekliyor: 'Dizgi Bekliyor',
+      dizgide: 'Dizgide',
+      tamamlandi: 'Tamamlandı',
+      revize_gerekli: 'Revize Gerekli',
+      revize_istendi: 'Revize İstendi',
+      inceleme_tamam: 'İnceleme Tamamlandı',
+      dizgi_tamam: 'Dizgi Tamamlandı'
+    };
     return <span className={badges[durum]}>{labels[durum]}</span>;
   };
 

@@ -30,6 +30,7 @@ export default function Sorular({ scope }) {
   }, [isTakipModu, scope, urlDurum]);
 
   const [selectedQuestions, setSelectedQuestions] = useState([]);
+  const [activeTab, setActiveTab] = useState('taslaklar'); // 'taslaklar' or 'dizgi_sonrasi'
 
   useEffect(() => {
     if (!user) return;
@@ -61,8 +62,18 @@ export default function Sorular({ scope }) {
         const response = await soruAPI.getAll(params);
         let data = response.data.data || [];
 
-        // Frontend tarafında da rol kısıtlamasını simüle et (Admin viewRole kullanıyorsa)
-        // Admin her zaman her şeyi görmeli (Simülasyonda bile kafa karışıklığını önlemek için)
+        // Branş Havuzu için Sekme Bazlı Filtreleme
+        if (scope === 'brans') {
+          if (activeTab === 'taslaklar') {
+            // Yazılan/Revize bekleyen sorular (Dizgiye henüz gitmemiş veya revize bekleyenler)
+            data = data.filter(s => ['beklemede', 'revize_istendi', 'revize_gerekli'].includes(s.durum));
+          } else {
+            // Dizgiden gelenler (Kontrol edilip incelemeye gönderilecekler)
+            data = data.filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum));
+          }
+        }
+
+        // Frontend kısıtlamaları
         if (effectiveRole === 'dizgici' && authUser?.rol !== 'admin') {
           data = data.filter(s => ['dizgi_bekliyor', 'dizgide'].includes(s.durum));
         }
@@ -130,6 +141,51 @@ export default function Sorular({ scope }) {
       alert(`✅ ${idList.length} soru başarıyla dizgiye gönderildi.`);
     } catch (error) {
       console.error('Dizgiye gönderme hatası:', error);
+      alert('İşlem sırasında bir hata oluştu.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleİncelemeyeGonder = async (ids) => {
+    const idList = Array.isArray(ids) ? ids : [ids];
+    if (idList.length === 0) return;
+
+    if (!window.confirm(`${idList.length} soruyu ALAN İNCELEME birimine göndermek istediğinize emin misiniz?`)) return;
+
+    try {
+      setLoading(true);
+      await Promise.all(idList.map(id => soruAPI.updateDurum(id, { durum: 'inceleme_bekliyor' })));
+
+      // Veriyi yenile
+      const response = await soruAPI.getAll({ scope });
+      setSorular((response.data.data || []).filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum)));
+      setSelectedQuestions([]);
+      alert(`✅ ${idList.length} soru başarıyla incelemeye gönderildi.`);
+    } catch (error) {
+      console.error('İncelemeye gönderme hatası:', error);
+      alert('İşlem sırasında bir hata oluştu.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOrtakHavuzaGonder = async (ids) => {
+    const idList = Array.isArray(ids) ? ids : [ids];
+    if (idList.length === 0) return;
+
+    if (!window.confirm(`${idList.length} soruyu ORTAK HAVUZA (Tamamlandı) göndermek istediğinize emin misiniz?`)) return;
+
+    try {
+      setLoading(true);
+      await Promise.all(idList.map(id => soruAPI.updateDurum(id, { durum: 'tamamlandi' })));
+
+      const response = await soruAPI.getAll({ scope });
+      setSorular((response.data.data || []).filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum)));
+      setSelectedQuestions([]);
+      alert(`✅ ${idList.length} soru başarıyla Ortak Havuza gönderildi.`);
+    } catch (error) {
+      console.error('Tamamlama hatası:', error);
       alert('İşlem sırasında bir hata oluştu.');
     } finally {
       setLoading(false);
@@ -221,17 +277,23 @@ export default function Sorular({ scope }) {
       beklemede: 'badge badge-warning',
       dizgi_bekliyor: 'badge bg-purple-100 text-purple-700',
       dizgide: 'badge badge-info',
+      dizgi_tamam: 'badge bg-emerald-100 text-emerald-700 border border-emerald-200',
       tamamlandi: 'badge badge-success',
       revize_gerekli: 'badge badge-error',
       revize_istendi: 'badge badge-error',
+      inceleme_bekliyor: 'badge badge-primary',
+      inceleme_tamam: 'badge bg-teal-100 text-teal-700',
     };
     const labels = {
-      beklemede: 'Beklemede',
+      beklemede: 'Hazırlanıyor',
       dizgi_bekliyor: 'Dizgi Bekliyor',
       dizgide: 'Dizgide',
-      tamamlandi: 'Tamamlandı',
+      dizgi_tamam: 'Dizgi Tamamlandı',
+      tamamlandi: 'Ortak Havuzda',
       revize_gerekli: 'Revize Gerekli',
       revize_istendi: 'Revize İstendi',
+      inceleme_bekliyor: 'İncelemede (Alan/Dil)',
+      inceleme_tamam: 'İnceleme Tamamlandı',
     };
     return <span className={badges[durum]}>{labels[durum]}</span>;
   };
@@ -272,7 +334,6 @@ export default function Sorular({ scope }) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      {/* Header */}
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
           {user?.rol === 'admin' && filters.brans_id && (
@@ -294,6 +355,24 @@ export default function Sorular({ scope }) {
             )}
           </h1>
         </div>
+
+        {/* Branş Havuzu Sekmeleri */}
+        {scope === 'brans' && (
+          <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-100 w-fit">
+            <button
+              onClick={() => { setActiveTab('taslaklar'); setSelectedQuestions([]); }}
+              className={`px-6 py-2 rounded-lg font-bold text-sm transition ${activeTab === 'taslaklar' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
+            >
+              ✍️ Yazılan / Draft Sorular
+            </button>
+            <button
+              onClick={() => { setActiveTab('dizgi_sonrasi'); setSelectedQuestions([]); }}
+              className={`px-6 py-2 rounded-lg font-bold text-sm transition ${activeTab === 'dizgi_sonrasi' ? 'bg-emerald-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
+            >
+              🏁 Dizgiden Gelenler (Onaylanacak)
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Filtreler */}
@@ -349,13 +428,31 @@ export default function Sorular({ scope }) {
             >
               📄 Seçilenleri Dışa Aktar (Word/Yazdır)
             </button>
-            {user?.rol === 'soru_yazici' && (
+            {user?.rol === 'soru_yazici' && activeTab === 'taslaklar' && (
               <button
                 onClick={() => handleDizgiyeGonder(selectedQuestions)}
                 className="btn bg-purple-600 hover:bg-purple-700 text-white text-sm py-1 px-3"
               >
-                ✨ Seçilenleri Dizgiye Gönder
+                🚀 Seçilenleri DİZGİYE Gönder
               </button>
+            )}
+            {user?.rol === 'soru_yazici' && activeTab === 'dizgi_sonrasi' && (
+              <>
+                <button
+                  onClick={() => handleİncelemeyeGonder(selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'dizgi_tamam'))}
+                  disabled={selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'dizgi_tamam').length === 0}
+                  className="btn bg-blue-600 hover:bg-blue-700 text-white text-sm py-1 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  🔍 Alan İncelemeye Gönder
+                </button>
+                <button
+                  onClick={() => handleOrtakHavuzaGonder(selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'inceleme_tamam'))}
+                  disabled={selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'inceleme_tamam').length === 0}
+                  className="btn bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-1 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  ✅ Ortak Havuza Gönder
+                </button>
+              </>
             )}
             <button
               onClick={() => setSelectedQuestions([])}
@@ -388,20 +485,23 @@ export default function Sorular({ scope }) {
             <div key={soru.id} className={`card hover:shadow-lg transition-shadow border-l-4 ${selectedQuestions.includes(soru.id) ? 'border-primary-500 bg-blue-50' : 'border-transparent'}`}>
               <div className="flex items-start">
 
-                {/* Checkbox (Tamamlandı ise, Admin ise VEYA Branş Havuzunda işlem bekleyenler) */}
-                {(soru.durum === 'tamamlandi' || user?.rol === 'admin' || (scope === 'brans' && ['beklemede', 'revize_istendi', 'revize_gerekli', 'inceleme_tamam'].includes(soru.durum))) && (
-                  <div className="mr-4 mt-1">
-                    <input
-                      type="checkbox"
-                      className="w-5 h-5 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
-                      checked={selectedQuestions.includes(soru.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) setSelectedQuestions([...selectedQuestions, soru.id]);
-                        else setSelectedQuestions(selectedQuestions.filter(id => id !== soru.id));
-                      }}
-                    />
-                  </div>
-                )}
+                {/* Checkbox Seçimi */}
+                {(soru.durum === 'tamamlandi' || user?.rol === 'admin' || (scope === 'brans' && (
+                  (activeTab === 'taslaklar' && ['beklemede', 'revize_istendi', 'revize_gerekli', 'inceleme_tamam'].includes(soru.durum)) ||
+                  (activeTab === 'dizgi_sonrasi' && ['dizgi_tamam', 'inceleme_tamam'].includes(soru.durum))
+                ))) && (
+                    <div className="mr-4 mt-1">
+                      <input
+                        type="checkbox"
+                        className="w-5 h-5 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
+                        checked={selectedQuestions.includes(soru.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedQuestions([...selectedQuestions, soru.id]);
+                          else setSelectedQuestions(selectedQuestions.filter(id => id !== soru.id));
+                        }}
+                      />
+                    </div>
+                  )}
 
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
