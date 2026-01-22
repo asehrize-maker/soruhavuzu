@@ -324,14 +324,16 @@ export default function Dashboard() {
       {activeRole === 'soru_yazici' ? (
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Link to="/brans-havuzu?durum=beklemede" className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition text-center group">
-              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest group-hover:text-amber-500">TASLAKLAR</p>
-              <h3 className="text-3xl font-black text-gray-800 mt-1">{stats?.beklemede || 0}</h3>
+            <Link to="/brans-havuzu?tab=taslaklar" className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition text-center group">
+              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest group-hover:text-amber-500">✍️ YAZILAN / TASLAK</p>
+              <h3 className="text-3xl font-black text-gray-800 mt-1">{(Number(stats?.beklemede) || 0) + (Number(stats?.revize_gerekli) || 0)}</h3>
+              <p className="text-[10px] text-gray-400 mt-1">Branş Havuzunda Gönderilmeyi Bekleyenler</p>
             </Link>
-            <Link to="/brans-havuzu" className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition text-center group">
-              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest group-hover:text-blue-500">İŞLEMDE OLAN</p>
-              <h3 className="text-3xl font-black text-gray-800 mt-1">{(Number(stats?.dizgi_bekliyor) || 0) + (Number(stats?.dizgide) || 0) + (Number(stats?.inceleme_bekliyor) || 0)}</h3>
-            </Link>
+            <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100 shadow-sm text-center relative overflow-hidden">
+              <p className="text-blue-600 text-[10px] font-bold uppercase tracking-widest">⚙️ İŞLEMDE OLANLAR</p>
+              <h3 className="text-3xl font-black text-blue-700 mt-1">{(Number(stats?.dizgi_bekliyor) || 0) + (Number(stats?.dizgide) || 0) + (Number(stats?.inceleme_bekliyor) || 0)}</h3>
+              <p className="text-[10px] text-blue-500 mt-1">Dizgi veya İnceleme Birimlerinde</p>
+            </div>
             <Link to="/brans-havuzu?tab=dizgi_sonrasi" className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100 shadow-sm hover:shadow-md transition text-center group">
               <p className="text-emerald-600 text-[10px] font-bold uppercase tracking-widest">DİZGİ SONRASI</p>
               <h3 className="text-3xl font-black text-emerald-700 mt-1">{stats?.dizgi_tamam || 0}</h3>

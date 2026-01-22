@@ -62,13 +62,13 @@ export default function Sorular({ scope }) {
         const response = await soruAPI.getAll(params);
         let data = response.data.data || [];
 
-        // Branş Havuzu için Sekme Bazlı Filtreleme
+        // Branş Havuzu için Sekme Bazlı Filtreleme (USER REQUEST: Sadece Yazılanlar ve Dizgiden Gelenler)
         if (scope === 'brans') {
           if (activeTab === 'taslaklar') {
-            // Yazılan / Revize bekleyen / İşlemde olan sorular
-            data = data.filter(s => ['beklemede', 'revize_istendi', 'revize_gerekli', 'dizgi_bekliyor', 'dizgide', 'inceleme_bekliyor'].includes(s.durum));
+            // SADECE Branş Öğretmeninin yazdığı ilk haller ve revize bekleyenler (Gönderilecek olanlar)
+            data = data.filter(s => ['beklemede', 'revize_istendi', 'revize_gerekli'].includes(s.durum));
           } else {
-            // Dizgiden gelenler veya İncelemesi bitenler (Kontrol edilip onaylanacaklar)
+            // SADECE Dizgiden dönenler veya İncelemesi biten branş kontrolleri (Onaylanacak olanlar)
             data = data.filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum));
           }
         }
@@ -433,19 +433,10 @@ export default function Sorular({ scope }) {
               <input
                 type="checkbox"
                 className="w-5 h-5 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
-                checked={sorular.length > 0 && selectedQuestions.length === sorular.filter(s => (
-                  (activeTab === 'taslaklar' && ['beklemede', 'revize_istendi', 'revize_gerekli'].includes(s.durum)) ||
-                  (activeTab === 'dizgi_sonrasi' && ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum))
-                )).length}
+                checked={sorular.length > 0 && selectedQuestions.length === sorular.length && sorular.length > 0}
                 onChange={(e) => {
                   if (e.target.checked) {
-                    const selectableIds = sorular
-                      .filter(s => (
-                        (activeTab === 'taslaklar' && ['beklemede', 'revize_istendi', 'revize_gerekli'].includes(s.durum)) ||
-                        (activeTab === 'dizgi_sonrasi' && ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum))
-                      ))
-                      .map(s => s.id);
-                    setSelectedQuestions(selectableIds);
+                    setSelectedQuestions(sorular.map(s => s.id));
                   } else {
                     setSelectedQuestions([]);
                   }
@@ -539,23 +530,21 @@ export default function Sorular({ scope }) {
             <div key={soru.id} className={`card hover:shadow-lg transition-shadow border-l-4 ${selectedQuestions.includes(soru.id) ? 'border-primary-500 bg-blue-50' : 'border-transparent'}`}>
               <div className="flex items-start">
 
-                {/* Checkbox Seçimi: Sadece işlem yapılabilir statülerde çıksın */}
-                {(soru.durum === 'tamamlandi' || user?.rol === 'admin' || (scope === 'brans' && (
-                  (activeTab === 'taslaklar' && ['beklemede', 'revize_istendi', 'revize_gerekli'].includes(soru.durum)) ||
-                  (activeTab === 'dizgi_sonrasi' && ['dizgi_tamam', 'inceleme_tamam'].includes(soru.durum))
-                ))) && (
-                    <div className="mr-4 mt-1">
-                      <input
-                        type="checkbox"
-                        className="w-5 h-5 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
-                        checked={selectedQuestions.includes(soru.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) setSelectedQuestions([...selectedQuestions, soru.id]);
-                          else setSelectedQuestions(selectedQuestions.filter(id => id !== soru.id));
-                        }}
-                      />
-                    </div>
-                  )}
+                {/* Checkbox Seçimi: Sekmedeki tüm sorular seçilebilir olmalı */}
+                {(scope === 'brans' || user?.rol === 'admin' || soru.durum === 'tamamlandi') && (
+                  <label className="mr-5 mt-1 cursor-pointer flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 transition-colors z-10">
+                    <input
+                      type="checkbox"
+                      className="w-6 h-6 text-primary-600 rounded-md border-gray-400 focus:ring-primary-500 cursor-pointer shadow-sm"
+                      checked={selectedQuestions.includes(soru.id)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        if (e.target.checked) setSelectedQuestions([...selectedQuestions, soru.id]);
+                        else setSelectedQuestions(selectedQuestions.filter(id => id !== soru.id));
+                      }}
+                    />
+                  </label>
+                )}
 
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
