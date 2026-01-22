@@ -157,11 +157,19 @@ export default function Sorular({ scope }) {
       setLoading(true);
       await Promise.all(idList.map(id => soruAPI.updateDurum(id, { durum: 'inceleme_bekliyor' })));
 
-      // Veriyi yenile
+      // Veriyi yenile (useEffect zaten scope/activeTab değişince çalışıyor ama manuel tetiklemek daha güvenli)
       const response = await soruAPI.getAll({ scope });
-      setSorular((response.data.data || []).filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum)));
+      let data = response.data.data || [];
+      if (scope === 'brans') {
+        if (activeTab === 'taslaklar') {
+          data = data.filter(s => ['beklemede', 'revize_istendi', 'revize_gerekli', 'dizgi_bekliyor', 'dizgide', 'inceleme_bekliyor'].includes(s.durum));
+        } else {
+          data = data.filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum));
+        }
+      }
+      setSorular(data);
       setSelectedQuestions([]);
-      alert(`✅ ${idList.length} soru başarıyla incelemeye gönderildi.`);
+      alert(`✅ ${idList.length} soru başarıyla ALAN İNCELEMEYE gönderildi.`);
     } catch (error) {
       console.error('İncelemeye gönderme hatası:', error);
       alert('İşlem sırasında bir hata oluştu.');
@@ -418,51 +426,97 @@ export default function Sorular({ scope }) {
       </div>
 
       {/* Araç Çubuğu (Dışa Aktarma / Çoklu İşlem) */}
-      <div className="flex justify-end space-x-3">
-        {selectedQuestions.length > 0 && (
-          <div className="flex items-center space-x-2 bg-indigo-50 px-3 py-1 rounded border border-indigo-200">
-            <span className="text-sm font-medium text-indigo-800">{selectedQuestions.length} soru seçildi</span>
-            <button
-              onClick={handleExport}
-              className="btn btn-primary text-sm py-1 px-3"
-            >
-              📄 Seçilenleri Dışa Aktar (Word/Yazdır)
-            </button>
-            {user?.rol === 'soru_yazici' && activeTab === 'taslaklar' && (
+      {scope === 'brans' && (
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="w-5 h-5 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
+                checked={sorular.length > 0 && selectedQuestions.length === sorular.filter(s => (
+                  (activeTab === 'taslaklar' && ['beklemede', 'revize_istendi', 'revize_gerekli'].includes(s.durum)) ||
+                  (activeTab === 'dizgi_sonrasi' && ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum))
+                )).length}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    const selectableIds = sorular
+                      .filter(s => (
+                        (activeTab === 'taslaklar' && ['beklemede', 'revize_istendi', 'revize_gerekli'].includes(s.durum)) ||
+                        (activeTab === 'dizgi_sonrasi' && ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum))
+                      ))
+                      .map(s => s.id);
+                    setSelectedQuestions(selectableIds);
+                  } else {
+                    setSelectedQuestions([]);
+                  }
+                }}
+              />
+              <span className="text-sm font-bold text-gray-700">Tümünü Seç</span>
+            </label>
+            {selectedQuestions.length > 0 && (
+              <span className="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100">
+                {selectedQuestions.length} soru seçildi
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {activeTab === 'taslaklar' && (
               <button
                 onClick={() => handleDizgiyeGonder(selectedQuestions)}
-                className="btn bg-purple-600 hover:bg-purple-700 text-white text-sm py-1 px-3"
+                disabled={selectedQuestions.length === 0}
+                className="btn bg-purple-600 hover:bg-purple-700 text-white text-sm py-2 px-4 shadow-sm disabled:opacity-50 disabled:grayscale transition-all flex items-center gap-2"
               >
                 🚀 Seçilenleri DİZGİYE Gönder
               </button>
             )}
-            {user?.rol === 'soru_yazici' && activeTab === 'dizgi_sonrasi' && (
+
+            {activeTab === 'dizgi_sonrasi' && (
               <>
                 <button
                   onClick={() => handleİncelemeyeGonder(selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'dizgi_tamam'))}
                   disabled={selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'dizgi_tamam').length === 0}
-                  className="btn bg-blue-600 hover:bg-blue-700 text-white text-sm py-1 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="btn bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 px-4 shadow-sm disabled:opacity-50 transition-all flex items-center gap-2"
                 >
-                  🔍 Alan İncelemeye Gönder
+                  🔍 Seçilenleri ALAN İNCELEMEYE Gönder
                 </button>
                 <button
                   onClick={() => handleOrtakHavuzaGonder(selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'inceleme_tamam'))}
                   disabled={selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'inceleme_tamam').length === 0}
-                  className="btn bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-1 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="btn bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-2 px-4 shadow-sm disabled:opacity-50 transition-all flex items-center gap-2"
                 >
-                  ✅ Ortak Havuza Gönder
+                  ✅ Seçilenleri ORTAK HAVUZA Gönder
                 </button>
               </>
             )}
+
             <button
-              onClick={() => setSelectedQuestions([])}
-              className="text-xs text-red-600 hover:underline"
+              onClick={handleExport}
+              disabled={selectedQuestions.length === 0}
+              className="btn btn-secondary text-sm py-2 px-4 disabled:opacity-50"
             >
-              Temizle
+              📄 Word / Yazdır
             </button>
+
+            {selectedQuestions.length > 0 && (
+              <button
+                onClick={() => setSelectedQuestions([])}
+                className="text-xs text-red-600 hover:underline px-2"
+              >
+                Seçimi Temizle
+              </button>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {!scope && selectedQuestions.length > 0 && (
+        <div className="flex justify-end items-center bg-indigo-50 p-4 rounded-xl border border-indigo-200 gap-4">
+          <span className="text-sm font-medium text-indigo-800">{selectedQuestions.length} soru seçildi</span>
+          <button onClick={handleExport} className="btn btn-primary text-sm py-2 px-4">📄 Seçilenleri Dışa Aktar</button>
+          <button onClick={() => setSelectedQuestions([])} className="text-xs text-red-600 hover:underline">Temizle</button>
+        </div>
+      )}
 
       {/* Sorular Listesi */}
       {loading ? (
