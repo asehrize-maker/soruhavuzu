@@ -933,7 +933,7 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
       // Soruyu güncelle -> Dizgiden çıkan soru artık havuza gider
       const soruResult = await client.query(
         `UPDATE sorular 
-         SET durum = 'tamamlandi',
+         SET durum = 'dizgi_tamam',
           guncellenme_tarihi = CURRENT_TIMESTAMP,
           dizgi_bitis_tarihi = CURRENT_TIMESTAMP,
           versiyon = COALESCE(versiyon, 1) + 1
