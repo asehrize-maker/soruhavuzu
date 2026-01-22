@@ -450,6 +450,16 @@ export default function SoruDetay() {
     }
   };
 
+  const handleDizgiAl = async () => {
+    try {
+      await soruAPI.dizgiAl(id);
+      alert('Soru üzerinize alındı. Dizgi işlemine başlayabilirsiniz.');
+      loadSoru();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Soru dizgiye alınamadı');
+    }
+  };
+
   const handleSendToDizgi = async () => {
     if (!confirm('Soru hazır. Dizgi birimine GÖNDERMEK istediğinizden emin misiniz?')) return;
     try {
@@ -676,7 +686,7 @@ export default function SoruDetay() {
   const isOwner = soru.olusturan_kullanici_id == user?.id;
   const isAdmin = effectiveRole === 'admin';
 
-  const availableStatusesForEdit = ['beklemede', 'revize_gerekli', 'revize_istendi', 'inceleme_tamam', 'dizgi_bekliyor', 'inceleme_bekliyor', 'dizgi_tamam'];
+  const availableStatusesForEdit = ['beklemede', 'revize_gerekli', 'revize_istendi', 'dizgi_bekliyor', 'dizgide'];
   const canEdit = isAdmin || (isOwner && availableStatusesForEdit.includes(soru.durum));
 
   const getDurumBadge = (durum) => {
@@ -796,7 +806,7 @@ export default function SoruDetay() {
               {/* DİZGİCİ İÇİN DİZGİYE AL BUTONU (EĞER BEKLEMEDEYSE) */}
               {effectiveRole === 'dizgici' && soru.durum === 'dizgi_bekliyor' && (
                 <button
-                  onClick={() => handleStatusUpdate('dizgide')}
+                  onClick={handleDizgiAl}
                   className="px-6 py-3 bg-orange-600 text-white rounded-xl font-black text-sm hover:bg-orange-700 transition shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] flex items-center gap-2 border-b-4 border-orange-800 active:border-b-0 active:translate-y-1"
                 >
                   🚀 DİZGİYE AL
