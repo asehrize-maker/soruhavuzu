@@ -620,7 +620,6 @@ router.put('/:id/final-upload', [authenticate, upload.single('final_png')], asyn
       UPDATE sorular 
       SET final_png_url = $1, final_png_public_id = $2,
           dizgici_id = COALESCE(dizgici_id, $3),
-          durum = 'tamamlandi',
           guncellenme_tarihi = CURRENT_TIMESTAMP
       WHERE id = $4 
       RETURNING *
