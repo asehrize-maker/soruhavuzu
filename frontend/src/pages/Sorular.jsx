@@ -71,8 +71,8 @@ export default function Sorular({ scope }) {
               ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli'].includes(s.durum)
             );
           } else {
-            // SADECE DİZGİDEN GELENLER (Aksiyon bekleyen: İncelemeye gidecek olanlar)
-            data = data.filter(s => s.durum === 'dizgi_tamam');
+            // SADECE DİZGİDEN VE İNCELEMEDEN GELENLER (Aksiyon bekleyen questions)
+            data = data.filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum));
           }
         }
 
@@ -167,7 +167,7 @@ export default function Sorular({ scope }) {
         if (activeTab === 'taslaklar') {
           data = data.filter(s => s.olusturan_kullanici_id == user?.id && ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli'].includes(s.durum));
         } else {
-          data = data.filter(s => s.durum === 'dizgi_tamam');
+          data = data.filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum));
         }
       }
       setSorular(data);
@@ -197,7 +197,7 @@ export default function Sorular({ scope }) {
         if (activeTab === 'taslaklar') {
           data = data.filter(s => s.olusturan_kullanici_id == user?.id && ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli'].includes(s.durum));
         } else {
-          data = data.filter(s => s.durum === 'dizgi_tamam');
+          data = data.filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum));
         }
       }
       setSorular(data);

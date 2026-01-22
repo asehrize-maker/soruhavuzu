@@ -686,7 +686,7 @@ export default function SoruDetay() {
   const isOwner = soru.olusturan_kullanici_id == user?.id;
   const isAdmin = effectiveRole === 'admin';
 
-  const availableStatusesForEdit = ['beklemede', 'revize_gerekli', 'revize_istendi', 'dizgi_bekliyor', 'dizgide'];
+  const availableStatusesForEdit = ['beklemede', 'revize_gerekli', 'revize_istendi', 'dizgi_bekliyor', 'dizgide', 'dizgi_tamam'];
   const canEdit = isAdmin || (isOwner && availableStatusesForEdit.includes(soru.durum));
 
   const getDurumBadge = (durum) => {
