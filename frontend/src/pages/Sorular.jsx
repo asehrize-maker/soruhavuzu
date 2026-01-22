@@ -379,13 +379,13 @@ export default function Sorular({ scope }) {
         {scope === 'brans' && (
           <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-100 w-fit">
             <button
-              onClick={() => { setActiveTab('taslaklar'); setSelectedQuestions([]); }}
+              onClick={() => { setActiveTab('taslaklar'); setFilters(f => ({ ...f, durum: '' })); setSelectedQuestions([]); }}
               className={`px-6 py-2 rounded-lg font-bold text-sm transition ${activeTab === 'taslaklar' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
             >
               ✍️ Yazılan / Draft Sorular
             </button>
             <button
-              onClick={() => { setActiveTab('dizgi_sonrasi'); setSelectedQuestions([]); }}
+              onClick={() => { setActiveTab('dizgi_sonrasi'); setFilters(f => ({ ...f, durum: '' })); setSelectedQuestions([]); }}
               className={`px-6 py-2 rounded-lg font-bold text-sm transition ${activeTab === 'dizgi_sonrasi' ? 'bg-emerald-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
             >
               🏁 Dizgiden Gelenler (Onaylanacak)
