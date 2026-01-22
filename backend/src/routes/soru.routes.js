@@ -758,6 +758,18 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         [id]
       );
       message = 'Soru dizgi sırasına alındı.';
+    } else if (yeni_durum === 'dizgi_tamam') {
+      // Dizgici tarafından branşa geri gönderilen soru
+      result = await pool.query(
+        `UPDATE sorular SET durum = 'dizgi_tamam', dizgi_tamamlanma_tarihi = NOW(), guncellenme_tarihi = NOW() WHERE id = $1 RETURNING *`,
+        [id]
+      );
+      message = 'Soru dizgisi tamamlandı ve branş kontrolüne gönderildi.';
+
+      if (soru.olusturan_kullanici_id) {
+        await createNotification(soru.olusturan_kullanici_id, 'Dizgi Tamamlandı', `#${id} nolu sorunuzun dizgisi tamamlandı. Kontrol edip İncelemeye gönderebilirsiniz.`, 'success', `/sorular/${id}`);
+      }
+
     } else if (yeni_durum === 'dizgide') {
       // Dizgici soruyu üzerine alır
       result = await pool.query(

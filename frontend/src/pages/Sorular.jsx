@@ -88,7 +88,7 @@ export default function Sorular({ scope }) {
     };
 
     loadSorular();
-  }, [user?.id, effectiveRole, filters.durum, filters.brans_id, scope]);
+  }, [user?.id, effectiveRole, filters.durum, filters.brans_id, scope, activeTab]);
 
   const handleSil = async (id) => {
     if (window.confirm('Bu soruyu kalıcı olarak silmek istediğinize emin misiniz?')) {
