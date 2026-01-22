@@ -62,19 +62,17 @@ export default function Sorular({ scope }) {
         const response = await soruAPI.getAll(params);
         let data = response.data.data || [];
 
-        // Branş Havuzu için Sekme Bazlı Filtreleme (USER REQUEST: Yazılanlar ve Dizgiden Gelenler Kesin Ayrım)
+        // Branş Havuzu için Sekme Bazlı Filtreleme
         if (scope === 'brans') {
           if (activeTab === 'taslaklar') {
-            // ÖĞRETMENİN KENDİ YAZDIĞI SORULAR (Hala taslak veya işlemde olanlar)
-            // USER REQUEST: Dizgiden gelince buradan çıksın
+            // ÖĞRETMENİN KENDİ YAZDIĞI İLK HALİ (Henüz dizgi tam bitmemiş olanlar)
             data = data.filter(s =>
               s.olusturan_kullanici_id == user?.id &&
-              !['dizgi_tamam', 'inceleme_bekliyor', 'incelemede', 'inceleme_tamam', 'tamamlandi'].includes(s.durum)
+              ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli'].includes(s.durum)
             );
           } else {
-            // SADECE AKSIYON BEKLEYENLER (Dizgiden gelenler veya İncelemesi bitenler)
-            // Tüm branşın sorularını görebilir (Koordinasyon için)
-            data = data.filter(s => ['dizgi_tamam', 'inceleme_bekliyor', 'incelemede', 'inceleme_tamam'].includes(s.durum));
+            // SADECE DİZGİDEN GELENLER (Aksiyon bekleyen: İncelemeye gidecek olanlar)
+            data = data.filter(s => s.durum === 'dizgi_tamam');
           }
         }
 
@@ -162,14 +160,14 @@ export default function Sorular({ scope }) {
       setLoading(true);
       await Promise.all(idList.map(id => soruAPI.updateDurum(id, { yeni_durum: 'inceleme_bekliyor' })));
 
-      // Veriyi yenile (useEffect zaten scope/activeTab değişince çalışıyor ama manuel tetiklemek daha güvenli)
+      // Veriyi yenile
       const response = await soruAPI.getAll({ scope });
       let data = response.data.data || [];
       if (scope === 'brans') {
         if (activeTab === 'taslaklar') {
-          data = data.filter(s => s.olusturan_kullanici_id == user?.id && !['dizgi_tamam', 'inceleme_bekliyor', 'incelemede', 'inceleme_tamam', 'tamamlandi'].includes(s.durum));
+          data = data.filter(s => s.olusturan_kullanici_id == user?.id && ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli'].includes(s.durum));
         } else {
-          data = data.filter(s => ['dizgi_tamam', 'inceleme_bekliyor', 'incelemede', 'inceleme_tamam'].includes(s.durum));
+          data = data.filter(s => s.durum === 'dizgi_tamam');
         }
       }
       setSorular(data);
@@ -197,9 +195,9 @@ export default function Sorular({ scope }) {
       let data = response.data.data || [];
       if (scope === 'brans') {
         if (activeTab === 'taslaklar') {
-          data = data.filter(s => s.olusturan_kullanici_id == user?.id && !['dizgi_tamam', 'inceleme_bekliyor', 'incelemede', 'inceleme_tamam', 'tamamlandi'].includes(s.durum));
+          data = data.filter(s => s.olusturan_kullanici_id == user?.id && ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli'].includes(s.durum));
         } else {
-          data = data.filter(s => ['dizgi_tamam', 'inceleme_bekliyor', 'incelemede', 'inceleme_tamam'].includes(s.durum));
+          data = data.filter(s => s.durum === 'dizgi_tamam');
         }
       }
       setSorular(data);
