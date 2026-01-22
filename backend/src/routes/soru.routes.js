@@ -680,9 +680,9 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
       }
     }
 
-    if (yeni_durum === 'dizgide' || yeni_durum === 'tamamlandi') {
+    if (yeni_durum === 'dizgide' || yeni_durum === 'tamamlandi' || yeni_durum === 'dizgi_tamam') {
       if (!isAdmin && req.user.rol !== 'dizgici') {
-        throw new AppError('Bu iYlem iÇõin yetkiniz yok', 403);
+        throw new AppError('Bu işlem için yetkiniz yok', 403);
       }
     }
 

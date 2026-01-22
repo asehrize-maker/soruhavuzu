@@ -62,13 +62,18 @@ export default function Sorular({ scope }) {
         const response = await soruAPI.getAll(params);
         let data = response.data.data || [];
 
-        // Branş Havuzu için Sekme Bazlı Filtreleme (USER REQUEST: Yazılanlar hep kalsın, Dizgiden Gelenler aksiyon olsun)
+        // Branş Havuzu için Sekme Bazlı Filtreleme (USER REQUEST: Yazılanlar ve Dizgiden Gelenler Kesin Ayrım)
         if (scope === 'brans') {
           if (activeTab === 'taslaklar') {
-            // ÖĞRETMENİN KENDİ YAZDIĞI TÜM SORULAR (Arşiv/Takip amaçlı)
-            data = data.filter(s => s.olusturan_kullanici_id === user?.id);
+            // ÖĞRETMENİN KENDİ YAZDIĞI SORULAR (Hala taslak veya işlemde olanlar)
+            // USER REQUEST: Dizgiden gelince buradan çıksın
+            data = data.filter(s =>
+              s.olusturan_kullanici_id == user?.id &&
+              !['dizgi_tamam', 'inceleme_tamam', 'tamamlandi'].includes(s.durum)
+            );
           } else {
-            // SADECE AKSIYON BEKLEYENLER (Onaylanacaklar)
+            // SADECE AKSIYON BEKLEYENLER (Dizgiden gelenler veya İncelemesi bitenler)
+            // Tüm branşın sorularını görebilir (Koordinasyon için)
             data = data.filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum));
           }
         }
@@ -124,7 +129,7 @@ export default function Sorular({ scope }) {
 
     try {
       setLoading(true);
-      await Promise.all(idList.map(id => soruAPI.updateDurum(id, { durum: 'dizgi_bekliyor' })));
+      await Promise.all(idList.map(id => soruAPI.updateDurum(id, { yeni_durum: 'dizgi_bekliyor' })));
 
       // Listeyi yenile
       const response = await soruAPI.getAll({
@@ -155,14 +160,14 @@ export default function Sorular({ scope }) {
 
     try {
       setLoading(true);
-      await Promise.all(idList.map(id => soruAPI.updateDurum(id, { durum: 'inceleme_bekliyor' })));
+      await Promise.all(idList.map(id => soruAPI.updateDurum(id, { yeni_durum: 'inceleme_bekliyor' })));
 
       // Veriyi yenile (useEffect zaten scope/activeTab değişince çalışıyor ama manuel tetiklemek daha güvenli)
       const response = await soruAPI.getAll({ scope });
       let data = response.data.data || [];
       if (scope === 'brans') {
         if (activeTab === 'taslaklar') {
-          data = data.filter(s => ['beklemede', 'revize_istendi', 'revize_gerekli', 'dizgi_bekliyor', 'dizgide', 'inceleme_bekliyor'].includes(s.durum));
+          data = data.filter(s => s.olusturan_kullanici_id == user?.id && !['dizgi_tamam', 'inceleme_tamam', 'tamamlandi'].includes(s.durum));
         } else {
           data = data.filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum));
         }
@@ -186,10 +191,18 @@ export default function Sorular({ scope }) {
 
     try {
       setLoading(true);
-      await Promise.all(idList.map(id => soruAPI.updateDurum(id, { durum: 'tamamlandi' })));
+      await Promise.all(idList.map(id => soruAPI.updateDurum(id, { yeni_durum: 'tamamlandi' })));
 
       const response = await soruAPI.getAll({ scope });
-      setSorular((response.data.data || []).filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum)));
+      let data = response.data.data || [];
+      if (scope === 'brans') {
+        if (activeTab === 'taslaklar') {
+          data = data.filter(s => s.olusturan_kullanici_id == user?.id && !['dizgi_tamam', 'inceleme_tamam', 'tamamlandi'].includes(s.durum));
+        } else {
+          data = data.filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum));
+        }
+      }
+      setSorular(data);
       setSelectedQuestions([]);
       alert(`✅ ${idList.length} soru başarıyla Ortak Havuza gönderildi.`);
     } catch (error) {
