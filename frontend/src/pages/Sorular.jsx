@@ -69,7 +69,7 @@ export default function Sorular({ scope }) {
             // USER REQUEST: Dizgiden gelince buradan çıksın
             data = data.filter(s =>
               s.olusturan_kullanici_id == user?.id &&
-              !['dizgi_tamam', 'inceleme_tamam', 'tamamlandi'].includes(s.durum)
+              !['dizgi_tamam', 'inceleme_bekliyor', 'incelemede', 'inceleme_tamam', 'tamamlandi'].includes(s.durum)
             );
           } else {
             // SADECE AKSIYON BEKLEYENLER (Dizgiden gelenler veya İncelemesi bitenler)
