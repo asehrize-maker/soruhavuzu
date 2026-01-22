@@ -644,13 +644,22 @@ export default function Sorular({ scope }) {
                     </div>
                   )}
 
-                  {user?.rol === 'dizgici' && soru.durum === 'beklemede' && (
+                  {user?.rol === 'dizgici' && soru.durum === 'dizgi_bekliyor' && (
                     <button
                       onClick={() => handleDizgiAl(soru.id)}
                       className="btn btn-primary text-sm"
                     >
                       Dizgiye Al
                     </button>
+                  )}
+
+                  {user?.rol === 'dizgici' && soru.durum === 'dizgide' && (
+                    <Link
+                      to={`/sorular/${soru.id}`}
+                      className="btn bg-green-600 text-white hover:bg-green-700 text-sm text-center"
+                    >
+                      Dizgiyi Tamamla
+                    </Link>
                   )}
                 </div>
               </div>
