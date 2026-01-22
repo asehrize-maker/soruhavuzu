@@ -74,7 +74,7 @@ export default function Sorular({ scope }) {
           } else {
             // SADECE AKSIYON BEKLEYENLER (Dizgiden gelenler veya İncelemesi bitenler)
             // Tüm branşın sorularını görebilir (Koordinasyon için)
-            data = data.filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum));
+            data = data.filter(s => ['dizgi_tamam', 'inceleme_bekliyor', 'incelemede', 'inceleme_tamam'].includes(s.durum));
           }
         }
 
@@ -167,9 +167,9 @@ export default function Sorular({ scope }) {
       let data = response.data.data || [];
       if (scope === 'brans') {
         if (activeTab === 'taslaklar') {
-          data = data.filter(s => s.olusturan_kullanici_id == user?.id && !['dizgi_tamam', 'inceleme_tamam', 'tamamlandi'].includes(s.durum));
+          data = data.filter(s => s.olusturan_kullanici_id == user?.id && !['dizgi_tamam', 'inceleme_bekliyor', 'incelemede', 'inceleme_tamam', 'tamamlandi'].includes(s.durum));
         } else {
-          data = data.filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum));
+          data = data.filter(s => ['dizgi_tamam', 'inceleme_bekliyor', 'incelemede', 'inceleme_tamam'].includes(s.durum));
         }
       }
       setSorular(data);
@@ -197,9 +197,9 @@ export default function Sorular({ scope }) {
       let data = response.data.data || [];
       if (scope === 'brans') {
         if (activeTab === 'taslaklar') {
-          data = data.filter(s => s.olusturan_kullanici_id == user?.id && !['dizgi_tamam', 'inceleme_tamam', 'tamamlandi'].includes(s.durum));
+          data = data.filter(s => s.olusturan_kullanici_id == user?.id && !['dizgi_tamam', 'inceleme_bekliyor', 'incelemede', 'inceleme_tamam', 'tamamlandi'].includes(s.durum));
         } else {
-          data = data.filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum));
+          data = data.filter(s => ['dizgi_tamam', 'inceleme_bekliyor', 'incelemede', 'inceleme_tamam'].includes(s.durum));
         }
       }
       setSorular(data);
