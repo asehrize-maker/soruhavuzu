@@ -62,13 +62,13 @@ export default function Sorular({ scope }) {
         const response = await soruAPI.getAll(params);
         let data = response.data.data || [];
 
-        // Branş Havuzu için Sekme Bazlı Filtreleme (USER REQUEST: Sadece Yazılanlar ve Dizgiden Gelenler)
+        // Branş Havuzu için Sekme Bazlı Filtreleme (USER REQUEST: Yazılanlar hep kalsın, Dizgiden Gelenler aksiyon olsun)
         if (scope === 'brans') {
           if (activeTab === 'taslaklar') {
-            // SADECE Branş Öğretmeninin yazdığı ilk haller ve revize bekleyenler (Gönderilecek olanlar)
-            data = data.filter(s => ['beklemede', 'revize_istendi', 'revize_gerekli'].includes(s.durum));
+            // ÖĞRETMENİN KENDİ YAZDIĞI TÜM SORULAR (Arşiv/Takip amaçlı)
+            data = data.filter(s => s.olusturan_kullanici_id === user?.id);
           } else {
-            // SADECE Dizgiden dönenler veya İncelemesi biten branş kontrolleri (Onaylanacak olanlar)
+            // SADECE AKSIYON BEKLEYENLER (Onaylanacaklar)
             data = data.filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum));
           }
         }
@@ -603,21 +603,42 @@ export default function Sorular({ scope }) {
                     </button>
                   )}
 
+                  {/* BRANŞ ÖĞRETMENİ AKSİYONLARI (LİSTE ÜZERİNDEN) */}
+                  {user?.rol === 'soru_yazici' && (
+                    <div className="flex flex-wrap gap-1">
+                      {['beklemede', 'revize_istendi', 'revize_gerekli'].includes(soru.durum) && (
+                        <button
+                          onClick={() => handleDizgiyeGonder(soru.id)}
+                          className="btn bg-purple-100 text-purple-700 border border-purple-200 hover:bg-purple-200 text-xs py-1 px-2"
+                        >
+                          🚀 Dizgiye Gönder
+                        </button>
+                      )}
+                      {soru.durum === 'dizgi_tamam' && (
+                        <button
+                          onClick={() => handleİncelemeyeGonder(soru.id)}
+                          className="btn bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200 text-xs py-1 px-2"
+                        >
+                          🔍 Alan İncelemeye Gönder
+                        </button>
+                      )}
+                      {soru.durum === 'inceleme_tamam' && (
+                        <button
+                          onClick={() => handleOrtakHavuzaGonder(soru.id)}
+                          className="btn bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-200 text-xs py-1 px-2"
+                        >
+                          ✅ Havuza Gönder
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {user?.rol === 'dizgici' && soru.durum === 'beklemede' && (
                     <button
                       onClick={() => handleDizgiAl(soru.id)}
                       className="btn btn-primary text-sm"
                     >
                       Dizgiye Al
-                    </button>
-                  )}
-
-                  {user?.rol === 'soru_yazici' && soru.durum === 'tamamlandi' && (
-                    <button
-                      onClick={() => handleDizgiyeGonder(soru.id)}
-                      className="btn bg-purple-100 text-purple-700 border border-purple-200 hover:bg-purple-200 text-sm"
-                    >
-                      Dizgiye Gönder
                     </button>
                   )}
                 </div>

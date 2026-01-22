@@ -464,6 +464,34 @@ export default function SoruDetay() {
     }
   };
 
+  const handleSendToInceleme = async () => {
+    if (!confirm('Soru dizgiden kontrol edildi. ALAN İNCELEME birimine göndermek istediğinizden emin misiniz?')) return;
+    try {
+      await soruAPI.updateDurum(id, {
+        yeni_durum: 'inceleme_bekliyor',
+        aciklama: 'Dizgi sonrası branş onayıyla incelemeye gönderildi.'
+      });
+      alert('✅ Soru başarıyla ALAN İNCELEMEYE gönderildi.');
+      navigate('/');
+    } catch (e) {
+      alert('Hata: ' + (e.response?.data?.error || e.message));
+    }
+  };
+
+  const handleSendToOrtakHavuz = async () => {
+    if (!confirm('Soru tüm süreçleri tamamladı. ORTAK HAVUZA gönderip yayınlamak istediğinizden emin misiniz?')) return;
+    try {
+      await soruAPI.updateDurum(id, {
+        yeni_durum: 'tamamlandi',
+        aciklama: 'Tüm incelemeler bitti, hoca onayıyla havuza gönderildi.'
+      });
+      alert('✅ Soru başarıyla ORTAK HAVUZA gönderildi.');
+      navigate('/');
+    } catch (e) {
+      alert('Hata: ' + (e.response?.data?.error || e.message));
+    }
+  };
+
   const finalFileInputRef = useRef(null);
 
   const handleFinalUpload = async (e) => {
@@ -720,27 +748,49 @@ export default function SoruDetay() {
                 </button>
               )}
 
-              {/* BRANŞ (YAZAR) VEYA ADMIN İÇİN AKSİYONLAR (Dizgiye veya İncelemeye Gönder) */}
-              {(isAdmin || isOwner) && ['revize_istendi', 'revize_gerekli', 'tamamlandi', 'inceleme_tamam', 'dizgi_bekliyor', 'beklemede', 'inceleme_bekliyor'].includes(soru.durum) && (
-                <>
-                  {/* Düzenle Butonu - Sadece gerekli durumlarda */}
+              {/* BRANŞ (YAZAR) VEYA ADMIN İÇİN AKSİYONLAR */}
+              {(isAdmin || isOwner) && (
+                <div className="flex flex-wrap gap-2">
+                  {/* Düzenle Butonu */}
                   {canEdit && (
                     <button
                       onClick={handleEditStart}
-                      className="px-6 py-3 bg-blue-100 text-blue-700 rounded-xl font-black text-sm hover:bg-blue-200 transition shadow-[0_4px_14px_0_rgba(59,130,246,0.2)] flex items-center gap-2 border-b-4 border-blue-300 active:border-b-0 active:translate-y-1"
+                      className="px-6 py-3 bg-blue-100 text-blue-700 rounded-xl font-black text-sm hover:bg-blue-200 transition shadow-sm flex items-center gap-2 border-b-4 border-blue-300 active:border-b-0 active:translate-y-1"
                     >
                       ✍️ DÜZENLE
                     </button>
                   )}
 
-                  {/* Dizgiye Gönder */}
-                  <button
-                    onClick={handleSendToDizgi}
-                    className="px-6 py-3 bg-green-600 text-white rounded-xl font-black text-sm hover:bg-green-700 transition shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] flex items-center gap-2 border-b-4 border-green-800 active:border-b-0 active:translate-y-1"
-                  >
-                    🚀 DİZGİYE GÖNDER
-                  </button>
-                </>
+                  {/* Dizgiye Gönder (Sadece taslak veya revizedeyken) */}
+                  {['beklemede', 'revize_istendi', 'revize_gerekli'].includes(soru.durum) && (
+                    <button
+                      onClick={handleSendToDizgi}
+                      className="px-6 py-3 bg-purple-600 text-white rounded-xl font-black text-sm hover:bg-purple-700 transition shadow-lg flex items-center gap-2 border-b-4 border-purple-800 active:border-b-0 active:translate-y-1"
+                    >
+                      🚀 DİZGİYE GÖNDER
+                    </button>
+                  )}
+
+                  {/* Alan İncelemeye Gönder (Dizgi bittiyse) */}
+                  {soru.durum === 'dizgi_tamam' && (
+                    <button
+                      onClick={handleSendToInceleme}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-sm hover:bg-blue-700 transition shadow-lg flex items-center gap-2 border-b-4 border-blue-800 active:border-b-0 active:translate-y-1"
+                    >
+                      🔍 ALAN İNCELEMEYE GÖNDER
+                    </button>
+                  )}
+
+                  {/* Ortak Havuza Gönder (İnceleme bittiyse) */}
+                  {soru.durum === 'inceleme_tamam' && (
+                    <button
+                      onClick={handleSendToOrtakHavuz}
+                      className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-black text-sm hover:bg-emerald-700 transition shadow-lg flex items-center gap-2 border-b-4 border-emerald-800 active:border-b-0 active:translate-y-1"
+                    >
+                      ✅ ORTAK HAVUZA GÖNDER
+                    </button>
+                  )}
+                </div>
               )}
 
               {/* DİZGİCİ İÇİN DİZGİYE AL BUTONU (EĞER BEKLEMEDEYSE) */}
