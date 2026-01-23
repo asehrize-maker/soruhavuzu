@@ -976,7 +976,7 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
         `UPDATE sorular 
          SET durum = 'dizgi_tamam',
           guncellenme_tarihi = CURRENT_TIMESTAMP,
-          dizgi_bitis_tarihi = CURRENT_TIMESTAMP,
+          dizgi_tamamlanma_tarihi = CURRENT_TIMESTAMP,
           versiyon = COALESCE(versiyon, 1) + 1
          WHERE id = $1 AND dizgici_id = $2
          RETURNING * `,
