@@ -32,7 +32,7 @@ export default function DizgiYonetimi() {
 
   const loadSorular = async () => {
     try {
-      const response = await soruAPI.getAll({});
+      const response = await soruAPI.getAll({ role: 'dizgici' });
       const all = (response.data.data || []);
       setPending(all.filter(s => s.durum === 'dizgi_bekliyor'));
       setInProgress(all.filter(s => s.durum === 'dizgide'));
