@@ -1,155 +1,21 @@
-import React, { useState, useRef, useEffect, memo } from 'react';
+import React, { useState, useEffect } from 'react';
+import EditableBlock from '../components/EditableBlock';
+import ResizableImage from '../components/ResizableImage';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { soruAPI, bransAPI } from '../services/api';
 import {
-  ArrowsPointingOutIcon,
-  TrashIcon,
   PhotoIcon,
-  Bars3BottomLeftIcon,
-  Bars3Icon,
-  Bars3BottomRightIcon,
-  QueueListIcon,
-  Squares2X2Icon,
+  DocumentArrowUpIcon,
   BoldIcon,
   DocumentTextIcon,
+  QueueListIcon,
+  Squares2X2Icon,
   Bars4Icon,
-  DocumentArrowUpIcon
+  TrashIcon
 } from '@heroicons/react/24/outline';
 
-const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-
-// --- İMLEÇ KORUMALI EDİTÖR ---
-const EditableBlock = memo(({ initialHtml, onChange, className, style, label, hangingIndent }) => {
-  const ref = useRef(null);
-
-  useEffect(() => {
-    if (ref.current && ref.current.innerHTML !== initialHtml) {
-      ref.current.innerHTML = initialHtml;
-    }
-    if (ref.current && !initialHtml) {
-      setTimeout(() => { if (ref.current) ref.current.focus(); }, 50);
-    }
-  }, []);
-
-  // Hanging Indent (Asılı Girinti) Stili
-  const computedStyle = {
-    ...style,
-    textAlign: 'left', // Sola yaslı (Kullanıcı isteği)
-    hyphens: 'none',   // Tireleme yok (Kullanıcı isteği)
-    WebkitHyphens: 'none',
-    msHyphens: 'none',
-  };
-
-  if (hangingIndent) {
-    computedStyle.paddingLeft = '24px';
-    computedStyle.textIndent = '-24px';
-  }
-
-  return (
-    <div className="relative group/edit w-full">
-      {/* Etiket */}
-      <div className="absolute -top-3 left-0 text-[10px] text-gray-500 font-bold px-1 opacity-0 group-hover/edit:opacity-100 transition pointer-events-none uppercase tracking-wider bg-white/80 rounded border shadow-sm z-20">
-        {label}
-      </div>
-      <div
-        ref={ref}
-        contentEditable
-        suppressContentEditableWarning
-        className={`outline-none min-h-[2em] p-1 border border-transparent hover:border-gray-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition rounded ${className || ''}`}
-        style={computedStyle}
-        onInput={(e) => onChange(e.currentTarget.innerHTML)}
-        onPaste={(e) => {
-          e.preventDefault();
-          const text = e.clipboardData.getData('text/plain');
-          document.execCommand("insertText", false, text);
-        }}
-      />
-    </div>
-  );
-}, () => true);
-
-// --- RESIZABLE IMAGE ---
-const ResizableImage = ({ src, width, height, align, onUpdate, onDelete }) => {
-  const [isResizing, setIsResizing] = useState(false);
-  const [resizeMode, setResizeMode] = useState(null);
-  const imgRef = useRef(null);
-  const containerRef = useRef(null);
-
-  const handleMouseDown = (e, mode) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsResizing(true);
-    setResizeMode(mode);
-
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startWidthPx = containerRef.current.offsetWidth;
-    const startHeightPx = imgRef.current.offsetHeight;
-    const containerWidth = containerRef.current.parentElement.offsetWidth;
-
-    const doDrag = (dragEvent) => {
-      const diffX = dragEvent.clientX - startX;
-      const diffY = dragEvent.clientY - startY;
-      let updates = {};
-
-      if (mode === 'se' || mode === 'e') {
-        let newWidthPx = startWidthPx + diffX;
-        let newWidthPercent = (newWidthPx / containerWidth) * 100;
-        if (newWidthPercent < 10) newWidthPercent = 10;
-        if (newWidthPercent > 100) newWidthPercent = 100;
-        updates.width = newWidthPercent;
-      }
-      if (mode === 'se' || mode === 's') {
-        if (mode === 's' || (mode === 'se' && height !== 'auto')) {
-          let newHeightPx = startHeightPx + diffY;
-          if (newHeightPx < 50) newHeightPx = 50;
-          updates.height = newHeightPx;
-        }
-      }
-      onUpdate(updates);
-    };
-
-    const stopDrag = () => {
-      setIsResizing(false);
-      setResizeMode(null);
-      document.removeEventListener('mousemove', doDrag);
-      document.removeEventListener('mouseup', stopDrag);
-    };
-    document.addEventListener('mousemove', doDrag);
-    document.addEventListener('mouseup', stopDrag);
-  };
-
-  let containerStyle = { marginBottom: '1rem', position: 'relative' }; // Image margin arttırıldı
-  if (align === 'left') containerStyle = { ...containerStyle, float: 'left', margin: '0 1rem 1rem 0', width: `${width}%` };
-  else if (align === 'right') containerStyle = { ...containerStyle, float: 'right', margin: '0 0 1rem 1rem', width: `${width}%` };
-  else if (align === 'center') containerStyle = { ...containerStyle, margin: '0 auto 1rem auto', width: `${width}%`, display: 'block' };
-  else containerStyle = { ...containerStyle, width: `${width}%` };
-
-  return (
-    <div
-      ref={containerRef}
-      className={`group relative transition-all border-2 ${isResizing ? 'border-blue-500' : 'border-transparent hover:border-blue-200'}`}
-      style={containerStyle}
-    >
-      <img ref={imgRef} src={src} className="block w-full" style={{ height: height === 'auto' ? 'auto' : `${height}px`, objectFit: height === 'auto' ? 'contain' : 'fill' }} alt="Görsel" />
-
-      <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-white shadow-lg rounded-lg p-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition z-50 pointer-events-none group-hover:pointer-events-auto border border-gray-200">
-        <button onClick={() => onUpdate({ align: 'left' })} className={`p-1 rounded ${align === 'left' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}><Bars3BottomLeftIcon className="w-4 h-4" /></button>
-        <button onClick={() => onUpdate({ align: 'center' })} className={`p-1 rounded ${align === 'center' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}><Bars3Icon className="w-4 h-4" /></button>
-        <button onClick={() => onUpdate({ align: 'right' })} className={`p-1 rounded ${align === 'right' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}><Bars3BottomRightIcon className="w-4 h-4" /></button>
-        <div className="w-[1px] bg-gray-300 mx-1"></div>
-        <button onClick={() => onUpdate({ height: 'auto' })} className="p-1 rounded hover:bg-gray-100 text-xs font-bold">Oto</button>
-        <button onClick={onDelete} className="p-1 rounded hover:bg-red-100 text-red-500"><TrashIcon className="w-4 h-4" /></button>
-      </div>
-      <div onMouseDown={(e) => handleMouseDown(e, 'se')} className="absolute bottom-0 right-0 w-6 h-6 bg-blue-500 cursor-nwse-resize opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-tl-lg shadow-sm z-20">
-        <ArrowsPointingOutIcon className="w-3 h-3 text-white" />
-      </div>
-    </div>
-  );
-};
-
-export default function SoruEkle() {
+const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5); export default function SoruEkle() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [widthMode, setWidthMode] = useState('dar');
@@ -265,6 +131,7 @@ export default function SoruEkle() {
     try {
       const formData = new FormData();
       formData.append('dogru_cevap', metadata.dogruCevap);
+      formData.append('zorluk_seviyesi', metadata.zorluk || '3');
       formData.append('brans_id', metadata.brans_id);
       formData.append('kazanim', metadata.kazanim || 'Genel');
       // Otomatik Branş Havuzuna Gönder (Taslak olarak)
@@ -424,7 +291,7 @@ export default function SoruEkle() {
       </div>
 
       <div className="max-w-4xl mx-auto mt-6 pb-12">
-        <div className="bg-white border shadow-sm rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <div className="bg-white border shadow-sm rounded-lg p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div>
             <label className="text-xs font-bold text-gray-500 uppercase">Branş</label>
             <select
@@ -434,6 +301,20 @@ export default function SoruEkle() {
             >
               <option value="">Seciniz</option>
               {branslar.map(b => <option key={b.id} value={b.id}>{b.brans_adi}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-gray-500 uppercase">Zorluk Seviyesi</label>
+            <select
+              className="w-full border p-2 rounded bg-gray-50 text-sm"
+              value={metadata.zorluk}
+              onChange={e => setMetadata({ ...metadata, zorluk: e.target.value })}
+            >
+              <option value="1">1 (Çok Kolay)</option>
+              <option value="2">2 (Kolay)</option>
+              <option value="3">3 (Orta)</option>
+              <option value="4">4 (Zor)</option>
+              <option value="5">5 (Çok Zor)</option>
             </select>
           </div>
           <div>
