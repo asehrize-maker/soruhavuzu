@@ -358,6 +358,8 @@ router.post('/', [
       dosya_boyutu
     });
 
+    console.log('Parsed Zorluk:', parseInt(zorluk_seviyesi) || 3);
+
     const result = await pool.query(
       `INSERT INTO sorular (
         soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, 
@@ -368,7 +370,7 @@ router.post('/', [
       ) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
       [
-        soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi || null, brans_id,
+        soru_metni, fotograf_url, fotograf_public_id, parseInt(zorluk_seviyesi) || 3, brans_id,
         latex_kodu || null, kazanim || null, req.user.id,
         dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
         secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust',
@@ -383,6 +385,9 @@ router.post('/', [
       data: result.rows[0]
     });
   } catch (error) {
+    console.error('❌ Soru ekleme hatası (DETAYLI):', error);
+    console.error('Stack:', error.stack);
+    console.error('Request Body:', req.body);
     next(error);
   }
 });
