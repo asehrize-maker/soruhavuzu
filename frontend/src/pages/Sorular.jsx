@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { soruAPI, bransAPI } from '../services/api';
+import { getDurumBadge, generateExportHtml } from '../utils/helpers';
 
 export default function Sorular({ scope }) {
   const { user: authUser, viewRole } = useAuthStore();
@@ -214,108 +215,16 @@ export default function Sorular({ scope }) {
   const handleExport = () => {
     if (selectedQuestions.length === 0) return;
 
+    const selectedData = sorular.filter(s => selectedQuestions.includes(s.id));
+    const htmlContent = generateExportHtml(selectedData);
+
     // Basit bir HTML çıktısı oluştur ve yeni pencerede aç (Yazdırma/Kopyalama için)
     const exportWindow = window.open('', '_blank');
-    const selectedData = sorular.filter(s => selectedQuestions.includes(s.id));
-
-    let htmlContent = `
-      <html>
-      <head>
-        <title>Soru Havuzu Dışa Aktarım</title>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-        <style>
-          body { font-family: 'Times New Roman', serif; padding: 40px; }
-          .soru-item { margin-bottom: 30px; page-break-inside: avoid; border-bottom: 1px dashed #ccc; padding-bottom: 20px; }
-          .soru-metni { font-size: 16px; margin-bottom: 15px; }
-          .secenekler { margin-left: 20px; }
-          .secenek { margin-bottom: 5px; }
-          .soru-gorsel { max-width: 300px; display: block; margin: 10px 0; }
-          @media print {
-            .no-print { display: none; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="no-print" style="margin-bottom: 20px;">
-          <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px;">Yazdır / PDF Olarak Kaydet</button>
-        </div>
-        <h1>Seçilen Sorular (${selectedData.length})</h1>
-    `;
-
-    selectedData.forEach((soru, index) => {
-      htmlContent += `
-          <div class="soru-item">
-            <div class="soru-no"><strong>Soru ${index + 1}</strong> <span style="font-size:12px; color: #666;">(#${soru.id})</span></div>
-            
-            ${soru.fotograf_konumu === 'ust' && soru.fotograf_url ? `<img src="${soru.fotograf_url}" class="soru-gorsel" />` : ''}
-            
-            <div class="soru-metni">${soru.soru_metni.replace(/\n/g, '<br>')}</div>
-            
-            ${soru.fotograf_konumu === 'alt' && soru.fotograf_url ? `<img src="${soru.fotograf_url}" class="soru-gorsel" />` : ''}
-
-            <div class="secenekler">
-              ${soru.secenek_a ? `<div class="secenek">A) ${soru.secenek_a}</div>` : ''}
-              ${soru.secenek_b ? `<div class="secenek">B) ${soru.secenek_b}</div>` : ''}
-              ${soru.secenek_c ? `<div class="secenek">C) ${soru.secenek_c}</div>` : ''}
-              ${soru.secenek_d ? `<div class="secenek">D) ${soru.secenek_d}</div>` : ''}
-              ${soru.secenek_e ? `<div class="secenek">E) ${soru.secenek_e}</div>` : ''}
-            </div>
-            
-            <div style="margin-top: 10px; font-size: 12px; color: #999;">
-               Doğru Cevap: <strong>${soru.dogru_cevap || '-'}</strong> | 
-               Zorluk: ${soru.zorluk_seviyesi || '-'} | 
-               Kazanım: ${soru.kazanim || '-'}
-            </div>
-          </div>
-        `;
-    });
-
-    htmlContent += `
-       <script>
-         document.addEventListener("DOMContentLoaded", function() {
-            renderMathInElement(document.body, {
-              delimiters: [
-                  {left: '$$', right: '$$', display: true},
-                  {left: '$', right: '$', display: false}
-              ]
-            });
-         });
-       </script>
-      </body>
-      </html>
-    `;
-
     exportWindow.document.write(htmlContent);
     exportWindow.document.close();
   };
 
-  const getDurumBadge = (durum) => {
-    const badges = {
-      beklemede: 'badge badge-warning',
-      dizgi_bekliyor: 'badge bg-purple-100 text-purple-700',
-      dizgide: 'badge badge-info',
-      dizgi_tamam: 'badge bg-emerald-100 text-emerald-700 border border-emerald-200',
-      tamamlandi: 'badge badge-success',
-      revize_gerekli: 'badge badge-error',
-      revize_istendi: 'badge badge-error',
-      inceleme_bekliyor: 'badge badge-primary',
-      inceleme_tamam: 'badge bg-teal-100 text-teal-700',
-    };
-    const labels = {
-      beklemede: 'Hazırlanıyor',
-      dizgi_bekliyor: 'Dizgi Bekliyor',
-      dizgide: 'Dizgide',
-      dizgi_tamam: 'Dizgi Tamamlandı',
-      tamamlandi: 'Ortak Havuzda',
-      revize_gerekli: 'Revize Gerekli',
-      revize_istendi: 'Revize İstendi',
-      inceleme_bekliyor: 'İncelemede (Alan/Dil)',
-      inceleme_tamam: 'İnceleme Tamamlandı',
-    };
-    return <span className={badges[durum]}>{labels[durum]}</span>;
-  };
+
 
   // Admin için Branş Seçimi Landing Page
   if (user?.rol === 'admin' && !filters.brans_id) {
@@ -670,3 +579,5 @@ export default function Sorular({ scope }) {
     </div>
   );
 }
+
+

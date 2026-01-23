@@ -31,7 +31,7 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
 
         const filtered = allQuestions.filter(s => {
           if (parseInt(s.brans_id) !== parseInt(bransId)) return false;
-          const isStatusSuitable = ['inceleme_bekliyor', 'incelemede', 'dizgide', 'revize_istendi', 'inceleme_tamam'].includes(s.durum);
+          const isStatusSuitable = ['inceleme_bekliyor', 'incelemede'].includes(s.durum);
 
           let isPendingReview = false;
           const isAlanci = !!authUser?.inceleme_alanci || authUser?.rol === 'admin';
@@ -96,27 +96,32 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
 
 // --- MAIN COMPONENT ---
 export default function Dashboard() {
-  // 1. ALL HOOKS (Strict order)
+  // 1. ALL HOOKS
   const { user } = useAuthStore();
   const outletContext = useOutletContext();
   const effectiveRoleFromContext = outletContext?.effectiveRole;
+
+  const activeRole = (user?.rol === 'admin' && effectiveRoleFromContext)
+    ? effectiveRoleFromContext
+    : (user?.rol || effectiveRoleFromContext);
 
   const [stats, setStats] = useState(null);
   const [detayliStats, setDetayliStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [incelemeBransCounts, setIncelemeBransCounts] = useState([]);
-  const [showBransDetay, setShowBransDetay] = useState(false);
   const [selectedBrans, setSelectedBrans] = useState(null);
   const [selectedEkip, setSelectedEkip] = useState(null);
   const [selectedStat, setSelectedStat] = useState(null);
 
-  const [reviewMode, setReviewMode] = useState(() => {
+  // URL'den inceleme modunu al (alanci/dilci)
+  const getReviewModeFromUrl = () => {
     const params = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
     const mode = params.get('mode');
     return (mode === 'alanci' || mode === 'dilci') ? mode : null;
-  });
+  };
 
-  const activeRole = (user?.rol === 'admin' && effectiveRoleFromContext) ? effectiveRoleFromContext : (user?.rol || effectiveRoleFromContext);
+  const [reviewMode, setReviewMode] = useState(getReviewModeFromUrl);
+
   const isActualAdmin = user?.rol === 'admin';
   const canAlanInceleme = isActualAdmin || !!user?.inceleme_alanci;
   const canDilInceleme = isActualAdmin || !!user?.inceleme_dilci;
@@ -132,9 +137,13 @@ export default function Dashboard() {
         const res = await soruAPI.getStats({ role: activeRole });
         if (res.data.success) setStats(res.data.data);
       }
-      if (activeRole === 'incelemeci') {
-        const res = await soruAPI.getIncelemeDetayliStats();
-        if (res.data.success) setIncelemeBransCounts(res.data.data);
+
+      // İncelemeci veya Admin için detaylı inceleme istatistikleri
+      if (activeRole === 'incelemeci' || activeRole === 'admin') {
+        try {
+          const res = await soruAPI.getIncelemeDetayliStats();
+          if (res.data.success) setIncelemeBransCounts(res.data.data);
+        } catch (e) { console.warn("İnceleme stats alınamadı", e); }
       }
     } catch (error) {
       console.error("Dashboard error:", error);
@@ -147,11 +156,13 @@ export default function Dashboard() {
     fetchData();
   }, [fetchData]);
 
+  // URL değişikliklerini dinle
   useEffect(() => {
-    const params = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
-    const mode = params.get('mode');
-    if (mode && (mode === 'alanci' || mode === 'dilci')) setReviewMode(mode);
-    else if (!mode) setReviewMode(null);
+    const handleLocationChange = () => setReviewMode(getReviewModeFromUrl());
+    window.addEventListener('popstate', handleLocationChange);
+    // React Router location değişimi için
+    setReviewMode(getReviewModeFromUrl());
+    return () => window.removeEventListener('popstate', handleLocationChange);
   }, [window.location.hash, window.location.search]);
 
   const { groupedTeams, teamAggregates } = useMemo(() => {

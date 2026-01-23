@@ -1,155 +1,31 @@
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { soruAPI, bransAPI } from '../services/api';
+import { getDurumBadge } from '../utils/helpers';
+import EditableBlock from '../components/EditableBlock';
+import ResizableImage from '../components/ResizableImage';
+import IncelemeYorumlari from '../components/IncelemeYorumlari';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import html2canvas from 'html2canvas';
 import {
-  ArrowsPointingOutIcon,
   TrashIcon,
   PhotoIcon,
-  Bars3BottomLeftIcon,
-  Bars3Icon,
-  Bars3BottomRightIcon,
   QueueListIcon,
-  Squares2X2Icon,
   BoldIcon,
   DocumentTextIcon,
   Bars4Icon,
-  DocumentArrowUpIcon,
   PencilSquareIcon
 } from '@heroicons/react/24/outline';
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 
 // --- İMLEÇ KORUMALI EDİTÖR ---
-const EditableBlock = memo(({ initialHtml, onChange, className, style, label, hangingIndent }) => {
-  const ref = useRef(null);
 
-  useEffect(() => {
-    if (ref.current && ref.current.innerHTML !== initialHtml) {
-      ref.current.innerHTML = initialHtml;
-    }
-    if (ref.current && !initialHtml) {
-      setTimeout(() => { if (ref.current) ref.current.focus(); }, 50);
-    }
-  }, []);
-
-  const computedStyle = {
-    ...style,
-    textAlign: 'left',
-    hyphens: 'none',
-    WebkitHyphens: 'none',
-    msHyphens: 'none',
-  };
-
-  if (hangingIndent) {
-    computedStyle.paddingLeft = '24px';
-    computedStyle.textIndent = '-24px';
-  }
-
-  return (
-    <div className="relative group/edit w-full">
-      <div className="absolute -top-3 left-0 text-[10px] text-gray-500 font-bold px-1 opacity-0 group-hover/edit:opacity-100 transition pointer-events-none uppercase tracking-wider bg-white/80 rounded border shadow-sm z-20">
-        {label}
-      </div>
-      <div
-        ref={ref}
-        contentEditable
-        suppressContentEditableWarning
-        className={`outline-none min-h-[2em] p-1 border border-transparent hover:border-gray-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition rounded ${className || ''}`}
-        style={computedStyle}
-        onInput={(e) => onChange(e.currentTarget.innerHTML)}
-        onPaste={(e) => {
-          e.preventDefault();
-          const text = e.clipboardData.getData('text/plain');
-          document.execCommand("insertText", false, text);
-        }}
-      />
-    </div>
-  );
-}, () => true);
 
 // --- RESIZABLE IMAGE ---
-const ResizableImage = ({ src, width, height, align, onUpdate, onDelete }) => {
-  const [isResizing, setIsResizing] = useState(false);
-  const [resizeMode, setResizeMode] = useState(null);
-  const imgRef = useRef(null);
-  const containerRef = useRef(null);
 
-  const handleMouseDown = (e, mode) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsResizing(true);
-    setResizeMode(mode);
-
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startWidthPx = containerRef.current.offsetWidth;
-    const startHeightPx = imgRef.current.offsetHeight;
-    const containerWidth = containerRef.current.parentElement.offsetWidth;
-
-    const doDrag = (dragEvent) => {
-      const diffX = dragEvent.clientX - startX;
-      const diffY = dragEvent.clientY - startY;
-      let updates = {};
-
-      if (mode === 'se' || mode === 'e') {
-        let newWidthPx = startWidthPx + diffX;
-        let newWidthPercent = (newWidthPx / containerWidth) * 100;
-        if (newWidthPercent < 10) newWidthPercent = 10;
-        if (newWidthPercent > 100) newWidthPercent = 100;
-        updates.width = newWidthPercent;
-      }
-      if (mode === 'se' || mode === 's') {
-        if (mode === 's' || (mode === 'se' && height !== 'auto')) {
-          let newHeightPx = startHeightPx + diffY;
-          if (newHeightPx < 50) newHeightPx = 50;
-          updates.height = newHeightPx;
-        }
-      }
-      onUpdate(updates);
-    };
-
-    const stopDrag = () => {
-      setIsResizing(false);
-      setResizeMode(null);
-      document.removeEventListener('mousemove', doDrag);
-      document.removeEventListener('mouseup', stopDrag);
-    };
-    document.addEventListener('mousemove', doDrag);
-    document.addEventListener('mouseup', stopDrag);
-  };
-
-  let containerStyle = { marginBottom: '1rem', position: 'relative' };
-  if (align === 'left') containerStyle = { ...containerStyle, float: 'left', margin: '0 1rem 1rem 0', width: `${width}%` };
-  else if (align === 'right') containerStyle = { ...containerStyle, float: 'right', margin: '0 0 1rem 1rem', width: `${width}%` };
-  else if (align === 'center') containerStyle = { ...containerStyle, margin: '0 auto 1rem auto', width: `${width}%`, display: 'block' };
-  else containerStyle = { ...containerStyle, width: `${width}%` };
-
-  return (
-    <div
-      ref={containerRef}
-      className={`group relative transition-all border-2 ${isResizing ? 'border-blue-500' : 'border-transparent hover:border-blue-200'}`}
-      style={containerStyle}
-    >
-      <img ref={imgRef} src={src} className="block w-full" style={{ height: height === 'auto' ? 'auto' : `${height}px`, objectFit: height === 'auto' ? 'contain' : 'fill' }} alt="Görsel" />
-
-      <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-white shadow-lg rounded-lg p-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition z-50 pointer-events-none group-hover:pointer-events-auto border border-gray-200">
-        <button onClick={() => onUpdate({ align: 'left' })} className={`p-1 rounded ${align === 'left' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}><Bars3BottomLeftIcon className="w-4 h-4" /></button>
-        <button onClick={() => onUpdate({ align: 'center' })} className={`p-1 rounded ${align === 'center' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}><Bars3Icon className="w-4 h-4" /></button>
-        <button onClick={() => onUpdate({ align: 'right' })} className={`p-1 rounded ${align === 'right' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}><Bars3BottomRightIcon className="w-4 h-4" /></button>
-        <div className="w-[1px] bg-gray-300 mx-1"></div>
-        <button onClick={() => onUpdate({ height: 'auto' })} className="p-1 rounded hover:bg-gray-100 text-xs font-bold">Oto</button>
-        <button onClick={onDelete} className="p-1 rounded hover:bg-red-100 text-red-500"><TrashIcon className="w-4 h-4" /></button>
-      </div>
-      <div onMouseDown={(e) => handleMouseDown(e, 'se')} className="absolute bottom-0 right-0 w-6 h-6 bg-blue-500 cursor-nwse-resize opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-tl-lg shadow-sm z-20">
-        <ArrowsPointingOutIcon className="w-3 h-3 text-white" />
-      </div>
-    </div>
-  );
-};
 
 const parseHtmlToComponents = (html) => {
   if (!html) return [];
@@ -213,38 +89,21 @@ export default function SoruDetay() {
   const effectiveRole = viewRole || authUser?.rol;
   const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
 
-  const effectiveIncelemeTuru = (() => {
+  const effectiveIncelemeTuru = useMemo(() => {
     if (incelemeTuru === 'alanci' || incelemeTuru === 'dilci') return incelemeTuru;
     if (effectiveRole === 'incelemeci') {
       const alan = !!authUser?.inceleme_alanci;
       const dil = !!authUser?.inceleme_dilci;
       if (alan && !dil) return 'alanci';
       if (dil && !alan) return 'dilci';
-      if (alan && dil) return 'alanci'; // varsayılan (UI üzerinden değiştirilebilir)
-      return null;
+      if (alan && dil) return 'alanci';
     }
     return null;
-  })();
+  }, [incelemeTuru, effectiveRole, authUser]);
 
   const canReview = effectiveRole === 'admin' || (effectiveRole === 'incelemeci' && !!effectiveIncelemeTuru);
 
   const [soru, setSoru] = useState(null);
-
-  // DEBUG LOGS
-  useEffect(() => {
-    if (soru && user) {
-      console.log('--- SORU DETAY DEBUG ---');
-      console.log('User:', user);
-      console.log('Soru:', soru);
-      console.log('Effective Role:', effectiveRole);
-      console.log('Is Owner Check:', soru.olusturan_kullanici_id, '==', user.id, '->', soru.olusturan_kullanici_id == user.id);
-      console.log('Soru Durum:', soru.durum);
-      const availableStatuses = ['beklemede', 'revize_gerekli', 'revize_istendi', 'inceleme_tamam'];
-      console.log('Durum Allowed?:', availableStatuses.includes(soru.durum));
-      console.log('Can Edit Final:', !incelemeTuru && (effectiveRole === 'admin' || ((soru.olusturan_kullanici_id == user.id) && availableStatuses.includes(soru.durum))));
-      console.log('------------------------');
-    }
-  }, [soru, user, effectiveRole]);
   const [loading, setLoading] = useState(true);
   const [dizgiNotu, setDizgiNotu] = useState('');
   const [editMode, setEditMode] = useState(false);
@@ -663,18 +522,7 @@ export default function SoruDetay() {
     setDraggedItemIndex(index);
   };
 
-  const handleEditAndAction = async () => {
-    if (components.length === 0) return alert("Soru içeriği boş!");
-    if (!editMetadata.dogruCevap) return alert("Lütfen Doğru Cevabı seçiniz.");
 
-    // Sadece kaydetme işlemi yapılır, yönlendirme veya sorma yapılmaz (Branş Havuzu akışı)
-    await handleEditSave();
-  };
-
-  const handleSaveAndDizgi = async () => {
-    await handleEditSave();
-    setTimeout(() => handleSendToDizgi(), 500);
-  };
 
   const RibbonButton = ({ cmd, label, icon }) => (
     <button onMouseDown={(e) => { e.preventDefault(); execCmd(cmd); }} className="w-8 h-8 flex items-center justify-center hover:bg-gray-200 rounded text-gray-700 font-medium">{icon || label}</button>
@@ -689,31 +537,7 @@ export default function SoruDetay() {
   const availableStatusesForEdit = ['beklemede', 'revize_gerekli', 'revize_istendi', 'dizgi_bekliyor', 'dizgide', 'dizgi_tamam'];
   const canEdit = isAdmin || (isOwner && availableStatusesForEdit.includes(soru.durum));
 
-  const getDurumBadge = (durum) => {
-    const badges = {
-      beklemede: 'badge badge-warning',
-      inceleme_bekliyor: 'badge badge-primary',
-      dizgi_bekliyor: 'badge badge-warning',
-      dizgide: 'badge badge-info',
-      tamamlandi: 'badge badge-success',
-      revize_gerekli: 'badge badge-error',
-      revize_istendi: 'badge badge-error',
-      inceleme_tamam: 'badge bg-teal-100 text-teal-700',
-      dizgi_tamam: 'badge bg-emerald-100 text-emerald-700 border border-emerald-200'
-    };
-    const labels = {
-      beklemede: 'Hazırlanıyor',
-      inceleme_bekliyor: 'İnceleme Bekliyor',
-      dizgi_bekliyor: 'Dizgi Bekliyor',
-      dizgide: 'Dizgide',
-      tamamlandi: 'Tamamlandı',
-      revize_gerekli: 'Revize Gerekli',
-      revize_istendi: 'Revize İstendi',
-      inceleme_tamam: 'İnceleme Tamamlandı',
-      dizgi_tamam: 'Dizgi Tamamlandı'
-    };
-    return <span className={badges[durum]}>{labels[durum]}</span>;
-  };
+
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
@@ -1079,61 +903,6 @@ export default function SoruDetay() {
   );
 }
 
-function IncelemeYorumlari({ soruId }) {
-  const [yorumlar, setYorumlar] = useState([]);
-  const [yeniYorum, setYeniYorum] = useState('');
-  const [loading, setLoading] = useState(true);
-  const loadYorumlar = async () => {
-    try { const res = await soruAPI.getComments(soruId); setYorumlar(res.data.data); } catch (e) { } finally { setLoading(false); }
-  };
-  useEffect(() => { loadYorumlar(); }, [soruId]);
-  const handleYorumEkle = async () => {
-    if (!yeniYorum.trim()) return;
-    try { await soruAPI.addComment(soruId, yeniYorum); setYeniYorum(''); loadYorumlar(); } catch (e) { }
-  };
-  return (
-    <div className="flex flex-col h-full min-h-[200px]">
-      <div className="flex-1 space-y-3">
-        {loading ? <p className="text-center text-gray-400">Yükleniyor...</p> : yorumlar.length === 0 ? <p className="text-center text-gray-400 italic text-sm">Hiç yorum yok.</p> :
-          yorumlar.map((y) => (
-            <div key={y.id} className="bg-white border rounded-xl p-4 shadow-sm">
-              <div className="flex justify-between items-baseline mb-2">
-                <span className="font-bold text-gray-900">{y.ad_soyad} <span className="text-[10px] font-normal text-gray-400 uppercase">({y.rol})</span></span>
-                <span className="text-[10px] text-gray-400">{new Date(y.tarih).toLocaleDateString()}</span>
-              </div>
-              <p className="text-gray-700 text-sm whitespace-pre-wrap">{y.yorum_metni}</p>
-            </div>
-          ))}
-      </div>
-      <div className="mt-6 flex gap-2">
-        <input type="text" className="input shadow-inner" placeholder="İnceleme notu yazın..." value={yeniYorum} onChange={(e) => setYeniYorum(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleYorumEkle()} />
-        <button onClick={handleYorumEkle} className="btn btn-primary px-8">Ekle</button>
-      </div>
-    </div>
-  );
-}
 
-function VersiyonGecmisi({ soruId }) {
-  const [versiyonlar, setVersiyonlar] = useState([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    const load = async () => { try { const res = await soruAPI.getHistory(soruId); setVersiyonlar(res.data.data); } catch (e) { } finally { setLoading(false); } };
-    load();
-  }, [soruId]);
-  if (loading) return <div className="text-center py-4">Sürümler yükleniyor...</div>;
-  if (versiyonlar.length === 0) return <p className="text-center text-gray-400 italic">Henüz bir sürüm geçmişi yok.</p>;
-  return (
-    <div className="space-y-4">
-      {versiyonlar.map((v) => (
-        <div key={v.id} className="border rounded-xl p-4 bg-gray-50 hover:bg-white transition-all shadow-sm">
-          <div className="flex justify-between items-center mb-2">
-            <span className="bg-gray-800 text-white px-2 py-0.5 rounded text-[10px] font-bold">v{v.versiyon_no}</span>
-            <span className="text-[10px] text-gray-400">{new Date(v.degisim_tarihi).toLocaleString()}</span>
-          </div>
-          <div className="font-bold text-sm text-gray-900 mb-2">{v.ad_soyad}</div>
-          <div className="text-xs text-gray-600 line-clamp-2 italic">"{v.degisim_aciklamasi || 'Soru güncellendi'}"</div>
-        </div>
-      ))}
-    </div>
-  );
-}
+
+

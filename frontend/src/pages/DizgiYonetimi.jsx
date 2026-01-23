@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { soruAPI } from '../services/api';
 import useAuthStore from '../store/authStore';
 import MesajKutusu from '../components/MesajKutusu';
+import { getDurumBadge } from '../utils/helpers';
 import html2canvas from 'html2canvas';
 
 export default function DizgiYonetimi() {
@@ -31,7 +32,7 @@ export default function DizgiYonetimi() {
 
   const loadSorular = async () => {
     try {
-      const response = await soruAPI.getAll({ brans_id: user.brans_id });
+      const response = await soruAPI.getAll({});
       const all = (response.data.data || []);
       setPending(all.filter(s => s.durum === 'dizgi_bekliyor'));
       setInProgress(all.filter(s => s.durum === 'dizgide'));
@@ -123,31 +124,7 @@ export default function DizgiYonetimi() {
     setShowModal(true);
   };
 
-  const getDurumBadge = (durum) => {
-    const badges = {
-      beklemede: 'bg-yellow-100 text-yellow-800',
-      dizgi_bekliyor: 'bg-purple-100 text-purple-800',
-      dizgide: 'bg-blue-100 text-blue-800',
-      tamamlandi: 'bg-green-100 text-green-800',
-      revize_gerekli: 'bg-red-100 text-red-800',
-      revize_istendi: 'bg-red-100 text-red-800',
-      dizgi_tamam: 'bg-orange-100 text-orange-800',
-    };
-    const labels = {
-      beklemede: 'Beklemede',
-      dizgi_bekliyor: 'Dizgi Bekliyor',
-      dizgide: 'Dizgide',
-      tamamlandi: 'Tamamlandı (Havuzda)',
-      revize_gerekli: 'Revize Gerekli',
-      revize_istendi: 'Revize İstendi',
-      dizgi_tamam: 'Dizgi Bitti / Dosya Bekliyor',
-    };
-    return (
-      <span className={`px-3 py-1 rounded-full text-sm font-medium ${badges[durum]}`}>
-        {labels[durum]}
-      </span>
-    );
-  };
+
 
   return (
     <div className="space-y-6">
