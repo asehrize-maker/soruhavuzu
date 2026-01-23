@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { soruAPI, bransAPI } from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import useAuthStore from '../store/authStore';
 // Icons
 import {
   PhotoIcon, DocumentTextIcon, QueueListIcon, Squares2X2Icon,
@@ -14,7 +14,7 @@ import MetadataForm from '../components/MetadataForm';
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 export default function SoruEkle() {
-  const { user } = useAuth();
+  const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
   const [branslar, setBranslar] = useState([]);
   const [kazanims, setKazanims] = useState([]);
