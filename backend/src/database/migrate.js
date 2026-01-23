@@ -18,6 +18,7 @@ import { addFinalPngFields } from './migrations/017_add_final_png_fields.js';
 import { makeBranslarGlobal } from './migrations/018_make_branslar_global.js';
 import { mergeDuplicateBranslar } from './migrations/019_merge_duplicate_branslar.js';
 import { updateZorlukSchema } from './migrations/021_update_zorluk_schema.js';
+import { addDizgiTamamStatus } from './migrations/022_add_dizgi_tamam_enum.js';
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -148,6 +149,9 @@ const createTables = async () => {
 
     // Zorluk seviyesi şemasını güncelle (1-5 integer)
     await updateZorlukSchema();
+
+    // Dizgi tamam statüsünü enum/constraint'e ekle
+    await addDizgiTamamStatus();
 
   } catch (error) {
     await client.query('ROLLBACK');

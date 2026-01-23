@@ -142,8 +142,8 @@ router.get('/', authenticate, async (req, res, next) => {
         params.push(req.user.id);
         paramCount++;
       } else {
-        // Ortak Havuz (Varsayılan): SADECE tamamlanmış sorular
-        query += ` AND s.durum = 'tamamlandi'`;
+        // Ortak Havuz (Varsayılan): Tamamlanmış veya Dizgisi bitmiş (kontrol için) sorular
+        query += ` AND (s.durum = 'tamamlandi' OR s.durum = 'dizgi_tamam')`;
       }
 
     }
