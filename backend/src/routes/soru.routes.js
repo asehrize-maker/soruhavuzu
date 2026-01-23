@@ -1065,11 +1065,11 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         throw new AppError('Bu iYlem iÇõin yetkiniz yok', 403);
       }
       if (!isAdmin) {
-        throw new AppError('nceleme türü (alan/dil) belirtilmeli', 400);
+        throw new AppError('Inceleme turu (alan/dil) belirtilmeli', 400);
         if (inceleme_turu === 'alanci' && !canAlan) throw new AppError('Alan incelemesi yetkiniz yok', 403);
         if (inceleme_turu === 'dilci' && !canDil) throw new AppError('Dil incelemesi yetkiniz yok', 403);
         if (inceleme_turu && !['alanci', 'dilci'].includes(inceleme_turu)) {
-          throw new AppError('Geçersiz inceleme türü', 400);
+          throw new AppError('Geçersiz iInceleme turu', 400);
         }
       }
     }
@@ -1124,7 +1124,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         await pool.query('UPDATE sorular SET onay_alanci = true, onay_dilci = true WHERE id = $1', [id]);
         updateField = 'all';
       } else {
-        throw new AppError('İnceleme yapmak için yetki veya inceleme türü eksik', 400);
+        throw new AppError('İnceleme yapmak için yetki veya iInceleme turu eksik', 400);
       }
 
       if (updateField !== 'all') {

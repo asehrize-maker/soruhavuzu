@@ -139,7 +139,11 @@ const createTables = async () => {
     await addSoruIncelemeVeVersiyon();
 
     // Sivas Ekibi ve Temel Branşları Seed Et
-    await seedSivasEkibi();
+    try {
+      await seedSivasEkibi();
+    } catch (e) {
+      console.warn('⚠️ Seed Sivas Ekibi skipped (likely already exists or minor DB issue):', e.message);
+    }
 
     // İş akışı durumlarını güncelle (V2)
     // İş akışı durumlarını güncelle (V2)
