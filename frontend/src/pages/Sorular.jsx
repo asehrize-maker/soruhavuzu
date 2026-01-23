@@ -69,7 +69,7 @@ export default function Sorular({ scope }) {
             // ÖĞRETMENİN KENDİ YAZDIĞI İLK HALİ (Henüz dizgi tam bitmemiş olanlar)
             data = data.filter(s =>
               s.olusturan_kullanici_id == user?.id &&
-              ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli'].includes(s.durum)
+              ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli', 'dizgi_tamam', 'inceleme_tamam'].includes(s.durum)
             );
           } else {
             // SADECE DİZGİDEN VE İNCELEMEDEN GELENLER (Aksiyon bekleyen questions)
@@ -291,7 +291,7 @@ export default function Sorular({ scope }) {
               onClick={() => { setActiveTab('taslaklar'); setFilters(f => ({ ...f, durum: '' })); setSelectedQuestions([]); }}
               className={`px-6 py-2 rounded-lg font-bold text-sm transition ${activeTab === 'taslaklar' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
             >
-              ✍️ Yazılan / Draft Sorular
+              ✍️ Süreçteki Sorularım
             </button>
             <button
               onClick={() => { setActiveTab('dizgi_sonrasi'); setFilters(f => ({ ...f, durum: '' })); setSelectedQuestions([]); }}

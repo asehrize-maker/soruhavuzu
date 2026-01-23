@@ -800,10 +800,18 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
       message = 'Soru dizgi sırasına alındı.';
     } else if (yeni_durum === 'dizgi_tamam') {
       // Dizgici tarafından branşa geri gönderilen soru
-      result = await pool.query(
-        `UPDATE sorular SET durum = 'dizgi_tamam', dizgi_tamamlanma_tarihi = NOW(), guncellenme_tarihi = NOW() WHERE id = $1 RETURNING *`,
-        [id]
-      );
+      try {
+        result = await pool.query(
+          `UPDATE sorular SET durum = 'dizgi_tamam', dizgi_tamamlanma_tarihi = NOW(), guncellenme_tarihi = NOW() WHERE id = $1 RETURNING *`,
+          [id]
+        );
+      } catch (err) {
+        console.warn('⚠️ dizgi_tamam update failed with date column, retrying without date...', err.message);
+        result = await pool.query(
+          `UPDATE sorular SET durum = 'dizgi_tamam', guncellenme_tarihi = NOW() WHERE id = $1 RETURNING *`,
+          [id]
+        );
+      }
       message = 'Soru dizgisi tamamlandı ve branş kontrolüne gönderildi.';
 
       if (soru.olusturan_kullanici_id) {
@@ -972,16 +980,31 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
       await client.query('BEGIN');
 
       // Soruyu güncelle -> Dizgiden çıkan soru artık havuza gider
-      const soruResult = await client.query(
-        `UPDATE sorular 
-         SET durum = 'dizgi_tamam',
-          guncellenme_tarihi = CURRENT_TIMESTAMP,
-          dizgi_tamamlanma_tarihi = CURRENT_TIMESTAMP,
-          versiyon = COALESCE(versiyon, 1) + 1
-         WHERE id = $1 AND dizgici_id = $2
-         RETURNING * `,
-        [id, req.user.id]
-      );
+      // Soruyu güncelle -> Dizgiden çıkan soru artık havuza gider
+      let soruResult;
+      try {
+        soruResult = await client.query(
+          `UPDATE sorular 
+           SET durum = 'dizgi_tamam',
+            guncellenme_tarihi = CURRENT_TIMESTAMP,
+            dizgi_tamamlanma_tarihi = CURRENT_TIMESTAMP,
+            versiyon = COALESCE(versiyon, 1) + 1
+           WHERE id = $1 AND dizgici_id = $2
+           RETURNING * `,
+          [id, req.user.id]
+        );
+      } catch (err) {
+        console.warn('⚠️ dizgi-tamamla update failed (likely missing column), retrying without date...', err.message);
+        soruResult = await client.query(
+          `UPDATE sorular 
+           SET durum = 'dizgi_tamam',
+            guncellenme_tarihi = CURRENT_TIMESTAMP,
+            versiyon = COALESCE(versiyon, 1) + 1
+           WHERE id = $1 AND dizgici_id = $2
+           RETURNING * `,
+          [id, req.user.id]
+        );
+      }
 
       // Versiyon geçmişine kaydet (Dizgici değişikliği)
       // Önce mevcut halini kaydetmek gerekirdi ama burada update yaptık.
