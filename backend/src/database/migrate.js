@@ -20,6 +20,7 @@ import { mergeDuplicateBranslar } from './migrations/019_merge_duplicate_bransla
 import { updateZorlukSchema } from './migrations/021_update_zorluk_schema.js';
 import { addDizgiTamamStatus } from './migrations/022_add_dizgi_tamam_enum.js';
 import { addDizgiDateColumns } from './migrations/023_add_dizgi_date_columns.js';
+import { addKoordinatorRole } from './migrations/024_add_koordinator_role.js';
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -56,7 +57,7 @@ const createTables = async () => {
         ad_soyad VARCHAR(150) NOT NULL,
         email VARCHAR(150) NOT NULL UNIQUE,
         sifre VARCHAR(255) NOT NULL,
-        rol VARCHAR(50) NOT NULL CHECK (rol IN ('admin', 'soru_yazici', 'dizgici', 'incelemeci')),
+        rol VARCHAR(50) NOT NULL CHECK (rol IN ('admin', 'soru_yazici', 'dizgici', 'incelemeci', 'koordinator')),
         inceleme_alanci BOOLEAN DEFAULT false,
         inceleme_dilci BOOLEAN DEFAULT false,
         ekip_id INTEGER REFERENCES ekipler(id) ON DELETE SET NULL,
@@ -156,6 +157,9 @@ const createTables = async () => {
 
     // Dizgi tarih kolonlarını ekle
     await addDizgiDateColumns();
+
+    // Koordinator rolü ekle
+    await addKoordinatorRole();
 
   } catch (error) {
     await client.query('ROLLBACK');

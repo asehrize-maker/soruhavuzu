@@ -685,7 +685,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
     const { id } = req.params;
     const { yeni_durum, aciklama, inceleme_turu } = req.body; // inceleme_turu: 'alanci', 'dilci'
 
-    if (!['dizgi_bekliyor', 'revize_istendi', 'tamamlandi', 'inceleme_bekliyor', 'dizgide', 'inceleme_tamam', 'dizgi_tamam'].includes(yeni_durum)) {
+    if (!['dizgi_bekliyor', 'revize_istendi', 'revize_gerekli', 'tamamlandi', 'inceleme_bekliyor', 'dizgide', 'inceleme_tamam', 'dizgi_tamam'].includes(yeni_durum)) {
       throw new AppError('Geçersiz durum', 400);
     }
 
@@ -699,7 +699,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
     const canAlan = isAdmin || (isReviewer && !!req.user.inceleme_alanci);
     const canDil = isAdmin || (isReviewer && !!req.user.inceleme_dilci);
 
-    // Rol bazlŽñ temel yetkiler
+    // Rol bazlı temel yetkiler
     if (yeni_durum === 'inceleme_tamam' || yeni_durum === 'revize_istendi') {
       if (!isAdmin && !isReviewer) {
         throw new AppError('Bu iYlem iÇõin yetkiniz yok', 403);
@@ -730,7 +730,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
     let message = '';
 
     // Duruma göre işlem
-    if (yeni_durum === 'revize_istendi') {
+    if (yeni_durum === 'revize_istendi' || yeni_durum === 'revize_gerekli') {
       // Revize istendi: Onayları sıfırla ve durumu güncelle
       result = await pool.query(
         `UPDATE sorular 
@@ -802,13 +802,20 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
       // Dizgici tarafından branşa geri gönderilen soru
       try {
         result = await pool.query(
-          `UPDATE sorular SET durum = 'dizgi_tamam', dizgi_tamamlanma_tarihi = NOW(), guncellenme_tarihi = NOW() WHERE id = $1 RETURNING *`,
+          `UPDATE sorular SET durum = 'dizgi_tamam', 
+           dizgi_tamamlanma_tarihi = NOW(), 
+           guncellenme_tarihi = NOW(),
+           versiyon = COALESCE(versiyon, 1) + 1
+           WHERE id = $1 RETURNING *`,
           [id]
         );
       } catch (err) {
         console.warn('⚠️ dizgi_tamam update failed with date column, retrying without date...', err.message);
         result = await pool.query(
-          `UPDATE sorular SET durum = 'dizgi_tamam', guncellenme_tarihi = NOW() WHERE id = $1 RETURNING *`,
+          `UPDATE sorular SET durum = 'dizgi_tamam', 
+           guncellenme_tarihi = NOW(),
+           versiyon = COALESCE(versiyon, 1) + 1
+           WHERE id = $1 RETURNING *`,
           [id]
         );
       }
@@ -983,26 +990,33 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
       // Soruyu güncelle -> Dizgiden çıkan soru artık havuza gider
       let soruResult;
       try {
+        // Admin her soruyu tamamlayabilir, dizgici sadece kendine atanmış olanı
+        const whereClause = req.user.rol === 'admin' ? 'WHERE id = $1' : 'WHERE id = $1 AND dizgici_id = $2';
+        const queryParams = req.user.rol === 'admin' ? [id] : [id, req.user.id];
+
         soruResult = await client.query(
           `UPDATE sorular 
            SET durum = 'dizgi_tamam',
             guncellenme_tarihi = CURRENT_TIMESTAMP,
             dizgi_tamamlanma_tarihi = CURRENT_TIMESTAMP,
             versiyon = COALESCE(versiyon, 1) + 1
-           WHERE id = $1 AND dizgici_id = $2
+           ${whereClause}
            RETURNING * `,
-          [id, req.user.id]
+          queryParams
         );
       } catch (err) {
         console.warn('⚠️ dizgi-tamamla update failed (likely missing column), retrying without date...', err.message);
+        const whereClause = req.user.rol === 'admin' ? 'WHERE id = $1' : 'WHERE id = $1 AND dizgici_id = $2';
+        const queryParams = req.user.rol === 'admin' ? [id] : [id, req.user.id];
+
         soruResult = await client.query(
           `UPDATE sorular 
            SET durum = 'dizgi_tamam',
             guncellenme_tarihi = CURRENT_TIMESTAMP,
             versiyon = COALESCE(versiyon, 1) + 1
-           WHERE id = $1 AND dizgici_id = $2
+           ${whereClause}
            RETURNING * `,
-          [id, req.user.id]
+          queryParams
         );
       }
 
@@ -1020,7 +1034,7 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
       }
 
       // Eğer dosya/fotograf yüklendiyse Cloudinary'e yükle ve soruyu güncelle
-      if (req.files && (req.files.fotograf || req.files.dosya)) {
+      if (req.files && (req.files.fotograf || req.files.dosya || req.files.final_png)) {
         let fotograf_url = null;
         let fotograf_public_id = null;
         let dosya_url = null;
@@ -1110,6 +1124,18 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
         [id, req.user.id, notlar]
       );
 
+      // Yazara bildirim
+      const soru = soruResult.rows[0];
+      if (soru.olusturan_kullanici_id) {
+        await createNotification(
+          soru.olusturan_kullanici_id,
+          'Dizgi Tamamlandı',
+          `#${id} nolu sorunuzun dizgisi tamamlandı. Kontrol edip İncelemeye gönderebilirsiniz.`,
+          'success',
+          `/sorular/${id}`
+        );
+      }
+
       await client.query('COMMIT');
 
       res.json({
@@ -1191,6 +1217,7 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
     const targetRole = (req.user.rol === 'admin' && req.query.role) ? req.query.role.toLowerCase() : req.user.rol;
 
     if (targetRole === 'soru_yazici') {
+      const isActuallyAdmin = req.user.rol === 'admin';
       // Yazar: Yetkili olduğu branşlardaki tüm soruların istatistiklerini görür
       query = `
         SELECT
@@ -1203,49 +1230,45 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
           COUNT(*) FILTER(WHERE durum = 'tamamlandi') as tamamlandi,
           COUNT(*) FILTER(WHERE durum = 'revize_gerekli' OR durum = 'revize_istendi') as revize_gerekli
         FROM sorular s
-        WHERE s.brans_id IN (
+        ${isActuallyAdmin ? '' : `WHERE s.brans_id IN (
           SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1
           UNION 
           SELECT brans_id FROM kullanicilar WHERE id = $1
-        )
+        )`}
       `;
-      params = [req.user.id];
+      params = isActuallyAdmin ? [] : [req.user.id];
     } else if (targetRole === 'dizgici') {
-      // Dizgici: Kendi ekibindeki işler
+      // Dizgici: Genel havuzdaki işler
       query = `
         SELECT
-          COUNT(*) FILTER(WHERE s.durum = 'dizgi_bekliyor' AND (
-            s.brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1)
-            OR s.brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1)
-          ) AND k.ekip_id = (SELECT ekip_id FROM kullanicilar WHERE id = $1)) as dizgi_bekliyor,
+          COUNT(*) FILTER(WHERE s.durum = 'dizgi_bekliyor') as dizgi_bekliyor,
           COUNT(*) FILTER(WHERE s.durum = 'dizgide' AND s.dizgici_id = $1) as dizgide,
           COUNT(*) FILTER(WHERE (s.durum = 'dizgi_tamam' AND s.dizgici_id = $1) OR (s.durum = 'tamamlandi' AND s.final_png_url IS NULL AND s.dizgici_id = $1)) as dosya_bekliyor,
-          COUNT(*) FILTER(WHERE s.durum = 'tamamlandi' AND s.final_png_url IS NOT NULL AND k.ekip_id = (SELECT ekip_id FROM kullanicilar WHERE id = $1)) as tamamlandi
+          COUNT(*) FILTER(WHERE s.durum = 'tamamlandi' AND s.final_png_url IS NOT NULL) as tamamlandi
         FROM sorular s
-        JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
       `;
       params = [req.user.id];
     } else if (targetRole === 'alan_incelemeci' || targetRole === 'dil_incelemeci') {
       const isAlan = targetRole === 'alan_incelemeci';
+      const isActuallyAdmin = req.user.rol === 'admin';
       query = `
-        SELECT COUNT(*) FILTER(WHERE s.durum = 'inceleme_bekliyor' AND s.${isAlan ? 'onay_alanci' : 'onay_dilci'} = false AND (s.brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR s.brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1))) as inceleme_bekliyor 
+        SELECT COUNT(*) FILTER(WHERE s.durum IN ('inceleme_bekliyor', 'incelemede') AND s.${isAlan ? 'onay_alanci' : 'onay_dilci'} = false ${isActuallyAdmin ? '' : `AND (s.brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR s.brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1))`}) as inceleme_bekliyor 
         FROM sorular s 
-        JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id 
       `;
-      params = [req.user.id];
+      params = isActuallyAdmin ? [] : [req.user.id];
     } else if (targetRole === 'incelemeci') {
       const isAdmin = req.user.rol === 'admin';
       const canAlan = isAdmin || !!req.user.inceleme_alanci;
       const canDil = isAdmin || !!req.user.inceleme_dilci;
 
+      // İncelemeciler için branch kısıtlamasını kaldırıyoruz (Küresel müfettiş rolü)
       query = `
         SELECT
-          ${canAlan ? "COUNT(*) FILTER(WHERE s.durum = 'inceleme_bekliyor' AND s.onay_alanci = false AND (s.brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR s.brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1)))" : "0"} as inceleme_bekliyor_alanci,
-          ${canDil ? "COUNT(*) FILTER(WHERE s.durum = 'inceleme_bekliyor' AND s.onay_dilci = false AND (s.brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR s.brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1)))" : "0"} as inceleme_bekliyor_dilci
+          ${canAlan ? "COUNT(*) FILTER(WHERE s.durum IN ('inceleme_bekliyor', 'incelemede') AND s.onay_alanci = false)" : "0"} as inceleme_bekliyor_alanci,
+          ${canDil ? "COUNT(*) FILTER(WHERE s.durum IN ('inceleme_bekliyor', 'incelemede') AND s.onay_dilci = false)" : "0"} as inceleme_bekliyor_dilci
         FROM sorular s
-        JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
       `;
-      params = [req.user.id];
+      params = [];
     } else {
       // Admin: Global istatistikler
       query = `

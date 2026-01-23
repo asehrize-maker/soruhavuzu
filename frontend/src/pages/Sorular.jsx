@@ -66,10 +66,9 @@ export default function Sorular({ scope }) {
         // Branş Havuzu için Sekme Bazlı Filtreleme
         if (scope === 'brans') {
           if (activeTab === 'taslaklar') {
-            // ÖĞRETMENİN KENDİ YAZDIĞI İLK HALİ (Henüz dizgi tam bitmemiş olanlar)
+            // ÖĞRETMENİN BRANŞINDAKİ SÜREÇTEKİ SORULAR (Henüz kontrolü gelmemiş olanlar)
             data = data.filter(s =>
-              s.olusturan_kullanici_id == user?.id &&
-              ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli', 'dizgi_tamam', 'inceleme_tamam'].includes(s.durum)
+              ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli'].includes(s.durum)
             );
           } else {
             // SADECE DİZGİDEN VE İNCELEMEDEN GELENLER (Aksiyon bekleyen questions)
