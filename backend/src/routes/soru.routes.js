@@ -360,23 +360,51 @@ router.post('/', [
 
     console.log('Parsed Zorluk:', parseInt(zorluk_seviyesi) || 3);
 
-    const result = await pool.query(
-      `INSERT INTO sorular (
-        soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, 
-        latex_kodu, kazanim, olusturan_kullanici_id, 
-        dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
-        secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap, fotograf_konumu,
-        durum
-      ) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
-      [
-        soru_metni, fotograf_url, fotograf_public_id, parseInt(zorluk_seviyesi) || 3, brans_id,
-        latex_kodu || null, kazanim || null, req.user.id,
-        dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
-        secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust',
-        durum || 'beklemede'
-      ]
-    );
+    let result;
+    try {
+      // 1. Durum: Yeni şema (Zorluk seviyesi INTEGER 1-5)
+      result = await pool.query(
+        `INSERT INTO sorular (
+          soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, 
+          latex_kodu, kazanim, olusturan_kullanici_id, 
+          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
+          secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap, fotograf_konumu,
+          durum
+        ) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
+        [
+          soru_metni, fotograf_url, fotograf_public_id, parseInt(zorluk_seviyesi) || 3, brans_id,
+          latex_kodu || null, kazanim || null, req.user.id,
+          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
+          secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust',
+          durum || 'beklemede'
+        ]
+      );
+    } catch (firstError) {
+      console.warn('⚠️ İlk insert denemesi başarısız (Muhtemelen eski DB şeması), Fallback deneniyor:', firstError.message);
+
+      // 2. Durum: Eski şema (Zorluk seviyesi STRING 'kolay','orta','zor')
+      const zMap = { 1: 'kolay', 2: 'kolay', 3: 'orta', 4: 'zor', 5: 'zor' };
+      const zStr = zMap[parseInt(zorluk_seviyesi)] || 'orta';
+
+      result = await pool.query(
+        `INSERT INTO sorular (
+          soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, 
+          latex_kodu, kazanim, olusturan_kullanici_id, 
+          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
+          secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap, fotograf_konumu,
+          durum
+        ) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
+        [
+          soru_metni, fotograf_url, fotograf_public_id, zStr, brans_id,
+          latex_kodu || null, kazanim || null, req.user.id,
+          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
+          secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust',
+          durum || 'beklemede'
+        ]
+      );
+    }
 
     console.log('Soru başarıyla eklendi, ID:', result.rows[0].id);
 
