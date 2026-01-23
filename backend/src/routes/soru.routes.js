@@ -699,6 +699,366 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
     const canAlan = isAdmin || (isReviewer && !!req.user.inceleme_alanci);
     const canDil = isAdmin || (isReviewer && !!req.user.inceleme_dilci);
 
+    // Yetki Kontrolleri (Durum bazlı)
+    if (yeni_durum === 'inceleme_tamam' || yeni_durum === 'revize_istendi' || yeni_durum === 'revize_gerekli') {
+      if (!isAdmin && !isReviewer && req.user.rol !== 'dizgici') {
+        throw new AppError('Bu islem icin yetkiniz yok', 403);
+      }
+      if (!isAdmin && isReviewer) {
+        if (!inceleme_turu) throw new AppError('Inceleme turu (alan/dil) belirtilmeli', 400);
+        if (inceleme_turu === 'alanci' && !canAlan) throw new AppError('Alan incelemesi yetkiniz yok', 403);
+        if (inceleme_turu === 'dilci' && !canDil) throw new AppError('Dil incelemesi yetkiniz yok', 403);
+      }
+    }
+    if (yeni_durum === 'dizgi_bekliyor') {
+      if (!isAdmin && req.user.id !== soru.olusturan_kullanici_id) {
+        throw new AppError('Bu islem icin yetkiniz yok', 403);
+      }
+    }
+    if (yeni_durum === 'dizgide' || yeni_durum === 'tamamlandi' || yeni_durum === 'dizgi_tamam') {
+      if (!isAdmin && req.user.rol !== 'dizgici') {
+        throw new AppError('Bu islem icin yetkiniz yok', 403);
+      }
+    }
+    let result;
+    try {
+      // 1. Durum: Yeni şema (Zorluk seviyesi INTEGER 1-5)
+      result = await pool.query(
+        `INSERT INTO sorular (
+          soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, 
+          latex_kodu, kazanim, olusturan_kullanici_id, 
+          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
+          secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap, fotograf_konumu,
+          durum
+        ) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
+        [
+          soru_metni, fotograf_url, fotograf_public_id, parseInt(zorluk_seviyesi) || 3, brans_id,
+          latex_kodu || null, kazanim || null, req.user.id,
+          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
+          secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust',
+          durum || 'beklemede'
+        ]
+      );
+    } catch (firstError) {
+      console.warn('⚠️ İlk insert denemesi başarısız (Muhtemelen eski DB şeması), Fallback deneniyor:', firstError.message);
+
+      // 2. Durum: Eski şema (Zorluk seviyesi STRING 'kolay','orta','zor')
+      const zMap = { 1: 'kolay', 2: 'kolay', 3: 'orta', 4: 'zor', 5: 'zor' };
+      const zStr = zMap[parseInt(zorluk_seviyesi)] || 'orta';
+
+      result = await pool.query(
+        `INSERT INTO sorular (
+          soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, 
+          latex_kodu, kazanim, olusturan_kullanici_id, 
+          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
+          secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap, fotograf_konumu,
+          durum
+        ) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
+        [
+          soru_metni, fotograf_url, fotograf_public_id, zStr, brans_id,
+          latex_kodu || null, kazanim || null, req.user.id,
+          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
+          secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust',
+          durum || 'beklemede'
+        ]
+      );
+    }
+
+    console.log('Soru başarıyla eklendi, ID:', result.rows[0].id);
+
+    res.status(201).json({
+      success: true,
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('❌ Soru ekleme hatası (DETAYLI):', error);
+    console.error('Stack:', error.stack);
+    console.error('Request Body:', req.body);
+    next(error);
+  }
+});
+
+
+
+// Dizgi için branş bazlı bekleyen soru sayıları
+router.get('/stats/dizgi-brans', authenticate, async (req, res, next) => {
+  try {
+    const isAdmin = req.user.rol === 'admin';
+    let query;
+    let params = [];
+
+    if (isAdmin) {
+      query = `
+        SELECT b.id, b.brans_adi, COALESCE(COUNT(s.id) FILTER (WHERE s.durum = 'dizgi_bekliyor'), 0) as dizgi_bekliyor
+        FROM branslar b
+        LEFT JOIN sorular s ON b.id = s.brans_id
+        GROUP BY b.id, b.brans_adi
+        ORDER BY dizgi_bekliyor DESC
+      `;
+    } else {
+      query = `
+        SELECT b.id, b.brans_adi, COALESCE(COUNT(s.id) FILTER (WHERE s.durum = 'dizgi_bekliyor'), 0) as dizgi_bekliyor
+        FROM branslar b
+        LEFT JOIN sorular s ON b.id = s.brans_id
+        WHERE b.id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1)
+           OR b.id = (SELECT brans_id FROM kullanicilar WHERE id = $1)
+        GROUP BY b.id, b.brans_adi
+        ORDER BY dizgi_bekliyor DESC
+      `;
+      params = [req.user.id];
+    }
+
+    const result = await pool.query(query, params);
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Soru güncelle
+router.put('/:id(\\d+)', [
+  authenticate,
+  upload.single('fotograf'),
+  body('soru_metni').trim().notEmpty().withMessage('Soru metni gerekli')
+], async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const { id } = req.params;
+    const {
+      soru_metni, zorluk_seviyesi,
+      secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap,
+      fotograf_konumu
+    } = req.body;
+
+    // Soru sahibi kontrolü ve yetki doğrulama
+    const checkResult = await pool.query('SELECT * FROM sorular WHERE id = $1', [id]);
+
+    if (checkResult.rows.length === 0) {
+      throw new AppError('Soru bulunamadı', 404);
+    }
+
+    const soru = checkResult.rows[0];
+
+    // İncelemeye giden sorularda değişiklik yapılamamalı (Admin hariç)
+    // Ancak branş sahipleri revize bekleyen veya dizgi/inceleme bekleyen sorular üzerinde çalışabilir.
+    const isAllowedDurum = ['beklemede', 'revize_istendi', 'revize_gerekli', 'dizgi_bekliyor', 'inceleme_bekliyor', 'inceleme_tamam'].includes(soru.durum);
+    if (req.user.rol !== 'admin' && !isAllowedDurum && (soru.durum === 'dizgide' || soru.durum === 'tamamlandi')) {
+      throw new AppError('İşlemdeki veya tamamlanmış sorular düzenlenemez.', 403);
+    }
+
+    // Yetki kuralları: Admin veya Branş yetkilisi veya Sahibi düzenleyebilir
+    let hasPermission = req.user.rol === 'admin' || soru.olusturan_kullanici_id === req.user.id;
+    if (!hasPermission && req.user.rol === 'soru_yazici') {
+      const authBrans = await pool.query(`
+        SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1 AND brans_id = $2
+        UNION
+        SELECT 1 FROM kullanicilar WHERE id = $1 AND brans_id = $2
+      `, [req.user.id, soru.brans_id]);
+      if (authBrans.rows.length > 0) hasPermission = true;
+    }
+
+    if (!hasPermission) {
+      throw new AppError('Bu soruyu düzenleme yetkiniz yok', 403);
+    }
+
+    let fotograf_url = soru.fotograf_url;
+    let fotograf_public_id = soru.fotograf_public_id;
+
+    // Yeni fotoğraf yükleme
+    if (req.file) {
+      // Eski fotoğrafı sil
+      if (soru.fotograf_public_id) {
+        await cloudinary.uploader.destroy(soru.fotograf_public_id);
+      }
+
+      const b64 = Buffer.from(req.file.buffer).toString('base64');
+      const dataURI = `data:${req.file.mimetype};base64,${b64}`;
+
+      const uploadResult = await cloudinary.uploader.upload(dataURI, {
+        folder: 'soru-havuzu',
+        resource_type: 'auto',
+        transformation: [
+          {
+            width: 1920,
+            height: 1920,
+            crop: 'limit',
+            quality: 'auto:good',
+            fetch_format: 'auto'
+          }
+        ]
+      });
+
+      fotograf_url = uploadResult.secure_url;
+      fotograf_public_id = uploadResult.public_id;
+    }
+
+    // Durum değişikliği otomatik yapılmaz (Branş havuzunda kalır)
+    let yeniDurum = soru.durum;
+    // Eğer yazar 'beklemede' olan bir soruyu güncellerse beklemede kalsın (Artık elle dizgiye gönderilecek)
+    if (soru.durum === 'inceleme_tamam') {
+      // İnceleme tamamlandıysa ve düzenleme yapılıyorsa belki tekrar beklemeye alınabilir veya öyle kalabilir.
+      // Şimdilik dokunmuyoruz.
+    }
+
+    // 1. Mevcut halini versiyon geçmişine kaydet (Backup)
+    await pool.query(
+      `INSERT INTO soru_versiyonlari (soru_id, versiyon_no, data, degistiren_kullanici_id, degisim_aciklamasi)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        id,
+        soru.versiyon || 1,
+        JSON.stringify(soru),
+        req.user.id,
+        'Soru güncellemesi'
+      ]
+    );
+
+    const result = await pool.query(
+      `UPDATE sorular 
+       SET soru_metni = $1, fotograf_url = $2, fotograf_public_id = $3, 
+           zorluk_seviyesi = $4, kazanim = $5, durum = $6, 
+           secenek_a = $7, secenek_b = $8, secenek_c = $9, secenek_d = $10, secenek_e = $11, 
+           dogru_cevap = $12, fotograf_konumu = $13,
+           guncellenme_tarihi = CURRENT_TIMESTAMP,
+           versiyon = COALESCE(versiyon, 1) + 1
+       WHERE id = $14 RETURNING *`,
+      [
+        soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, req.body.kazanim || null, yeniDurum,
+        secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null,
+        dogru_cevap || null, fotograf_konumu || 'ust',
+        id
+      ]
+    );
+
+    // Eğer revize durumundan güncellendiyse ve dizgici atanmışsa, dizgiciye bildirim gönder
+    if (soru.durum === 'revize_gerekli' && soru.dizgici_id) {
+      await createNotification(
+        soru.dizgici_id,
+        'Soru Revize Edildi',
+        `#${id} numaralı soru öğretmen tarafından revize edildi ve tekrar incelemeniz için hazır.`,
+        'info',
+        `/sorular/${id}`
+      );
+    }
+
+    res.json({
+      success: true,
+      message: 'Soru güncellendi ve yeni versiyon oluşturuldu',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Dizgici Final Dosya Yükleme
+router.put('/:id/final-upload', [authenticate, upload.single('final_png')], async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Yetki Kontrolü
+    const isDizgici = req.user.rol === 'dizgici';
+    const isAdmin = req.user.rol === 'admin';
+
+    if (!isDizgici && !isAdmin) {
+      throw new AppError('Sadece dizgici veya admin dosya yükleyebilir', 403);
+    }
+
+    if (!req.file) {
+      throw new AppError('Dosya seçilmedi', 400);
+    }
+
+    // Soruyu kontrol et
+    const soruRes = await pool.query('SELECT * FROM sorular WHERE id = $1', [id]);
+    if (soruRes.rows.length === 0) throw new AppError('Soru bulunamadı', 404);
+    const soru = soruRes.rows[0];
+
+    // Durum kontrolü: Sadece dizgide, dizgi_tamam veya tamamlandi (dosya güncelleme) olan soruya dosya yüklenebilir.
+    // Ancak dizgi_bekliyor ise ve dizgici kendine aldıysa da yükleyebilmeli.
+    // Şimdilik 'dizgide', 'dizgi_tamam' veya 'tamamlandi' olması mantıklı.
+    if (!isAdmin && soru.durum !== 'dizgide' && soru.durum !== 'dizgi_tamam' && soru.durum !== 'tamamlandi') {
+      throw new AppError('Soru dizgi aşamasında değil.', 403);
+    }
+
+    // Dizgici ise, sorunun dizgicisi o mu?
+    if (isDizgici && soru.dizgici_id !== req.user.id) {
+      // Belki de dizgici atanmamıştır? (Genelde 'dizgide' durumunda atanmış olur)
+      // Eğer atanmamışsa ve dizgide ise, yükleyen kişi dizgici olur.
+      if (soru.dizgici_id && soru.dizgici_id !== req.user.id) {
+        throw new AppError('Bu soru başka bir dizgicide.', 403);
+      }
+    }
+
+    // Eski final görselini sil (varsa)
+    if (soru.final_png_public_id) {
+      try {
+        await cloudinary.uploader.destroy(soru.final_png_public_id);
+      } catch (err) { console.error('Eski final silinemedi', err); }
+    }
+
+    // Yeni görseli yükle
+    const b64 = Buffer.from(req.file.buffer).toString('base64');
+    const dataURI = `data:${req.file.mimetype};base64,${b64}`;
+
+    const uploadResult = await cloudinary.uploader.upload(dataURI, {
+      folder: 'soru-havuzu/finals',
+      resource_type: 'auto',
+      quality: 'auto:good'
+    });
+
+    const finalUrl = uploadResult.secure_url;
+    const finalPublicId = uploadResult.public_id;
+
+    // DB güncelle - Eğer dizgici_id yoksa yükleyen kişiyi ata
+    // AYRICA: Durumu 'tamamlandi' yap (Havuza gönder)
+    const updateQuery = `
+      UPDATE sorular 
+      SET final_png_url = $1, final_png_public_id = $2,
+          dizgici_id = COALESCE(dizgici_id, $3),
+          guncellenme_tarihi = CURRENT_TIMESTAMP
+      WHERE id = $4 
+      RETURNING *
+    `;
+
+    const updateRes = await pool.query(updateQuery, [finalUrl, finalPublicId, req.user.id, id]);
+
+    res.json({
+      success: true,
+      data: updateRes.rows[0],
+      message: 'Dizgi dosyası başarıyla yüklendi.'
+    });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Soru Durumunu Güncelle (İncelemeci Onay/Revize)
+router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { yeni_durum, aciklama, inceleme_turu } = req.body; // inceleme_turu: 'alanci', 'dilci'
+
+    if (!['dizgi_bekliyor', 'revize_istendi', 'revize_gerekli', 'tamamlandi', 'inceleme_bekliyor', 'dizgide', 'inceleme_tamam', 'dizgi_tamam'].includes(yeni_durum)) {
+      throw new AppError('Geçersiz durum', 400);
+    }
+
+    // Soruyu al
+    const soruRes = await pool.query('SELECT * FROM sorular WHERE id = $1', [id]);
+    if (soruRes.rows.length === 0) throw new AppError('Soru bulunamadı', 404);
+    const soru = soruRes.rows[0];
+
+    const isAdmin = req.user.rol === 'admin';
+    const isReviewer = req.user.rol === 'incelemeci';
+    const canAlan = isAdmin || (isReviewer && !!req.user.inceleme_alanci);
+    const canDil = isAdmin || (isReviewer && !!req.user.inceleme_dilci);
+
     // Rol bazlı temel yetkiler
     if (yeni_durum === 'inceleme_tamam' || yeni_durum === 'revize_istendi' || yeni_durum === 'revize_gerekli') {
       if (!isAdmin && !isReviewer) {
