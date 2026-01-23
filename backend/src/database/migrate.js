@@ -19,6 +19,7 @@ import { makeBranslarGlobal } from './migrations/018_make_branslar_global.js';
 import { mergeDuplicateBranslar } from './migrations/019_merge_duplicate_branslar.js';
 import { updateZorlukSchema } from './migrations/021_update_zorluk_schema.js';
 import { addDizgiTamamStatus } from './migrations/022_add_dizgi_tamam_enum.js';
+import { addDizgiDateColumns } from './migrations/023_add_dizgi_date_columns.js';
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -152,6 +153,9 @@ const createTables = async () => {
 
     // Dizgi tamam statüsünü enum/constraint'e ekle
     await addDizgiTamamStatus();
+
+    // Dizgi tarih kolonlarını ekle
+    await addDizgiDateColumns();
 
   } catch (error) {
     await client.query('ROLLBACK');
