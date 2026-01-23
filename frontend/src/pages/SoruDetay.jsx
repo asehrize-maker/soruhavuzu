@@ -6,6 +6,7 @@ import { getDurumBadge } from '../utils/helpers';
 import EditableBlock from '../components/EditableBlock';
 import ResizableImage from '../components/ResizableImage';
 import IncelemeYorumlari from '../components/IncelemeYorumlari';
+import MetadataForm from '../components/MetadataForm';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import html2canvas from 'html2canvas';
@@ -758,53 +759,13 @@ export default function SoruDetay() {
               </div>
             </div>
 
-            <div className="bg-white border-t p-4 grid grid-cols-1 md:grid-cols-4 gap-4 mt-auto">
-              <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Brans</label>
-                <select className="w-full border p-1 rounded text-xs" value={editMetadata.brans_id} onChange={e => setEditMetadata({ ...editMetadata, brans_id: e.target.value })}>
-                  {branslar.map(b => <option key={b.id} value={b.id}>{b.brans_adi}</option>)}
-                </select>
-              </div>
-              <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Dogru Cevap</label>
-                <div className="flex gap-1 mt-1">
-                  {['A', 'B', 'C', 'D', 'E'].map(opt => (
-                    <button key={opt} onClick={() => setEditMetadata({ ...editMetadata, dogruCevap: opt })} className={`w - 6 h - 6 rounded - full border font - bold text - [10px] ${editMetadata.dogruCevap === opt ? 'bg-blue-600 text-white' : 'bg-gray-50'} `}>{opt}</button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Kazanim</label>
-                {kazanimLoading ? (
-                  <div className="text-[11px] text-gray-500 mt-1">Kazanimlar yukleniyor...</div>
-                ) : (
-                  <select
-                    className="w-full border p-1 rounded text-xs"
-                    value={editMetadata.kazanim}
-                    onChange={e => setEditMetadata({ ...editMetadata, kazanim: e.target.value })}
-                    disabled={!editMetadata.brans_id || kazanims.length === 0}
-                  >
-                    {!editMetadata.brans_id && <option value="">Once brans secin</option>}
-                    {editMetadata.brans_id && kazanims.length === 0 && <option value="">Bu brans ta kazanim yok</option>}
-                    {kazanims.map(k => (
-                      <option key={k.id} value={k.kod}>
-                        {k.kod} - {k.aciklama}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Zorluk</label>
-                <select className="w-full border p-1 rounded text-xs" value={editMetadata.zorluk} onChange={e => setEditMetadata({ ...editMetadata, zorluk: e.target.value })}>
-                  <option value="1">1 (?ok Kolay)</option>
-                  <option value="2">2 (Kolay)</option>
-                  <option value="3">3 (Orta)</option>
-                  <option value="4">4 (Zor)</option>
-                  <option value="5">5 (?ok Zor)</option>
-                </select>
-              </div>
-            </div>
+            <MetadataForm
+              values={editMetadata}
+              onChange={setEditMetadata}
+              branslar={branslar}
+              kazanims={kazanims}
+              kazanimLoading={kazanimLoading}
+            />
           </div>
         ) : (
           <div className="bg-[#F3F2F1] p-8 flex justify-center overflow-x-auto min-h-[400px]">

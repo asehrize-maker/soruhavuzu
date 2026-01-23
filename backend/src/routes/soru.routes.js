@@ -122,7 +122,15 @@ router.get('/', authenticate, async (req, res, next) => {
     let paramCount = 1;
 
     // Rol bazlı filtreleme ve İZOLASYON
-    if (req.user.rol !== 'admin' && req.user.rol !== 'incelemeci') {
+    if (req.user.rol === 'dizgici') {
+      // Dizgici: Havuzdaki (dizgi_bekliyor) veya kendine atanmış işleri görür
+      // Branş kısıtlaması olmaz (Genel havuzdan iş alabilirler)
+      query += ` AND (
+        s.durum = 'dizgi_bekliyor' 
+        OR s.dizgici_id = $${paramCount++}
+      )`;
+      params.push(req.user.id);
+    } else if (req.user.rol !== 'admin' && req.user.rol !== 'incelemeci') {
 
       if (scope === 'brans' || brans_id) {
         // Branş Havuzu: Sadece yetkili olduğu branşlar (Tüm durumlar)
