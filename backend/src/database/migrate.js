@@ -20,7 +20,7 @@ import { mergeDuplicateBranslar } from './migrations/019_merge_duplicate_bransla
 import { updateZorlukSchema } from './migrations/021_update_zorluk_schema.js';
 import { addDizgiTamamStatus } from './migrations/022_add_dizgi_tamam_enum.js';
 import { addDizgiDateColumns } from './migrations/023_add_dizgi_date_columns.js';
-import { addKoordinatorRole } from './migrations/024_add_koordinator_role.js';
+import { ultimateDurumFix } from './migrations/025_ultimate_durum_fix.js';
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -77,7 +77,19 @@ const createTables = async () => {
         zorluk_seviyesi VARCHAR(20) CHECK (zorluk_seviyesi IN ('kolay', 'orta', 'zor')),
         brans_id INTEGER REFERENCES branslar(id) ON DELETE CASCADE,
         olusturan_kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
-        durum VARCHAR(50) DEFAULT 'beklemede' CHECK (durum IN ('beklemede','inceleme_bekliyor','revize_istendi','revize_gerekli','dizgi_bekliyor','dizgide','inceleme_tamam','tamamlandi','arsiv')),
+        durum VARCHAR(50) DEFAULT 'beklemede' CHECK (durum IN (
+          'beklemede',
+          'inceleme_bekliyor',
+          'incelemede',
+          'revize_istendi',
+          'revize_gerekli',
+          'dizgi_bekliyor',
+          'dizgide',
+          'dizgi_tamam',
+          'inceleme_tamam',
+          'tamamlandi',
+          'arsiv'
+        )),
         dizgici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
         olusturulma_tarihi TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         guncellenme_tarihi TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -160,6 +172,9 @@ const createTables = async () => {
 
     // Koordinator rolü ekle
     await addKoordinatorRole();
+
+    // En son ve kesin durum kısıtlamasını uygula
+    await ultimateDurumFix();
 
   } catch (error) {
     await client.query('ROLLBACK');

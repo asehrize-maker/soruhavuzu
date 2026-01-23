@@ -700,16 +700,16 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
     const canDil = isAdmin || (isReviewer && !!req.user.inceleme_dilci);
 
     // Rol bazlı temel yetkiler
-    if (yeni_durum === 'inceleme_tamam' || yeni_durum === 'revize_istendi') {
+    if (yeni_durum === 'inceleme_tamam' || yeni_durum === 'revize_istendi' || yeni_durum === 'revize_gerekli') {
       if (!isAdmin && !isReviewer) {
         throw new AppError('Bu iYlem iÇõin yetkiniz yok', 403);
       }
       if (!isAdmin) {
-        if (!inceleme_turu) throw new AppError('Žønceleme tÇ¬rÇ¬ (alan/dil) belirtilmeli', 400);
+        throw new AppError('nceleme türü (alan/dil) belirtilmeli', 400);
         if (inceleme_turu === 'alanci' && !canAlan) throw new AppError('Alan incelemesi yetkiniz yok', 403);
         if (inceleme_turu === 'dilci' && !canDil) throw new AppError('Dil incelemesi yetkiniz yok', 403);
         if (inceleme_turu && !['alanci', 'dilci'].includes(inceleme_turu)) {
-          throw new AppError('GeÇõersiz inceleme tÇ¬rÇ¬', 400);
+          throw new AppError('Geçersiz inceleme türü', 400);
         }
       }
     }
