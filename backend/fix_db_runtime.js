@@ -23,7 +23,7 @@ ADD CONSTRAINT sorular_durum_check
 CHECK (
   durum IN (
     'beklemede','inceleme_bekliyor','revize_istendi','revize_gerekli',
-    'dizgi_bekliyor','dizgide','inceleme_tamam','tamamlandi','arsiv'
+    'dizgi_bekliyor','dizgide','dizgi_tamam','inceleme_tamam','tamamlandi','arsiv'
   )
 );
 ALTER TABLE sorular ALTER COLUMN durum SET DEFAULT 'beklemede';
@@ -55,7 +55,7 @@ UPDATE sorular SET durum = 'revize_gerekli'
 WHERE durum IN ('revize','revize_bekliyor');
 
 UPDATE sorular SET durum = 'beklemede'
-WHERE durum NOT IN ('beklemede','inceleme_bekliyor','revize_istendi','revize_gerekli','dizgi_bekliyor','dizgide','inceleme_tamam','tamamlandi','arsiv');
+WHERE durum NOT IN ('beklemede','inceleme_bekliyor','revize_istendi','revize_gerekli','dizgi_bekliyor','dizgide','dizgi_tamam','inceleme_tamam','tamamlandi','arsiv');
 `;
 
 async function run() {
