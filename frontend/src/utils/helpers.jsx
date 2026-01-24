@@ -1,33 +1,41 @@
 
 export const getDurumBadge = (durum) => {
-    const badges = {
-        beklemede: 'badge badge-warning',
-        dizgi_bekliyor: 'badge bg-purple-100 text-purple-700',
-        dizgide: 'badge badge-info',
-        dizgi_tamam: 'badge bg-emerald-100 text-emerald-700 border border-emerald-200',
-        tamamlandi: 'badge badge-success',
-        revize_gerekli: 'badge badge-error',
-        revize_istendi: 'badge badge-error',
-        inceleme_bekliyor: 'badge badge-primary',
-        inceleme_tamam: 'badge bg-teal-100 text-teal-700',
-    };
-    const labels = {
-        beklemede: 'Hazırlanıyor',
-        dizgi_bekliyor: 'Dizgi Bekliyor',
-        dizgide: 'Dizgide',
-        dizgi_tamam: 'Dizgi Tamamlandı',
-        tamamlandi: 'Ortak Havuzda',
-        revize_gerekli: 'Revize Gerekli',
-        revize_istendi: 'Revize İstendi',
-        inceleme_bekliyor: 'İnceleme Bekliyor',
-        inceleme_tamam: 'İnceleme Tamamlandı',
-    };
+  const badges = {
+    beklemede: 'badge badge-warning',
+    dizgi_bekliyor: 'badge bg-purple-100 text-purple-700',
+    dizgide: 'badge badge-info',
+    dizgi_tamam: 'badge bg-emerald-100 text-emerald-700 border border-emerald-200',
+    alan_incelemede: 'badge bg-orange-100 text-orange-700 border border-orange-200',
+    alan_onaylandi: 'badge bg-indigo-100 text-indigo-700 border border-indigo-200',
+    dil_incelemede: 'badge bg-blue-100 text-blue-700 border border-blue-200',
+    dil_onaylandi: 'badge bg-cyan-100 text-cyan-700 border border-cyan-200',
+    tamamlandi: 'badge badge-success',
+    revize_gerekli: 'badge badge-error',
+    revize_istendi: 'badge badge-error',
+    inceleme_bekliyor: 'badge badge-primary',
+    inceleme_tamam: 'badge bg-teal-100 text-teal-700',
+  };
+  const labels = {
+    beklemede: 'Hazırlanıyor',
+    dizgi_bekliyor: 'Dizgi Bekliyor',
+    dizgide: 'Dizgide',
+    dizgi_tamam: 'Dizgi Tamamlandı',
+    alan_incelemede: 'Alan İncelemede',
+    alan_onaylandi: 'Alan Onaylı (Branşta)',
+    dil_incelemede: 'Dil İncelemede',
+    dil_onaylandi: 'Dil Onaylı (Branşta)',
+    tamamlandi: 'Ortak Havuzda',
+    revize_gerekli: 'Revize Gerekli',
+    revize_istendi: 'Revize İstendi',
+    inceleme_bekliyor: 'İnceleme Bekliyor',
+    inceleme_tamam: 'İnceleme Tamamlandı',
+  };
 
-    return <span className={badges[durum] || 'badge'}>{labels[durum] || durum}</span>;
+  return <span className={badges[durum] || 'badge'}>{labels[durum] || durum}</span>;
 };
 
 export const generateExportHtml = (selectedData) => {
-    let htmlContent = `
+  let htmlContent = `
     <html>
     <head>
       <title>Soru Havuzu Dışa Aktarım</title>
@@ -51,8 +59,8 @@ export const generateExportHtml = (selectedData) => {
       <h1>Seçilen Sorular (${selectedData.length})</h1>
   `;
 
-    selectedData.forEach((soru, index) => {
-        htmlContent += `
+  selectedData.forEach((soru, index) => {
+    htmlContent += `
         <div class="soru-item">
           <div class="soru-no"><strong>Soru ${index + 1}</strong> <span style="font-size:12px; color: #666;">(#${soru.id})</span></div>
           ${soru.fotograf_konumu === 'ust' && soru.fotograf_url ? `<img src="${soru.fotograf_url}" class="soru-gorsel" />` : ''}
@@ -72,9 +80,9 @@ export const generateExportHtml = (selectedData) => {
           </div>
         </div>
       `;
-    });
+  });
 
-    htmlContent += `
+  htmlContent += `
      <script>
        document.addEventListener("DOMContentLoaded", function() {
           renderMathInElement(document.body, {
@@ -88,5 +96,5 @@ export const generateExportHtml = (selectedData) => {
     </body>
     </html>
   `;
-    return htmlContent;
+  return htmlContent;
 };

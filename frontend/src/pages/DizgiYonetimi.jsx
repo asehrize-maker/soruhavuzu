@@ -34,7 +34,7 @@ export default function DizgiYonetimi() {
     try {
       const response = await soruAPI.getAll({ role: 'dizgici' });
       const all = (response.data.data || []);
-      setPending(all.filter(s => s.durum === 'dizgi_bekliyor'));
+      setPending(all.filter(s => s.durum === 'dizgi_bekliyor' || s.durum === 'revize_istendi'));
       setInProgress(all.filter(s => s.durum === 'dizgide'));
       // Hem yeni 'dizgi_tamam' statüsünü hem de eski sistemden kalan (PNG'si olmayan) 'tamamlandi' sorularını göster
       setCompleted(all.filter(s => s.durum === 'dizgi_tamam' || (s.durum === 'tamamlandi' && !s.final_png_url)));

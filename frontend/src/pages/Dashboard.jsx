@@ -42,20 +42,12 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
 
         const filtered = allQuestions.filter(s => {
           if (parseInt(s.brans_id) !== parseInt(bransId)) return false;
-          const isStatusSuitable = ['inceleme_bekliyor', 'incelemede'].includes(s.durum);
 
-          let isPendingReview = false;
-          const isAlanci = !!authUser?.inceleme_alanci || authUser?.rol === 'admin';
-          const isDilci = !!authUser?.inceleme_dilci || authUser?.rol === 'admin';
+          if (reviewMode === 'alanci') return s.durum === 'alan_incelemede';
+          if (reviewMode === 'dilci') return s.durum === 'dil_incelemede';
 
-          if (reviewMode === 'alanci') isPendingReview = !s.onay_alanci;
-          else if (reviewMode === 'dilci') isPendingReview = !s.onay_dilci;
-          else {
-            if (isAlanci && !isDilci) isPendingReview = !s.onay_alanci;
-            else if (isDilci && !isAlanci) isPendingReview = !s.onay_dilci;
-            else isPendingReview = (!s.onay_alanci || !s.onay_dilci);
-          }
-          return isStatusSuitable && isPendingReview;
+          // Default fallback
+          return ['alan_incelemede', 'dil_incelemede'].includes(s.durum);
         });
         setSorular(filtered);
       } catch (err) {

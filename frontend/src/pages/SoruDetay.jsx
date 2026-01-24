@@ -283,27 +283,48 @@ export default function SoruDetay() {
     } catch (e) { alert('Silinemedi'); }
   };
 
+  const handleUpdateStatus = async (status, confirmMsg = null) => {
+    if (confirmMsg && !confirm(confirmMsg)) return;
+
+    try {
+      await soruAPI.updateDurum(id, {
+        yeni_durum: status,
+        aciklama: 'Durum güncellendi: ' + status
+      });
+      alert('Soru durumu güncellendi: ' + status);
+      loadSoru();
+      if (['tamamlandi', 'alan_onaylandi', 'dil_onaylandi'].includes(status)) {
+        navigate('/'); // Bazı durumlarda listeye dönmek daha mantıklı
+      }
+    } catch (e) {
+      alert('Hata: ' + (e.response?.data?.error || e.message));
+    }
+  };
+
   const handleFinishReview = async () => {
     const hasNotes = revizeNotlari.length > 0;
+    const type = incelemeTuru || (effectiveRole === 'incelemeci' ? effectiveIncelemeTuru : 'admin');
+
+    if (!type) {
+      alert('İnceleme türü belirlenemedi.');
+      return;
+    }
+
+    const nextStatus = type === 'alanci' ? 'alan_onaylandi' : 'dil_onaylandi';
+
     const msg = hasNotes
-      ? `İşaretlediğiniz ${revizeNotlari.length} adet notla birlikte incelemeyi bitirmek istiyor musunuz?\n\n(Not: Hem alan hem dil incelemesi bittiğinde soru Branşa geri gönderilecektir.)`
-      : 'Soru hatasız mı? ONAYLAYIP incelemeyi bitirmek istediğinizden emin misiniz?\n\n(Not: Hem alan hem dil incelemesi bittiğinde soru Branşa geri gönderilecektir.)';
+      ? `İşaretlediğiniz ${revizeNotlari.length} adet notla birlikte incelemeyi bitirmek istiyor musunuz?`
+      : 'Soru hatasız mı? ONAYLAYIP incelemeyi bitirmek istediğinizden emin misiniz?';
 
     if (!confirm(msg)) return;
 
     try {
-      const type = incelemeTuru || (effectiveRole === 'incelemeci' ? effectiveIncelemeTuru : 'admin');
-      if (effectiveRole === 'incelemeci' && !type) {
-        alert('İnceleme türü bulunamadı. Admin tarafından alan/dil yetkisi atanmalı.');
-        return;
-      }
-      // Kullanıcı talebi: İnceleme bittiğinde backend hem alan hem dil onayı var mı diye bakar.
       await soruAPI.updateDurum(id, {
-        yeni_durum: 'inceleme_tamam',
-        aciklama: hasNotes ? (dizgiNotu || 'Metin üzerinde hatalar belirtildi.') : 'İnceleme hatasız tamamlandı.',
+        yeni_durum: nextStatus,
+        aciklama: hasNotes ? (dizgiNotu || 'Hatalar belirtildi.') : 'İnceleme onayı verildi.',
         inceleme_turu: type
       });
-      alert('İncelemeniz kaydedildi. Tüm uzmanlar bitirdiğinde soru otomatik olarak Branşa iletilecektir.');
+      alert('İncelemeniz tamamlandı ve branş öğretmenine geri gönderildi.');
       navigate('/');
     } catch (e) {
       alert('Hata: ' + (e.response?.data?.error || e.message));
@@ -610,40 +631,60 @@ export default function SoruDetay() {
                     </button>
                   )}
 
-                  {/* Dizgiye Gönder (Sadece taslak veya revizedeyken) */}
+                  {/* Dizgiye Gönder */}
                   {['beklemede', 'revize_istendi', 'revize_gerekli'].includes(soru.durum) && (
                     <button
-                      onClick={handleSendToDizgi}
+                      onClick={() => handleUpdateStatus('dizgi_bekliyor', 'Soru dizgiye gönderilecektir. Emin misiniz?')}
                       className="px-6 py-3 bg-purple-600 text-white rounded-xl font-black text-sm hover:bg-purple-700 transition shadow-lg flex items-center gap-2 border-b-4 border-purple-800 active:border-b-0 active:translate-y-1"
                     >
                       🚀 DİZGİYE GÖNDER
                     </button>
                   )}
 
-                  {/* Alan İncelemeye Gönder (Dizgi bittiyse) */}
-                  {soru.durum === 'dizgi_tamam' && (
+                  {/* Alan İncelemeye Gönder (Dizgi bittiyse veya Dil onaylıysa - Alan hala onaylamamışsa) */}
+                  {(soru.durum === 'dizgi_tamam' || (soru.durum === 'dil_onaylandi' && !soru.onay_alanci)) && (
                     <button
-                      onClick={handleSendToInceleme}
-                      className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-sm hover:bg-blue-700 transition shadow-lg flex items-center gap-2 border-b-4 border-blue-800 active:border-b-0 active:translate-y-1"
+                      onClick={() => handleUpdateStatus('alan_incelemede', 'Soru ALAN İncelemesine gönderilecektir. Emin misiniz?')}
+                      className="px-6 py-3 bg-orange-600 text-white rounded-xl font-black text-sm hover:bg-orange-700 transition shadow-lg flex items-center gap-2 border-b-4 border-orange-800 active:border-b-0 active:translate-y-1"
                     >
                       🔍 ALAN İNCELEMEYE GÖNDER
                     </button>
                   )}
 
-                  {/* Ortak Havuza Gönder (İnceleme bittiyse) */}
-                  {soru.durum === 'inceleme_tamam' && (
+                  {/* Dil İncelemeye Gönder (Alan onaylıysa) */}
+                  {soru.durum === 'alan_onaylandi' && (
                     <button
-                      onClick={handleSendToOrtakHavuz}
+                      onClick={() => handleUpdateStatus('dil_incelemede', 'Soru DİL İncelemesine gönderilecektir. Emin misiniz?')}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-sm hover:bg-blue-700 transition shadow-lg flex items-center gap-2 border-b-4 border-blue-800 active:border-b-0 active:translate-y-1"
+                    >
+                      🔤 DİL İNCELEMEYE GÖNDER
+                    </button>
+                  )}
+
+                  {/* Ortak Havuza Gönder (Dil onaylı ve Alan onaylı ise) */}
+                  {soru.durum === 'dil_onaylandi' && soru.onay_alanci && (
+                    <button
+                      onClick={() => handleUpdateStatus('tamamlandi', 'Soru ORTAK HAVUZA (Final) gönderilecektir. Bu işlem geri alınamaz (Admin hariç). Emin misiniz?')}
                       className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-black text-sm hover:bg-emerald-700 transition shadow-lg flex items-center gap-2 border-b-4 border-emerald-800 active:border-b-0 active:translate-y-1"
                     >
                       ✅ ORTAK HAVUZA GÖNDER
                     </button>
                   )}
+
+                  {/* İnceleme sonrası dizgiye geri gönderme (Revize) */}
+                  {['alan_onaylandi', 'dil_onaylandi', 'alan_incelemede', 'dil_incelemede'].includes(soru.durum) && (
+                    <button
+                      onClick={() => handleUpdateStatus('revize_istendi', 'Dizgi hatası mı var? Soruyu dizgiye revize için geri göndermek istiyor musunuz?')}
+                      className="px-6 py-3 bg-red-100 text-red-700 rounded-xl font-black text-sm hover:bg-red-200 transition shadow-sm flex items-center gap-2 border-b-4 border-red-300 active:border-b-0 active:translate-y-1"
+                    >
+                      🛠️ DİZGİYE REVİZE GÖNDER
+                    </button>
+                  )}
                 </div>
               )}
 
-              {/* DİZGİCİ İÇİN DİZGİYE AL BUTONU (EĞER BEKLEMEDEYSE) */}
-              {effectiveRole === 'dizgici' && soru.durum === 'dizgi_bekliyor' && (
+              {/* DİZGİCİ İÇİN DİZGİYE AL BUTONU */}
+              {effectiveRole === 'dizgici' && (soru.durum === 'dizgi_bekliyor' || soru.durum === 'revize_istendi') && (
                 <button
                   onClick={handleDizgiAl}
                   className="px-6 py-3 bg-orange-600 text-white rounded-xl font-black text-sm hover:bg-orange-700 transition shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] flex items-center gap-2 border-b-4 border-orange-800 active:border-b-0 active:translate-y-1"
@@ -674,7 +715,7 @@ export default function SoruDetay() {
                     onClick={handleDizgiTamamla}
                     className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-sm hover:bg-blue-700 transition shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] flex items-center gap-2 border-b-4 border-blue-800 active:border-b-0 active:translate-y-1"
                   >
-                    ✅ TAMAMLANDI
+                    ✅ TAMAMLANDI (BRANŞA GÖNDER)
                   </button>
                 </>
               )}

@@ -66,13 +66,11 @@ export default function Sorular({ scope }) {
         // Branş Havuzu için Sekme Bazlı Filtreleme
         if (scope === 'brans') {
           if (activeTab === 'taslaklar') {
-            // ÖĞRETMENİN BRANŞINDAKİ SÜREÇTEKİ SORULAR (Henüz kontrolü gelmemiş olanlar)
             data = data.filter(s =>
-              ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli'].includes(s.durum)
+              ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli', 'alan_incelemede', 'dil_incelemede'].includes(s.durum)
             );
           } else {
-            // SADECE DİZGİDEN VE İNCELEMEDEN GELENLER (Aksiyon bekleyen questions)
-            data = data.filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum));
+            data = data.filter(s => ['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam'].includes(s.durum));
           }
         }
 
@@ -116,6 +114,25 @@ export default function Sorular({ scope }) {
       setSorular(response.data.data || []);
     } catch (error) {
       alert(error.response?.data?.error || 'Soru dizgiye alınamadı');
+    }
+  };
+
+  const handleUpdateStatusIndividual = async (id, status) => {
+    try {
+      setLoading(true);
+      await soruAPI.updateDurum(id, { yeni_durum: status });
+      const response = await soruAPI.getAll({
+        scope,
+        brans_id: filters.brans_id || undefined,
+        durum: filters.durum || undefined
+      });
+      setSorular(response.data.data || []);
+      alert(`✅ Soru durumu '${status}' olarak güncellendi.`);
+    } catch (error) {
+      console.error('Durum güncelleme hatası:', error);
+      alert('Hata: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -386,13 +403,13 @@ export default function Sorular({ scope }) {
                 <button
                   onClick={() => handleİncelemeyeGonder(selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'dizgi_tamam'))}
                   disabled={selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'dizgi_tamam').length === 0}
-                  className="btn bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 px-4 shadow-sm disabled:opacity-50 transition-all flex items-center gap-2"
+                  className="btn bg-orange-600 hover:bg-orange-700 text-white text-sm py-2 px-4 shadow-sm disabled:opacity-50 transition-all flex items-center gap-2"
                 >
                   🔍 Seçilenleri ALAN İNCELEMEYE Gönder
                 </button>
                 <button
-                  onClick={() => handleOrtakHavuzaGonder(selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'inceleme_tamam'))}
-                  disabled={selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'inceleme_tamam').length === 0}
+                  onClick={() => handleOrtakHavuzaGonder(selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'dil_onaylandi'))}
+                  disabled={selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'dil_onaylandi').length === 0}
                   className="btn bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-2 px-4 shadow-sm disabled:opacity-50 transition-all flex items-center gap-2"
                 >
                   ✅ Seçilenleri ORTAK HAVUZA Gönder
@@ -535,13 +552,21 @@ export default function Sorular({ scope }) {
                       )}
                       {soru.durum === 'dizgi_tamam' && (
                         <button
-                          onClick={() => handleİncelemeyeGonder(soru.id)}
-                          className="btn bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200 text-xs py-1 px-2"
+                          onClick={() => handleUpdateStatusIndividual(soru.id, 'alan_incelemede')}
+                          className="btn bg-orange-100 text-orange-700 border border-orange-200 hover:bg-orange-200 text-xs py-1 px-2"
                         >
                           🔍 Alan İncelemeye Gönder
                         </button>
                       )}
-                      {soru.durum === 'inceleme_tamam' && (
+                      {soru.durum === 'alan_onaylandi' && (
+                        <button
+                          onClick={() => handleUpdateStatusIndividual(soru.id, 'dil_incelemede')}
+                          className="btn bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200 text-xs py-1 px-2"
+                        >
+                          🔤 Dil İncelemeye Gönder
+                        </button>
+                      )}
+                      {soru.durum === 'dil_onaylandi' && (
                         <button
                           onClick={() => handleOrtakHavuzaGonder(soru.id)}
                           className="btn bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-200 text-xs py-1 px-2"
