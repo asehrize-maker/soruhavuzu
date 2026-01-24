@@ -64,13 +64,20 @@ export const mergeDuplicateBranslar = async () => {
         // Mükemmel temizlik için tekrar bi kontrol (üstteki upper/trim sonrası yeni duplicate oluşmussa)
         // Ama şimdilik basit tutalım.
 
+        // Önce eski isimli constraint'i düşür, sonra yoksa ekle
+        await client.query(`ALTER TABLE branslar DROP CONSTRAINT IF EXISTS branslar_brans_adi_key;`);
         await client.query(`
-      ALTER TABLE branslar DROP CONSTRAINT IF EXISTS branslar_brans_adi_key;
-    `);
-
-        await client.query(`
-      ALTER TABLE branslar ADD CONSTRAINT branslar_brans_adi_unique UNIQUE (brans_adi);
-    `);
+          DO $$
+          BEGIN
+            IF NOT EXISTS (
+              SELECT 1 FROM pg_constraint
+              WHERE conname = 'branslar_brans_adi_unique'
+                AND conrelid = 'branslar'::regclass
+            ) THEN
+              ALTER TABLE branslar ADD CONSTRAINT branslar_brans_adi_unique UNIQUE (brans_adi);
+            END IF;
+          END$$;
+        `);
 
         await client.query('COMMIT');
         console.log('✅ Migration 019: Yinelenen branşlar birleştirildi ve UNIQUE kısıtlaması eklendi.');
