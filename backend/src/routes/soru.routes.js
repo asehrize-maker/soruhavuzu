@@ -1477,24 +1477,24 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
       // İncelemeciler için branch kısıtlamasını kaldırıyoruz (Küresel müfettiş rolü)
       query = `
         SELECT
-          ${canAlan ? "COUNT(*) FILTER(WHERE s.durum = 'alan_incelemede')" : "0"} as inceleme_bekliyor_alanci,
-          ${canDil ? "COUNT(*) FILTER(WHERE s.durum = 'dil_incelemede')" : "0"} as inceleme_bekliyor_dilci
+          ${canAlan ? "COUNT(*) FILTER(WHERE s.durum IN ('alan_incelemede', 'inceleme_bekliyor', 'incelemede'))" : "0"} as inceleme_bekliyor_alanci,
+          ${canDil ? "COUNT(*) FILTER(WHERE s.durum IN ('dil_incelemede', 'inceleme_bekliyor', 'incelemede'))" : "0"} as inceleme_bekliyor_dilci
         FROM sorular s
       `;
       params = [];
     } else {
       // Admin: Global istatistikler
       query = `
-        SELECT
-          COUNT(*) as toplam,
-          COUNT(*) FILTER(WHERE durum = 'beklemede') as beklemede,
+      SELECT
+      COUNT(*) as toplam,
+        COUNT(*) FILTER(WHERE durum = 'beklemede') as beklemede,
           COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor') as inceleme_bekliyor,
-          COUNT(*) FILTER(WHERE durum = 'dizgi_bekliyor') as dizgi_bekliyor,
-          COUNT(*) FILTER(WHERE durum = 'dizgide') as dizgide,
-          COUNT(*) FILTER(WHERE durum = 'tamamlandi') as tamamlandi,
-          COUNT(*) FILTER(WHERE durum = 'revize_gerekli' OR durum = 'revize_istendi') as revize_gerekli
+            COUNT(*) FILTER(WHERE durum = 'dizgi_bekliyor') as dizgi_bekliyor,
+              COUNT(*) FILTER(WHERE durum = 'dizgide') as dizgide,
+                COUNT(*) FILTER(WHERE durum = 'tamamlandi') as tamamlandi,
+                  COUNT(*) FILTER(WHERE durum = 'revize_gerekli' OR durum = 'revize_istendi') as revize_gerekli
         FROM sorular
-      `;
+        `;
     }
 
     const result = await pool.query(query, params);
@@ -1534,8 +1534,8 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
 
     // Genel istatistikler
     const genelStats = await pool.query(`
-      SELECT 
-        COUNT(*) as toplam_soru,
+      SELECT
+      COUNT(*) as toplam_soru,
         COUNT(CASE WHEN durum = 'beklemede' THEN 1 END) as beklemede,
         COUNT(CASE WHEN durum = 'inceleme_bekliyor' THEN 1 END) as inceleme_bekliyor,
         COUNT(CASE WHEN durum = 'incelemede' THEN 1 END) as incelemede,
@@ -1544,9 +1544,9 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
         COUNT(CASE WHEN durum = 'dizgide' THEN 1 END) as dizgide,
         COUNT(CASE WHEN durum = 'inceleme_tamam' THEN 1 END) as inceleme_tamam,
         COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlandi,
-        COUNT(CASE WHEN zorluk_seviyesi IN (1,2) THEN 1 END) as kolay,
+        COUNT(CASE WHEN zorluk_seviyesi IN(1, 2) THEN 1 END) as kolay,
         COUNT(CASE WHEN zorluk_seviyesi = 3 THEN 1 END) as orta,
-        COUNT(CASE WHEN zorluk_seviyesi IN (4,5) THEN 1 END) as zor,
+        COUNT(CASE WHEN zorluk_seviyesi IN(4, 5) THEN 1 END) as zor,
         COUNT(CASE WHEN zorluk_seviyesi = 1 THEN 1 END) as seviye1,
         COUNT(CASE WHEN zorluk_seviyesi = 2 THEN 1 END) as seviye2,
         COUNT(CASE WHEN zorluk_seviyesi = 3 THEN 1 END) as seviye3,
@@ -1555,7 +1555,7 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
         COUNT(CASE WHEN fotograf_url IS NOT NULL THEN 1 END) as fotografli,
         COUNT(CASE WHEN latex_kodu IS NOT NULL AND latex_kodu != '' THEN 1 END) as latexli
       FROM sorular
-    `);
+        `);
 
     // Son eklenen soruları getir (debug için)
     const sonSorular = await pool.query(`
@@ -1564,35 +1564,35 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
       LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
       ORDER BY s.olusturulma_tarihi DESC
       LIMIT 10
-  `);
+        `);
 
     // Branş bazlı istatistikler
     const bransStats = await pool.query(`
-SELECT
-b.id,
-  b.brans_adi,
-  e.ekip_adi,
-  COUNT(s.id) as soru_sayisi,
-  COUNT(CASE WHEN s.durum = 'beklemede' THEN 1 END) as beklemede,
-  COUNT(CASE WHEN s.durum = 'dizgide' THEN 1 END) as dizgide,
-  COUNT(CASE WHEN s.durum = 'tamamlandi' THEN 1 END) as tamamlandi
+      SELECT
+      b.id,
+        b.brans_adi,
+        e.ekip_adi,
+        COUNT(s.id) as soru_sayisi,
+        COUNT(CASE WHEN s.durum = 'beklemede' THEN 1 END) as beklemede,
+        COUNT(CASE WHEN s.durum = 'dizgide' THEN 1 END) as dizgide,
+        COUNT(CASE WHEN s.durum = 'tamamlandi' THEN 1 END) as tamamlandi
       FROM branslar b
       LEFT JOIN ekipler e ON b.ekip_id = e.id
       LEFT JOIN sorular s ON b.id = s.brans_id
       GROUP BY b.id, b.brans_adi, e.ekip_adi
       ORDER BY soru_sayisi DESC
-  `);
+        `);
 
     // Kullanıcı performans istatistikleri
     const kullaniciStats = await pool.query(`
-SELECT
-k.id,
-  k.ad_soyad,
-  k.email,
-  k.rol,
-  b.brans_adi,
-  COUNT(s.id) as olusturulan_soru,
-  COUNT(CASE WHEN s.durum = 'tamamlandi' THEN 1 END) as tamamlanan
+      SELECT
+      k.id,
+        k.ad_soyad,
+        k.email,
+        k.rol,
+        b.brans_adi,
+        COUNT(s.id) as olusturulan_soru,
+        COUNT(CASE WHEN s.durum = 'tamamlandi' THEN 1 END) as tamamlanan
       FROM kullanicilar k
       LEFT JOIN branslar b ON k.brans_id = b.id
       LEFT JOIN sorular s ON k.id = s.olusturan_kullanici_id
@@ -1600,17 +1600,17 @@ k.id,
       GROUP BY k.id, k.ad_soyad, k.email, k.rol, b.brans_adi
       ORDER BY olusturulan_soru DESC
       LIMIT 10
-  `);
+        `);
 
     // Dizgici performans istatistikleri
     const dizgiStats = await pool.query(`
-SELECT
-k.id,
-  k.ad_soyad,
-  k.email,
-  b.brans_adi,
-  COUNT(dg.id) as tamamlanan_dizgi,
-  AVG(EXTRACT(EPOCH FROM(dg.tamamlanma_tarihi - s.olusturulma_tarihi)) / 3600):: numeric(10, 2) as ortalama_sure_saat
+      SELECT
+      k.id,
+        k.ad_soyad,
+        k.email,
+        b.brans_adi,
+        COUNT(dg.id) as tamamlanan_dizgi,
+        AVG(EXTRACT(EPOCH FROM(dg.tamamlanma_tarihi - s.olusturulma_tarihi)) / 3600):: numeric(10, 2) as ortalama_sure_saat
       FROM kullanicilar k
       LEFT JOIN branslar b ON k.brans_id = b.id
       LEFT JOIN dizgi_gecmisi dg ON k.id = dg.dizgici_id
@@ -1619,40 +1619,40 @@ k.id,
       GROUP BY k.id, k.ad_soyad, k.email, b.brans_adi
       ORDER BY tamamlanan_dizgi DESC
       LIMIT 10
-  `);
+        `);
 
     // Son 30 günlük trend
     const trendStats = await pool.query(`
-SELECT
-DATE(olusturulma_tarihi) as tarih,
-  COUNT(*) as soru_sayisi,
-  COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlanan
+      SELECT
+      DATE(olusturulma_tarihi) as tarih,
+        COUNT(*) as soru_sayisi,
+        COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlanan
       FROM sorular
       WHERE olusturulma_tarihi >= CURRENT_DATE - INTERVAL '30 days'
       GROUP BY DATE(olusturulma_tarihi)
       ORDER BY tarih DESC
-  `);
+        `);
 
     // Kullanıcı sayıları
     const kullaniciSayilari = await pool.query(`
-SELECT
-COUNT(CASE WHEN rol = 'admin' THEN 1 END) as admin_sayisi,
-  COUNT(CASE WHEN rol = 'soru_yazici' THEN 1 END) as soru_yazici_sayisi,
-  COUNT(CASE WHEN rol = 'dizgici' THEN 1 END) as dizgici_sayisi,
-  COUNT(CASE WHEN rol = 'incelemeci' THEN 1 END) as incelemeci_sayisi,
-  COUNT(*) as toplam_kullanici
+      SELECT
+      COUNT(CASE WHEN rol = 'admin' THEN 1 END) as admin_sayisi,
+        COUNT(CASE WHEN rol = 'soru_yazici' THEN 1 END) as soru_yazici_sayisi,
+        COUNT(CASE WHEN rol = 'dizgici' THEN 1 END) as dizgici_sayisi,
+        COUNT(CASE WHEN rol = 'incelemeci' THEN 1 END) as incelemeci_sayisi,
+        COUNT(*) as toplam_kullanici
       FROM kullanicilar
-  `);
+        `);
 
     // Ekip sayıları
     const ekipStats = await pool.query(`
       SELECT COUNT(*) as toplam_ekip FROM ekipler
-  `);
+        `);
 
     // Branş sayıları (Tekil - Büyük/küçük harf duyarsız, boşluklar temizlenmiş)
     const bransStatsCount = await pool.query(`
       SELECT COUNT(DISTINCT UPPER(TRIM(brans_adi))) as toplam_brans FROM branslar
-  `);
+        `);
 
     res.json({
       success: true,
@@ -1686,25 +1686,25 @@ router.get('/rapor', authenticate, authorize(['admin']), async (req, res, next) 
 
     // Genel istatistikler (tarih aralığına göre)
     const genelQuery = `
-SELECT
-COUNT(*) as toplam_soru,
-  COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlanan,
-  COUNT(CASE WHEN durum = 'beklemede' THEN 1 END) as bekleyen,
-  COUNT(CASE WHEN durum = 'dizgide' THEN 1 END) as devam_eden,
-  0 as reddedilen,
-  COUNT(CASE WHEN fotograf_url IS NOT NULL THEN 1 END) as fotografli,
-  COUNT(CASE WHEN latex_kodu IS NOT NULL THEN 1 END) as latexli,
-  COUNT(CASE WHEN zorluk_seviyesi IN (1,2) THEN 1 END) as kolay,
-  COUNT(CASE WHEN zorluk_seviyesi = 3 THEN 1 END) as orta,
-  COUNT(CASE WHEN zorluk_seviyesi IN (4,5) THEN 1 END) as zor,
-  COUNT(CASE WHEN zorluk_seviyesi = 1 THEN 1 END) as seviye1,
-  COUNT(CASE WHEN zorluk_seviyesi = 2 THEN 1 END) as seviye2,
-  COUNT(CASE WHEN zorluk_seviyesi = 3 THEN 1 END) as seviye3,
-  COUNT(CASE WHEN zorluk_seviyesi = 4 THEN 1 END) as seviye4,
-  COUNT(CASE WHEN zorluk_seviyesi = 5 THEN 1 END) as seviye5
+      SELECT
+      COUNT(*) as toplam_soru,
+        COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlanan,
+        COUNT(CASE WHEN durum = 'beklemede' THEN 1 END) as bekleyen,
+        COUNT(CASE WHEN durum = 'dizgide' THEN 1 END) as devam_eden,
+        0 as reddedilen,
+        COUNT(CASE WHEN fotograf_url IS NOT NULL THEN 1 END) as fotografli,
+        COUNT(CASE WHEN latex_kodu IS NOT NULL THEN 1 END) as latexli,
+        COUNT(CASE WHEN zorluk_seviyesi IN(1, 2) THEN 1 END) as kolay,
+        COUNT(CASE WHEN zorluk_seviyesi = 3 THEN 1 END) as orta,
+        COUNT(CASE WHEN zorluk_seviyesi IN(4, 5) THEN 1 END) as zor,
+        COUNT(CASE WHEN zorluk_seviyesi = 1 THEN 1 END) as seviye1,
+        COUNT(CASE WHEN zorluk_seviyesi = 2 THEN 1 END) as seviye2,
+        COUNT(CASE WHEN zorluk_seviyesi = 3 THEN 1 END) as seviye3,
+        COUNT(CASE WHEN zorluk_seviyesi = 4 THEN 1 END) as seviye4,
+        COUNT(CASE WHEN zorluk_seviyesi = 5 THEN 1 END) as seviye5
       FROM sorular
       WHERE olusturulma_tarihi >= $1::date AND olusturulma_tarihi < ($2:: date + interval '1 day')
-`;
+  `;
 
     // Branş bazında detaylı rapor
     const bransQuery = `
@@ -1856,21 +1856,21 @@ router.get('/stats/inceleme-detayli', authenticate, async (req, res, next) => {
     }
 
     const query = `
-      SELECT 
-        COALESCE(e.id, 0) as ekip_id, 
-        COALESCE(e.ekip_adi, 'Ekipsiz Branşlar') as ekip_adi, 
-        b.id as brans_id, 
-        b.brans_adi,
-        COUNT(s.id) FILTER(WHERE s.durum IN ('inceleme_bekliyor', 'incelemede', 'revize_istendi') AND s.onay_alanci = false) as alanci_bekleyen,
-        COUNT(s.id) FILTER(WHERE s.durum IN ('inceleme_bekliyor', 'incelemede', 'revize_istendi') AND s.onay_dilci = false) as dilci_bekleyen,
-        COUNT(s.id) as toplam_bekleyen
+SELECT
+COALESCE(e.id, 0) as ekip_id,
+  COALESCE(e.ekip_adi, 'Ekipsiz Branşlar') as ekip_adi,
+  b.id as brans_id,
+  b.brans_adi,
+  COUNT(s.id) FILTER(WHERE s.durum IN('inceleme_bekliyor', 'incelemede', 'revize_istendi', 'alan_incelemede') AND s.onay_alanci = false) as alanci_bekleyen,
+    COUNT(s.id) FILTER(WHERE s.durum IN('inceleme_bekliyor', 'incelemede', 'revize_istendi', 'dil_incelemede') AND s.onay_dilci = false) as dilci_bekleyen,
+      COUNT(s.id) as toplam_bekleyen
       FROM branslar b
       LEFT JOIN ekipler e ON b.ekip_id = e.id
-      LEFT JOIN sorular s ON s.brans_id = b.id AND s.durum IN ('inceleme_bekliyor', 'incelemede', 'revize_istendi')
+      LEFT JOIN sorular s ON s.brans_id = b.id AND s.durum IN('inceleme_bekliyor', 'incelemede', 'revize_istendi', 'alan_incelemede', 'dil_incelemede')
       GROUP BY e.id, e.ekip_adi, b.id, b.brans_adi
       HAVING COUNT(s.id) > 0
       ORDER BY e.ekip_adi NULLS LAST, b.brans_adi
-    `;
+  `;
 
     const result = await pool.query(query);
 
