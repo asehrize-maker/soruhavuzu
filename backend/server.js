@@ -104,6 +104,50 @@ const startServer = async () => {
       console.error('⚠️ durum kısıtı güncellenemedi:', e.message);
     }
 
+    // Prod-shell yok: zorluk kısıtını ve veriyi her startta garanti altına al
+    try {
+      // Eski (metinsel) değerleri sayısala çevir ve aralığa sıkıştır
+      await pool.query(`
+        UPDATE sorular SET zorluk_seviyesi =
+          CASE
+            WHEN zorluk_seviyesi::text ~ '^[0-9]+$'
+              THEN LEAST(GREATEST(zorluk_seviyesi::int,1),5)
+            WHEN LOWER(zorluk_seviyesi::text) IN ('çok kolay','cok kolay','kolay','easy') THEN 2
+            WHEN LOWER(zorluk_seviyesi::text) IN ('orta','normal','medium') THEN 3
+            WHEN LOWER(zorluk_seviyesi::text) IN ('zor','hard') THEN 4
+            ELSE 3
+          END
+        WHERE zorluk_seviyesi IS NULL
+           OR zorluk_seviyesi::text !~ '^[1-5]$'
+           OR LOWER(zorluk_seviyesi::text) IN ('çok kolay','cok kolay','kolay','easy','orta','normal','medium','zor','hard');
+      `);
+
+      // Mevcut zorluk kısıtlarını düşür
+      const zConstraints = await pool.query(`
+        SELECT conname
+        FROM pg_constraint c
+        JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY (c.conkey)
+        WHERE c.contype = 'c' AND c.conrelid = 'sorular'::regclass AND a.attname = 'zorluk_seviyesi'
+      `);
+      for (const row of zConstraints.rows) {
+        await pool.query(`ALTER TABLE sorular DROP CONSTRAINT IF EXISTS "${row.conname}"`);
+      }
+
+      // Tipi smallint'e çek ve kısıtı ekle
+      await pool.query(`
+        ALTER TABLE sorular
+          ALTER COLUMN zorluk_seviyesi TYPE SMALLINT USING LEAST(GREATEST(zorluk_seviyesi::int,1),5);
+        ALTER TABLE sorular
+          ADD CONSTRAINT sorular_zorluk_seviyesi_check CHECK (zorluk_seviyesi BETWEEN 1 AND 5);
+        ALTER TABLE sorular
+          ALTER COLUMN zorluk_seviyesi SET DEFAULT 3;
+      `);
+
+      console.log('✅ zorluk_seviyesi CHECK kısıtı ve veri normalize edildi');
+    } catch (e) {
+      console.error('⚠️ zorluk_seviyesi kısıtı güncellenemedi:', e.message);
+    }
+
     // FIX: Eski soruları geri getir
     const fixRes = await pool.query("UPDATE sorular SET durum = 'dizgi_tamam' WHERE durum = 'tamamlandi' AND final_png_url IS NULL");
     if (fixRes.rowCount > 0) {
