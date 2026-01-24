@@ -78,6 +78,16 @@ const startServer = async () => {
 
     // Prod-shell yok: durum kısıtını her startta garanti altına al
     try {
+      // Tüm mevcut CHECK kısıtlarını temizle (isim değişmiş olabilir)
+      const existing = await pool.query(`
+        SELECT conname
+        FROM pg_constraint c
+        JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY (c.conkey)
+        WHERE c.contype = 'c' AND c.conrelid = 'sorular'::regclass AND a.attname = 'durum'
+      `);
+      for (const row of existing.rows) {
+        await pool.query(`ALTER TABLE sorular DROP CONSTRAINT IF EXISTS "${row.conname}"`);
+      }
       await pool.query(`
         ALTER TABLE sorular DROP CONSTRAINT IF EXISTS sorular_durum_check;
         ALTER TABLE sorular
