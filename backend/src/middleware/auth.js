@@ -22,11 +22,6 @@ export const authenticate = async (req, res, next) => {
     }
 
     req.user = result.rows[0];
-
-    // Online durumunu güncelle (Arka planda, isteği bekletmeden)
-    pool.query('UPDATE kullanicilar SET son_gorulme = CURRENT_TIMESTAMP WHERE id = $1', [req.user.id])
-      .catch(err => console.error('Son görülme güncellenemedi:', err.message));
-
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
