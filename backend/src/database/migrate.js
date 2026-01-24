@@ -22,7 +22,6 @@ import { addDizgiTamamStatus } from './migrations/022_add_dizgi_tamam_enum.js';
 import { addDizgiDateColumns } from './migrations/023_add_dizgi_date_columns.js';
 import { addKoordinatorRole } from './migrations/024_add_koordinator_role.js';
 import { ultimateDurumFix } from './migrations/025_ultimate_durum_fix.js';
-import { addKoordinatorRole } from './migrations/024_add_koordinator_role.js';
 import { workflowV2Statuses } from './migrations/026_workflow_v2_statuses.js';
 
 const createTables = async () => {
