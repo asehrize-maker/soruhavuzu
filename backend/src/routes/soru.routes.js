@@ -144,10 +144,14 @@ router.get('/', authenticate, async (req, res, next) => {
     const targetRole = (req.user.rol === 'admin' && req.query.role) ? req.query.role.toLowerCase() : req.user.rol;
     console.log('Final Target Role for Isolation:', targetRole);
 
+    // İnceleme yetkisi kontrolü (Flag veya Rol bazlı)
+    const isReviewerRole = targetRole === 'incelemeci' || targetRole === 'alan_incelemeci' || targetRole === 'dil_incelemeci';
+    const hasReviewFlags = req.user.inceleme_alanci || req.user.inceleme_dilci;
+    const isAnyReviewer = isReviewerRole || hasReviewFlags;
+
     // Rol bazlı filtreleme ve İZOLASYON
     if (targetRole === 'dizgici') {
-      // Dizgici: Havuzdaki (dizgi_bekliyor/revize_istendi) veya kendine atanmış işleri görür
-      // Admin simülasyonunda ise havuzdaki her şeyi görür (kendi id'sine bakmadan)
+      // Dizgici izolasyonu
       if (req.user.rol === 'admin') {
         query += ` AND s.durum IN ('dizgi_bekliyor', 'dizgide', 'revize_istendi', 'dizgi_tamam')`;
       } else {
@@ -159,10 +163,9 @@ router.get('/', authenticate, async (req, res, next) => {
         params.push(req.user.id);
         paramCount++;
       }
-      console.log('Dizgici Isolation Added. Params:', params);
-    } else if (targetRole !== 'admin' && targetRole !== 'incelemeci') {
+    } else if (targetRole !== 'admin' && !isAnyReviewer) {
+      // Soru yazarları ve diğerleri için
       if (scope === 'brans' || brans_id) {
-        // Branş Havuzu: Sadece yetkili olduğu branşlar (Tüm durumlar)
         query += ` AND s.brans_id IN (
           SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount}
           UNION 
@@ -171,9 +174,12 @@ router.get('/', authenticate, async (req, res, next) => {
         params.push(req.user.id);
         paramCount++;
       } else {
-        // Ortak Havuz (Varsayılan): Tamamlanmış veya Dizgisi bitmiş sorular
+        // Ortak Havuz
         query += ` AND (s.durum = 'tamamlandi' OR s.durum = 'dizgi_tamam')`;
       }
+    } else if (isAnyReviewer && targetRole !== 'admin') {
+      // İNCELEMECİLER: İnceleme aşamasındaki her şeyi görebilmeli
+      query += ` AND s.durum IN ('alan_incelemede', 'dil_incelemede', 'inceleme_bekliyor', 'incelemede', 'alan_onaylandi', 'dil_onaylandi', 'dizgi_tamam')`;
     }
 
     if (durum) {
