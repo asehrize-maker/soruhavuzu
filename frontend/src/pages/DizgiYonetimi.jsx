@@ -57,6 +57,23 @@ export default function DizgiYonetimi() {
     }
   };
 
+  const handleDizgiAl = async (soruId) => {
+    try {
+      setLoading(true);
+      await soruAPI.dizgiAl(soruId);
+      alert('Soru üzerinize alındı!');
+      await loadSorular();
+      loadBransCounts();
+      // Seçili soruyu güncelle ki sağ panel yenilensin
+      const updated = sorular.find(s => s.id === soruId);
+      if (updated) setSelectedSoru({ ...updated, durum: 'dizgide' });
+    } catch (err) {
+      alert(err.response?.data?.error || 'Soru alınamadı');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDurumGuncelle = async (soruId, durum) => {
     try {
       const data = { yeni_durum: durum };
@@ -223,8 +240,8 @@ export default function DizgiYonetimi() {
                   <div className="flex items-center gap-2">
                     <button onClick={() => navigate(`/sorular/${selectedSoru.id}`)} className="btn btn-secondary btn-sm">Detay</button>
                     <button onClick={() => setShowMesaj(showMesaj === selectedSoru.id ? null : selectedSoru.id)} className="btn btn-info btn-sm">💬</button>
-                    {selectedSoru.durum === 'dizgi_bekliyor' && <button onClick={() => handleDurumGuncelle(selectedSoru.id, 'dizgide')} className="btn btn-primary btn-sm">Dizgiye Al</button>}
-                    {selectedSoru.durum === 'dizgide' && <button onClick={() => handleDurumGuncelle(selectedSoru.id, 'dizgi_tamam')} className="btn btn-success btn-sm">✔ Dizgiyi Bitir</button>}
+                    {selectedSoru.durum === 'dizgi_bekliyor' && <button onClick={() => handleDizgiAl(selectedSoru.id)} className="btn btn-primary btn-sm">Dizgiye Al</button>}
+                    {selectedSoru.durum === 'dizgide' && <button onClick={() => setShowCompleteModal(true)} className="btn btn-success btn-sm">✔ Dizgiyi Bitir</button>}
                   </div>
                 </div>
 
