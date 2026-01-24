@@ -33,10 +33,10 @@ export const seedSivasEkibi = async () => {
         ];
 
         for (const bransAdi of branslar) {
-            // Check if branch exists for this team
+            // Check if branch exists GLOBALLY (since they are now global)
             const checkBrans = await client.query(
-                "SELECT id FROM branslar WHERE brans_adi = $1 AND ekip_id = $2",
-                [bransAdi, ekipId]
+                "SELECT id FROM branslar WHERE brans_adi = $1",
+                [bransAdi]
             );
 
             if (checkBrans.rows.length === 0) {

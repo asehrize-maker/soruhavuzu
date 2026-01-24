@@ -105,11 +105,14 @@ router.post('/login', [
 
     const { email, sifre } = req.body;
 
-    // Kullanıcı kontrolü
-    const result = await pool.query(
-      'SELECT * FROM kullanicilar WHERE email = $1 AND aktif = true',
-      [email]
-    );
+    // Kullanıcı kontrolü (ekip ve branş bilgileriyle birlikte)
+    const result = await pool.query(`
+      SELECT k.*, e.ekip_adi, b.brans_adi
+      FROM kullanicilar k
+      LEFT JOIN ekipler e ON k.ekip_id = e.id
+      LEFT JOIN branslar b ON k.brans_id = b.id
+      WHERE k.email = $1 AND k.aktif = true
+    `, [email]);
 
     if (result.rows.length === 0) {
       throw new AppError('Email veya şifre hatalı', 401);

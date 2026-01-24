@@ -86,14 +86,44 @@ const uploadFields = multer({
   }
 });
 
+// DEBUG ROUTE
+router.get('/debug/visibility', async (req, res) => {
+  try {
+    const questions = await pool.query(`
+      SELECT s.id, s.durum, s.onay_alanci, s.onay_dilci, s.brans_id, b.brans_adi, k.ad_soyad as yazar
+      FROM sorular s
+      LEFT JOIN branslar b ON s.brans_id = b.id
+      LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
+      WHERE s.durum = 'inceleme_bekliyor'
+    `);
+
+    const reviewers = await pool.query(`
+        SELECT k.id, k.ad_soyad, k.rol, k.inceleme_alanci, k.inceleme_dilci, 
+               k.brans_id as ana_brans_id,
+               array_agg(kb.brans_id) as yetkili_branslar
+        FROM kullanicilar k
+        LEFT JOIN kullanici_branslari kb ON k.id = kb.kullanici_id
+        WHERE k.rol = 'incelemeci'
+        GROUP BY k.id
+    `);
+
+    res.json({
+      pending_questions: questions.rows,
+      reviewers: reviewers.rows
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Eski upload değişkenini koru (geriye uyumluluk için)
 const upload = uploadFotograf;
+
+
 
 // Tüm soruları getir (filtreleme ile)
 router.get('/', authenticate, async (req, res, next) => {
   try {
     console.log('GET /sorular Request:', req.query, 'User Role:', req.user?.rol);
-    const { durum, brans_id, ekip_id, olusturan_id } = req.query;
+    const { durum, brans_id, ekip_id, olusturan_id, scope } = req.query;
 
     let query = `
       SELECT s.*, 
@@ -112,46 +142,31 @@ router.get('/', authenticate, async (req, res, next) => {
     const params = [];
     let paramCount = 1;
 
-    // Rol bazlı filtreleme
-    if (req.user.rol === 'soru_yazici') {
-      // Soru yazarı: kendi sorularını görebilir.
-      // Yazar, iki inceleme onayı bitmeden kendi sorusunu göremez.
-      // Yalnızca kendi sorusu iki onay almışsa veya tamamlandıysa listeleyebilir.
+    // Rol bazlı filtreleme ve İZOLASYON
+    if (req.user.rol === 'dizgici') {
+      // Dizgici: Havuzdaki (dizgi_bekliyor) veya kendine atanmış işleri görür
+      // Branş kısıtlaması olmaz (Genel havuzdan iş alabilirler)
       query += ` AND (
-        (s.olusturan_kullanici_id = $${paramCount++} AND s.onay_alanci = true AND s.onay_dilci = true)
-        OR s.durum = 'tamamlandi'
+        s.durum = 'dizgi_bekliyor' 
+        OR s.dizgici_id = $${paramCount++}
       )`;
       params.push(req.user.id);
-    } else if (req.user.rol === 'dizgici') {
-      // Dizgici: sadece çalıştığı branş(lar)ın sorularını görsün.
-      // Bu, brans_id'ye göre filtre uygular.
-      query += ` AND (
-        b.id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount++})
-        OR b.id = (SELECT brans_id FROM kullanicilar WHERE id = $${paramCount++})
-      )`;
-      params.push(req.user.id, req.user.id);
-    } else if (req.user.rol === 'incelemeci') {
-      // İncelemeciler: sadece kendi yetkili oldukları inceleme türündeki
-      // ve kendi branşlarındaki soruları görsünler.
-      const canAlan = !!req.user.inceleme_alanci;
-      const canDil = !!req.user.inceleme_dilci;
-      if (!canAlan && !canDil) {
-        return res.json({ success: true, count: 0, data: [] });
+    } else if (req.user.rol !== 'admin' && req.user.rol !== 'incelemeci') {
+
+      if (scope === 'brans' || brans_id) {
+        // Branş Havuzu: Sadece yetkili olduğu branşlar (Tüm durumlar)
+        query += ` AND s.brans_id IN (
+          SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount}
+          UNION 
+          SELECT brans_id FROM kullanicilar WHERE id = $${paramCount}
+        )`;
+        params.push(req.user.id);
+        paramCount++;
+      } else {
+        // Ortak Havuz (Varsayılan): Tamamlanmış veya Dizgisi bitmiş (kontrol için) sorular
+        query += ` AND (s.durum = 'tamamlandi' OR s.durum = 'dizgi_tamam')`;
       }
 
-      const parts = [];
-      if (canAlan) parts.push('s.onay_alanci = false');
-      if (canDil) parts.push('s.onay_dilci = false');
-      const reviewCondition = `(${parts.join(' OR ')})`;
-
-      query += ` AND ${reviewCondition} AND (
-        b.id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount++})
-        OR b.id = (SELECT brans_id FROM kullanicilar WHERE id = $${paramCount++})
-      )`;
-      params.push(req.user.id, req.user.id);
-    } else {
-      // Diğer rollere (ör. misafir) soru havuzu gösterilmesin
-      return res.json({ success: true, count: 0, data: [] });
     }
 
     if (durum) {
@@ -162,11 +177,6 @@ router.get('/', authenticate, async (req, res, next) => {
     if (brans_id) {
       query += ` AND s.brans_id = $${paramCount++}`;
       params.push(brans_id);
-    }
-
-    if (ekip_id) {
-      query += ` AND b.ekip_id = $${paramCount++}`;
-      params.push(ekip_id);
     }
 
     if (olusturan_id) {
@@ -213,14 +223,16 @@ router.get('/:id(\\d+)', authenticate, async (req, res, next) => {
 
     const soru = result.rows[0];
 
-    // Yetki kontrolü
+    // Yetki kontrolü (Soru Yazıcı yetkili olduğu branşlardaki soruları görebilir)
     if (req.user.rol === 'soru_yazici') {
-      if (soru.olusturan_kullanici_id !== req.user.id) {
-        throw new AppError('Bu soruyu görme yetkiniz yok', 403);
-      }
-      // Yazar, iki inceleme onayı tamamlanmadan soruyu göremez
-      if (!(soru.onay_alanci && soru.onay_dilci) && soru.durum !== 'tamamlandi') {
-        throw new AppError('Bu soruyu inceleme tamamlanana kadar görüntüleyemezsiniz', 403);
+      const authBransResult = await pool.query(`
+        SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1 AND brans_id = $2
+        UNION
+        SELECT 1 FROM kullanicilar WHERE id = $1 AND brans_id = $2
+      `, [req.user.id, soru.brans_id]);
+
+      if (authBransResult.rows.length === 0 && soru.olusturan_kullanici_id !== req.user.id && soru.durum !== 'tamamlandi') {
+        throw new AppError('Bu branştaki soruları görme yetkiniz yok', 403);
       }
     }
 
@@ -251,7 +263,8 @@ router.post('/', [
   authorize('admin', 'soru_yazici'),
   uploadFields.fields([
     { name: 'fotograf', maxCount: 1 },
-    { name: 'dosya', maxCount: 1 }
+    { name: 'dosya', maxCount: 1 },
+    { name: 'final_png', maxCount: 1 }
   ]),
   body('soru_metni').trim().notEmpty().withMessage('Soru metni gerekli'),
   body('brans_id').isInt().withMessage('Geçerli bir branş seçin')
@@ -271,7 +284,7 @@ router.post('/', [
     const {
       soru_metni, zorluk_seviyesi, brans_id, latex_kodu, kazanim,
       secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap,
-      fotograf_konumu
+      fotograf_konumu, durum
     } = req.body;
 
     const normalizedZorluk = normalizeZorlukSeviyesi(zorluk_seviyesi);
@@ -368,21 +381,53 @@ router.post('/', [
       dosya_boyutu
     });
 
-    const result = await pool.query(
-      `INSERT INTO sorular (
-        soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, 
-        latex_kodu, kazanim, olusturan_kullanici_id, 
-        dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
-        secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap, fotograf_konumu
-      ) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) RETURNING *`,
-      [
-        soru_metni, fotograf_url, fotograf_public_id, normalizedZorluk, brans_id,
-        latex_kodu || null, kazanim || null, req.user.id,
-        dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
-        secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust'
-      ]
-    );
+    console.log('Parsed Zorluk:', parseInt(zorluk_seviyesi) || 3);
+
+    let result;
+    try {
+      // 1. Durum: Yeni şema (Zorluk seviyesi INTEGER 1-5)
+      result = await pool.query(
+        `INSERT INTO sorular (
+          soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, 
+          latex_kodu, kazanim, olusturan_kullanici_id, 
+          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
+          secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap, fotograf_konumu,
+          durum
+        ) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
+        [
+          soru_metni, fotograf_url, fotograf_public_id, parseInt(zorluk_seviyesi) || 3, brans_id,
+          latex_kodu || null, kazanim || null, req.user.id,
+          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
+          secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust',
+          durum || 'beklemede'
+        ]
+      );
+    } catch (firstError) {
+      console.warn('⚠️ İlk insert denemesi başarısız (Muhtemelen eski DB şeması), Fallback deneniyor:', firstError.message);
+
+      // 2. Durum: Eski şema (Zorluk seviyesi STRING 'kolay','orta','zor')
+      const zMap = { 1: 'kolay', 2: 'kolay', 3: 'orta', 4: 'zor', 5: 'zor' };
+      const zStr = zMap[parseInt(zorluk_seviyesi)] || 'orta';
+
+      result = await pool.query(
+        `INSERT INTO sorular (
+          soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, 
+          latex_kodu, kazanim, olusturan_kullanici_id, 
+          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
+          secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap, fotograf_konumu,
+          durum
+        ) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
+        [
+          soru_metni, fotograf_url, fotograf_public_id, zStr, brans_id,
+          latex_kodu || null, kazanim || null, req.user.id,
+          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
+          secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust',
+          durum || 'beklemede'
+        ]
+      );
+    }
 
     console.log('Soru başarıyla eklendi, ID:', result.rows[0].id);
 
@@ -391,53 +436,39 @@ router.post('/', [
       data: result.rows[0]
     });
   } catch (error) {
+    console.error('❌ Soru ekleme hatası (DETAYLI):', error);
+    console.error('Stack:', error.stack);
+    console.error('Request Body:', req.body);
     next(error);
   }
 });
 
-// İnceleme için branş bazlı bekleyen soru sayıları (turu: 'alanci'|'dilci')
-router.get('/stats/inceleme-brans', authenticate, async (req, res, next) => {
+
+
+// Dizgi için branş bazlı bekleyen soru sayıları
+router.get('/stats/dizgi-brans', authenticate, async (req, res, next) => {
   try {
-    // Determine review capabilities from user flags
     const isAdmin = req.user.rol === 'admin';
-    const canAlan = isAdmin || !!req.user.inceleme_alanci;
-    const canDil = isAdmin || !!req.user.inceleme_dilci;
-
-    // Build SQL condition depending on capabilities
-    let condition = '';
-    if (canAlan && canDil) {
-      condition = `(s.onay_alanci = false OR s.onay_dilci = false)`;
-    } else if (canAlan) {
-      condition = `s.onay_alanci = false`;
-    } else if (canDil) {
-      condition = `s.onay_dilci = false`;
-    } else {
-      // No review capability
-      return res.json({ success: true, data: [] });
-    }
-
     let query;
     let params = [];
 
     if (isAdmin) {
       query = `
-        SELECT b.id, b.brans_adi,
-          COALESCE(COUNT(s.id) FILTER (WHERE s.durum = 'inceleme_bekliyor' AND ${condition}), 0) as inceleme_bekliyor
+        SELECT b.id, b.brans_adi, COALESCE(COUNT(s.id) FILTER (WHERE s.durum = 'dizgi_bekliyor'), 0) as dizgi_bekliyor
         FROM branslar b
         LEFT JOIN sorular s ON b.id = s.brans_id
         GROUP BY b.id, b.brans_adi
-        ORDER BY inceleme_bekliyor DESC
+        ORDER BY dizgi_bekliyor DESC
       `;
     } else {
       query = `
-        SELECT b.id, b.brans_adi,
-          COALESCE(COUNT(s.id) FILTER (WHERE s.durum = 'inceleme_bekliyor' AND ${condition}), 0) as inceleme_bekliyor
+        SELECT b.id, b.brans_adi, COALESCE(COUNT(s.id) FILTER (WHERE s.durum = 'dizgi_bekliyor'), 0) as dizgi_bekliyor
         FROM branslar b
         LEFT JOIN sorular s ON b.id = s.brans_id
         WHERE b.id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1)
            OR b.id = (SELECT brans_id FROM kullanicilar WHERE id = $1)
         GROUP BY b.id, b.brans_adi
-        ORDER BY inceleme_bekliyor DESC
+        ORDER BY dizgi_bekliyor DESC
       `;
       params = [req.user.id];
     }
@@ -448,6 +479,331 @@ router.get('/stats/inceleme-brans', authenticate, async (req, res, next) => {
     next(error);
   }
 });
+
+// Soru güncelle
+router.put('/:id(\\d+)', [
+  authenticate,
+  upload.single('fotograf'),
+  body('soru_metni').trim().notEmpty().withMessage('Soru metni gerekli')
+], async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const { id } = req.params;
+    const {
+      soru_metni, zorluk_seviyesi,
+      secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap,
+      fotograf_konumu
+    } = req.body;
+
+    // Soru sahibi kontrolü ve yetki doğrulama
+    const checkResult = await pool.query('SELECT * FROM sorular WHERE id = $1', [id]);
+
+    if (checkResult.rows.length === 0) {
+      throw new AppError('Soru bulunamadı', 404);
+    }
+
+    const soru = checkResult.rows[0];
+
+    // İncelemeye giden sorularda değişiklik yapılamamalı (Admin hariç)
+    // Ancak branş sahipleri revize bekleyen veya dizgi/inceleme bekleyen sorular üzerinde çalışabilir.
+    const isAllowedDurum = ['beklemede', 'revize_istendi', 'revize_gerekli', 'dizgi_bekliyor', 'inceleme_bekliyor', 'inceleme_tamam'].includes(soru.durum);
+    if (req.user.rol !== 'admin' && !isAllowedDurum && (soru.durum === 'dizgide' || soru.durum === 'tamamlandi')) {
+      throw new AppError('İşlemdeki veya tamamlanmış sorular düzenlenemez.', 403);
+    }
+
+    // Yetki kuralları: Admin veya Branş yetkilisi veya Sahibi düzenleyebilir
+    let hasPermission = req.user.rol === 'admin' || soru.olusturan_kullanici_id === req.user.id;
+    if (!hasPermission && req.user.rol === 'soru_yazici') {
+      const authBrans = await pool.query(`
+        SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1 AND brans_id = $2
+        UNION
+        SELECT 1 FROM kullanicilar WHERE id = $1 AND brans_id = $2
+      `, [req.user.id, soru.brans_id]);
+      if (authBrans.rows.length > 0) hasPermission = true;
+    }
+
+    if (!hasPermission) {
+      throw new AppError('Bu soruyu düzenleme yetkiniz yok', 403);
+    }
+
+    let fotograf_url = soru.fotograf_url;
+    let fotograf_public_id = soru.fotograf_public_id;
+
+    // Yeni fotoğraf yükleme
+    if (req.file) {
+      // Eski fotoğrafı sil
+      if (soru.fotograf_public_id) {
+        await cloudinary.uploader.destroy(soru.fotograf_public_id);
+      }
+
+      const b64 = Buffer.from(req.file.buffer).toString('base64');
+      const dataURI = `data:${req.file.mimetype};base64,${b64}`;
+
+      const uploadResult = await cloudinary.uploader.upload(dataURI, {
+        folder: 'soru-havuzu',
+        resource_type: 'auto',
+        transformation: [
+          {
+            width: 1920,
+            height: 1920,
+            crop: 'limit',
+            quality: 'auto:good',
+            fetch_format: 'auto'
+          }
+        ]
+      });
+
+      fotograf_url = uploadResult.secure_url;
+      fotograf_public_id = uploadResult.public_id;
+    }
+
+    // Durum değişikliği otomatik yapılmaz (Branş havuzunda kalır)
+    let yeniDurum = soru.durum;
+    // Eğer yazar 'beklemede' olan bir soruyu güncellerse beklemede kalsın (Artık elle dizgiye gönderilecek)
+    if (soru.durum === 'inceleme_tamam') {
+      // İnceleme tamamlandıysa ve düzenleme yapılıyorsa belki tekrar beklemeye alınabilir veya öyle kalabilir.
+      // Şimdilik dokunmuyoruz.
+    }
+
+    // 1. Mevcut halini versiyon geçmişine kaydet (Backup)
+    await pool.query(
+      `INSERT INTO soru_versiyonlari (soru_id, versiyon_no, data, degistiren_kullanici_id, degisim_aciklamasi)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        id,
+        soru.versiyon || 1,
+        JSON.stringify(soru),
+        req.user.id,
+        'Soru güncellemesi'
+      ]
+    );
+
+    const result = await pool.query(
+      `UPDATE sorular 
+       SET soru_metni = $1, fotograf_url = $2, fotograf_public_id = $3, 
+           zorluk_seviyesi = $4, kazanim = $5, durum = $6, 
+           secenek_a = $7, secenek_b = $8, secenek_c = $9, secenek_d = $10, secenek_e = $11, 
+           dogru_cevap = $12, fotograf_konumu = $13,
+           guncellenme_tarihi = CURRENT_TIMESTAMP,
+           versiyon = COALESCE(versiyon, 1) + 1
+       WHERE id = $14 RETURNING *`,
+      [
+        soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, req.body.kazanim || null, yeniDurum,
+        secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null,
+        dogru_cevap || null, fotograf_konumu || 'ust',
+        id
+      ]
+    );
+
+    // Eğer revize durumundan güncellendiyse ve dizgici atanmışsa, dizgiciye bildirim gönder
+    if (soru.durum === 'revize_gerekli' && soru.dizgici_id) {
+      await createNotification(
+        soru.dizgici_id,
+        'Soru Revize Edildi',
+        `#${id} numaralı soru öğretmen tarafından revize edildi ve tekrar incelemeniz için hazır.`,
+        'info',
+        `/sorular/${id}`
+      );
+    }
+
+    res.json({
+      success: true,
+      message: 'Soru güncellendi ve yeni versiyon oluşturuldu',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Dizgici Final Dosya Yükleme
+router.put('/:id/final-upload', [authenticate, upload.single('final_png')], async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Yetki Kontrolü
+    const isDizgici = req.user.rol === 'dizgici';
+    const isAdmin = req.user.rol === 'admin';
+
+    if (!isDizgici && !isAdmin) {
+      throw new AppError('Sadece dizgici veya admin dosya yükleyebilir', 403);
+    }
+
+    if (!req.file) {
+      throw new AppError('Dosya seçilmedi', 400);
+    }
+
+    // Soruyu kontrol et
+    const soruRes = await pool.query('SELECT * FROM sorular WHERE id = $1', [id]);
+    if (soruRes.rows.length === 0) throw new AppError('Soru bulunamadı', 404);
+    const soru = soruRes.rows[0];
+
+    // Durum kontrolü: Sadece dizgide, dizgi_tamam veya tamamlandi (dosya güncelleme) olan soruya dosya yüklenebilir.
+    // Ancak dizgi_bekliyor ise ve dizgici kendine aldıysa da yükleyebilmeli.
+    // Şimdilik 'dizgide', 'dizgi_tamam' veya 'tamamlandi' olması mantıklı.
+    if (!isAdmin && soru.durum !== 'dizgide' && soru.durum !== 'dizgi_tamam' && soru.durum !== 'tamamlandi') {
+      throw new AppError('Soru dizgi aşamasında değil.', 403);
+    }
+
+    // Dizgici ise, sorunun dizgicisi o mu?
+    if (isDizgici && soru.dizgici_id !== req.user.id) {
+      // Belki de dizgici atanmamıştır? (Genelde 'dizgide' durumunda atanmış olur)
+      // Eğer atanmamışsa ve dizgide ise, yükleyen kişi dizgici olur.
+      if (soru.dizgici_id && soru.dizgici_id !== req.user.id) {
+        throw new AppError('Bu soru başka bir dizgicide.', 403);
+      }
+    }
+
+    // Eski final görselini sil (varsa)
+    if (soru.final_png_public_id) {
+      try {
+        await cloudinary.uploader.destroy(soru.final_png_public_id);
+      } catch (err) { console.error('Eski final silinemedi', err); }
+    }
+
+    // Yeni görseli yükle
+    const b64 = Buffer.from(req.file.buffer).toString('base64');
+    const dataURI = `data:${req.file.mimetype};base64,${b64}`;
+
+    const uploadResult = await cloudinary.uploader.upload(dataURI, {
+      folder: 'soru-havuzu/finals',
+      resource_type: 'auto',
+      quality: 'auto:good'
+    });
+
+    const finalUrl = uploadResult.secure_url;
+    const finalPublicId = uploadResult.public_id;
+
+    // DB güncelle - Eğer dizgici_id yoksa yükleyen kişiyi ata
+    // AYRICA: Durumu 'tamamlandi' yap (Havuza gönder)
+    const updateQuery = `
+      UPDATE sorular 
+      SET final_png_url = $1, final_png_public_id = $2,
+          dizgici_id = COALESCE(dizgici_id, $3),
+          guncellenme_tarihi = CURRENT_TIMESTAMP
+      WHERE id = $4 
+      RETURNING *
+    `;
+
+    const updateRes = await pool.query(updateQuery, [finalUrl, finalPublicId, req.user.id, id]);
+
+    res.json({
+      success: true,
+      data: updateRes.rows[0],
+      message: 'Dizgi dosyası başarıyla yüklendi.'
+    });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Soru Durumunu Güncelle (İncelemeci Onay/Revize)
+router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { yeni_durum, aciklama, inceleme_turu } = req.body; // inceleme_turu: 'alanci', 'dilci'
+
+    if (!['dizgi_bekliyor', 'revize_istendi', 'revize_gerekli', 'tamamlandi', 'inceleme_bekliyor', 'dizgide', 'inceleme_tamam', 'dizgi_tamam'].includes(yeni_durum)) {
+      throw new AppError('Gecersiz durum', 400);
+    }
+
+    // Soruyu al
+    const soruRes = await pool.query('SELECT * FROM sorular WHERE id = $1', [id]);
+    if (soruRes.rows.length === 0) throw new AppError('Soru bulunamadı', 404);
+    const soru = soruRes.rows[0];
+
+    const isAdmin = req.user.rol === 'admin';
+    const isReviewer = req.user.rol === 'incelemeci';
+    const canAlan = isAdmin || (isReviewer && !!req.user.inceleme_alanci);
+    const canDil = isAdmin || (isReviewer && !!req.user.inceleme_dilci);
+
+    // Yetki Kontrolleri (Durum bazlı)
+    if (yeni_durum === 'inceleme_tamam' || yeni_durum === 'revize_istendi' || yeni_durum === 'revize_gerekli') {
+      if (!isAdmin && !isReviewer && req.user.rol !== 'dizgici') {
+        throw new AppError('Bu islem icin yetkiniz yok', 403);
+      }
+      if (!isAdmin && isReviewer) {
+        if (!iInceleme_turu) throw new AppError('IInceleme turu (alan/dil) belirtilmeli', 400);
+        if (iInceleme_turu === 'alanci' && !canAlan) throw new AppError('Alan iIncelemesi yetkiniz yok', 403);
+        if (iInceleme_turu === 'dilci' && !canDil) throw new AppError('Dil iIncelemesi yetkiniz yok', 403);
+      }
+    }
+    if (yeni_durum === 'dizgi_bekliyor') {
+      if (!isAdmin && req.user.id !== soru.olusturan_kullanici_id) {
+        throw new AppError('Bu islem icin yetkiniz yok', 403);
+      }
+    }
+    if (yeni_durum === 'dizgide' || yeni_durum === 'tamamlandi' || yeni_durum === 'dizgi_tamam') {
+      if (!isAdmin && req.user.rol !== 'dizgici') {
+        throw new AppError('Bu islem icin yetkiniz yok', 403);
+      }
+    }
+    let result;
+    try {
+      // 1. Durum: Yeni şema (Zorluk seviyesi INTEGER 1-5)
+      result = await pool.query(
+        `INSERT INTO sorular (
+          soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, 
+          latex_kodu, kazanim, olusturan_kullanici_id, 
+          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
+          secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap, fotograf_konumu,
+          durum
+        ) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
+        [
+          soru_metni, fotograf_url, fotograf_public_id, parseInt(zorluk_seviyesi) || 3, brans_id,
+          latex_kodu || null, kazanim || null, req.user.id,
+          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
+          secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust',
+          durum || 'beklemede'
+        ]
+      );
+    } catch (firstError) {
+      console.warn('⚠️ İlk insert denemesi başarısız (Muhtemelen eski DB şeması), Fallback deneniyor:', firstError.message);
+
+      // 2. Durum: Eski şema (Zorluk seviyesi STRING 'kolay','orta','zor')
+      const zMap = { 1: 'kolay', 2: 'kolay', 3: 'orta', 4: 'zor', 5: 'zor' };
+      const zStr = zMap[parseInt(zorluk_seviyesi)] || 'orta';
+
+      result = await pool.query(
+        `INSERT INTO sorular (
+          soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, 
+          latex_kodu, kazanim, olusturan_kullanici_id, 
+          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
+          secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap, fotograf_konumu,
+          durum
+        ) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
+        [
+          soru_metni, fotograf_url, fotograf_public_id, zStr, brans_id,
+          latex_kodu || null, kazanim || null, req.user.id,
+          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
+          secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust',
+          durum || 'beklemede'
+        ]
+      );
+    }
+
+    console.log('Soru başarıyla eklendi, ID:', result.rows[0].id);
+
+    res.status(201).json({
+      success: true,
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('❌ Soru ekleme hatası (DETAYLI):', error);
+    console.error('Stack:', error.stack);
+    console.error('Request Body:', req.body);
+    next(error);
+  }
+});
+
+
 
 // Dizgi için branş bazlı bekleyen soru sayıları
 router.get('/stats/dizgi-brans', authenticate, async (req, res, next) => {
@@ -515,20 +871,23 @@ router.put('/:id(\\d+)', [
     const soru = checkResult.rows[0];
 
     // İncelemeye giden sorularda değişiklik yapılamamalı (Admin hariç)
-    // Ancak 'revize_istendi' durumundaysa yazar düzenleyebilir.
-    const isRevize = soru.durum === 'revize_istendi';
-    if (req.user.rol !== 'admin' && !isRevize && (soru.durum === 'dizgide' || soru.durum === 'tamamlandi' || soru.durum === 'dizgi_bekliyor')) {
+    // Ancak branş sahipleri revize bekleyen veya dizgi/inceleme bekleyen sorular üzerinde çalışabilir.
+    const isAllowedDurum = ['beklemede', 'revize_istendi', 'revize_gerekli', 'dizgi_bekliyor', 'inceleme_bekliyor', 'inceleme_tamam'].includes(soru.durum);
+    if (req.user.rol !== 'admin' && !isAllowedDurum && (soru.durum === 'dizgide' || soru.durum === 'tamamlandi')) {
       throw new AppError('İşlemdeki veya tamamlanmış sorular düzenlenemez.', 403);
     }
 
-    // Yetki kuralları:
-    // - Admin her zaman düzenleyebilir
-    // - Soru sahibi (olusturan_kullanici_id) her zaman düzenleyebilir
-    // Diğer kullanıcıların düzenleme yetkisi yoktur.
-    const isAdmin = req.user.rol === 'admin';
-    const isOwner = soru.olusturan_kullanici_id === req.user.id;
+    // Yetki kuralları: Admin veya Branş yetkilisi veya Sahibi düzenleyebilir
+    let hasPermission = req.user.rol === 'admin' || soru.olusturan_kullanici_id === req.user.id;
+    if (!hasPermission && req.user.rol === 'soru_yazici') {
+      const authBrans = await pool.query(`
+        SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1 AND brans_id = $2
+        UNION
+        SELECT 1 FROM kullanicilar WHERE id = $1 AND brans_id = $2
+      `, [req.user.id, soru.brans_id]);
+      if (authBrans.rows.length > 0) hasPermission = true;
+    }
 
-    const hasPermission = isAdmin || isOwner;
     if (!hasPermission) {
       throw new AppError('Bu soruyu düzenleme yetkiniz yok', 403);
     }
@@ -564,11 +923,12 @@ router.put('/:id(\\d+)', [
       fotograf_public_id = uploadResult.public_id;
     }
 
-    // Yazar güncelleme yaparsa (veya admin), sadece 'beklemede' ise incelemeye gönder.
-    // Revize aşamasındaki soru tekrar incelemeye düşmez, yazarın butona basması beklenir.
+    // Durum değişikliği otomatik yapılmaz (Branş havuzunda kalır)
     let yeniDurum = soru.durum;
-    if (soru.durum === 'beklemede' && (req.user.rol === 'soru_yazici' || req.user.rol === 'admin')) {
-      yeniDurum = 'inceleme_bekliyor';
+    // Eğer yazar 'beklemede' olan bir soruyu güncellerse beklemede kalsın (Artık elle dizgiye gönderilecek)
+    if (soru.durum === 'inceleme_tamam') {
+      // İnceleme tamamlandıysa ve düzenleme yapılıyorsa belki tekrar beklemeye alınabilir veya öyle kalabilir.
+      // Şimdilik dokunmuyoruz.
     }
 
     // 1. Mevcut halini versiyon geçmişine kaydet (Backup)
@@ -622,14 +982,96 @@ router.put('/:id(\\d+)', [
   }
 });
 
+// Dizgici Final Dosya Yükleme
+router.put('/:id/final-upload', [authenticate, upload.single('final_png')], async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Yetki Kontrolü
+    const isDizgici = req.user.rol === 'dizgici';
+    const isAdmin = req.user.rol === 'admin';
+
+    if (!isDizgici && !isAdmin) {
+      throw new AppError('Sadece dizgici veya admin dosya yükleyebilir', 403);
+    }
+
+    if (!req.file) {
+      throw new AppError('Dosya seçilmedi', 400);
+    }
+
+    // Soruyu kontrol et
+    const soruRes = await pool.query('SELECT * FROM sorular WHERE id = $1', [id]);
+    if (soruRes.rows.length === 0) throw new AppError('Soru bulunamadı', 404);
+    const soru = soruRes.rows[0];
+
+    // Durum kontrolü: Sadece dizgide, dizgi_tamam veya tamamlandi (dosya güncelleme) olan soruya dosya yüklenebilir.
+    // Ancak dizgi_bekliyor ise ve dizgici kendine aldıysa da yükleyebilmeli.
+    // Şimdilik 'dizgide', 'dizgi_tamam' veya 'tamamlandi' olması mantıklı.
+    if (!isAdmin && soru.durum !== 'dizgide' && soru.durum !== 'dizgi_tamam' && soru.durum !== 'tamamlandi') {
+      throw new AppError('Soru dizgi aşamasında değil.', 403);
+    }
+
+    // Dizgici ise, sorunun dizgicisi o mu?
+    if (isDizgici && soru.dizgici_id !== req.user.id) {
+      // Belki de dizgici atanmamıştır? (Genelde 'dizgide' durumunda atanmış olur)
+      // Eğer atanmamışsa ve dizgide ise, yükleyen kişi dizgici olur.
+      if (soru.dizgici_id && soru.dizgici_id !== req.user.id) {
+        throw new AppError('Bu soru başka bir dizgicide.', 403);
+      }
+    }
+
+    // Eski final görselini sil (varsa)
+    if (soru.final_png_public_id) {
+      try {
+        await cloudinary.uploader.destroy(soru.final_png_public_id);
+      } catch (err) { console.error('Eski final silinemedi', err); }
+    }
+
+    // Yeni görseli yükle
+    const b64 = Buffer.from(req.file.buffer).toString('base64');
+    const dataURI = `data:${req.file.mimetype};base64,${b64}`;
+
+    const uploadResult = await cloudinary.uploader.upload(dataURI, {
+      folder: 'soru-havuzu/finals',
+      resource_type: 'auto',
+      quality: 'auto:good'
+    });
+
+    const finalUrl = uploadResult.secure_url;
+    const finalPublicId = uploadResult.public_id;
+
+    // DB güncelle - Eğer dizgici_id yoksa yükleyen kişiyi ata
+    // AYRICA: Durumu 'tamamlandi' yap (Havuza gönder)
+    const updateQuery = `
+      UPDATE sorular 
+      SET final_png_url = $1, final_png_public_id = $2,
+          dizgici_id = COALESCE(dizgici_id, $3),
+          guncellenme_tarihi = CURRENT_TIMESTAMP
+      WHERE id = $4 
+      RETURNING *
+    `;
+
+    const updateRes = await pool.query(updateQuery, [finalUrl, finalPublicId, req.user.id, id]);
+
+    res.json({
+      success: true,
+      data: updateRes.rows[0],
+      message: 'Dizgi dosyası başarıyla yüklendi.'
+    });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Soru Durumunu Güncelle (İncelemeci Onay/Revize)
 router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
   try {
     const { id } = req.params;
     const { yeni_durum, aciklama, inceleme_turu } = req.body; // inceleme_turu: 'alanci', 'dilci'
 
-    if (!['dizgi_bekliyor', 'revize_istendi', 'tamamlandi', 'inceleme_bekliyor', 'dizgide', 'inceleme_tamam'].includes(yeni_durum)) {
-      throw new AppError('Geçersiz durum', 400);
+    if (!['dizgi_bekliyor', 'revize_istendi', 'revize_gerekli', 'tamamlandi', 'inceleme_bekliyor', 'dizgide', 'inceleme_tamam', 'dizgi_tamam'].includes(yeni_durum)) {
+      throw new AppError('Gecersiz durum', 400);
     }
 
     // Soruyu al
@@ -642,17 +1084,17 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
     const canAlan = isAdmin || (isReviewer && !!req.user.inceleme_alanci);
     const canDil = isAdmin || (isReviewer && !!req.user.inceleme_dilci);
 
-    // Rol bazlŽñ temel yetkiler
-    if (yeni_durum === 'inceleme_tamam' || yeni_durum === 'revize_istendi') {
+    // Rol bazlı temel yetkiler
+    if (yeni_durum === 'inceleme_tamam' || yeni_durum === 'revize_istendi' || yeni_durum === 'revize_gerekli') {
       if (!isAdmin && !isReviewer) {
         throw new AppError('Bu iYlem iÇõin yetkiniz yok', 403);
       }
       if (!isAdmin) {
-        if (!inceleme_turu) throw new AppError('Žønceleme tÇ¬rÇ¬ (alan/dil) belirtilmeli', 400);
-        if (inceleme_turu === 'alanci' && !canAlan) throw new AppError('Alan incelemesi yetkiniz yok', 403);
-        if (inceleme_turu === 'dilci' && !canDil) throw new AppError('Dil incelemesi yetkiniz yok', 403);
+        throw new AppError('IInceleme turu (alan/dil) belirtilmeli', 400);
+        if (iInceleme_turu === 'alanci' && !canAlan) throw new AppError('Alan iIncelemesi yetkiniz yok', 403);
+        if (iInceleme_turu === 'dilci' && !canDil) throw new AppError('Dil iIncelemesi yetkiniz yok', 403);
         if (inceleme_turu && !['alanci', 'dilci'].includes(inceleme_turu)) {
-          throw new AppError('GeÇõersiz inceleme tÇ¬rÇ¬', 400);
+          throw new AppError('Gecersiz iInceleme turu', 400);
         }
       }
     }
@@ -663,9 +1105,9 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
       }
     }
 
-    if (yeni_durum === 'dizgide' || yeni_durum === 'tamamlandi') {
+    if (yeni_durum === 'dizgide' || yeni_durum === 'tamamlandi' || yeni_durum === 'dizgi_tamam') {
       if (!isAdmin && req.user.rol !== 'dizgici') {
-        throw new AppError('Bu iYlem iÇõin yetkiniz yok', 403);
+        throw new AppError('Bu işlem için yetkiniz yok', 403);
       }
     }
 
@@ -673,7 +1115,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
     let message = '';
 
     // Duruma göre işlem
-    if (yeni_durum === 'revize_istendi') {
+    if (yeni_durum === 'revize_istendi' || yeni_durum === 'revize_gerekli') {
       // Revize istendi: Onayları sıfırla ve durumu güncelle
       result = await pool.query(
         `UPDATE sorular 
@@ -688,6 +1130,16 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         await createNotification(soru.olusturan_kullanici_id, 'Revize İsteği', `#${id} nolu sorunuz için revize istendi: ${aciklama}`, 'warning', `/sorular/${id}`);
       }
 
+    } else if (yeni_durum === 'inceleme_bekliyor') {
+      // Tekrar incelemeye gönder: Onayları sıfırla
+      result = await pool.query(
+        `UPDATE sorular 
+         SET durum = $1, onay_alanci = false, onay_dilci = false, guncellenme_tarihi = NOW()
+         WHERE id = $2 RETURNING *`,
+        [yeni_durum, id]
+      );
+      message = 'Soru tekrar inceleme havuzuna gönderildi. Önceki onaylar sıfırlandı.';
+
     } else if (yeni_durum === 'inceleme_tamam') {
       // Kullanıcı talebi: Hem alan hem dil incelemesi bitmeden branşa dönmez.
       let updateField = '';
@@ -697,7 +1149,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         await pool.query('UPDATE sorular SET onay_alanci = true, onay_dilci = true WHERE id = $1', [id]);
         updateField = 'all';
       } else {
-        throw new AppError('İnceleme yapmak için yetki veya inceleme türü eksik', 400);
+        throw new AppError('İInceleme yapmak için yetki veya iInceleme turu eksik', 400);
       }
 
       if (updateField !== 'all') {
@@ -708,14 +1160,15 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
       const { onay_alanci, onay_dilci, olusturan_kullanici_id } = check.rows[0];
 
       if (onay_alanci && onay_dilci) {
-        // İkisi de tamamsa otomatik dizgi sırasına gönder
+        // İkisi de tamamsa 'inceleme_tamam' durumuna çek, böylece Branş son kararı verebilir
         result = await pool.query(
-          `UPDATE sorular SET durum = 'dizgi_bekliyor', guncellenme_tarihi = NOW() WHERE id = $1 RETURNING *`,
+          `UPDATE sorular SET durum = 'inceleme_tamam', guncellenme_tarihi = NOW() WHERE id = $1 RETURNING *`,
           [id]
         );
-        message = 'Tüm incelemeler tamamlandı, soru dizgiye gönderildi.';
+        message = 'Tüm incelemeler tamamlandı, son kontrol için Branşa gönderildi.';
+
         if (olusturan_kullanici_id) {
-          await createNotification(olusturan_kullanici_id, 'İnceleme Tamamlandı', `#${id} nolu sorunuzun tüm incelemeleri bitti ve dizgiye gönderildi.`, 'info', `/sorular/${id}`);
+          await createNotification(olusturan_kullanici_id, 'İnceleme Tamamlandı', `#${id} nolu sorunuz incelendi ve onaylandı. Lütfen kontrol edip dizgiye gönderiniz.`, 'success', `/sorular/${id}`);
         }
       } else {
         const currentRes = await pool.query('SELECT * FROM sorular WHERE id = $1', [id]);
@@ -724,15 +1177,39 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
       }
 
     } else if (yeni_durum === 'dizgi_bekliyor') {
-      // Branş tarafından onaya gelen soru
-      if (!soru.onay_alanci || !soru.onay_dilci) {
-        throw new AppError('Alan ve Dil incelemesi tamamlanmadan dizgiye gönderilemez', 400);
-      }
+      // Branş havuzu mantığı: Doğrudan dizgiye gönderilebilir
       result = await pool.query(
         `UPDATE sorular SET durum = 'dizgi_bekliyor', guncellenme_tarihi = NOW() WHERE id = $1 RETURNING *`,
         [id]
       );
       message = 'Soru dizgi sırasına alındı.';
+    } else if (yeni_durum === 'dizgi_tamam') {
+      // Dizgici tarafından branşa geri gönderilen soru
+      try {
+        result = await pool.query(
+          `UPDATE sorular SET durum = 'dizgi_tamam', 
+           dizgi_tamamlanma_tarihi = NOW(), 
+           guncellenme_tarihi = NOW(),
+           versiyon = COALESCE(versiyon, 1) + 1
+           WHERE id = $1 RETURNING *`,
+          [id]
+        );
+      } catch (err) {
+        console.warn('⚠️ dizgi_tamam update failed with date column, retrying without date...', err.message);
+        result = await pool.query(
+          `UPDATE sorular SET durum = 'dizgi_tamam', 
+           guncellenme_tarihi = NOW(),
+           versiyon = COALESCE(versiyon, 1) + 1
+           WHERE id = $1 RETURNING *`,
+          [id]
+        );
+      }
+      message = 'Soru dizgisi tamamlandı ve branş kontrolüne gönderildi.';
+
+      if (soru.olusturan_kullanici_id) {
+        await createNotification(soru.olusturan_kullanici_id, 'Dizgi Tamamlandı', `#${id} nolu sorunuzun dizgisi tamamlandı. Kontrol edip İncelemeye gönderebilirsiniz.`, 'success', `/sorular/${id}`);
+      }
+
     } else if (yeni_durum === 'dizgide') {
       // Dizgici soruyu üzerine alır
       result = await pool.query(
@@ -880,7 +1357,8 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
   // İsteğe bağlı olarak dizgi tamamlanırken PNG/PDF/diğer dosya eklenebilir
   uploadFields.fields([
     { name: 'fotograf', maxCount: 1 },
-    { name: 'dosya', maxCount: 1 }
+    { name: 'dosya', maxCount: 1 },
+    { name: 'final_png', maxCount: 1 }
   ]),
   body('notlar').optional()
 ], async (req, res, next) => {
@@ -894,16 +1372,38 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
       await client.query('BEGIN');
 
       // Soruyu güncelle -> Dizgiden çıkan soru artık havuza gider
-      const soruResult = await client.query(
-        `UPDATE sorular 
-         SET durum = 'tamamlandi',
-          guncellenme_tarihi = CURRENT_TIMESTAMP,
-          dizgi_bitis_tarihi = CURRENT_TIMESTAMP,
-          versiyon = COALESCE(versiyon, 1) + 1
-         WHERE id = $1 AND dizgici_id = $2
-         RETURNING * `,
-        [id, req.user.id]
-      );
+      // Soruyu güncelle -> Dizgiden çıkan soru artık havuza gider
+      let soruResult;
+      try {
+        // Admin her soruyu tamamlayabilir, dizgici sadece kendine atanmış olanı
+        const whereClause = req.user.rol === 'admin' ? 'WHERE id = $1' : 'WHERE id = $1 AND dizgici_id = $2';
+        const queryParams = req.user.rol === 'admin' ? [id] : [id, req.user.id];
+
+        soruResult = await client.query(
+          `UPDATE sorular 
+           SET durum = 'dizgi_tamam',
+            guncellenme_tarihi = CURRENT_TIMESTAMP,
+            dizgi_tamamlanma_tarihi = CURRENT_TIMESTAMP,
+            versiyon = COALESCE(versiyon, 1) + 1
+           ${whereClause}
+           RETURNING * `,
+          queryParams
+        );
+      } catch (err) {
+        console.warn('⚠️ dizgi-tamamla update failed (likely missing column), retrying without date...', err.message);
+        const whereClause = req.user.rol === 'admin' ? 'WHERE id = $1' : 'WHERE id = $1 AND dizgici_id = $2';
+        const queryParams = req.user.rol === 'admin' ? [id] : [id, req.user.id];
+
+        soruResult = await client.query(
+          `UPDATE sorular 
+           SET durum = 'dizgi_tamam',
+            guncellenme_tarihi = CURRENT_TIMESTAMP,
+            versiyon = COALESCE(versiyon, 1) + 1
+           ${whereClause}
+           RETURNING * `,
+          queryParams
+        );
+      }
 
       // Versiyon geçmişine kaydet (Dizgici değişikliği)
       // Önce mevcut halini kaydetmek gerekirdi ama burada update yaptık.
@@ -919,13 +1419,15 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
       }
 
       // Eğer dosya/fotograf yüklendiyse Cloudinary'e yükle ve soruyu güncelle
-      if (req.files && (req.files.fotograf || req.files.dosya)) {
+      if (req.files && (req.files.fotograf || req.files.dosya || req.files.final_png)) {
         let fotograf_url = null;
         let fotograf_public_id = null;
         let dosya_url = null;
         let dosya_public_id = null;
         let dosya_adi = null;
         let dosya_boyutu = null;
+        let final_png_url = null;
+        let final_png_public_id = null;
 
         // Fotoğraf yükleme
         if (req.files.fotograf && req.files.fotograf[0]) {
@@ -941,6 +1443,22 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
 
           fotograf_url = uploadResult.secure_url;
           fotograf_public_id = uploadResult.public_id;
+        }
+
+        // Final PNG yükleme
+        if (req.files.final_png && req.files.final_png[0]) {
+          const file = req.files.final_png[0];
+          const b64 = Buffer.from(file.buffer).toString('base64');
+          const dataURI = `data:${file.mimetype};base64,${b64}`;
+
+          const uploadResult = await cloudinary.uploader.upload(dataURI, {
+            folder: 'soru-havuzu/final-pngs',
+            resource_type: 'image',
+            transformation: [{ quality: 'auto:good', fetch_format: 'auto' }]
+          });
+
+          final_png_url = uploadResult.secure_url;
+          final_png_public_id = uploadResult.public_id;
         }
 
         // Dosya yükleme (raw)
@@ -970,8 +1488,17 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
 
         // Soruyu güncelle
         await client.query(
-          `UPDATE sorular SET fotograf_url = COALESCE($1, fotograf_url), fotograf_public_id = COALESCE($2, fotograf_public_id), dosya_url = COALESCE($3, dosya_url), dosya_public_id = COALESCE($4, dosya_public_id), dosya_adi = COALESCE($5, dosya_adi), dosya_boyutu = COALESCE($6, dosya_boyutu) WHERE id = $7`,
-          [fotograf_url, fotograf_public_id, dosya_url, dosya_public_id, dosya_adi, dosya_boyutu, id]
+          `UPDATE sorular SET 
+            fotograf_url = COALESCE($1, fotograf_url), 
+            fotograf_public_id = COALESCE($2, fotograf_public_id), 
+            dosya_url = COALESCE($3, dosya_url), 
+            dosya_public_id = COALESCE($4, dosya_public_id), 
+            dosya_adi = COALESCE($5, dosya_adi), 
+            dosya_boyutu = COALESCE($6, dosya_boyutu),
+            final_png_url = COALESCE($7, final_png_url),
+            final_png_public_id = COALESCE($8, final_png_public_id)
+           WHERE id = $9`,
+          [fotograf_url, fotograf_public_id, dosya_url, dosya_public_id, dosya_adi, dosya_boyutu, final_png_url, final_png_public_id, id]
         );
       }
 
@@ -981,6 +1508,18 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
          VALUES($1, $2, 'tamamlandi', $3)`,
         [id, req.user.id, notlar]
       );
+
+      // Yazara bildirim
+      const soru = soruResult.rows[0];
+      if (soru.olusturan_kullanici_id) {
+        await createNotification(
+          soru.olusturan_kullanici_id,
+          'Dizgi Tamamlandı',
+          `#${id} nolu sorunuzun dizgisi tamamlandı. Kontrol edip İncelemeye gönderebilirsiniz.`,
+          'success',
+          `/sorular/${id}`
+        );
+      }
 
       await client.query('COMMIT');
 
@@ -1063,7 +1602,8 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
     const targetRole = (req.user.rol === 'admin' && req.query.role) ? req.query.role.toLowerCase() : req.user.rol;
 
     if (targetRole === 'soru_yazici') {
-      // Yazar: Kendi sorularını görür
+      const isActuallyAdmin = req.user.rol === 'admin';
+      // Yazar: Yetkili olduğu branşlardaki tüm soruların istatistiklerini görür
       query = `
         SELECT
           COUNT(*) as toplam,
@@ -1071,48 +1611,49 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
           COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor') as inceleme_bekliyor,
           COUNT(*) FILTER(WHERE durum = 'dizgi_bekliyor') as dizgi_bekliyor,
           COUNT(*) FILTER(WHERE durum = 'dizgide') as dizgide,
+          COUNT(*) FILTER(WHERE durum = 'dizgi_tamam' OR durum = 'inceleme_tamam') as dizgi_tamam,
           COUNT(*) FILTER(WHERE durum = 'tamamlandi') as tamamlandi,
           COUNT(*) FILTER(WHERE durum = 'revize_gerekli' OR durum = 'revize_istendi') as revize_gerekli
-        FROM sorular
-        WHERE olusturan_kullanici_id = $1
+        FROM sorular s
+        ${isActuallyAdmin ? '' : `WHERE s.brans_id IN (
+          SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1
+          UNION 
+          SELECT brans_id FROM kullanicilar WHERE id = $1
+        )`}
       `;
-      params = [req.user.id];
+      params = isActuallyAdmin ? [] : [req.user.id];
     } else if (targetRole === 'dizgici') {
-      // Dizgici: 
-      // dizgi_bekliyor: Branştaki atanmamış işler
-      // dizgide: Sadece benim üzerimdeki işler
-      // tamamlandi: Sadece benim bitirdiğim işler
+      // Dizgici: Genel havuzdaki işler
       query = `
         SELECT
-          COUNT(*) FILTER(WHERE durum = 'dizgi_bekliyor' AND (
-            brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1)
-            OR brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1)
-          )) as dizgi_bekliyor,
-          COUNT(*) FILTER(WHERE durum = 'dizgide' AND dizgici_id = $1) as dizgide,
-          COUNT(*) FILTER(WHERE durum = 'tamamlandi' AND dizgici_id = $1) as tamamlandi
-        FROM sorular
+          COUNT(*) FILTER(WHERE s.durum = 'dizgi_bekliyor') as dizgi_bekliyor,
+          COUNT(*) FILTER(WHERE s.durum = 'dizgide' AND s.dizgici_id = $1) as dizgide,
+          COUNT(*) FILTER(WHERE (s.durum = 'dizgi_tamam' AND s.dizgici_id = $1) OR (s.durum = 'tamamlandi' AND s.final_png_url IS NULL AND s.dizgici_id = $1)) as dosya_bekliyor,
+          COUNT(*) FILTER(WHERE s.durum = 'tamamlandi' AND s.final_png_url IS NOT NULL) as tamamlandi
+        FROM sorular s
       `;
       params = [req.user.id];
-    } else if (targetRole === 'alan_incelemeci') {
-      // Alan İncelemeci
-      query = `SELECT COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor' AND onay_alanci = false AND (brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1))) as inceleme_bekliyor FROM sorular`;
-      params = [req.user.id];
-    } else if (targetRole === 'dil_incelemeci') {
-      // Dil İncelemeci
-      query = `SELECT COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor' AND onay_dilci = false AND (brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1))) as inceleme_bekliyor FROM sorular`;
-      params = [req.user.id];
+    } else if (targetRole === 'alan_incelemeci' || targetRole === 'dil_incelemeci') {
+      const isAlan = targetRole === 'alan_incelemeci';
+      const isActuallyAdmin = req.user.rol === 'admin';
+      query = `
+        SELECT COUNT(*) FILTER(WHERE s.durum IN ('inceleme_bekliyor', 'incelemede') AND s.${isAlan ? 'onay_alanci' : 'onay_dilci'} = false ${isActuallyAdmin ? '' : `AND (s.brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR s.brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1))`}) as inceleme_bekliyor 
+        FROM sorular s 
+      `;
+      params = isActuallyAdmin ? [] : [req.user.id];
     } else if (targetRole === 'incelemeci') {
       const isAdmin = req.user.rol === 'admin';
       const canAlan = isAdmin || !!req.user.inceleme_alanci;
       const canDil = isAdmin || !!req.user.inceleme_dilci;
 
+      // İncelemeciler için branch kısıtlamasını kaldırıyoruz (Küresel müfettiş rolü)
       query = `
         SELECT
-          ${canAlan ? "COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor' AND onay_alanci = false AND (brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1)))" : "0"} as inceleme_bekliyor_alanci,
-          ${canDil ? "COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor' AND onay_dilci = false AND (brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1)))" : "0"} as inceleme_bekliyor_dilci
-        FROM sorular
+          ${canAlan ? "COUNT(*) FILTER(WHERE s.durum IN ('inceleme_bekliyor', 'incelemede') AND s.onay_alanci = false)" : "0"} as inceleme_bekliyor_alanci,
+          ${canDil ? "COUNT(*) FILTER(WHERE s.durum IN ('inceleme_bekliyor', 'incelemede') AND s.onay_dilci = false)" : "0"} as inceleme_bekliyor_dilci
+        FROM sorular s
       `;
-      params = [req.user.id];
+      params = [];
     } else {
       // Admin: Global istatistikler
       query = `
@@ -1153,9 +1694,7 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
   }
 });
 
-// Redundant code block cleaned up.
 
-// Redundant code block cleaned up.
 
 
 // Admin detaylı istatistikler
@@ -1167,49 +1706,60 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
 
     // Genel istatistikler
     const genelStats = await pool.query(`
-      SELECT
-      COUNT(*) as toplam_soru,
+      SELECT 
+        COUNT(*) as toplam_soru,
         COUNT(CASE WHEN durum = 'beklemede' THEN 1 END) as beklemede,
         COUNT(CASE WHEN durum = 'inceleme_bekliyor' THEN 1 END) as inceleme_bekliyor,
+        COUNT(CASE WHEN durum = 'incelemede' THEN 1 END) as incelemede,
         COUNT(CASE WHEN durum = 'revize_istendi' OR durum = 'revize_gerekli' THEN 1 END) as revize_istendi,
         COUNT(CASE WHEN durum = 'dizgi_bekliyor' THEN 1 END) as dizgi_bekliyor,
         COUNT(CASE WHEN durum = 'dizgide' THEN 1 END) as dizgide,
+        COUNT(CASE WHEN durum = 'inceleme_tamam' THEN 1 END) as inceleme_tamam,
         COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlandi,
-        COUNT(CASE WHEN zorluk_seviyesi = 'kolay' THEN 1 END) as kolay,
-        COUNT(CASE WHEN zorluk_seviyesi = 'orta' THEN 1 END) as orta,
-        COUNT(CASE WHEN zorluk_seviyesi = 'zor' THEN 1 END) as zor,
+        COUNT(CASE WHEN zorluk_seviyesi = 'kolay' OR zorluk_seviyesi = '1' THEN 1 END) as kolay,
+        COUNT(CASE WHEN zorluk_seviyesi = 'orta' OR zorluk_seviyesi = '3' THEN 1 END) as orta,
+        COUNT(CASE WHEN zorluk_seviyesi = 'zor' OR zorluk_seviyesi = '5' THEN 1 END) as zor,
         COUNT(CASE WHEN fotograf_url IS NOT NULL THEN 1 END) as fotografli,
         COUNT(CASE WHEN latex_kodu IS NOT NULL AND latex_kodu != '' THEN 1 END) as latexli
       FROM sorular
-        `);
+    `);
+
+    // Son eklenen soruları getir (debug için)
+    const sonSorular = await pool.query(`
+      SELECT s.id, LEFT(s.soru_metni, 30) as metin, s.durum, k.ad_soyad as yazar
+      FROM sorular s
+      LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
+      ORDER BY s.olusturulma_tarihi DESC
+      LIMIT 10
+  `);
 
     // Branş bazlı istatistikler
     const bransStats = await pool.query(`
-      SELECT
-      b.id,
-        b.brans_adi,
-        e.ekip_adi,
-        COUNT(s.id) as soru_sayisi,
-        COUNT(CASE WHEN s.durum = 'beklemede' THEN 1 END) as beklemede,
-        COUNT(CASE WHEN s.durum = 'dizgide' THEN 1 END) as dizgide,
-        COUNT(CASE WHEN s.durum = 'tamamlandi' THEN 1 END) as tamamlandi
+SELECT
+b.id,
+  b.brans_adi,
+  e.ekip_adi,
+  COUNT(s.id) as soru_sayisi,
+  COUNT(CASE WHEN s.durum = 'beklemede' THEN 1 END) as beklemede,
+  COUNT(CASE WHEN s.durum = 'dizgide' THEN 1 END) as dizgide,
+  COUNT(CASE WHEN s.durum = 'tamamlandi' THEN 1 END) as tamamlandi
       FROM branslar b
       LEFT JOIN ekipler e ON b.ekip_id = e.id
       LEFT JOIN sorular s ON b.id = s.brans_id
       GROUP BY b.id, b.brans_adi, e.ekip_adi
       ORDER BY soru_sayisi DESC
-        `);
+  `);
 
     // Kullanıcı performans istatistikleri
     const kullaniciStats = await pool.query(`
-      SELECT
-      k.id,
-        k.ad_soyad,
-        k.email,
-        k.rol,
-        b.brans_adi,
-        COUNT(s.id) as olusturulan_soru,
-        COUNT(CASE WHEN s.durum = 'tamamlandi' THEN 1 END) as tamamlanan
+SELECT
+k.id,
+  k.ad_soyad,
+  k.email,
+  k.rol,
+  b.brans_adi,
+  COUNT(s.id) as olusturulan_soru,
+  COUNT(CASE WHEN s.durum = 'tamamlandi' THEN 1 END) as tamamlanan
       FROM kullanicilar k
       LEFT JOIN branslar b ON k.brans_id = b.id
       LEFT JOIN sorular s ON k.id = s.olusturan_kullanici_id
@@ -1217,17 +1767,17 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
       GROUP BY k.id, k.ad_soyad, k.email, k.rol, b.brans_adi
       ORDER BY olusturulan_soru DESC
       LIMIT 10
-        `);
+  `);
 
     // Dizgici performans istatistikleri
     const dizgiStats = await pool.query(`
-      SELECT
-      k.id,
-        k.ad_soyad,
-        k.email,
-        b.brans_adi,
-        COUNT(dg.id) as tamamlanan_dizgi,
-        AVG(EXTRACT(EPOCH FROM(dg.tamamlanma_tarihi - s.olusturulma_tarihi)) / 3600):: numeric(10, 2) as ortalama_sure_saat
+SELECT
+k.id,
+  k.ad_soyad,
+  k.email,
+  b.brans_adi,
+  COUNT(dg.id) as tamamlanan_dizgi,
+  AVG(EXTRACT(EPOCH FROM(dg.tamamlanma_tarihi - s.olusturulma_tarihi)) / 3600):: numeric(10, 2) as ortalama_sure_saat
       FROM kullanicilar k
       LEFT JOIN branslar b ON k.brans_id = b.id
       LEFT JOIN dizgi_gecmisi dg ON k.id = dg.dizgici_id
@@ -1236,44 +1786,46 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
       GROUP BY k.id, k.ad_soyad, k.email, b.brans_adi
       ORDER BY tamamlanan_dizgi DESC
       LIMIT 10
-        `);
+  `);
 
     // Son 30 günlük trend
     const trendStats = await pool.query(`
-      SELECT
-      DATE(olusturulma_tarihi) as tarih,
-        COUNT(*) as soru_sayisi,
-        COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlanan
+SELECT
+DATE(olusturulma_tarihi) as tarih,
+  COUNT(*) as soru_sayisi,
+  COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlanan
       FROM sorular
       WHERE olusturulma_tarihi >= CURRENT_DATE - INTERVAL '30 days'
       GROUP BY DATE(olusturulma_tarihi)
       ORDER BY tarih DESC
-        `);
+  `);
 
     // Kullanıcı sayıları
     const kullaniciSayilari = await pool.query(`
-      SELECT
-      COUNT(CASE WHEN rol = 'admin' THEN 1 END) as admin_sayisi,
-        COUNT(CASE WHEN rol = 'soru_yazici' THEN 1 END) as soru_yazici_sayisi,
-        COUNT(CASE WHEN rol = 'dizgici' THEN 1 END) as dizgici_sayisi,
-        COUNT(*) as toplam_kullanici
+SELECT
+COUNT(CASE WHEN rol = 'admin' THEN 1 END) as admin_sayisi,
+  COUNT(CASE WHEN rol = 'soru_yazici' THEN 1 END) as soru_yazici_sayisi,
+  COUNT(CASE WHEN rol = 'dizgici' THEN 1 END) as dizgici_sayisi,
+  COUNT(CASE WHEN rol = 'incelemeci' THEN 1 END) as incelemeci_sayisi,
+  COUNT(*) as toplam_kullanici
       FROM kullanicilar
-        `);
+  `);
 
     // Ekip sayıları
     const ekipStats = await pool.query(`
       SELECT COUNT(*) as toplam_ekip FROM ekipler
-        `);
+  `);
 
     // Branş sayıları (Tekil - Büyük/küçük harf duyarsız, boşluklar temizlenmiş)
     const bransStatsCount = await pool.query(`
       SELECT COUNT(DISTINCT UPPER(TRIM(brans_adi))) as toplam_brans FROM branslar
-        `);
+  `);
 
     res.json({
       success: true,
       data: {
         genel: genelStats.rows[0],
+        son_sorular: sonSorular.rows,
         branslar: bransStats.rows,
         kullanicilar: kullaniciStats.rows,
         dizgiciler: dizgiStats.rows,
@@ -1301,20 +1853,20 @@ router.get('/rapor', authenticate, authorize(['admin']), async (req, res, next) 
 
     // Genel istatistikler (tarih aralığına göre)
     const genelQuery = `
-      SELECT
-      COUNT(*) as toplam_soru,
-        COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlanan,
-        COUNT(CASE WHEN durum = 'beklemede' THEN 1 END) as bekleyen,
-        COUNT(CASE WHEN durum = 'dizgide' THEN 1 END) as devam_eden,
-        0 as reddedilen,
-        COUNT(CASE WHEN fotograf_url IS NOT NULL THEN 1 END) as fotografli,
-        COUNT(CASE WHEN latex_kodu IS NOT NULL THEN 1 END) as latexli,
-        COUNT(CASE WHEN zorluk_seviyesi = 'kolay' THEN 1 END) as kolay,
-        COUNT(CASE WHEN zorluk_seviyesi = 'orta' THEN 1 END) as orta,
-        COUNT(CASE WHEN zorluk_seviyesi = 'zor' THEN 1 END) as zor
+SELECT
+COUNT(*) as toplam_soru,
+  COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlanan,
+  COUNT(CASE WHEN durum = 'beklemede' THEN 1 END) as bekleyen,
+  COUNT(CASE WHEN durum = 'dizgide' THEN 1 END) as devam_eden,
+  0 as reddedilen,
+  COUNT(CASE WHEN fotograf_url IS NOT NULL THEN 1 END) as fotografli,
+  COUNT(CASE WHEN latex_kodu IS NOT NULL THEN 1 END) as latexli,
+  COUNT(CASE WHEN zorluk_seviyesi = 'kolay' THEN 1 END) as kolay,
+  COUNT(CASE WHEN zorluk_seviyesi = 'orta' THEN 1 END) as orta,
+  COUNT(CASE WHEN zorluk_seviyesi = 'zor' THEN 1 END) as zor
       FROM sorular
       WHERE olusturulma_tarihi >= $1::date AND olusturulma_tarihi < ($2:: date + interval '1 day')
-  `;
+`;
 
     // Branş bazında detaylı rapor
     const bransQuery = `
@@ -1428,6 +1980,71 @@ DATE(olusturulma_tarihi) as tarih,
   }
 });
 
+// Yönetimsel Veritabanı Temizliği ve Analizi (Admin)
+router.post('/admin-cleanup', authenticate, authorize(['admin']), async (req, res, next) => {
+  try {
+    const { action } = req.body; // 'view' or 'clear_all'
+
+    if (action === 'view') {
+      const result = await pool.query('SELECT id, durum, olusturan_kullanici_id, brans_id, olusturulma_tarihi FROM sorular ORDER BY id DESC');
+      return res.json({
+        success: true,
+        data: result.rows,
+        message: `Sistemde toplam ${result.rows.length} kayıt bulundu.`
+      });
+    }
+
+    if (action === 'clear_all') {
+      const result = await pool.query('DELETE FROM sorular RETURNING id');
+      console.log(`⚠️ ADMIN CLEANUP: ${result.rows.length} soru silindi.`);
+      return res.json({
+        success: true,
+        count: result.rows.length,
+        message: 'Tüm soru kayıtları ve ilgili geçmişler temizlendi.'
+      });
+    }
+
+    throw new AppError('Gecersiz işlem', 400);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// İncelemeci detaylı istatistikler (Ekip ve Branş bazlı)
+router.get('/stats/inceleme-detayli', authenticate, async (req, res, next) => {
+  try {
+    if (req.user.rol !== 'admin' && req.user.rol !== 'incelemeci') {
+      throw new AppError('Bu işlem için yetkiniz yok', 403);
+    }
+
+    const query = `
+      SELECT 
+        COALESCE(e.id, 0) as ekip_id, 
+        COALESCE(e.ekip_adi, 'Ekipsiz Branşlar') as ekip_adi, 
+        b.id as brans_id, 
+        b.brans_adi,
+        COUNT(s.id) FILTER(WHERE s.durum IN ('inceleme_bekliyor', 'incelemede', 'revize_istendi') AND s.onay_alanci = false) as alanci_bekleyen,
+        COUNT(s.id) FILTER(WHERE s.durum IN ('inceleme_bekliyor', 'incelemede', 'revize_istendi') AND s.onay_dilci = false) as dilci_bekleyen,
+        COUNT(s.id) as toplam_bekleyen
+      FROM branslar b
+      LEFT JOIN ekipler e ON b.ekip_id = e.id
+      LEFT JOIN sorular s ON s.brans_id = b.id AND s.durum IN ('inceleme_bekliyor', 'incelemede', 'revize_istendi')
+      GROUP BY e.id, e.ekip_adi, b.id, b.brans_adi
+      HAVING COUNT(s.id) > 0
+      ORDER BY e.ekip_adi NULLS LAST, b.brans_adi
+    `;
+
+    const result = await pool.query(query);
+
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Admin için yedekleme endpoint'i
 router.get('/yedek', authenticate, authorize(['admin']), async (req, res, next) => {
   try {
@@ -1501,8 +2118,8 @@ router.post('/:id/revize-not', authenticate, async (req, res, next) => {
     }
 
     await pool.query(
-      `INSERT INTO soru_revize_notlari (soru_id, kullanici_id, secilen_metin, not_metni, inceleme_turu) 
-             VALUES ($1, $2, $3, $4, $5)`,
+      `INSERT INTO soru_revize_notlari(soru_id, kullanici_id, secilen_metin, not_metni, inceleme_turu)
+VALUES($1, $2, $3, $4, $5)`,
       [id, req.user.id, secilen_metin, not_metni, inceleme_turu]
     );
 

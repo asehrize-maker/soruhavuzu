@@ -43,6 +43,7 @@ export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
   getMe: () => api.get('/auth/me'),
+  me: () => api.get('/auth/me'),
 };
 
 // Kullanıcı API
@@ -101,6 +102,7 @@ export const soruAPI = {
   getDetayliStats: () => api.get('/sorular/stats/detayli'),
   getDizgiBransStats: () => api.get('/sorular/stats/dizgi-brans'),
   getIncelemeBransStats: () => api.get('/sorular/stats/inceleme-brans'),
+  getIncelemeDetayliStats: () => api.get('/sorular/stats/inceleme-detayli'),
   getRapor: (params) => api.get('/sorular/rapor', { params }),
   getYedek: () => api.get('/sorular/yedek'),
   getComments: (id) => api.get(`/sorular/${id}/yorumlar`),
@@ -109,7 +111,10 @@ export const soruAPI = {
   addRevizeNot: (id, data) => api.post(`/sorular/${id}/revize-not`, data),
   getRevizeNotlari: (id) => api.get(`/sorular/${id}/revize-notlari`),
   deleteRevizeNot: (id, notId) => api.delete(`/sorular/${id}/revize-not/${notId}`),
-  
+  uploadFinal: (id, formData) => api.put(`/sorular/${id}/final-upload`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  adminCleanup: (data) => api.post('/sorular/admin-cleanup', data),
 };
 
 // Bildirim API

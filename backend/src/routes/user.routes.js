@@ -1,23 +1,18 @@
 import express from 'express';
 import pool from '../config/database.js';
+import bcrypt from 'bcryptjs';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
-import bcrypt from 'bcryptjs';
 
 const router = express.Router();
 
 // Admin: yeni kullanıcı oluştur
 router.post('/admin-create', authenticate, authorize('admin'), async (req, res, next) => {
   try {
-    const { ad_soyad, email, sifre, rol, ekip_id, brans_id, inceleme_alanci, inceleme_dilci } = req.body;
+    const { ad_soyad, email, sifre, rol, ekip_id, brans_id, inceleme_alanci, inceleme_dilci, brans_ids } = req.body;
 
     if (!ad_soyad || !email || !sifre || !rol) {
       throw new AppError('ad_soyad, email, sifre ve rol zorunludur', 400);
-    }
-
-    const allowedRoles = ['admin', 'soru_yazici', 'dizgici', 'incelemeci'];
-    if (!allowedRoles.includes(rol)) {
-      throw new AppError('Geçersiz rol', 400);
     }
 
     const emailCheck = await pool.query('SELECT id FROM kullanicilar WHERE email = $1', [email]);
@@ -32,14 +27,44 @@ router.post('/admin-create', authenticate, authorize('admin'), async (req, res, 
     const flagAlan = isIncelemeci ? !!inceleme_alanci : false;
     const flagDil = isIncelemeci ? !!inceleme_dilci : false;
 
-    const insert = await pool.query(
-      `INSERT INTO kullanicilar (ad_soyad, email, sifre, rol, ekip_id, brans_id, inceleme_alanci, inceleme_dilci)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING id, ad_soyad, email, rol, ekip_id, brans_id, inceleme_alanci, inceleme_dilci, aktif`,
-      [ad_soyad, email, hashed, rol, ekip_id || null, brans_id || null, flagAlan, flagDil]
-    );
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    res.status(201).json({ success: true, data: insert.rows[0] });
+      const insert = await client.query(
+        `INSERT INTO kullanicilar (ad_soyad, email, sifre, rol, ekip_id, brans_id, inceleme_alanci, inceleme_dilci)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING id`,
+        [ad_soyad, email, hashed, rol, ekip_id || null, brans_id || null, flagAlan, flagDil]
+      );
+
+      const userId = insert.rows[0].id;
+
+      // Çoklu branş ataması
+      if (brans_ids && Array.isArray(brans_ids)) {
+        for (const bId of brans_ids) {
+          if (bId) {
+            await client.query(
+              'INSERT INTO kullanici_branslari (kullanici_id, brans_id) VALUES ($1, $2)',
+              [userId, bId]
+            );
+          }
+        }
+      }
+
+      await client.query('COMMIT');
+
+      res.status(201).json({
+        success: true,
+        message: 'Kullanıcı oluşturuldu',
+        data: { id: userId, ad_soyad, email, rol }
+      });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   } catch (error) {
     next(error);
   }
@@ -134,11 +159,10 @@ router.put('/:id', authenticate, async (req, res, next) => {
 
       const currentUserRes = await client.query('SELECT rol FROM kullanicilar WHERE id = $1', [id]);
       if (currentUserRes.rows.length === 0) {
-        throw new AppError('KullanŽñcŽñ bulunamadŽñ', 404);
+        throw new AppError('Kullanıcı bulunamadı', 404);
       }
       const currentRole = currentUserRes.rows[0].rol;
 
-      // Admin değilse aktif durumunu değiştiremez
       const updates = [];
       const values = [];
       let paramCount = 1;
@@ -181,37 +205,30 @@ router.put('/:id', authenticate, async (req, res, next) => {
           updates.push(`inceleme_alanci = false`);
           updates.push(`inceleme_dilci = false`);
         }
+
         if (aktif !== undefined) {
           updates.push(`aktif = $${paramCount++}`);
           values.push(aktif);
         }
 
-        // Çoklu branş ataması (sadece admin yapabilir)
         if (brans_ids !== undefined && Array.isArray(brans_ids)) {
-          // Önce mevcut branşları sil
           await client.query('DELETE FROM kullanici_branslari WHERE kullanici_id = $1', [id]);
-
-          // Yeni branşları ekle
-          for (const bransId of brans_ids) {
-            if (bransId) {
+          for (const bId of brans_ids) {
+            if (bId) {
               await client.query(
                 'INSERT INTO kullanici_branslari (kullanici_id, brans_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-                [id, bransId]
+                [id, bId]
               );
             }
           }
-
-          // İlk branşı eski alana da kaydet (geriye uyumluluk)
           if (brans_ids.length > 0 && brans_ids[0]) {
             updates.push(`brans_id = $${paramCount++}`);
             values.push(brans_ids[0]);
           } else {
-            // Branş listesi boşsa brans_id'yi null yap
             updates.push(`brans_id = $${paramCount++}`);
             values.push(null);
           }
         } else if (brans_id !== undefined) {
-          // Eski tek branş alanını güncelle (brans_ids yoksa)
           updates.push(`brans_id = $${paramCount++}`);
           values.push(brans_id || null);
         }
@@ -224,19 +241,13 @@ router.put('/:id', authenticate, async (req, res, next) => {
           `UPDATE kullanicilar SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, ad_soyad, email, rol, inceleme_alanci, inceleme_dilci, ekip_id, brans_id, aktif`,
           values
         );
-
-        if (result.rows.length === 0) {
-          throw new AppError('Kullanıcı bulunamadı', 404);
-        }
       } else {
-        // Sadece branş güncellemesi yapıldıysa
         result = await client.query(
           'SELECT id, ad_soyad, email, rol, inceleme_alanci, inceleme_dilci, ekip_id, brans_id, aktif FROM kullanicilar WHERE id = $1',
           [id]
         );
       }
 
-      // Güncellenmiş branşları getir
       const bransResult = await client.query(`
         SELECT kb.brans_id as id, b.brans_adi
         FROM kullanici_branslari kb
@@ -268,17 +279,11 @@ router.put('/:id', authenticate, async (req, res, next) => {
 router.delete('/:id', authenticate, authorize('admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
-
     const result = await pool.query('DELETE FROM kullanicilar WHERE id = $1 RETURNING *', [id]);
-
     if (result.rows.length === 0) {
       throw new AppError('Kullanıcı bulunamadı', 404);
     }
-
-    res.json({
-      success: true,
-      message: 'Kullanıcı silindi'
-    });
+    res.json({ success: true, message: 'Kullanıcı silindi' });
   } catch (error) {
     next(error);
   }

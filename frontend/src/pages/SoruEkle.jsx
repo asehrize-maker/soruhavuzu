@@ -1,165 +1,29 @@
-import React, { useState, useRef, useEffect, memo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import useAuthStore from '../store/authStore';
 import { soruAPI, bransAPI } from '../services/api';
+import useAuthStore from '../store/authStore';
+// Icons
 import {
-  ArrowsPointingOutIcon,
-  TrashIcon,
-  PhotoIcon,
-  Bars3BottomLeftIcon,
-  Bars3Icon,
-  Bars3BottomRightIcon,
-  QueueListIcon,
-  Squares2X2Icon,
-  BoldIcon,
-  DocumentTextIcon,
-  Bars4Icon,
-  DocumentArrowUpIcon
+  PhotoIcon, DocumentTextIcon, QueueListIcon, Squares2X2Icon,
+  BoldIcon, DocumentArrowUpIcon, TrashIcon, Bars4Icon
 } from '@heroicons/react/24/outline';
+import EditableBlock from '../components/EditableBlock';
+import ResizableImage from '../components/ResizableImage';
+import MetadataForm from '../components/MetadataForm';
 
-const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-
-// --- İMLEÇ KORUMALI EDİTÖR ---
-const EditableBlock = memo(({ initialHtml, onChange, className, style, label, hangingIndent }) => {
-  const ref = useRef(null);
-
-  useEffect(() => {
-    if (ref.current && ref.current.innerHTML !== initialHtml) {
-      ref.current.innerHTML = initialHtml;
-    }
-    if (ref.current && !initialHtml) {
-      setTimeout(() => { if (ref.current) ref.current.focus(); }, 50);
-    }
-  }, []);
-
-  // Hanging Indent (Asılı Girinti) Stili
-  const computedStyle = {
-    ...style,
-    textAlign: 'left', // Sola yaslı (Kullanıcı isteği)
-    hyphens: 'none',   // Tireleme yok (Kullanıcı isteği)
-    WebkitHyphens: 'none',
-    msHyphens: 'none',
-  };
-
-  if (hangingIndent) {
-    computedStyle.paddingLeft = '24px';
-    computedStyle.textIndent = '-24px';
-  }
-
-  return (
-    <div className="relative group/edit w-full">
-      {/* Etiket */}
-      <div className="absolute -top-3 left-0 text-[10px] text-gray-500 font-bold px-1 opacity-0 group-hover/edit:opacity-100 transition pointer-events-none uppercase tracking-wider bg-white/80 rounded border shadow-sm z-20">
-        {label}
-      </div>
-      <div
-        ref={ref}
-        contentEditable
-        suppressContentEditableWarning
-        className={`outline-none min-h-[2em] p-1 border border-transparent hover:border-gray-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition rounded ${className || ''}`}
-        style={computedStyle}
-        onInput={(e) => onChange(e.currentTarget.innerHTML)}
-        onPaste={(e) => {
-          e.preventDefault();
-          const text = e.clipboardData.getData('text/plain');
-          document.execCommand("insertText", false, text);
-        }}
-      />
-    </div>
-  );
-}, () => true);
-
-// --- RESIZABLE IMAGE ---
-const ResizableImage = ({ src, width, height, align, onUpdate, onDelete }) => {
-  const [isResizing, setIsResizing] = useState(false);
-  const [resizeMode, setResizeMode] = useState(null);
-  const imgRef = useRef(null);
-  const containerRef = useRef(null);
-
-  const handleMouseDown = (e, mode) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsResizing(true);
-    setResizeMode(mode);
-
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startWidthPx = containerRef.current.offsetWidth;
-    const startHeightPx = imgRef.current.offsetHeight;
-    const containerWidth = containerRef.current.parentElement.offsetWidth;
-
-    const doDrag = (dragEvent) => {
-      const diffX = dragEvent.clientX - startX;
-      const diffY = dragEvent.clientY - startY;
-      let updates = {};
-
-      if (mode === 'se' || mode === 'e') {
-        let newWidthPx = startWidthPx + diffX;
-        let newWidthPercent = (newWidthPx / containerWidth) * 100;
-        if (newWidthPercent < 10) newWidthPercent = 10;
-        if (newWidthPercent > 100) newWidthPercent = 100;
-        updates.width = newWidthPercent;
-      }
-      if (mode === 'se' || mode === 's') {
-        if (mode === 's' || (mode === 'se' && height !== 'auto')) {
-          let newHeightPx = startHeightPx + diffY;
-          if (newHeightPx < 50) newHeightPx = 50;
-          updates.height = newHeightPx;
-        }
-      }
-      onUpdate(updates);
-    };
-
-    const stopDrag = () => {
-      setIsResizing(false);
-      setResizeMode(null);
-      document.removeEventListener('mousemove', doDrag);
-      document.removeEventListener('mouseup', stopDrag);
-    };
-    document.addEventListener('mousemove', doDrag);
-    document.addEventListener('mouseup', stopDrag);
-  };
-
-  let containerStyle = { marginBottom: '1rem', position: 'relative' }; // Image margin arttırıldı
-  if (align === 'left') containerStyle = { ...containerStyle, float: 'left', margin: '0 1rem 1rem 0', width: `${width}%` };
-  else if (align === 'right') containerStyle = { ...containerStyle, float: 'right', margin: '0 0 1rem 1rem', width: `${width}%` };
-  else if (align === 'center') containerStyle = { ...containerStyle, margin: '0 auto 1rem auto', width: `${width}%`, display: 'block' };
-  else containerStyle = { ...containerStyle, width: `${width}%` };
-
-  return (
-    <div
-      ref={containerRef}
-      className={`group relative transition-all border-2 ${isResizing ? 'border-blue-500' : 'border-transparent hover:border-blue-200'}`}
-      style={containerStyle}
-    >
-      <img ref={imgRef} src={src} className="block w-full" style={{ height: height === 'auto' ? 'auto' : `${height}px`, objectFit: height === 'auto' ? 'contain' : 'fill' }} alt="Görsel" />
-
-      <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-white shadow-lg rounded-lg p-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition z-50 pointer-events-none group-hover:pointer-events-auto border border-gray-200">
-        <button onClick={() => onUpdate({ align: 'left' })} className={`p-1 rounded ${align === 'left' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}><Bars3BottomLeftIcon className="w-4 h-4" /></button>
-        <button onClick={() => onUpdate({ align: 'center' })} className={`p-1 rounded ${align === 'center' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}><Bars3Icon className="w-4 h-4" /></button>
-        <button onClick={() => onUpdate({ align: 'right' })} className={`p-1 rounded ${align === 'right' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}><Bars3BottomRightIcon className="w-4 h-4" /></button>
-        <div className="w-[1px] bg-gray-300 mx-1"></div>
-        <button onClick={() => onUpdate({ height: 'auto' })} className="p-1 rounded hover:bg-gray-100 text-xs font-bold">Oto</button>
-        <button onClick={onDelete} className="p-1 rounded hover:bg-red-100 text-red-500"><TrashIcon className="w-4 h-4" /></button>
-      </div>
-      <div onMouseDown={(e) => handleMouseDown(e, 'se')} className="absolute bottom-0 right-0 w-6 h-6 bg-blue-500 cursor-nwse-resize opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-tl-lg shadow-sm z-20">
-        <ArrowsPointingOutIcon className="w-3 h-3 text-white" />
-      </div>
-    </div>
-  );
-};
+const generateId = () => Math.random().toString(36).substr(2, 9);
 
 export default function SoruEkle() {
+  const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
-  const { user } = useAuthStore();
-  const [widthMode, setWidthMode] = useState('dar');
-  const [components, setComponents] = useState([]);
-
-  const [metadata, setMetadata] = useState({ zorluk: '3', dogruCevap: '', brans_id: '', kazanim: '', kazanim_is_custom: false });
   const [branslar, setBranslar] = useState([]);
   const [kazanims, setKazanims] = useState([]);
   const [kazanimLoading, setKazanimLoading] = useState(false);
+
+  const [metadata, setMetadata] = useState({ brans_id: '', dogruCevap: '', kazanim: '', zorluk: '3', kazanim_is_custom: false });
+  const [components, setComponents] = useState([]);
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
+  const [widthMode, setWidthMode] = useState('dar'); // dar (82mm) | genis (169mm)
 
   useEffect(() => {
     const loadBranslar = async () => {
@@ -172,7 +36,7 @@ export default function SoruEkle() {
     loadBranslar();
   }, [user]);
 
-      useEffect(() => {
+  useEffect(() => {
     const loadKazanims = async () => {
       if (!metadata.brans_id) {
         setKazanims([]);
@@ -213,7 +77,7 @@ export default function SoruEkle() {
       if (mode === 'grid') { styleProps = { width: 48, float: 'left' }; }
       return {
         id: baseId + idx,
-        type: 'text', subtype: 'secenek', content: `<b>${opt})</b> `, // Harf ile metin arasına boşluk koyduk
+        type: 'text', subtype: 'secenek', content: `<b>${opt})</b> `,
         placeholder: ``,
         label: `Seçenek ${opt}`,
         ...styleProps
@@ -273,6 +137,7 @@ export default function SoruEkle() {
     try {
       const formData = new FormData();
       formData.append('dogru_cevap', metadata.dogruCevap);
+      formData.append('zorluk_seviyesi', metadata.zorluk || '3');
       formData.append('brans_id', metadata.brans_id);
       formData.append('kazanim', metadata.kazanim || 'Genel');
        // Zorluk bilgisini backend'in beklediği metinsel forma çevir
@@ -317,8 +182,8 @@ export default function SoruEkle() {
       ['a', 'b', 'c', 'd'].forEach(opt => formData.append(`secenek_${opt}`, ''));
 
       await soruAPI.create(formData);
-      alert("✅ Soru başarıyla kaydedildi ve incelemeye gönderildi!");
-      navigate('/sorular');
+      alert("✅ Soru başarıyla kaydedildi!");
+      navigate('/brans-havuzu');
     } catch (error) { console.error(error); alert("Hata: " + error.message); }
   };
 
@@ -337,7 +202,7 @@ export default function SoruEkle() {
           </div>
         </div>
         <div className="flex gap-3">
-          <button onClick={handleSave} className="px-6 py-1.5 bg-white text-[#0078D4] font-bold rounded hover:bg-blue-50 transition shadow">Kaydet ve İncelemeye Gönder</button>
+          <button onClick={handleSave} className="px-6 py-1.5 bg-white text-[#0078D4] font-bold rounded hover:bg-blue-50 transition shadow">Soruyu Kaydet</button>
           <button onClick={() => navigate('/sorular')} className="px-4 py-1.5 bg-red-500 hover:bg-red-600 rounded font-medium text-sm transition">Çıkış</button>
         </div>
       </div>
@@ -433,89 +298,17 @@ export default function SoruEkle() {
         </div>
       </div>
 
-            <div className="max-w-4xl mx-auto mt-6 pb-12">
-        <div className="bg-white border shadow-sm rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase">Branş</label>
-            <select
-              className="w-full border p-2 rounded bg-gray-50 text-sm"
-              value={metadata.brans_id}
-              onChange={e => setMetadata({ ...metadata, brans_id: e.target.value })}
-            >
-              <option value="">Seciniz</option>
-              {branslar.map(b => <option key={b.id} value={b.id}>{b.brans_adi}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase">Dogru Cevap</label>
-            <div className="flex gap-2 mt-1">
-              {['A', 'B', 'C', 'D', 'E'].map(opt => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => setMetadata({ ...metadata, dogruCevap: opt })}
-                  className={`w-8 h-8 rounded-full border font-bold text-sm ${metadata.dogruCevap === opt ? 'bg-blue-600 text-white border-blue-600' : 'hover:bg-gray-50'}`}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase">Kazanım</label>
-            {kazanimLoading ? (
-              <div className="text-xs text-gray-500 mt-2">Kazanımlar yükleniyor...</div>
-            ) : (
-              <>
-                {kazanims.length > 0 ? (
-                  <select
-                    className="w-full border p-2 rounded bg-gray-50 text-sm"
-                    value={metadata.kazanim_is_custom ? '__manuel' : (metadata.kazanim || '')}
-                    onChange={e => {
-                      const val = e.target.value;
-                      if (val === '__manuel') {
-                        setMetadata(prev => ({ ...prev, kazanim: '', kazanim_is_custom: true }));
-                      } else {
-                        setMetadata(prev => ({ ...prev, kazanim: val, kazanim_is_custom: false }));
-                      }
-                    }}
-                    disabled={!metadata.brans_id}
-                  >
-                    <option value="">Seçiniz</option>
-                    {kazanims.map(k => (
-                      <option key={k.id} value={k.kod}>
-                        {k.kod} - {k.aciklama}
-                      </option>
-                    ))}
-                    <option value="__manuel">Diğer / Manuel gir</option>
-                  </select>
-                ) : (
-                  <div>
-                    <input
-                      type="text"
-                      className="w-full border p-2 rounded bg-white text-sm"
-                      placeholder="Kazanımı manuel girin"
-                      value={metadata.kazanim}
-                      onChange={e => setMetadata(prev => ({ ...prev, kazanim: e.target.value, kazanim_is_custom: true }))}
-                      disabled={!metadata.brans_id}
-                    />
-                    <div className="text-xs text-gray-500 mt-1">Bu branşta kayıtlı kazanım yok — manuel girebilirsiniz.</div>
-                  </div>
-                )}
-
-                {metadata.kazanim_is_custom && kazanims.length > 0 && (
-                  <input
-                    type="text"
-                    className="w-full border p-2 rounded bg-white text-sm mt-2"
-                    placeholder="Kazanımı manuel girin"
-                    value={metadata.kazanim}
-                    onChange={e => setMetadata(prev => ({ ...prev, kazanim: e.target.value }))}
-                    disabled={!metadata.brans_id}
-                  />
-                )}
-              </>
-            )}
-          </div>
+      <div className="max-w-4xl mx-auto mt-6 pb-12">
+        <div className="bg-white border shadow-sm rounded-lg overflow-hidden">
+          <MetadataForm
+            values={metadata}
+            onChange={setMetadata}
+            branslar={branslar}
+            kazanims={kazanims}
+            kazanimLoading={kazanimLoading}
+            allowManualKazanim={true}
+            className="border-0 shadow-none"
+          />
         </div>
       </div>
 

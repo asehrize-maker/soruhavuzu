@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Sorular from './pages/Sorular';
+import BransHavuzu from './pages/BransHavuzu';
 import SoruDetay from './pages/SoruDetay';
 import SoruEkle from './pages/SoruEkle';
 import Ekipler from './pages/Ekipler';
@@ -30,7 +31,7 @@ function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      
+
       <Route path="/" element={
         <PrivateRoute>
           <Layout />
@@ -38,11 +39,12 @@ function App() {
       }>
         <Route index element={<Dashboard />} />
         <Route path="sorular" element={<Sorular />} />
+        <Route path="brans-havuzu" element={<BransHavuzu />} />
         <Route path="sorular/yeni" element={<SoruEkle />} />
         <Route path="sorular/:id" element={<SoruDetay />} />
         <Route path="mesajlar" element={<Mesajlar />} />
         <Route path="dizgi-yonetimi" element={<DizgiYonetimi />} />
-        
+
         <Route path="ekipler" element={
           <AdminRoute>
             <Ekipler />

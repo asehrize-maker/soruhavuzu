@@ -125,7 +125,7 @@ export default function Mesajlar() {
   const getRolEtiket = (rol) => {
     const etiketler = {
       admin: 'Admin',
-      soru_yazici: 'Soru Yazıcı',
+      soru_yazici: 'Branş',
       dizgici: 'Dizgici',
     };
     return etiketler[rol] || rol;
@@ -215,9 +215,8 @@ export default function Mesajlar() {
                   <button
                     key={konusma.kullanici_id}
                     onClick={() => handleKonusmaAc(konusma)}
-                    className={`w-full p-4 text-left hover:bg-gray-50 border-b border-gray-100 transition ${
-                      secilenKullanici?.kullanici_id === konusma.kullanici_id ? 'bg-primary-50' : ''
-                    }`}
+                    className={`w-full p-4 text-left hover:bg-gray-50 border-b border-gray-100 transition ${secilenKullanici?.kullanici_id === konusma.kullanici_id ? 'bg-primary-50' : ''
+                      }`}
                   >
                     <div className="flex items-start space-x-3">
                       <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
@@ -306,11 +305,10 @@ export default function Mesajlar() {
                           )}
                           <div>
                             <div
-                              className={`rounded-2xl px-4 py-2 ${
-                                benGonderdim
+                              className={`rounded-2xl px-4 py-2 ${benGonderdim
                                   ? 'bg-primary-600 text-white rounded-br-none'
                                   : 'bg-white border border-gray-200 text-gray-900 rounded-bl-none'
-                              }`}
+                                }`}
                             >
                               <p className="text-sm whitespace-pre-wrap break-words">{mesaj.mesaj}</p>
                             </div>

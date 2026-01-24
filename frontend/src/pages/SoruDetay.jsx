@@ -1,154 +1,32 @@
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { soruAPI, bransAPI } from '../services/api';
+import { getDurumBadge } from '../utils/helpers';
+import EditableBlock from '../components/EditableBlock';
+import ResizableImage from '../components/ResizableImage';
+import IncelemeYorumlari from '../components/IncelemeYorumlari';
+import MetadataForm from '../components/MetadataForm';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import html2canvas from 'html2canvas';
 import {
-  ArrowsPointingOutIcon,
   TrashIcon,
   PhotoIcon,
-  Bars3BottomLeftIcon,
-  Bars3Icon,
-  Bars3BottomRightIcon,
   QueueListIcon,
-  Squares2X2Icon,
   BoldIcon,
   DocumentTextIcon,
   Bars4Icon,
-  DocumentArrowUpIcon,
   PencilSquareIcon
 } from '@heroicons/react/24/outline';
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 
 // --- İMLEÇ KORUMALI EDİTÖR ---
-const EditableBlock = memo(({ initialHtml, onChange, className, style, label, hangingIndent }) => {
-  const ref = useRef(null);
 
-  useEffect(() => {
-    if (ref.current && ref.current.innerHTML !== initialHtml) {
-      ref.current.innerHTML = initialHtml;
-    }
-    if (ref.current && !initialHtml) {
-      setTimeout(() => { if (ref.current) ref.current.focus(); }, 50);
-    }
-  }, []);
-
-  const computedStyle = {
-    ...style,
-    textAlign: 'left',
-    hyphens: 'none',
-    WebkitHyphens: 'none',
-    msHyphens: 'none',
-  };
-
-  if (hangingIndent) {
-    computedStyle.paddingLeft = '24px';
-    computedStyle.textIndent = '-24px';
-  }
-
-  return (
-    <div className="relative group/edit w-full">
-      <div className="absolute -top-3 left-0 text-[10px] text-gray-500 font-bold px-1 opacity-0 group-hover/edit:opacity-100 transition pointer-events-none uppercase tracking-wider bg-white/80 rounded border shadow-sm z-20">
-        {label}
-      </div>
-      <div
-        ref={ref}
-        contentEditable
-        suppressContentEditableWarning
-        className={`outline-none min-h-[2em] p-1 border border-transparent hover:border-gray-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition rounded ${className || ''}`}
-        style={computedStyle}
-        onInput={(e) => onChange(e.currentTarget.innerHTML)}
-        onPaste={(e) => {
-          e.preventDefault();
-          const text = e.clipboardData.getData('text/plain');
-          document.execCommand("insertText", false, text);
-        }}
-      />
-    </div>
-  );
-}, () => true);
 
 // --- RESIZABLE IMAGE ---
-const ResizableImage = ({ src, width, height, align, onUpdate, onDelete }) => {
-  const [isResizing, setIsResizing] = useState(false);
-  const [resizeMode, setResizeMode] = useState(null);
-  const imgRef = useRef(null);
-  const containerRef = useRef(null);
 
-  const handleMouseDown = (e, mode) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsResizing(true);
-    setResizeMode(mode);
-
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startWidthPx = containerRef.current.offsetWidth;
-    const startHeightPx = imgRef.current.offsetHeight;
-    const containerWidth = containerRef.current.parentElement.offsetWidth;
-
-    const doDrag = (dragEvent) => {
-      const diffX = dragEvent.clientX - startX;
-      const diffY = dragEvent.clientY - startY;
-      let updates = {};
-
-      if (mode === 'se' || mode === 'e') {
-        let newWidthPx = startWidthPx + diffX;
-        let newWidthPercent = (newWidthPx / containerWidth) * 100;
-        if (newWidthPercent < 10) newWidthPercent = 10;
-        if (newWidthPercent > 100) newWidthPercent = 100;
-        updates.width = newWidthPercent;
-      }
-      if (mode === 'se' || mode === 's') {
-        if (mode === 's' || (mode === 'se' && height !== 'auto')) {
-          let newHeightPx = startHeightPx + diffY;
-          if (newHeightPx < 50) newHeightPx = 50;
-          updates.height = newHeightPx;
-        }
-      }
-      onUpdate(updates);
-    };
-
-    const stopDrag = () => {
-      setIsResizing(false);
-      setResizeMode(null);
-      document.removeEventListener('mousemove', doDrag);
-      document.removeEventListener('mouseup', stopDrag);
-    };
-    document.addEventListener('mousemove', doDrag);
-    document.addEventListener('mouseup', stopDrag);
-  };
-
-  let containerStyle = { marginBottom: '1rem', position: 'relative' };
-  if (align === 'left') containerStyle = { ...containerStyle, float: 'left', margin: '0 1rem 1rem 0', width: `${width}%` };
-  else if (align === 'right') containerStyle = { ...containerStyle, float: 'right', margin: '0 0 1rem 1rem', width: `${width}%` };
-  else if (align === 'center') containerStyle = { ...containerStyle, margin: '0 auto 1rem auto', width: `${width}%`, display: 'block' };
-  else containerStyle = { ...containerStyle, width: `${width}%` };
-
-  return (
-    <div
-      ref={containerRef}
-      className={`group relative transition-all border-2 ${isResizing ? 'border-blue-500' : 'border-transparent hover:border-blue-200'}`}
-      style={containerStyle}
-    >
-      <img ref={imgRef} src={src} className="block w-full" style={{ height: height === 'auto' ? 'auto' : `${height}px`, objectFit: height === 'auto' ? 'contain' : 'fill' }} alt="Görsel" />
-
-      <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-white shadow-lg rounded-lg p-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition z-50 pointer-events-none group-hover:pointer-events-auto border border-gray-200">
-        <button onClick={() => onUpdate({ align: 'left' })} className={`p-1 rounded ${align === 'left' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}><Bars3BottomLeftIcon className="w-4 h-4" /></button>
-        <button onClick={() => onUpdate({ align: 'center' })} className={`p-1 rounded ${align === 'center' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}><Bars3Icon className="w-4 h-4" /></button>
-        <button onClick={() => onUpdate({ align: 'right' })} className={`p-1 rounded ${align === 'right' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}><Bars3BottomRightIcon className="w-4 h-4" /></button>
-        <div className="w-[1px] bg-gray-300 mx-1"></div>
-        <button onClick={() => onUpdate({ height: 'auto' })} className="p-1 rounded hover:bg-gray-100 text-xs font-bold">Oto</button>
-        <button onClick={onDelete} className="p-1 rounded hover:bg-red-100 text-red-500"><TrashIcon className="w-4 h-4" /></button>
-      </div>
-      <div onMouseDown={(e) => handleMouseDown(e, 'se')} className="absolute bottom-0 right-0 w-6 h-6 bg-blue-500 cursor-nwse-resize opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-tl-lg shadow-sm z-20">
-        <ArrowsPointingOutIcon className="w-3 h-3 text-white" />
-      </div>
-    </div>
-  );
-};
 
 const parseHtmlToComponents = (html) => {
   if (!html) return [];
@@ -212,18 +90,17 @@ export default function SoruDetay() {
   const effectiveRole = viewRole || authUser?.rol;
   const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
 
-  const effectiveIncelemeTuru = (() => {
+  const effectiveIncelemeTuru = useMemo(() => {
     if (incelemeTuru === 'alanci' || incelemeTuru === 'dilci') return incelemeTuru;
     if (effectiveRole === 'incelemeci') {
       const alan = !!authUser?.inceleme_alanci;
       const dil = !!authUser?.inceleme_dilci;
       if (alan && !dil) return 'alanci';
       if (dil && !alan) return 'dilci';
-      if (alan && dil) return 'alanci'; // varsayılan (UI üzerinden değiştirilebilir)
-      return null;
+      if (alan && dil) return 'alanci';
     }
     return null;
-  })();
+  }, [incelemeTuru, effectiveRole, authUser]);
 
   const canReview = effectiveRole === 'admin' || (effectiveRole === 'incelemeci' && !!effectiveIncelemeTuru);
 
@@ -320,13 +197,7 @@ export default function SoruDetay() {
       visibleNotes.forEach((not, index) => {
         if (!not.secilen_metin) return;
         const colorClass = not.inceleme_turu === 'dilci' ? 'green' : 'blue';
-        const mark = `<mark class="bg-${colorClass}-100 border-b-2 border-${colorClass}-400 px-1 relative group cursor-help transition-colors hover:bg-${colorClass}-200">
-          ${not.secilen_metin}
-          <sup class="text-${colorClass}-700 font-bold ml-0.5 select-none">[${revizeNotlari.indexOf(not) + 1}]</sup>
-          <span class="absolute bottom-full left-1/2 -translate-x-1/2 hidden group-hover:block bg-gray-900 text-white text-[10px] p-2 rounded w-48 z-50 shadow-xl mb-2">
-            <strong>${not.inceleme_turu.toUpperCase()} Notu:</strong> ${not.not_metni}
-          </span>
-        </mark>`;
+        const mark = `<mark class="bg-${colorClass}-100 border-b-2 border-${colorClass}-400 px-1 relative group cursor-help transition-colors hover:bg-${colorClass}-200">${not.secilen_metin}<sup class="text-${colorClass}-700 font-bold ml-0.5 select-none">[${revizeNotlari.indexOf(not) + 1}]</sup><span class="absolute bottom-full left-1/2 -translate-x-1/2 hidden group-hover:block bg-gray-900 text-white text-[10px] p-2 rounded w-48 z-50 shadow-xl mb-2"><strong>${not.inceleme_turu.toUpperCase()} Notu:</strong> ${not.not_metni}</span></mark>`;
         html = html.split(not.secilen_metin).join(mark);
       });
     }
@@ -349,6 +220,27 @@ export default function SoruDetay() {
       const res = await soruAPI.getRevizeNotlari(id);
       setRevizeNotlari(res.data.data);
     } catch (e) { console.error(e); }
+  };
+
+  const handleCapturePNG = async () => {
+    if (!soruMetniRef.current || !soruMetniRef.current.parentElement) return;
+    try {
+      // Capture the white card element
+      const element = soruMetniRef.current.parentElement.parentElement;
+      const canvas = await html2canvas(element, {
+        scale: 3, // Very high quality for print
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false
+      });
+      const link = document.createElement('a');
+      link.download = `soru-${id}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (err) {
+      console.error('PNG error:', err);
+      alert('Görsel oluşturulamadı.');
+    }
   };
 
   useEffect(() => {
@@ -418,28 +310,94 @@ export default function SoruDetay() {
     }
   };
 
+  const handleDizgiAl = async () => {
+    try {
+      await soruAPI.dizgiAl(id);
+      alert('Soru üzerinize alındı. Dizgi işlemine başlayabilirsiniz.');
+      loadSoru();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Soru dizgiye alınamadı');
+    }
+  };
+
   const handleSendToDizgi = async () => {
-    if (!confirm('Soruyu inceledim/düzelttim. Dizgi birimine GÖNDERMEK istediğinizden emin misiniz?')) return;
+    if (!confirm('Soru hazır. Dizgi birimine GÖNDERMEK istediğinizden emin misiniz?')) return;
     try {
       await soruAPI.updateDurum(id, {
         yeni_durum: 'dizgi_bekliyor',
-        aciklama: 'Branş onayı verildi, dizgi ve havuz aşamasına hazır.'
+        aciklama: 'Hoca onayıyla dizgiye gönderildi.'
       });
-      alert('Soru başarıyla Dizgi ve Havuza gönderildi.');
+      alert('✅ Soru başarıyla dizgiye gönderildi.');
       navigate('/');
     } catch (e) {
       alert('Hata: ' + (e.response?.data?.error || e.message));
     }
   };
 
-  const handleDizgiTamamla = async () => {
-    if (!confirm('Dizgi işlemini bitirip soruyu HAVUZA (Tamamlandı) göndermek istediğinizden emin misiniz?')) return;
+  const handleSendToInceleme = async () => {
+    if (!confirm('Soru dizgiden kontrol edildi. ALAN İNCELEME birimine göndermek istediğinizden emin misiniz?')) return;
+    try {
+      await soruAPI.updateDurum(id, {
+        yeni_durum: 'inceleme_bekliyor',
+        aciklama: 'Dizgi sonrası branş onayıyla incelemeye gönderildi.'
+      });
+      alert('✅ Soru başarıyla ALAN İNCELEMEYE gönderildi.');
+      navigate('/');
+    } catch (e) {
+      alert('Hata: ' + (e.response?.data?.error || e.message));
+    }
+  };
+
+  const handleSendToOrtakHavuz = async () => {
+    if (!confirm('Soru tüm süreçleri tamamladı. ORTAK HAVUZA gönderip yayınlamak istediğinizden emin misiniz?')) return;
     try {
       await soruAPI.updateDurum(id, {
         yeni_durum: 'tamamlandi',
-        aciklama: 'Dizgisi yapıldı ve havuza gönderildi.'
+        aciklama: 'Tüm incelemeler bitti, hoca onayıyla havuza gönderildi.'
       });
-      alert(`Soru başarıyla tamamlandı (V${soru.versiyon || 1}) ve Hazır Soru Havuzuna eklendi.`);
+      alert('✅ Soru başarıyla ORTAK HAVUZA gönderildi.');
+      navigate('/');
+    } catch (e) {
+      alert('Hata: ' + (e.response?.data?.error || e.message));
+    }
+  };
+
+  const finalFileInputRef = useRef(null);
+
+  const handleFinalUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      return alert('Lütfen geçerli bir resim dosyası (PNG/JPG) seçin.');
+    }
+
+    if (confirm("Seçilen görsel DİZGİ SONUCU olarak yüklenecek. Onaylıyor musunuz?")) {
+      try {
+        const formData = new FormData();
+        formData.append('final_png', file);
+        await soruAPI.uploadFinal(id, formData);
+        alert('Dizgi görseli yüklendi!');
+        loadSoru(); // Yenile
+      } catch (err) {
+        alert('Yükleme başarısız: ' + (err.response?.data?.error || err.message));
+      }
+    }
+  };
+
+  const handleDizgiTamamla = async () => {
+    if (!soru.final_png_url) {
+      if (!confirm('UYARI: Henüz final dizgi görseli (PNG) yüklenmemiş!\n\nDizgisi yapılmamış soruyu tamamlamak istediğinize emin misiniz?')) return;
+    } else {
+      if (!confirm('Dizgi işlemini bitirip soruyu kontrol için BRANŞA göndermek istediğinizden emin misiniz?')) return;
+    }
+
+    try {
+      await soruAPI.updateDurum(id, {
+        yeni_durum: 'dizgi_tamam',
+        aciklama: 'Dizgisi yapıldı ve branş kontrolüne gönderildi.'
+      });
+      alert(`✅ Soru başarıyla branş havuzuna (Dizgi Tamamlandı) gönderildi.`);
       navigate('/');
     } catch (e) {
       alert('Hata: ' + (e.response?.data?.error || e.message));
@@ -498,8 +456,8 @@ export default function SoruDetay() {
       let htmlContent = components.map(c => {
         let style = "";
         if (c.type === 'image') {
-          style = `width: ${c.width}%; margin-bottom: 12px;`;
-          if (c.height !== 'auto') style += ` height: ${c.height}px; object-fit: fill;`;
+          style = `width: ${c.width}%; margin - bottom: 12px; `;
+          if (c.height !== 'auto') style += ` height: ${c.height} px; object - fit: fill; `;
           if (c.align === 'left') style += ' float: left; margin-right: 12px;';
           else if (c.align === 'right') style += ' float: right; margin-left: 12px;';
           else style += ' display: block; margin-left: auto; margin-right: auto;';
@@ -509,12 +467,12 @@ export default function SoruDetay() {
           let commonStyle = "text-align: left; hyphens: none; -webkit-hyphens: none; line-height: 1.4;";
           if (c.subtype === 'koku') style = `${commonStyle} font-weight: bold; margin-bottom: 12px; margin-top: 4px; font-size: 10pt;`;
           else if (c.subtype === 'secenek') {
-            let w = c.width !== 100 ? `width: ${c.width}%;` : '';
-            let f = c.float !== 'none' ? `float: ${c.float};` : '';
+            let w = c.width !== 100 ? `width: ${c.width}%; ` : '';
+            let f = c.float !== 'none' ? `float: ${c.float}; ` : '';
             let m = c.float === 'left' ? 'margin-right: 2%;' : '';
-            style = `${commonStyle} margin-bottom: 6px; padding-left: 24px; text-indent: -24px; ${w} ${f} ${m}`;
+            style = `${commonStyle} margin-bottom: 6px; padding-left: 24px; text-indent: -24px; ${w} ${f} ${m} `;
           }
-          else style = `${commonStyle} margin-bottom: 8px; font-size: 10pt;`;
+          else style = `${commonStyle} margin-bottom: 8px; font-size: 10pt; `;
           return `<div class="q-txt q-${c.subtype}" style="${style} clear: ${c.float === 'none' ? 'both' : 'none'};">${c.content}</div>`;
         }
       }).join('');
@@ -528,7 +486,7 @@ export default function SoruDetay() {
         formData.append('fotograf_konumu', 'ust');
       }
 
-      ['a', 'b', 'c', 'd', 'e'].forEach(opt => formData.append(`secenek_${opt}`, ''));
+      ['a', 'b', 'c', 'd', 'e'].forEach(opt => formData.append(`secenek_${opt} `, ''));
 
       await soruAPI.update(id, formData);
       alert('Soru güncellendi!');
@@ -552,9 +510,9 @@ export default function SoruDetay() {
       if (mode === 'grid') { styleProps = { width: 48, float: 'left' }; }
       return {
         id: baseId + idx,
-        type: 'text', subtype: 'secenek', content: `<b>${opt})</b> `,
+        type: 'text', subtype: 'secenek', content: `<b>${opt})</b>`,
         placeholder: ``,
-        label: `Seçenek ${opt}`,
+        label: `Seçenek ${opt} `,
         ...styleProps
       };
     });
@@ -582,6 +540,8 @@ export default function SoruDetay() {
     setDraggedItemIndex(index);
   };
 
+
+
   const RibbonButton = ({ cmd, label, icon }) => (
     <button onMouseDown={(e) => { e.preventDefault(); execCmd(cmd); }} className="w-8 h-8 flex items-center justify-center hover:bg-gray-200 rounded text-gray-700 font-medium">{icon || label}</button>
   );
@@ -589,19 +549,13 @@ export default function SoruDetay() {
   if (loading) return <div className="text-center py-12"><div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div></div>;
   if (!soru) return null;
 
-  const isOwner = soru.olusturan_kullanici_id === user?.id;
+  const isOwner = soru.olusturan_kullanici_id == user?.id;
   const isAdmin = effectiveRole === 'admin';
 
-  const canEdit = !incelemeTuru && (
-    isAdmin ||
-    (isOwner && (soru.durum === 'beklemede' || soru.durum === 'revize_gerekli' || soru.durum === 'revize_istendi'))
-  );
+  const availableStatusesForEdit = ['beklemede', 'revize_gerekli', 'revize_istendi', 'dizgi_bekliyor', 'dizgide', 'dizgi_tamam'];
+  const canEdit = isAdmin || (isOwner && availableStatusesForEdit.includes(soru.durum));
 
-  const getDurumBadge = (durum) => {
-    const badges = { beklemede: 'badge badge-warning', inceleme_bekliyor: 'badge badge-primary', dizgi_bekliyor: 'badge badge-warning', dizgide: 'badge badge-info', tamamlandi: 'badge badge-success', revize_gerekli: 'badge badge-error', revize_istendi: 'badge badge-error' };
-    const labels = { beklemede: 'Beklemede', inceleme_bekliyor: 'İnceleme Bekliyor', dizgi_bekliyor: 'Dizgi Bekliyor', dizgide: 'Dizgide', tamamlandi: 'Tamamlandı', revize_gerekli: 'Revize Gerekli', revize_istendi: 'Revize İstendi' };
-    return <span className={badges[durum]}>{labels[durum]}</span>;
-  };
+
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
@@ -615,6 +569,25 @@ export default function SoruDetay() {
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/sorular')} className="btn btn-secondary btn-sm">← Geri</button>
 
+          {/* Final PNG Indirme (Admin ve Tamamlanmış sorularda herkes için) */}
+          {soru.final_png_url && (
+            <a
+              href={soru.final_png_url}
+              target="_blank"
+              rel="noreferrer"
+              className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg font-bold text-xs hover:bg-emerald-200 transition flex items-center gap-2 border border-emerald-300"
+            >
+              🖼️ FİNAL PNG İNDİR
+            </a>
+          )}
+
+          <button
+            onClick={handleCapturePNG}
+            className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-bold text-xs hover:bg-blue-200 transition flex items-center gap-2 border border-blue-300"
+          >
+            📸 GÖRÜNÜMÜ PNG AL
+          </button>
+
           {!editMode && (
             <>
               {/* İNCELEME MODUNDA VEYA ADMIN/İNCELEMECİ İSE GÖRÜNECEK BUTONLAR */}
@@ -627,34 +600,86 @@ export default function SoruDetay() {
                 </button>
               )}
 
-              {/* BRANŞ (YAZAR) VEYA ADMIN İÇİN DİZGİYE GÖNDERME BUTONU */}
-              {(isAdmin || isOwner) && soru.durum === 'revize_istendi' && (
-                <button
-                  onClick={handleSendToDizgi}
-                  className="px-6 py-3 bg-green-600 text-white rounded-xl font-black text-sm hover:bg-green-700 transition shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] flex items-center gap-2 border-b-4 border-green-800 active:border-b-0 active:translate-y-1"
-                >
-                  🚀 DİZGİYE VE HAVUZA GÖNDER
-                </button>
+              {/* BRANŞ (YAZAR) VEYA ADMIN İÇİN AKSİYONLAR */}
+              {(isAdmin || isOwner) && (
+                <div className="flex flex-wrap gap-2">
+                  {/* Düzenle Butonu */}
+                  {canEdit && (
+                    <button
+                      onClick={handleEditStart}
+                      className="px-6 py-3 bg-blue-100 text-blue-700 rounded-xl font-black text-sm hover:bg-blue-200 transition shadow-sm flex items-center gap-2 border-b-4 border-blue-300 active:border-b-0 active:translate-y-1"
+                    >
+                      ✍️ DÜZENLE
+                    </button>
+                  )}
+
+                  {/* Dizgiye Gönder (Sadece taslak veya revizedeyken) */}
+                  {['beklemede', 'revize_istendi', 'revize_gerekli'].includes(soru.durum) && (
+                    <button
+                      onClick={handleSendToDizgi}
+                      className="px-6 py-3 bg-purple-600 text-white rounded-xl font-black text-sm hover:bg-purple-700 transition shadow-lg flex items-center gap-2 border-b-4 border-purple-800 active:border-b-0 active:translate-y-1"
+                    >
+                      🚀 DİZGİYE GÖNDER
+                    </button>
+                  )}
+
+                  {/* Alan İncelemeye Gönder (Dizgi bittiyse) */}
+                  {soru.durum === 'dizgi_tamam' && (
+                    <button
+                      onClick={handleSendToInceleme}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-sm hover:bg-blue-700 transition shadow-lg flex items-center gap-2 border-b-4 border-blue-800 active:border-b-0 active:translate-y-1"
+                    >
+                      🔍 ALAN İNCELEMEYE GÖNDER
+                    </button>
+                  )}
+
+                  {/* Ortak Havuza Gönder (İnceleme bittiyse) */}
+                  {soru.durum === 'inceleme_tamam' && (
+                    <button
+                      onClick={handleSendToOrtakHavuz}
+                      className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-black text-sm hover:bg-emerald-700 transition shadow-lg flex items-center gap-2 border-b-4 border-emerald-800 active:border-b-0 active:translate-y-1"
+                    >
+                      ✅ ORTAK HAVUZA GÖNDER
+                    </button>
+                  )}
+                </div>
               )}
 
               {/* DİZGİCİ İÇİN DİZGİYE AL BUTONU (EĞER BEKLEMEDEYSE) */}
               {effectiveRole === 'dizgici' && soru.durum === 'dizgi_bekliyor' && (
                 <button
-                  onClick={() => handleStatusUpdate('dizgide')}
+                  onClick={handleDizgiAl}
                   className="px-6 py-3 bg-orange-600 text-white rounded-xl font-black text-sm hover:bg-orange-700 transition shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] flex items-center gap-2 border-b-4 border-orange-800 active:border-b-0 active:translate-y-1"
                 >
                   🚀 DİZGİYE AL
                 </button>
               )}
 
-              {/* DİZGİCİ İÇİN TAMAMLAMA BUTONU */}
+              {/* DİZGİCİ İÇİN DOSYA YÜKLEME VE TAMAMLAMA */}
               {effectiveRole === 'dizgici' && soru.durum === 'dizgide' && (
-                <button
-                  onClick={handleDizgiTamamla}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-sm hover:bg-blue-700 transition shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] flex items-center gap-2 border-b-4 border-blue-800 active:border-b-0 active:translate-y-1"
-                >
-                  ✅ TAMAMLANDI
-                </button>
+                <>
+                  <input
+                    type="file"
+                    ref={finalFileInputRef}
+                    className="hidden"
+                    accept="image/png,image/jpeg"
+                    onChange={handleFinalUpload}
+                  />
+                  <button
+                    onClick={() => finalFileInputRef.current.click()}
+                    className="px-6 py-3 bg-purple-600 text-white rounded-xl font-black text-sm hover:bg-purple-700 transition shadow-[0_4px_14px_0_rgba(147,51,234,0.39)] flex items-center gap-2 border-b-4 border-purple-800 active:border-b-0 active:translate-y-1"
+                  >
+                    <PhotoIcon className="w-5 h-5" />
+                    📤 DİZGİ GÖRSELİ YÜKLE (PNG)
+                  </button>
+
+                  <button
+                    onClick={handleDizgiTamamla}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-sm hover:bg-blue-700 transition shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] flex items-center gap-2 border-b-4 border-blue-800 active:border-b-0 active:translate-y-1"
+                  >
+                    ✅ TAMAMLANDI
+                  </button>
+                </>
               )}
             </>
           )}
@@ -671,6 +696,21 @@ export default function SoruDetay() {
         {soru.kazanim && <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-[10px] font-bold border border-blue-200 uppercase tracking-tighter">Kazanım: {soru.kazanim}</span>}
       </div>
 
+      {/* Final PNG Önizleme (Dizgi Sonucu) */}
+      {soru.final_png_url && !editMode && (
+        <div className="card border-4 border-emerald-200 bg-emerald-50 rounded-xl overflow-hidden shadow-lg mb-6">
+          <div className="bg-emerald-200 px-4 py-2 flex justify-between items-center">
+            <span className="text-emerald-900 font-black text-xs uppercase tracking-widest flex items-center gap-2">
+              ✨ DİZGİ SONUCU (PNG)
+            </span>
+            <span className="text-[10px] text-emerald-700 font-bold italic">Bu görsel baskıya hazır final dosyasıdır</span>
+          </div>
+          <div className="p-4 flex justify-center bg-white/50">
+            <img src={soru.final_png_url} className="max-w-full rounded shadow-sm border border-emerald-100" alt="Final PNG" />
+          </div>
+        </div>
+      )}
+
       <div className="relative border-4 border-gray-200 rounded-xl overflow-hidden bg-white shadow-2xl transition-all">
         {editMode ? (
           <div className="bg-[#F3F2F1] min-h-[600px] flex flex-col pointer-events-auto">
@@ -678,12 +718,12 @@ export default function SoruDetay() {
               <div className="flex items-center gap-4">
                 <h2 className="text-sm font-bold flex items-center gap-2"><PencilSquareIcon className="w-4 h-4" /> Düzenleme Modu</h2>
                 <div className="flex bg-[#005A9E] rounded p-0.5">
-                  <button onClick={() => setWidthMode('dar')} className={`px-2 py-0.5 text-[10px] font-bold rounded ${widthMode === 'dar' ? 'bg-white text-[#0078D4]' : 'text-white/80'}`}>82mm</button>
-                  <button onClick={() => setWidthMode('genis')} className={`px-2 py-0.5 text-[10px] font-bold rounded ${widthMode === 'genis' ? 'bg-white text-[#0078D4]' : 'text-white/80'}`}>169mm</button>
+                  <button onClick={() => setWidthMode('dar')} className={`px - 2 py - 0.5 text - [10px] font - bold rounded ${widthMode === 'dar' ? 'bg-white text-[#0078D4]' : 'text-white/80'} `}>82mm</button>
+                  <button onClick={() => setWidthMode('genis')} className={`px - 2 py - 0.5 text - [10px] font - bold rounded ${widthMode === 'genis' ? 'bg-white text-[#0078D4]' : 'text-white/80'} `}>169mm</button>
                 </div>
               </div>
               <div className="flex gap-2">
-                <button onClick={handleEditSave} disabled={saving} className="px-4 py-1 bg-white text-blue-700 text-xs font-bold rounded hover:bg-blue-50">KAYDET</button>
+                <button onClick={handleEditSave} disabled={saving} className="px-6 py-1 bg-white text-blue-700 text-xs font-black rounded hover:bg-blue-50 border-b-2 border-blue-200">💾 KAYDET VE BRANŞ HAVUZUNDA TUT</button>
                 <button onClick={() => setEditMode(false)} className="px-4 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600">İPTAL</button>
               </div>
             </div>
@@ -712,8 +752,8 @@ export default function SoruDetay() {
                   {components.map((comp, index) => (
                     <div
                       key={comp.id}
-                      className={`relative group/item rounded px-1 transition ${draggedItemIndex === index ? 'opacity-50 bg-blue-50' : 'hover:ring-1 hover:ring-blue-100'}`}
-                      style={{ float: comp.float || 'none', width: comp.width && comp.subtype === 'secenek' ? `${comp.width}%` : 'auto', marginRight: comp.float === 'left' ? '2%' : '0' }}
+                      className={`relative group / item rounded px - 1 transition ${draggedItemIndex === index ? 'opacity-50 bg-blue-50' : 'hover:ring-1 hover:ring-blue-100'} `}
+                      style={{ float: comp.float || 'none', width: comp.width && comp.subtype === 'secenek' ? `${comp.width}% ` : 'auto', marginRight: comp.float === 'left' ? '2%' : '0' }}
                       draggable="true"
                       onDragStart={(e) => onDragStart(e, index)}
                       onDragOver={(e) => onDragOver(e, index)}
@@ -736,53 +776,13 @@ export default function SoruDetay() {
               </div>
             </div>
 
-            <div className="bg-white border-t p-4 grid grid-cols-1 md:grid-cols-4 gap-4 mt-auto">
-              <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Brans</label>
-                <select className="w-full border p-1 rounded text-xs" value={editMetadata.brans_id} onChange={e => setEditMetadata({ ...editMetadata, brans_id: e.target.value })}>
-                  {branslar.map(b => <option key={b.id} value={b.id}>{b.brans_adi}</option>)}
-                </select>
-              </div>
-              <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Dogru Cevap</label>
-                <div className="flex gap-1 mt-1">
-                  {['A', 'B', 'C', 'D', 'E'].map(opt => (
-                    <button key={opt} onClick={() => setEditMetadata({ ...editMetadata, dogruCevap: opt })} className={`w-6 h-6 rounded-full border font-bold text-[10px] ${editMetadata.dogruCevap === opt ? 'bg-blue-600 text-white' : 'bg-gray-50'}`}>{opt}</button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Kazanim</label>
-                {kazanimLoading ? (
-                  <div className="text-[11px] text-gray-500 mt-1">Kazanimlar yukleniyor...</div>
-                ) : (
-                  <select
-                    className="w-full border p-1 rounded text-xs"
-                    value={editMetadata.kazanim}
-                    onChange={e => setEditMetadata({ ...editMetadata, kazanim: e.target.value })}
-                    disabled={!editMetadata.brans_id || kazanims.length === 0}
-                  >
-                    {!editMetadata.brans_id && <option value="">Once brans secin</option>}
-                    {editMetadata.brans_id && kazanims.length === 0 && <option value="">Bu brans ta kazanim yok</option>}
-                    {kazanims.map(k => (
-                      <option key={k.id} value={k.kod}>
-                        {k.kod} - {k.aciklama}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Zorluk</label>
-                <select className="w-full border p-1 rounded text-xs" value={editMetadata.zorluk} onChange={e => setEditMetadata({ ...editMetadata, zorluk: e.target.value })}>
-                  <option value="1">1 (?ok Kolay)</option>
-                  <option value="2">2 (Kolay)</option>
-                  <option value="3">3 (Orta)</option>
-                  <option value="4">4 (Zor)</option>
-                  <option value="5">5 (?ok Zor)</option>
-                </select>
-              </div>
-            </div>
+            <MetadataForm
+              values={editMetadata}
+              onChange={setEditMetadata}
+              branslar={branslar}
+              kazanims={kazanims}
+              kazanimLoading={kazanimLoading}
+            />
           </div>
         ) : (
           <div className="bg-[#F3F2F1] p-8 flex justify-center overflow-x-auto min-h-[400px]">
@@ -808,7 +808,6 @@ export default function SoruDetay() {
         )}
       </div>
 
-      {/* Revize Notları Listesi (ROL BAZLI FİLTRELEME) */}
       {revizeNotlari.filter(not => {
         if (user?.rol === 'admin' || user?.rol === 'dizgici') return true;
         if (incelemeTuru) return not.inceleme_turu === incelemeTuru;
@@ -865,9 +864,8 @@ export default function SoruDetay() {
         </div>
       )}
 
-      {/* Alt Araç Çubuğu */}
+      {/* Alt Araç Çubuğu - Sadece Sil butonu */}
       <div className="flex gap-2">
-        {canEdit && !editMode && <button onClick={handleEditStart} className="btn btn-primary">✏️ Düzenle</button>}
         {/* SADECE ADMIN VE SAHİBİ SİLEBİLİR - İNCELEMECİ SİLEMEZ */}
         {(effectiveRole === 'admin' || (soru.olusturan_kullanici_id === user?.id && effectiveRole !== 'incelemeci')) && (
           <button onClick={handleSil} className="btn btn-danger">Sil</button>
@@ -883,61 +881,6 @@ export default function SoruDetay() {
   );
 }
 
-function IncelemeYorumlari({ soruId }) {
-  const [yorumlar, setYorumlar] = useState([]);
-  const [yeniYorum, setYeniYorum] = useState('');
-  const [loading, setLoading] = useState(true);
-  const loadYorumlar = async () => {
-    try { const res = await soruAPI.getComments(soruId); setYorumlar(res.data.data); } catch (e) { } finally { setLoading(false); }
-  };
-  useEffect(() => { loadYorumlar(); }, [soruId]);
-  const handleYorumEkle = async () => {
-    if (!yeniYorum.trim()) return;
-    try { await soruAPI.addComment(soruId, yeniYorum); setYeniYorum(''); loadYorumlar(); } catch (e) { }
-  };
-  return (
-    <div className="flex flex-col h-full min-h-[200px]">
-      <div className="flex-1 space-y-3">
-        {loading ? <p className="text-center text-gray-400">Yükleniyor...</p> : yorumlar.length === 0 ? <p className="text-center text-gray-400 italic text-sm">Hiç yorum yok.</p> :
-          yorumlar.map((y) => (
-            <div key={y.id} className="bg-white border rounded-xl p-4 shadow-sm">
-              <div className="flex justify-between items-baseline mb-2">
-                <span className="font-bold text-gray-900">{y.ad_soyad} <span className="text-[10px] font-normal text-gray-400 uppercase">({y.rol})</span></span>
-                <span className="text-[10px] text-gray-400">{new Date(y.tarih).toLocaleDateString()}</span>
-              </div>
-              <p className="text-gray-700 text-sm whitespace-pre-wrap">{y.yorum_metni}</p>
-            </div>
-          ))}
-      </div>
-      <div className="mt-6 flex gap-2">
-        <input type="text" className="input shadow-inner" placeholder="İnceleme notu yazın..." value={yeniYorum} onChange={(e) => setYeniYorum(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleYorumEkle()} />
-        <button onClick={handleYorumEkle} className="btn btn-primary px-8">Ekle</button>
-      </div>
-    </div>
-  );
-}
 
-function VersiyonGecmisi({ soruId }) {
-  const [versiyonlar, setVersiyonlar] = useState([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    const load = async () => { try { const res = await soruAPI.getHistory(soruId); setVersiyonlar(res.data.data); } catch (e) { } finally { setLoading(false); } };
-    load();
-  }, [soruId]);
-  if (loading) return <div className="text-center py-4">Sürümler yükleniyor...</div>;
-  if (versiyonlar.length === 0) return <p className="text-center text-gray-400 italic">Henüz bir sürüm geçmişi yok.</p>;
-  return (
-    <div className="space-y-4">
-      {versiyonlar.map((v) => (
-        <div key={v.id} className="border rounded-xl p-4 bg-gray-50 hover:bg-white transition-all shadow-sm">
-          <div className="flex justify-between items-center mb-2">
-            <span className="bg-gray-800 text-white px-2 py-0.5 rounded text-[10px] font-bold">v{v.versiyon_no}</span>
-            <span className="text-[10px] text-gray-400">{new Date(v.degisim_tarihi).toLocaleString()}</span>
-          </div>
-          <div className="font-bold text-sm text-gray-900 mb-2">{v.ad_soyad}</div>
-          <div className="text-xs text-gray-600 line-clamp-2 italic">"{v.degisim_aciklamasi || 'Soru güncellendi'}"</div>
-        </div>
-      ))}
-    </div>
-  );
-}
+
+

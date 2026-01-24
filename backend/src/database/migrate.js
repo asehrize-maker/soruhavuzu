@@ -14,6 +14,13 @@ import { createBransKazanimlar } from './migrations/013_brans_kazanimlar.js';
 import { fixSorularDurumConstraint } from './migrations/014_fix_sorular_durum_constraint.js';
 import { normalizeSorularDurum } from './migrations/015_normalize_sorular_durum.js';
 import { addIncelemeFlags } from './migrations/016_add_inceleme_flags.js';
+import { addFinalPngFields } from './migrations/017_add_final_png_fields.js';
+import { makeBranslarGlobal } from './migrations/018_make_branslar_global.js';
+import { mergeDuplicateBranslar } from './migrations/019_merge_duplicate_branslar.js';
+import { updateZorlukSchema } from './migrations/021_update_zorluk_schema.js';
+import { addDizgiTamamStatus } from './migrations/022_add_dizgi_tamam_enum.js';
+import { addDizgiDateColumns } from './migrations/023_add_dizgi_date_columns.js';
+import { ultimateDurumFix } from './migrations/025_ultimate_durum_fix.js';
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -50,7 +57,7 @@ const createTables = async () => {
         ad_soyad VARCHAR(150) NOT NULL,
         email VARCHAR(150) NOT NULL UNIQUE,
         sifre VARCHAR(255) NOT NULL,
-        rol VARCHAR(50) NOT NULL CHECK (rol IN ('admin', 'soru_yazici', 'dizgici', 'incelemeci')),
+        rol VARCHAR(50) NOT NULL CHECK (rol IN ('admin', 'soru_yazici', 'dizgici', 'incelemeci', 'koordinator')),
         inceleme_alanci BOOLEAN DEFAULT false,
         inceleme_dilci BOOLEAN DEFAULT false,
         ekip_id INTEGER REFERENCES ekipler(id) ON DELETE SET NULL,
@@ -70,7 +77,19 @@ const createTables = async () => {
         zorluk_seviyesi VARCHAR(20) CHECK (zorluk_seviyesi IN ('kolay', 'orta', 'zor')),
         brans_id INTEGER REFERENCES branslar(id) ON DELETE CASCADE,
         olusturan_kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
-        durum VARCHAR(50) DEFAULT 'beklemede' CHECK (durum IN ('beklemede','inceleme_bekliyor','revize_istendi','revize_gerekli','dizgi_bekliyor','dizgide','inceleme_tamam','tamamlandi','arsiv')),
+        durum VARCHAR(50) DEFAULT 'beklemede' CHECK (durum IN (
+          'beklemede',
+          'inceleme_bekliyor',
+          'incelemede',
+          'revize_istendi',
+          'revize_gerekli',
+          'dizgi_bekliyor',
+          'dizgide',
+          'dizgi_tamam',
+          'inceleme_tamam',
+          'tamamlandi',
+          'arsiv'
+        )),
         dizgici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
         olusturulma_tarihi TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         guncellenme_tarihi TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -120,7 +139,11 @@ const createTables = async () => {
     await addSoruIncelemeVeVersiyon();
 
     // Sivas Ekibi ve Temel Branşları Seed Et
-    await seedSivasEkibi();
+    try {
+      await seedSivasEkibi();
+    } catch (e) {
+      console.warn('⚠️ Seed Sivas Ekibi skipped (likely already exists or minor DB issue):', e.message);
+    }
 
     // İş akışı durumlarını güncelle (V2)
     // İş akışı durumlarını güncelle (V2)
@@ -138,6 +161,24 @@ const createTables = async () => {
     await fixSorularDurumConstraint();
     await normalizeSorularDurum();
     await addIncelemeFlags();
+    await addFinalPngFields();
+    await makeBranslarGlobal();
+    await mergeDuplicateBranslar();
+
+    // Zorluk seviyesi şemasını güncelle (1-5 integer)
+    await updateZorlukSchema();
+
+    // Dizgi tamam statüsünü enum/constraint'e ekle
+    await addDizgiTamamStatus();
+
+    // Dizgi tarih kolonlarını ekle
+    await addDizgiDateColumns();
+
+    // Koordinator rolü ekle
+    await addKoordinatorRole();
+
+    // En son ve kesin durum kısıtlamasını uygula
+    await ultimateDurumFix();
 
   } catch (error) {
     await client.query('ROLLBACK');

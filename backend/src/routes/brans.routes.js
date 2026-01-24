@@ -10,29 +10,18 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 *
 
 const router = express.Router();
 
-// Tüm branşları getir veya ekibe göre filtrele
 router.get('/', authenticate, async (req, res, next) => {
   try {
-    const { ekip_id } = req.query;
-    
-    let query = `
-      SELECT b.*, e.ekip_adi,
+    const query = `
+      SELECT b.*,
              COUNT(DISTINCT s.id) as soru_sayisi
       FROM branslar b
-      LEFT JOIN ekipler e ON b.ekip_id = e.id
       LEFT JOIN sorular s ON b.id = s.brans_id
+      GROUP BY b.id
+      ORDER BY b.brans_adi ASC
     `;
-    
-    const params = [];
-    
-    if (ekip_id) {
-      query += ' WHERE b.ekip_id = $1';
-      params.push(ekip_id);
-    }
-    
-    query += ' GROUP BY b.id, e.ekip_adi ORDER BY b.olusturulma_tarihi DESC';
-    
-    const result = await pool.query(query, params);
+
+    const result = await pool.query(query);
 
     res.json({
       success: true,
@@ -43,18 +32,16 @@ router.get('/', authenticate, async (req, res, next) => {
   }
 });
 
-// Branş detayı
 router.get('/:id', authenticate, async (req, res, next) => {
   try {
     const { id } = req.params;
-    
+
     const result = await pool.query(`
-      SELECT b.*, e.ekip_adi
+      SELECT b.*
       FROM branslar b
-      LEFT JOIN ekipler e ON b.ekip_id = e.id
       WHERE b.id = $1
     `, [id]);
-    
+
     if (result.rows.length === 0) {
       throw new AppError('Branş bulunamadı', 404);
     }
@@ -68,12 +55,10 @@ router.get('/:id', authenticate, async (req, res, next) => {
   }
 });
 
-// Yeni branş oluştur (Sadece admin)
 router.post('/', [
   authenticate,
   authorize('admin'),
-  body('brans_adi').trim().notEmpty().withMessage('Branş adı gerekli'),
-  body('ekip_id').isInt().withMessage('Geçerli bir ekip seçin')
+  body('brans_adi').trim().notEmpty().withMessage('Branş adı gerekli')
 ], async (req, res, next) => {
   try {
     const errors = validationResult(req);
@@ -81,11 +66,11 @@ router.post('/', [
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const { brans_adi, ekip_id, aciklama } = req.body;
+    const { brans_adi, aciklama } = req.body;
 
     const result = await pool.query(
-      'INSERT INTO branslar (brans_adi, ekip_id, aciklama) VALUES ($1, $2, $3) RETURNING *',
-      [brans_adi, ekip_id, aciklama]
+      'INSERT INTO branslar (brans_adi, aciklama) VALUES ($1, $2) RETURNING *',
+      [brans_adi, aciklama]
     );
 
     res.status(201).json({

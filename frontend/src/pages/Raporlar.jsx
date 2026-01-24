@@ -19,7 +19,7 @@ export default function Raporlar() {
   const setDefaultDates = () => {
     const bugun = new Date();
     const bitisTarih = bugun.toISOString().split('T')[0];
-    
+
     let baslangicTarih;
     if (raporTipi === 'haftalik') {
       const gecenHafta = new Date(bugun);
@@ -35,7 +35,7 @@ export default function Raporlar() {
       gecen30Gun.setDate(bugun.getDate() - 30);
       baslangicTarih = gecen30Gun.toISOString().split('T')[0];
     }
-    
+
     setBaslangic(baslangicTarih);
     setBitis(bitisTarih);
   };
@@ -70,16 +70,16 @@ export default function Raporlar() {
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    
+
     // Başlık
     doc.setFontSize(20);
     doc.text('Soru Havuzu Analiz Raporu', pageWidth / 2, 15, { align: 'center' });
-    
+
     // Dönem bilgisi
     doc.setFontSize(12);
     doc.text(`Rapor Dönemi: ${formatDate(raporData.donem.baslangic)} - ${formatDate(raporData.donem.bitis)}`, 14, 25);
     doc.text(`Rapor Tipi: ${raporData.donem.tip === 'haftalik' ? 'Haftalık' : raporData.donem.tip === 'aylik' ? 'Aylık' : 'Özel Dönem'}`, 14, 32);
-    
+
     let yPos = 45;
 
     // Genel İstatistikler
@@ -87,7 +87,7 @@ export default function Raporlar() {
     doc.setFont(undefined, 'bold');
     doc.text('Genel İstatistikler', 14, yPos);
     yPos += 7;
-    
+
     doc.autoTable({
       startY: yPos,
       head: [['Metrik', 'Değer']],
@@ -103,7 +103,7 @@ export default function Raporlar() {
       theme: 'grid',
       headStyles: { fillColor: [66, 139, 202] },
     });
-    
+
     yPos = doc.lastAutoTable.finalY + 10;
 
     // Zorluk Dağılımı
@@ -111,11 +111,11 @@ export default function Raporlar() {
       doc.addPage();
       yPos = 15;
     }
-    
+
     doc.setFontSize(14);
     doc.text('Zorluk Dağılımı', 14, yPos);
     yPos += 7;
-    
+
     doc.autoTable({
       startY: yPos,
       head: [['Seviye', 'Adet']],
@@ -127,7 +127,7 @@ export default function Raporlar() {
       theme: 'grid',
       headStyles: { fillColor: [40, 167, 69] },
     });
-    
+
     yPos = doc.lastAutoTable.finalY + 10;
 
     // Branş Performansı
@@ -136,11 +136,11 @@ export default function Raporlar() {
         doc.addPage();
         yPos = 15;
       }
-      
+
       doc.setFontSize(14);
       doc.text('Branş Performansı', 14, yPos);
       yPos += 7;
-      
+
       doc.autoTable({
         startY: yPos,
         head: [['Branş', 'Ekip', 'Toplam', 'Tamamlanan', 'Bekleyen', 'Ort. Süre (Saat)']],
@@ -156,7 +156,7 @@ export default function Raporlar() {
         headStyles: { fillColor: [255, 193, 7] },
         styles: { fontSize: 9 },
       });
-      
+
       yPos = doc.lastAutoTable.finalY + 10;
     }
 
@@ -166,11 +166,11 @@ export default function Raporlar() {
         doc.addPage();
         yPos = 15;
       }
-      
+
       doc.setFontSize(14);
-      doc.text('En Aktif Soru Yazıcılar', 14, yPos);
+      doc.text('En Aktif Branşlar', 14, yPos);
       yPos += 7;
-      
+
       doc.autoTable({
         startY: yPos,
         head: [['Kullanıcı', 'Branş', 'Oluşturulan', 'Tamamlanan', 'Başarı %']],
@@ -185,7 +185,7 @@ export default function Raporlar() {
         headStyles: { fillColor: [23, 162, 184] },
         styles: { fontSize: 9 },
       });
-      
+
       yPos = doc.lastAutoTable.finalY + 10;
     }
 
@@ -195,11 +195,11 @@ export default function Raporlar() {
         doc.addPage();
         yPos = 15;
       }
-      
+
       doc.setFontSize(14);
       doc.text('En Verimli Dizgiciler', 14, yPos);
       yPos += 7;
-      
+
       doc.autoTable({
         startY: yPos,
         head: [['Dizgici', 'Branş', 'Tamamlanan', 'Ort. Süre (Saat)', 'Reddedilen']],
@@ -301,7 +301,7 @@ export default function Raporlar() {
       {/* Rapor Ayarları */}
       <div className="card">
         <h2 className="text-xl font-semibold mb-4">Rapor Ayarları</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Rapor Tipi */}
           <div>
@@ -451,7 +451,7 @@ export default function Raporlar() {
                     <span className="font-medium">{raporData.genel.kolay || 0}</span>
                   </div>
                   <div className="bg-gray-200 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-green-500 h-2 rounded-full"
                       style={{ width: `${calculatePercentage(raporData.genel.kolay, raporData.genel.toplam_soru)}%` }}
                     ></div>
@@ -464,7 +464,7 @@ export default function Raporlar() {
                     <span className="font-medium">{raporData.genel.orta || 0}</span>
                   </div>
                   <div className="bg-gray-200 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-yellow-500 h-2 rounded-full"
                       style={{ width: `${calculatePercentage(raporData.genel.orta, raporData.genel.toplam_soru)}%` }}
                     ></div>
@@ -477,7 +477,7 @@ export default function Raporlar() {
                     <span className="font-medium">{raporData.genel.zor || 0}</span>
                   </div>
                   <div className="bg-gray-200 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-red-500 h-2 rounded-full"
                       style={{ width: `${calculatePercentage(raporData.genel.zor, raporData.genel.toplam_soru)}%` }}
                     ></div>
@@ -527,7 +527,7 @@ export default function Raporlar() {
           {/* Kullanıcı Performansı */}
           {raporData.kullanicilar && raporData.kullanicilar.length > 0 && (
             <div className="card">
-              <h2 className="text-xl font-semibold mb-4">En Aktif Soru Yazıcılar (Top 10)</h2>
+              <h2 className="text-xl font-semibold mb-4">En Aktif Branşlar (Top 10)</h2>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-blue-50">
@@ -551,11 +551,10 @@ export default function Raporlar() {
                         <td className="px-4 py-3 text-sm text-center text-green-600">{kullanici.tamamlanan || 0}</td>
                         <td className="px-4 py-3 text-sm text-center text-red-600">{kullanici.reddedilen || 0}</td>
                         <td className="px-4 py-3 text-sm text-center">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            kullanici.basari_orani >= 80 ? 'bg-green-100 text-green-800' :
-                            kullanici.basari_orani >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${kullanici.basari_orani >= 80 ? 'bg-green-100 text-green-800' :
+                              kullanici.basari_orani >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-red-100 text-red-800'
+                            }`}>
                             {kullanici.basari_orani || 0}%
                           </span>
                         </td>
@@ -591,11 +590,10 @@ export default function Raporlar() {
                         <td className="px-4 py-3 text-sm text-gray-600">{dizgici.brans_adi}</td>
                         <td className="px-4 py-3 text-sm text-center font-semibold">{dizgici.tamamlanan_soru || 0}</td>
                         <td className="px-4 py-3 text-sm text-center">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            dizgici.ortalama_sure_saat && dizgici.ortalama_sure_saat < 24 ? 'bg-green-100 text-green-800' :
-                            dizgici.ortalama_sure_saat && dizgici.ortalama_sure_saat < 48 ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${dizgici.ortalama_sure_saat && dizgici.ortalama_sure_saat < 24 ? 'bg-green-100 text-green-800' :
+                              dizgici.ortalama_sure_saat && dizgici.ortalama_sure_saat < 48 ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-red-100 text-red-800'
+                            }`}>
                             {dizgici.ortalama_sure_saat ? `${dizgici.ortalama_sure_saat}h` : '-'}
                           </span>
                         </td>

@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { soruAPI, bransAPI } from '../services/api';
+import { getDurumBadge, generateExportHtml } from '../utils/helpers';
 
-export default function Sorular() {
+export default function Sorular({ scope }) {
   const { user: authUser, viewRole } = useAuthStore();
   const effectiveRole = viewRole || authUser?.rol;
   const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
@@ -11,12 +12,13 @@ export default function Sorular() {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const isTakipModu = queryParams.get('takip') === '1';
+  const urlDurum = queryParams.get('durum');
 
   const [sorular, setSorular] = useState([]);
   const [loading, setLoading] = useState(true);
   const [branslar, setBranslar] = useState([]);
   const [filters, setFilters] = useState({
-    durum: isTakipModu ? '' : 'tamamlandi',
+    durum: urlDurum || ((user?.rol === 'admin' && !isTakipModu) ? '' : (isTakipModu ? '' : (scope === 'brans' ? '' : 'tamamlandi'))),
     brans_id: '',
   });
 
@@ -24,11 +26,12 @@ export default function Sorular() {
   useEffect(() => {
     setFilters(prev => ({
       ...prev,
-      durum: isTakipModu ? '' : 'tamamlandi'
+      durum: urlDurum || (isTakipModu ? '' : (scope === 'brans' ? '' : 'tamamlandi'))
     }));
-  }, [isTakipModu]);
+  }, [isTakipModu, scope, urlDurum]);
 
   const [selectedQuestions, setSelectedQuestions] = useState([]);
+  const [activeTab, setActiveTab] = useState(queryParams.get('tab') || 'taslaklar'); // 'taslaklar' or 'dizgi_sonrasi'
 
   useEffect(() => {
     if (!user) return;
@@ -55,15 +58,27 @@ export default function Sorular() {
         const params = {
           durum: filters.durum || undefined,
           brans_id: filters.brans_id || undefined,
+          scope: scope || undefined
         };
         const response = await soruAPI.getAll(params);
         let data = response.data.data || [];
 
-        // Frontend tarafında da rol kısıtlamasını simüle et (Admin viewRole kullanıyorsa)
-        if (effectiveRole === 'dizgici') {
+        // Branş Havuzu için Sekme Bazlı Filtreleme
+        if (scope === 'brans') {
+          if (activeTab === 'taslaklar') {
+            // ÖĞRETMENİN BRANŞINDAKİ SÜREÇTEKİ SORULAR (Henüz kontrolü gelmemiş olanlar)
+            data = data.filter(s =>
+              ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli'].includes(s.durum)
+            );
+          } else {
+            // SADECE DİZGİDEN VE İNCELEMEDEN GELENLER (Aksiyon bekleyen questions)
+            data = data.filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum));
+          }
+        }
+
+        // Frontend kısıtlamaları
+        if (effectiveRole === 'dizgici' && authUser?.rol !== 'admin') {
           data = data.filter(s => ['dizgi_bekliyor', 'dizgide'].includes(s.durum));
-        } else if (effectiveRole === 'soru_yazici') {
-          data = data.filter(s => s.olusturan_kullanici_id === user.id || s.durum === 'tamamlandi');
         }
 
         setSorular(data);
@@ -76,7 +91,7 @@ export default function Sorular() {
     };
 
     loadSorular();
-  }, [user?.id, effectiveRole, filters.durum, filters.brans_id]);
+  }, [user?.id, effectiveRole, filters.durum, filters.brans_id, scope, activeTab]);
 
   const handleSil = async (id) => {
     if (window.confirm('Bu soruyu kalıcı olarak silmek istediğinize emin misiniz?')) {
@@ -96,6 +111,7 @@ export default function Sorular() {
       const response = await soruAPI.getAll({
         durum: filters.durum || undefined,
         brans_id: filters.brans_id || undefined,
+        scope: scope || undefined
       });
       setSorular(response.data.data || []);
     } catch (error) {
@@ -103,105 +119,111 @@ export default function Sorular() {
     }
   };
 
+  const handleDizgiyeGonder = async (ids) => {
+    const idList = Array.isArray(ids) ? ids : [ids];
+    if (idList.length === 0) return;
+
+    if (!window.confirm(`${idList.length} soruyu dizgi birimine göndermek istediğinize emin misiniz?`)) return;
+
+    try {
+      setLoading(true);
+      await Promise.all(idList.map(id => soruAPI.updateDurum(id, { yeni_durum: 'dizgi_bekliyor' })));
+
+      // Listeyi yenile
+      const response = await soruAPI.getAll({
+        durum: filters.durum || undefined,
+        brans_id: filters.brans_id || undefined,
+      });
+      let data = response.data.data || [];
+      if (effectiveRole === 'dizgici') {
+        data = data.filter(s => ['dizgi_bekliyor', 'dizgide'].includes(s.durum));
+      }
+      // Branş havuzu mantığı: Writer tüm branch sorularını görür (Backend zaten bunu sağlıyor)
+      setSorular(data);
+      setSelectedQuestions([]);
+      alert(`✅ ${idList.length} soru başarıyla dizgiye gönderildi.`);
+    } catch (error) {
+      console.error('Dizgiye gönderme hatası:', error);
+      alert('İşlem sırasında bir hata oluştu.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleİncelemeyeGonder = async (ids) => {
+    const idList = Array.isArray(ids) ? ids : [ids];
+    if (idList.length === 0) return;
+
+    if (!window.confirm(`${idList.length} soruyu ALAN İNCELEME birimine göndermek istediğinize emin misiniz?`)) return;
+
+    try {
+      setLoading(true);
+      await Promise.all(idList.map(id => soruAPI.updateDurum(id, { yeni_durum: 'inceleme_bekliyor' })));
+
+      // Veriyi yenile
+      const response = await soruAPI.getAll({ scope });
+      let data = response.data.data || [];
+      if (scope === 'brans') {
+        if (activeTab === 'taslaklar') {
+          data = data.filter(s => s.olusturan_kullanici_id == user?.id && ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli'].includes(s.durum));
+        } else {
+          data = data.filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum));
+        }
+      }
+      setSorular(data);
+      setSelectedQuestions([]);
+      alert(`✅ ${idList.length} soru başarıyla ALAN İNCELEMEYE gönderildi.`);
+    } catch (error) {
+      console.error('İncelemeye gönderme hatası:', error);
+      alert('İşlem sırasında bir hata oluştu.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOrtakHavuzaGonder = async (ids) => {
+    const idList = Array.isArray(ids) ? ids : [ids];
+    if (idList.length === 0) return;
+
+    if (!window.confirm(`${idList.length} soruyu ORTAK HAVUZA (Tamamlandı) göndermek istediğinize emin misiniz?`)) return;
+
+    try {
+      setLoading(true);
+      await Promise.all(idList.map(id => soruAPI.updateDurum(id, { yeni_durum: 'tamamlandi' })));
+
+      const response = await soruAPI.getAll({ scope });
+      let data = response.data.data || [];
+      if (scope === 'brans') {
+        if (activeTab === 'taslaklar') {
+          data = data.filter(s => s.olusturan_kullanici_id == user?.id && ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli'].includes(s.durum));
+        } else {
+          data = data.filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum));
+        }
+      }
+      setSorular(data);
+      setSelectedQuestions([]);
+      alert(`✅ ${idList.length} soru başarıyla Ortak Havuza gönderildi.`);
+    } catch (error) {
+      console.error('Tamamlama hatası:', error);
+      alert('İşlem sırasında bir hata oluştu.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleExport = () => {
     if (selectedQuestions.length === 0) return;
 
+    const selectedData = sorular.filter(s => selectedQuestions.includes(s.id));
+    const htmlContent = generateExportHtml(selectedData);
+
     // Basit bir HTML çıktısı oluştur ve yeni pencerede aç (Yazdırma/Kopyalama için)
     const exportWindow = window.open('', '_blank');
-    const selectedData = sorular.filter(s => selectedQuestions.includes(s.id));
-
-    let htmlContent = `
-      <html>
-      <head>
-        <title>Soru Havuzu Dışa Aktarım</title>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-        <style>
-          body { font-family: 'Times New Roman', serif; padding: 40px; }
-          .soru-item { margin-bottom: 30px; page-break-inside: avoid; border-bottom: 1px dashed #ccc; padding-bottom: 20px; }
-          .soru-metni { font-size: 16px; margin-bottom: 15px; }
-          .secenekler { margin-left: 20px; }
-          .secenek { margin-bottom: 5px; }
-          .soru-gorsel { max-width: 300px; display: block; margin: 10px 0; }
-          @media print {
-            .no-print { display: none; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="no-print" style="margin-bottom: 20px;">
-          <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px;">Yazdır / PDF Olarak Kaydet</button>
-        </div>
-        <h1>Seçilen Sorular (${selectedData.length})</h1>
-    `;
-
-    selectedData.forEach((soru, index) => {
-      htmlContent += `
-          <div class="soru-item">
-            <div class="soru-no"><strong>Soru ${index + 1}</strong> <span style="font-size:12px; color: #666;">(#${soru.id})</span></div>
-            
-            ${soru.fotograf_konumu === 'ust' && soru.fotograf_url ? `<img src="${soru.fotograf_url}" class="soru-gorsel" />` : ''}
-            
-            <div class="soru-metni">${soru.soru_metni.replace(/\n/g, '<br>')}</div>
-            
-            ${soru.fotograf_konumu === 'alt' && soru.fotograf_url ? `<img src="${soru.fotograf_url}" class="soru-gorsel" />` : ''}
-
-            <div class="secenekler">
-              ${soru.secenek_a ? `<div class="secenek">A) ${soru.secenek_a}</div>` : ''}
-              ${soru.secenek_b ? `<div class="secenek">B) ${soru.secenek_b}</div>` : ''}
-              ${soru.secenek_c ? `<div class="secenek">C) ${soru.secenek_c}</div>` : ''}
-              ${soru.secenek_d ? `<div class="secenek">D) ${soru.secenek_d}</div>` : ''}
-              ${soru.secenek_e ? `<div class="secenek">E) ${soru.secenek_e}</div>` : ''}
-            </div>
-            
-            <div style="margin-top: 10px; font-size: 12px; color: #999;">
-               Doğru Cevap: <strong>${soru.dogru_cevap || '-'}</strong> | 
-               Zorluk: ${soru.zorluk_seviyesi || '-'} | 
-               Kazanım: ${soru.kazanim || '-'}
-            </div>
-          </div>
-        `;
-    });
-
-    htmlContent += `
-       <script>
-         document.addEventListener("DOMContentLoaded", function() {
-            renderMathInElement(document.body, {
-              delimiters: [
-                  {left: '$$', right: '$$', display: true},
-                  {left: '$', right: '$', display: false}
-              ]
-            });
-         });
-       </script>
-      </body>
-      </html>
-    `;
-
     exportWindow.document.write(htmlContent);
     exportWindow.document.close();
   };
 
-  const getDurumBadge = (durum) => {
-    const badges = {
-      beklemede: 'badge badge-warning',
-      dizgi_bekliyor: 'badge bg-purple-100 text-purple-700',
-      dizgide: 'badge badge-info',
-      tamamlandi: 'badge badge-success',
-      revize_gerekli: 'badge badge-error',
-      revize_istendi: 'badge badge-error',
-    };
-    const labels = {
-      beklemede: 'Beklemede',
-      dizgi_bekliyor: 'Dizgi Bekliyor',
-      dizgide: 'Dizgide',
-      tamamlandi: 'Tamamlandı',
-      revize_gerekli: 'Revize Gerekli',
-      revize_istendi: 'Revize İstendi',
-    };
-    return <span className={badges[durum]}>{labels[durum]}</span>;
-  };
+
 
   // Admin için Branş Seçimi Landing Page
   if (user?.rol === 'admin' && !filters.brans_id) {
@@ -239,7 +261,6 @@ export default function Sorular() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      {/* Header */}
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
           {user?.rol === 'admin' && filters.brans_id && (
@@ -252,7 +273,7 @@ export default function Sorular() {
             </button>
           )}
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            {isTakipModu ? 'Soru Takibi' : 'Hazır Soru Havuzu'}
+            {isTakipModu ? 'Bekleyen İş Takibi' : (scope === 'brans' ? 'Branş Havuzu' : 'Ortak Soru Havuzu')}
             {user?.rol === 'admin' && filters.brans_id && (
               <span className="text-gray-400 font-light ml-3 text-2xl flex items-center">
                 <span className="mx-2">/</span>
@@ -261,10 +282,23 @@ export default function Sorular() {
             )}
           </h1>
         </div>
-        {user?.rol === 'soru_yazici' && (
-          <Link to="/sorular/yeni" className="btn btn-primary">
-            + Yeni Soru Ekle
-          </Link>
+
+        {/* Branş Havuzu Sekmeleri */}
+        {scope === 'brans' && (
+          <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-100 w-fit">
+            <button
+              onClick={() => { setActiveTab('taslaklar'); setFilters(f => ({ ...f, durum: '' })); setSelectedQuestions([]); }}
+              className={`px-6 py-2 rounded-lg font-bold text-sm transition ${activeTab === 'taslaklar' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
+            >
+              ✍️ Süreçteki Sorularım
+            </button>
+            <button
+              onClick={() => { setActiveTab('dizgi_sonrasi'); setFilters(f => ({ ...f, durum: '' })); setSelectedQuestions([]); }}
+              className={`px-6 py-2 rounded-lg font-bold text-sm transition ${activeTab === 'dizgi_sonrasi' ? 'bg-emerald-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
+            >
+              🏁 Dizgiden Gelenler (Onaylanacak)
+            </button>
+          </div>
         )}
       </div>
 
@@ -311,25 +345,88 @@ export default function Sorular() {
       </div>
 
       {/* Araç Çubuğu (Dışa Aktarma / Çoklu İşlem) */}
-      <div className="flex justify-end space-x-3">
-        {selectedQuestions.length > 0 && (
-          <div className="flex items-center space-x-2 bg-indigo-50 px-3 py-1 rounded border border-indigo-200">
-            <span className="text-sm font-medium text-indigo-800">{selectedQuestions.length} soru seçildi</span>
+      {scope === 'brans' && (
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="w-5 h-5 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
+                checked={sorular.length > 0 && selectedQuestions.length === sorular.length && sorular.length > 0}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setSelectedQuestions(sorular.map(s => s.id));
+                  } else {
+                    setSelectedQuestions([]);
+                  }
+                }}
+              />
+              <span className="text-sm font-bold text-gray-700">Tümünü Seç</span>
+            </label>
+            {selectedQuestions.length > 0 && (
+              <span className="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100">
+                {selectedQuestions.length} soru seçildi
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {activeTab === 'taslaklar' && (
+              <button
+                onClick={() => handleDizgiyeGonder(selectedQuestions)}
+                disabled={selectedQuestions.length === 0}
+                className="btn bg-purple-600 hover:bg-purple-700 text-white text-sm py-2 px-4 shadow-sm disabled:opacity-50 disabled:grayscale transition-all flex items-center gap-2"
+              >
+                🚀 Seçilenleri DİZGİYE Gönder
+              </button>
+            )}
+
+            {activeTab === 'dizgi_sonrasi' && (
+              <>
+                <button
+                  onClick={() => handleİncelemeyeGonder(selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'dizgi_tamam'))}
+                  disabled={selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'dizgi_tamam').length === 0}
+                  className="btn bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 px-4 shadow-sm disabled:opacity-50 transition-all flex items-center gap-2"
+                >
+                  🔍 Seçilenleri ALAN İNCELEMEYE Gönder
+                </button>
+                <button
+                  onClick={() => handleOrtakHavuzaGonder(selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'inceleme_tamam'))}
+                  disabled={selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'inceleme_tamam').length === 0}
+                  className="btn bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-2 px-4 shadow-sm disabled:opacity-50 transition-all flex items-center gap-2"
+                >
+                  ✅ Seçilenleri ORTAK HAVUZA Gönder
+                </button>
+              </>
+            )}
+
             <button
               onClick={handleExport}
-              className="btn btn-primary text-sm py-1 px-3"
+              disabled={selectedQuestions.length === 0}
+              className="btn btn-secondary text-sm py-2 px-4 disabled:opacity-50"
             >
-              📄 Seçilenleri Dışa Aktar (Word/Yazdır)
+              📄 Word / Yazdır
             </button>
-            <button
-              onClick={() => setSelectedQuestions([])}
-              className="text-xs text-red-600 hover:underline"
-            >
-              Temizle
-            </button>
+
+            {selectedQuestions.length > 0 && (
+              <button
+                onClick={() => setSelectedQuestions([])}
+                className="text-xs text-red-600 hover:underline px-2"
+              >
+                Seçimi Temizle
+              </button>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {!scope && selectedQuestions.length > 0 && (
+        <div className="flex justify-end items-center bg-indigo-50 p-4 rounded-xl border border-indigo-200 gap-4">
+          <span className="text-sm font-medium text-indigo-800">{selectedQuestions.length} soru seçildi</span>
+          <button onClick={handleExport} className="btn btn-primary text-sm py-2 px-4">📄 Seçilenleri Dışa Aktar</button>
+          <button onClick={() => setSelectedQuestions([])} className="text-xs text-red-600 hover:underline">Temizle</button>
+        </div>
+      )}
 
       {/* Sorular Listesi */}
       {loading ? (
@@ -344,13 +441,6 @@ export default function Sorular() {
               ? 'İlk soruyu ekleyerek soru havuzunu oluşturmaya başlayabilirsiniz.'
               : 'Bu kriterlere uygun henüz soru bulunmamaktadır.'}
           </p>
-          {user?.rol === 'soru_yazici' && (
-            <div className="mt-6">
-              <Link to="/sorular/yeni" className="btn btn-primary">
-                + İlk Soruyu Ekle
-              </Link>
-            </div>
-          )}
           {/* Empty State Cleaned */}
         </div>
       ) : (
@@ -359,19 +449,20 @@ export default function Sorular() {
             <div key={soru.id} className={`card hover:shadow-lg transition-shadow border-l-4 ${selectedQuestions.includes(soru.id) ? 'border-primary-500 bg-blue-50' : 'border-transparent'}`}>
               <div className="flex items-start">
 
-                {/* Checkbox (Sadece Tamamlandı ise veya Admin ise) */}
-                {(soru.durum === 'tamamlandi' || user?.rol === 'admin') && (
-                  <div className="mr-4 mt-1">
+                {/* Checkbox Seçimi: Sekmedeki tüm sorular seçilebilir olmalı */}
+                {(scope === 'brans' || user?.rol === 'admin' || soru.durum === 'tamamlandi') && (
+                  <label className="mr-5 mt-1 cursor-pointer flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 transition-colors z-10">
                     <input
                       type="checkbox"
-                      className="w-5 h-5 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
+                      className="w-6 h-6 text-primary-600 rounded-md border-gray-400 focus:ring-primary-500 cursor-pointer shadow-sm"
                       checked={selectedQuestions.includes(soru.id)}
                       onChange={(e) => {
+                        e.stopPropagation();
                         if (e.target.checked) setSelectedQuestions([...selectedQuestions, soru.id]);
                         else setSelectedQuestions(selectedQuestions.filter(id => id !== soru.id));
                       }}
                     />
-                  </div>
+                  </label>
                 )}
 
                 <div className="flex-1">
@@ -396,6 +487,11 @@ export default function Sorular() {
                     <span>{new Date(soru.olusturulma_tarihi).toLocaleDateString('tr-TR')}</span>
                     {soru.fotograf_url && (
                       <span className="text-primary-600">📷 Görsel</span>
+                    )}
+                    {soru.final_png_url && (
+                      <a href={soru.final_png_url} target="_blank" rel="noreferrer" className="text-green-600 font-bold flex items-center gap-1 bg-green-50 px-2 py-0.5 rounded border border-green-200">
+                        🖼️ PNG
+                      </a>
                     )}
                   </div>
 
@@ -426,13 +522,52 @@ export default function Sorular() {
                     </button>
                   )}
 
-                  {user?.rol === 'dizgici' && soru.durum === 'beklemede' && (
+                  {/* BRANŞ ÖĞRETMENİ AKSİYONLARI (LİSTE ÜZERİNDEN) */}
+                  {user?.rol === 'soru_yazici' && (
+                    <div className="flex flex-wrap gap-1">
+                      {['beklemede', 'revize_istendi', 'revize_gerekli'].includes(soru.durum) && (
+                        <button
+                          onClick={() => handleDizgiyeGonder(soru.id)}
+                          className="btn bg-purple-100 text-purple-700 border border-purple-200 hover:bg-purple-200 text-xs py-1 px-2"
+                        >
+                          🚀 Dizgiye Gönder
+                        </button>
+                      )}
+                      {soru.durum === 'dizgi_tamam' && (
+                        <button
+                          onClick={() => handleİncelemeyeGonder(soru.id)}
+                          className="btn bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200 text-xs py-1 px-2"
+                        >
+                          🔍 Alan İncelemeye Gönder
+                        </button>
+                      )}
+                      {soru.durum === 'inceleme_tamam' && (
+                        <button
+                          onClick={() => handleOrtakHavuzaGonder(soru.id)}
+                          className="btn bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-200 text-xs py-1 px-2"
+                        >
+                          ✅ Havuza Gönder
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {user?.rol === 'dizgici' && soru.durum === 'dizgi_bekliyor' && (
                     <button
                       onClick={() => handleDizgiAl(soru.id)}
                       className="btn btn-primary text-sm"
                     >
                       Dizgiye Al
                     </button>
+                  )}
+
+                  {user?.rol === 'dizgici' && soru.durum === 'dizgide' && (
+                    <Link
+                      to={`/sorular/${soru.id}`}
+                      className="btn bg-green-600 text-white hover:bg-green-700 text-sm text-center"
+                    >
+                      Dizgiyi Tamamla
+                    </Link>
                   )}
                 </div>
               </div>
@@ -443,3 +578,5 @@ export default function Sorular() {
     </div>
   );
 }
+
+
