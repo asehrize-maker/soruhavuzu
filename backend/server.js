@@ -117,10 +117,10 @@ const startServer = async () => {
 
       console.log('✅ Durum CHECK kısıtı başarıyla güncellendi (Comprehensive)');
     } catch (e) {
-      console.error('❌ Durum kısıtı güncellenirken hata oluştu:', e.message);
-      // Hangi değerin hataya sebep olduğunu bulmak için detaylı log
+      console.error('❌ DURUM KISITI GÜNCELLEME HATASI:', e.message);
       const checkRes = await pool.query(`SELECT DISTINCT durum FROM sorular`);
       console.log('Mevcut durum değerleri:', checkRes.rows.map(r => r.durum));
+      throw e; // Fail the start
     }
 
     // Prod-shell yok: zorluk kısıtını ve veriyi her startta garanti altına al
@@ -164,7 +164,8 @@ const startServer = async () => {
 
       console.log('✅ zorluk_seviyesi CHECK kısıtı ve veri normalize edildi');
     } catch (e) {
-      console.error('⚠️ zorluk_seviyesi kısıtı güncellenemedi:', e.message);
+      console.error('❌ ZORLUK KISITI GÜNCELLEME HATASI:', e.message);
+      throw e; // Fail the start
     }
 
     // FIX: Eski soruları geri getir
@@ -179,9 +180,8 @@ const startServer = async () => {
       console.log(`✅ FIX APPLIED: ${fixReviewsRes.rowCount} inceleme bekleyen sorunun onayı sıfırlandı.`);
     }
   } catch (error) {
-    console.error('❌ Veritabanı bağlantı hatası:', error);
-    console.log('⚠️ Sunucu veritabanı olmadan çalışmaya devam ediyor...');
-    // process.exit(1) YAPMA! Sunucu açık kalsın ki CORS hatası çözülsün.
+    console.error('❌ KRİTİK HATA: Veritabanı başlatılamadı!', error);
+    process.exit(1); // Fail fast so we can see the logs
   }
 };
 
