@@ -291,10 +291,11 @@ export default function SoruDetay() {
         yeni_durum: status,
         aciklama: 'Durum güncellendi: ' + status
       });
-      alert('Soru durumu güncellendi: ' + status);
+      alert('✅ Soru durumu güncellendi: ' + status);
       loadSoru();
-      if (['tamamlandi', 'alan_onaylandi', 'dil_onaylandi'].includes(status)) {
-        navigate('/'); // Bazı durumlarda listeye dönmek daha mantıklı
+      // Önemli aşamalardan sonra listeye dönmek kullanıcı deneyimi için daha iyi
+      if (['tamamlandi', 'dizgi_bekliyor', 'alan_incelemede', 'dil_incelemede'].includes(status)) {
+        navigate(scope === 'brans' ? '/brans-havuzu' : '/sorular');
       }
     } catch (e) {
       alert('Hata: ' + (e.response?.data?.error || e.message));
@@ -324,7 +325,7 @@ export default function SoruDetay() {
         aciklama: hasNotes ? (dizgiNotu || 'Hatalar belirtildi.') : 'İnceleme onayı verildi.',
         inceleme_turu: type
       });
-      alert('İncelemeniz tamamlandı ve branş öğretmenine geri gönderildi.');
+      alert('✅ İncelemeniz tamamlandı ve branş öğretmenine geri gönderildi.');
       navigate('/');
     } catch (e) {
       alert('Hata: ' + (e.response?.data?.error || e.message));
@@ -338,48 +339,6 @@ export default function SoruDetay() {
       loadSoru();
     } catch (error) {
       alert(error.response?.data?.error || 'Soru dizgiye alınamadı');
-    }
-  };
-
-  const handleSendToDizgi = async () => {
-    if (!confirm('Soru hazır. Dizgi birimine GÖNDERMEK istediğinizden emin misiniz?')) return;
-    try {
-      await soruAPI.updateDurum(id, {
-        yeni_durum: 'dizgi_bekliyor',
-        aciklama: 'Hoca onayıyla dizgiye gönderildi.'
-      });
-      alert('✅ Soru başarıyla dizgiye gönderildi.');
-      navigate('/');
-    } catch (e) {
-      alert('Hata: ' + (e.response?.data?.error || e.message));
-    }
-  };
-
-  const handleSendToInceleme = async () => {
-    if (!confirm('Soru dizgiden kontrol edildi. ALAN İNCELEME birimine göndermek istediğinizden emin misiniz?')) return;
-    try {
-      await soruAPI.updateDurum(id, {
-        yeni_durum: 'inceleme_bekliyor',
-        aciklama: 'Dizgi sonrası branş onayıyla incelemeye gönderildi.'
-      });
-      alert('✅ Soru başarıyla ALAN İNCELEMEYE gönderildi.');
-      navigate('/');
-    } catch (e) {
-      alert('Hata: ' + (e.response?.data?.error || e.message));
-    }
-  };
-
-  const handleSendToOrtakHavuz = async () => {
-    if (!confirm('Soru tüm süreçleri tamamladı. ORTAK HAVUZA gönderip yayınlamak istediğinizden emin misiniz?')) return;
-    try {
-      await soruAPI.updateDurum(id, {
-        yeni_durum: 'tamamlandi',
-        aciklama: 'Tüm incelemeler bitti, hoca onayıyla havuza gönderildi.'
-      });
-      alert('✅ Soru başarıyla ORTAK HAVUZA gönderildi.');
-      navigate('/');
-    } catch (e) {
-      alert('Hata: ' + (e.response?.data?.error || e.message));
     }
   };
 
@@ -651,8 +610,8 @@ export default function SoruDetay() {
                     </button>
                   )}
 
-                  {/* Dil İncelemeye Gönder (Alan onaylıysa) */}
-                  {soru.durum === 'alan_onaylandi' && (
+                  {/* Dil İncelemeye Gönder (Alan onaylıysa veya Dizgi bittiyse - Alan ve Dil henüz bitmemişse) */}
+                  {(soru.durum === 'alan_onaylandi' || (soru.durum === 'dizgi_tamam' && soru.onay_alanci && !soru.onay_dilci)) && (
                     <button
                       onClick={() => handleUpdateStatus('dil_incelemede', 'Soru DİL İncelemesine gönderilecektir. Emin misiniz?')}
                       className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-sm hover:bg-blue-700 transition shadow-lg flex items-center gap-2 border-b-4 border-blue-800 active:border-b-0 active:translate-y-1"

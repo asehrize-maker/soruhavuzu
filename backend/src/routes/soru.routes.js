@@ -140,17 +140,22 @@ router.get('/', authenticate, async (req, res, next) => {
     let paramCount = 1;
 
     const targetRole = (req.user.rol === 'admin' && req.query.role) ? req.query.role.toLowerCase() : req.user.rol;
+    console.log('Final Target Role for Isolation:', targetRole);
 
     // Rol bazlı filtreleme ve İZOLASYON
     if (targetRole === 'dizgici') {
       // Dizgici: Havuzdaki (dizgi_bekliyor/revize_istendi) veya kendine atanmış işleri görür
-      query += ` AND (
-        s.durum IN ('dizgi_bekliyor', 'revize_istendi') 
-        OR s.dizgici_id = $${paramCount++}
-      )`;
-      params.push(req.user.id);
+      // Admin simülasyonunda ise havuzdaki her şeyi görür (kendi id'sine bakmadan)
+      if (req.user.rol === 'admin') {
+        query += ` AND s.durum IN ('dizgi_bekliyor', 'dizgide', 'revize_istendi', 'dizgi_tamam')`;
+      } else {
+        query += ` AND (
+          s.durum IN ('dizgi_bekliyor', 'revize_istendi') 
+          OR s.dizgici_id = $${paramCount++}
+        )`;
+        params.push(req.user.id);
+      }
     } else if (targetRole !== 'admin' && targetRole !== 'incelemeci') {
-
       if (scope === 'brans' || brans_id) {
         // Branş Havuzu: Sadece yetkili olduğu branşlar (Tüm durumlar)
         query += ` AND s.brans_id IN (
@@ -161,7 +166,7 @@ router.get('/', authenticate, async (req, res, next) => {
         params.push(req.user.id);
         paramCount++;
       } else {
-        // Ortak Havuz (Varsayılan): Tamamlanmış veya Dizgisi bitmiş (kontrol için) sorular
+        // Ortak Havuz (Varsayılan): Tamamlanmış veya Dizgisi bitmiş sorular
         query += ` AND (s.durum = 'tamamlandi' OR s.durum = 'dizgi_tamam')`;
       }
     }
@@ -1444,7 +1449,7 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
       // Dizgici: Genel havuzdaki işler
       query = `
         SELECT
-          COUNT(*) FILTER(WHERE s.durum = 'dizgi_bekliyor') as dizgi_bekliyor,
+          COUNT(*) FILTER(WHERE s.durum IN ('dizgi_bekliyor', 'revize_istendi')) as dizgi_bekliyor,
           COUNT(*) FILTER(WHERE s.durum = 'dizgide' AND s.dizgici_id = $1) as dizgide,
           COUNT(*) FILTER(WHERE (s.durum = 'dizgi_tamam' AND s.dizgici_id = $1) OR (s.durum = 'tamamlandi' AND s.final_png_url IS NULL AND s.dizgici_id = $1)) as dosya_bekliyor,
           COUNT(*) FILTER(WHERE s.durum = 'tamamlandi' AND s.final_png_url IS NOT NULL) as tamamlandi
