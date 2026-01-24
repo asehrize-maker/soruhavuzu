@@ -686,7 +686,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
     const { yeni_durum, aciklama, inceleme_turu } = req.body; // inceleme_turu: 'alanci', 'dilci'
 
     if (!['dizgi_bekliyor', 'revize_istendi', 'revize_gerekli', 'tamamlandi', 'inceleme_bekliyor', 'dizgide', 'inceleme_tamam', 'dizgi_tamam'].includes(yeni_durum)) {
-      throw new AppError('Geçersiz durum', 400);
+      throw new AppError('Gecersiz durum', 400);
     }
 
     // Soruyu al
@@ -705,9 +705,9 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         throw new AppError('Bu islem icin yetkiniz yok', 403);
       }
       if (!isAdmin && isReviewer) {
-        if (!inceleme_turu) throw new AppError('Inceleme turu (alan/dil) belirtilmeli', 400);
-        if (inceleme_turu === 'alanci' && !canAlan) throw new AppError('Alan incelemesi yetkiniz yok', 403);
-        if (inceleme_turu === 'dilci' && !canDil) throw new AppError('Dil incelemesi yetkiniz yok', 403);
+        if (!iInceleme_turu) throw new AppError('IInceleme turu (alan/dil) belirtilmeli', 400);
+        if (iInceleme_turu === 'alanci' && !canAlan) throw new AppError('Alan iIncelemesi yetkiniz yok', 403);
+        if (iInceleme_turu === 'dilci' && !canDil) throw new AppError('Dil iIncelemesi yetkiniz yok', 403);
       }
     }
     if (yeni_durum === 'dizgi_bekliyor') {
@@ -1046,7 +1046,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
     const { yeni_durum, aciklama, inceleme_turu } = req.body; // inceleme_turu: 'alanci', 'dilci'
 
     if (!['dizgi_bekliyor', 'revize_istendi', 'revize_gerekli', 'tamamlandi', 'inceleme_bekliyor', 'dizgide', 'inceleme_tamam', 'dizgi_tamam'].includes(yeni_durum)) {
-      throw new AppError('Geçersiz durum', 400);
+      throw new AppError('Gecersiz durum', 400);
     }
 
     // Soruyu al
@@ -1065,11 +1065,11 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         throw new AppError('Bu iYlem iÇõin yetkiniz yok', 403);
       }
       if (!isAdmin) {
-        throw new AppError('Inceleme turu (alan/dil) belirtilmeli', 400);
-        if (inceleme_turu === 'alanci' && !canAlan) throw new AppError('Alan incelemesi yetkiniz yok', 403);
-        if (inceleme_turu === 'dilci' && !canDil) throw new AppError('Dil incelemesi yetkiniz yok', 403);
+        throw new AppError('IInceleme turu (alan/dil) belirtilmeli', 400);
+        if (iInceleme_turu === 'alanci' && !canAlan) throw new AppError('Alan iIncelemesi yetkiniz yok', 403);
+        if (iInceleme_turu === 'dilci' && !canDil) throw new AppError('Dil iIncelemesi yetkiniz yok', 403);
         if (inceleme_turu && !['alanci', 'dilci'].includes(inceleme_turu)) {
-          throw new AppError('Geçersiz iInceleme turu', 400);
+          throw new AppError('Gecersiz iInceleme turu', 400);
         }
       }
     }
@@ -1124,7 +1124,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         await pool.query('UPDATE sorular SET onay_alanci = true, onay_dilci = true WHERE id = $1', [id]);
         updateField = 'all';
       } else {
-        throw new AppError('İnceleme yapmak için yetki veya iInceleme turu eksik', 400);
+        throw new AppError('İInceleme yapmak için yetki veya iInceleme turu eksik', 400);
       }
 
       if (updateField !== 'all') {
@@ -1979,7 +1979,7 @@ router.post('/admin-cleanup', authenticate, authorize(['admin']), async (req, re
       });
     }
 
-    throw new AppError('Geçersiz işlem', 400);
+    throw new AppError('Gecersiz işlem', 400);
   } catch (error) {
     next(error);
   }
