@@ -9,25 +9,22 @@ import { createNotification } from './bildirim.routes.js';
 
 const router = express.Router();
 
-// Zorluk değerini normalize et (hem sayısal hem metinsel girişleri destekler)
+// Zorluk değerini 1-5 arasına sabitle (hem sayısal hem metinsel girişleri destekler)
 const normalizeZorlukSeviyesi = (value) => {
-  if (value === undefined || value === null) return 'orta';
+  if (value === undefined || value === null) return 3;
 
   const raw = String(value).trim().toLowerCase();
   const num = parseInt(raw, 10);
 
   if (!Number.isNaN(num)) {
-    if (num <= 2) return 'kolay';
-    if (num === 3) return 'orta';
-    if (num >= 4) return 'zor';
+    return Math.min(5, Math.max(1, num));
   }
 
-  if (['çok kolay', 'cok kolay', 'kolay', 'easy'].includes(raw)) return 'kolay';
-  if (['orta', 'normal', 'medium'].includes(raw)) return 'orta';
-  if (['zor', 'hard'].includes(raw)) return 'zor';
+  if (['çok kolay', 'cok kolay', 'kolay', 'easy'].includes(raw)) return 2;
+  if (['orta', 'normal', 'medium'].includes(raw)) return 3;
+  if (['zor', 'hard'].includes(raw)) return 4;
 
-  // Bilinmeyen değerler için güvenli varsayılan
-  return 'orta';
+  return 3;
 };
 
 // Multer config (memory storage) - Fotoğraf için
@@ -381,53 +378,25 @@ router.post('/', [
       dosya_boyutu
     });
 
-    console.log('Parsed Zorluk:', parseInt(zorluk_seviyesi) || 3);
+    console.log('Parsed Zorluk:', normalizedZorluk);
 
-    let result;
-    try {
-      // 1. Durum: Yeni şema (Zorluk seviyesi INTEGER 1-5)
-      result = await pool.query(
-        `INSERT INTO sorular (
-          soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, 
-          latex_kodu, kazanim, olusturan_kullanici_id, 
-          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
-          secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap, fotograf_konumu,
-          durum
-        ) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
-        [
-          soru_metni, fotograf_url, fotograf_public_id, parseInt(zorluk_seviyesi) || 3, brans_id,
-          latex_kodu || null, kazanim || null, req.user.id,
-          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
-          secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust',
-          durum || 'beklemede'
-        ]
-      );
-    } catch (firstError) {
-      console.warn('⚠️ İlk insert denemesi başarısız (Muhtemelen eski DB şeması), Fallback deneniyor:', firstError.message);
-
-      // 2. Durum: Eski şema (Zorluk seviyesi STRING 'kolay','orta','zor')
-      const zMap = { 1: 'kolay', 2: 'kolay', 3: 'orta', 4: 'zor', 5: 'zor' };
-      const zStr = zMap[parseInt(zorluk_seviyesi)] || 'orta';
-
-      result = await pool.query(
-        `INSERT INTO sorular (
-          soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, 
-          latex_kodu, kazanim, olusturan_kullanici_id, 
-          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
-          secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap, fotograf_konumu,
-          durum
-        ) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
-        [
-          soru_metni, fotograf_url, fotograf_public_id, zStr, brans_id,
-          latex_kodu || null, kazanim || null, req.user.id,
-          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
-          secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust',
-          durum || 'beklemede'
-        ]
-      );
-    }
+    const result = await pool.query(
+      `INSERT INTO sorular (
+        soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, 
+        latex_kodu, kazanim, olusturan_kullanici_id, 
+        dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
+        secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap, fotograf_konumu,
+        durum
+      ) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
+      [
+        soru_metni, fotograf_url, fotograf_public_id, normalizedZorluk, brans_id,
+        latex_kodu || null, kazanim || null, req.user.id,
+        dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
+        secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust',
+        durum || 'beklemede'
+      ]
+    );
 
     console.log('Soru başarıyla eklendi, ID:', result.rows[0].id);
 
@@ -498,6 +467,8 @@ router.put('/:id(\\d+)', [
       secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap,
       fotograf_konumu
     } = req.body;
+
+    const normalizedZorluk = normalizeZorlukSeviyesi(zorluk_seviyesi);
 
     // Soru sahibi kontrolü ve yetki doğrulama
     const checkResult = await pool.query('SELECT * FROM sorular WHERE id = $1', [id]);
@@ -701,109 +672,6 @@ router.put('/:id/final-upload', [authenticate, upload.single('final_png')], asyn
     next(error);
   }
 });
-
-// Soru Durumunu Güncelle (İncelemeci Onay/Revize)
-router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { yeni_durum, aciklama, inceleme_turu } = req.body; // inceleme_turu: 'alanci', 'dilci'
-
-    if (!['dizgi_bekliyor', 'revize_istendi', 'revize_gerekli', 'tamamlandi', 'inceleme_bekliyor', 'dizgide', 'inceleme_tamam', 'dizgi_tamam'].includes(yeni_durum)) {
-      throw new AppError('Gecersiz durum', 400);
-    }
-
-    // Soruyu al
-    const soruRes = await pool.query('SELECT * FROM sorular WHERE id = $1', [id]);
-    if (soruRes.rows.length === 0) throw new AppError('Soru bulunamadı', 404);
-    const soru = soruRes.rows[0];
-
-    const isAdmin = req.user.rol === 'admin';
-    const isReviewer = req.user.rol === 'incelemeci';
-    const canAlan = isAdmin || (isReviewer && !!req.user.inceleme_alanci);
-    const canDil = isAdmin || (isReviewer && !!req.user.inceleme_dilci);
-
-    // Yetki Kontrolleri (Durum bazlı)
-    if (yeni_durum === 'inceleme_tamam' || yeni_durum === 'revize_istendi' || yeni_durum === 'revize_gerekli') {
-      if (!isAdmin && !isReviewer && req.user.rol !== 'dizgici') {
-        throw new AppError('Bu islem icin yetkiniz yok', 403);
-      }
-      if (!isAdmin && isReviewer) {
-        if (!iInceleme_turu) throw new AppError('IInceleme turu (alan/dil) belirtilmeli', 400);
-        if (iInceleme_turu === 'alanci' && !canAlan) throw new AppError('Alan iIncelemesi yetkiniz yok', 403);
-        if (iInceleme_turu === 'dilci' && !canDil) throw new AppError('Dil iIncelemesi yetkiniz yok', 403);
-      }
-    }
-    if (yeni_durum === 'dizgi_bekliyor') {
-      if (!isAdmin && req.user.id !== soru.olusturan_kullanici_id) {
-        throw new AppError('Bu islem icin yetkiniz yok', 403);
-      }
-    }
-    if (yeni_durum === 'dizgide' || yeni_durum === 'tamamlandi' || yeni_durum === 'dizgi_tamam') {
-      if (!isAdmin && req.user.rol !== 'dizgici') {
-        throw new AppError('Bu islem icin yetkiniz yok', 403);
-      }
-    }
-    let result;
-    try {
-      // 1. Durum: Yeni şema (Zorluk seviyesi INTEGER 1-5)
-      result = await pool.query(
-        `INSERT INTO sorular (
-          soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, 
-          latex_kodu, kazanim, olusturan_kullanici_id, 
-          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
-          secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap, fotograf_konumu,
-          durum
-        ) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
-        [
-          soru_metni, fotograf_url, fotograf_public_id, parseInt(zorluk_seviyesi) || 3, brans_id,
-          latex_kodu || null, kazanim || null, req.user.id,
-          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
-          secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust',
-          durum || 'beklemede'
-        ]
-      );
-    } catch (firstError) {
-      console.warn('⚠️ İlk insert denemesi başarısız (Muhtemelen eski DB şeması), Fallback deneniyor:', firstError.message);
-
-      // 2. Durum: Eski şema (Zorluk seviyesi STRING 'kolay','orta','zor')
-      const zMap = { 1: 'kolay', 2: 'kolay', 3: 'orta', 4: 'zor', 5: 'zor' };
-      const zStr = zMap[parseInt(zorluk_seviyesi)] || 'orta';
-
-      result = await pool.query(
-        `INSERT INTO sorular (
-          soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, brans_id, 
-          latex_kodu, kazanim, olusturan_kullanici_id, 
-          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
-          secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap, fotograf_konumu,
-          durum
-        ) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
-        [
-          soru_metni, fotograf_url, fotograf_public_id, zStr, brans_id,
-          latex_kodu || null, kazanim || null, req.user.id,
-          dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
-          secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust',
-          durum || 'beklemede'
-        ]
-      );
-    }
-
-    console.log('Soru başarıyla eklendi, ID:', result.rows[0].id);
-
-    res.status(201).json({
-      success: true,
-      data: result.rows[0]
-    });
-  } catch (error) {
-    console.error('❌ Soru ekleme hatası (DETAYLI):', error);
-    console.error('Stack:', error.stack);
-    console.error('Request Body:', req.body);
-    next(error);
-  }
-});
-
-
 
 // Dizgi için branş bazlı bekleyen soru sayıları
 router.get('/stats/dizgi-brans', authenticate, async (req, res, next) => {
@@ -1716,9 +1584,14 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
         COUNT(CASE WHEN durum = 'dizgide' THEN 1 END) as dizgide,
         COUNT(CASE WHEN durum = 'inceleme_tamam' THEN 1 END) as inceleme_tamam,
         COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlandi,
-        COUNT(CASE WHEN zorluk_seviyesi = 'kolay' OR zorluk_seviyesi = '1' THEN 1 END) as kolay,
-        COUNT(CASE WHEN zorluk_seviyesi = 'orta' OR zorluk_seviyesi = '3' THEN 1 END) as orta,
-        COUNT(CASE WHEN zorluk_seviyesi = 'zor' OR zorluk_seviyesi = '5' THEN 1 END) as zor,
+        COUNT(CASE WHEN zorluk_seviyesi IN (1,2) THEN 1 END) as kolay,
+        COUNT(CASE WHEN zorluk_seviyesi = 3 THEN 1 END) as orta,
+        COUNT(CASE WHEN zorluk_seviyesi IN (4,5) THEN 1 END) as zor,
+        COUNT(CASE WHEN zorluk_seviyesi = 1 THEN 1 END) as seviye1,
+        COUNT(CASE WHEN zorluk_seviyesi = 2 THEN 1 END) as seviye2,
+        COUNT(CASE WHEN zorluk_seviyesi = 3 THEN 1 END) as seviye3,
+        COUNT(CASE WHEN zorluk_seviyesi = 4 THEN 1 END) as seviye4,
+        COUNT(CASE WHEN zorluk_seviyesi = 5 THEN 1 END) as seviye5,
         COUNT(CASE WHEN fotograf_url IS NOT NULL THEN 1 END) as fotografli,
         COUNT(CASE WHEN latex_kodu IS NOT NULL AND latex_kodu != '' THEN 1 END) as latexli
       FROM sorular
@@ -1861,9 +1734,14 @@ COUNT(*) as toplam_soru,
   0 as reddedilen,
   COUNT(CASE WHEN fotograf_url IS NOT NULL THEN 1 END) as fotografli,
   COUNT(CASE WHEN latex_kodu IS NOT NULL THEN 1 END) as latexli,
-  COUNT(CASE WHEN zorluk_seviyesi = 'kolay' THEN 1 END) as kolay,
-  COUNT(CASE WHEN zorluk_seviyesi = 'orta' THEN 1 END) as orta,
-  COUNT(CASE WHEN zorluk_seviyesi = 'zor' THEN 1 END) as zor
+  COUNT(CASE WHEN zorluk_seviyesi IN (1,2) THEN 1 END) as kolay,
+  COUNT(CASE WHEN zorluk_seviyesi = 3 THEN 1 END) as orta,
+  COUNT(CASE WHEN zorluk_seviyesi IN (4,5) THEN 1 END) as zor,
+  COUNT(CASE WHEN zorluk_seviyesi = 1 THEN 1 END) as seviye1,
+  COUNT(CASE WHEN zorluk_seviyesi = 2 THEN 1 END) as seviye2,
+  COUNT(CASE WHEN zorluk_seviyesi = 3 THEN 1 END) as seviye3,
+  COUNT(CASE WHEN zorluk_seviyesi = 4 THEN 1 END) as seviye4,
+  COUNT(CASE WHEN zorluk_seviyesi = 5 THEN 1 END) as seviye5
       FROM sorular
       WHERE olusturulma_tarihi >= $1::date AND olusturulma_tarihi < ($2:: date + interval '1 day')
 `;

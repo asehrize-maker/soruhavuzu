@@ -121,12 +121,10 @@ export default function SoruEkle() {
   const onDragEnd = () => setDraggedItemIndex(null);
   const execCmd = (cmd) => document.execCommand(cmd, false, null);
 
-  const mapZorlukToBackend = (value) => {
+  const normalizeZorluk = (value) => {
     const num = parseInt(value, 10);
-    if (Number.isNaN(num)) return 'orta';
-    if (num <= 2) return 'kolay';
-    if (num === 3) return 'orta';
-    return 'zor'; // 4-5
+    if (Number.isNaN(num)) return '3';
+    return String(Math.min(5, Math.max(1, num)));
   };
 
   const handleSave = async () => {
@@ -137,11 +135,9 @@ export default function SoruEkle() {
     try {
       const formData = new FormData();
       formData.append('dogru_cevap', metadata.dogruCevap);
-      formData.append('zorluk_seviyesi', metadata.zorluk || '3');
       formData.append('brans_id', metadata.brans_id);
       formData.append('kazanim', metadata.kazanim || 'Genel');
-       // Zorluk bilgisini backend'in beklediği metinsel forma çevir
-       formData.append('zorluk_seviyesi', mapZorlukToBackend(metadata.zorluk));
+      formData.append('zorluk_seviyesi', normalizeZorluk(metadata.zorluk));
       // Otomatik İncelemeye Gönder
       formData.append('durum', 'inceleme_bekliyor');
 

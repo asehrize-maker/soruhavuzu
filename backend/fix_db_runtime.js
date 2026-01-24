@@ -28,19 +28,25 @@ CHECK (
 );
 ALTER TABLE sorular ALTER COLUMN durum SET DEFAULT 'beklemede';
 
--- Zorluk değerlerini normalize et ve kısıtı güncelle
+-- Zorluk değerini 5 kademeli smallint'e çevir
 ALTER TABLE sorular DROP CONSTRAINT IF EXISTS sorular_zorluk_seviyesi_check;
 
-UPDATE sorular SET zorluk_seviyesi = CASE
-  WHEN zorluk_seviyesi IN ('1','2') THEN 'kolay'
-  WHEN zorluk_seviyesi = '3' THEN 'orta'
-  WHEN zorluk_seviyesi IN ('4','5') THEN 'zor'
-  ELSE COALESCE(zorluk_seviyesi, 'orta')
-END;
+ALTER TABLE sorular
+  ALTER COLUMN zorluk_seviyesi TYPE SMALLINT USING (
+    CASE
+      WHEN zorluk_seviyesi ~ '^[0-9]+$' THEN LEAST(GREATEST(zorluk_seviyesi::INT,1),5)
+      WHEN zorluk_seviyesi IN ('kolay','cok kolay','çok kolay') THEN 2
+      WHEN zorluk_seviyesi = 'orta' THEN 3
+      WHEN zorluk_seviyesi = 'zor' THEN 4
+      ELSE 3
+    END
+  );
+
+UPDATE sorular SET zorluk_seviyesi = 2 WHERE zorluk_seviyesi IS NULL;
 
 ALTER TABLE sorular
 ADD CONSTRAINT sorular_zorluk_seviyesi_check
-CHECK (zorluk_seviyesi IN ('kolay','orta','zor'));
+CHECK (zorluk_seviyesi BETWEEN 1 AND 5);
 
 UPDATE sorular SET durum = 'inceleme_bekliyor'
 WHERE durum IN ('incelemede','inceleme','inceleme_tamamlanmadi');

@@ -74,7 +74,7 @@ const createTables = async () => {
         soru_metni TEXT NOT NULL,
         fotograf_url VARCHAR(500),
         fotograf_public_id VARCHAR(255),
-        zorluk_seviyesi VARCHAR(20) CHECK (zorluk_seviyesi IN ('kolay', 'orta', 'zor')),
+        zorluk_seviyesi SMALLINT CHECK (zorluk_seviyesi BETWEEN 1 AND 5),
         brans_id INTEGER REFERENCES branslar(id) ON DELETE CASCADE,
         olusturan_kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
         durum VARCHAR(50) DEFAULT 'beklemede' CHECK (durum IN (

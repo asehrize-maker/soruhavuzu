@@ -443,15 +443,12 @@ export default function SoruDetay() {
       formData.append('dogru_cevap', editMetadata.dogruCevap);
       formData.append('brans_id', editMetadata.brans_id);
       formData.append('kazanim', editMetadata.kazanim || 'Genel');
-      // Zorluk değerini backend'in beklediği metinsel forma çevir (kolay/orta/zor)
-      const zorlukStr = (() => {
+      const normalizeZorluk = () => {
         const num = parseInt(editMetadata.zorluk, 10);
-        if (Number.isNaN(num)) return 'orta';
-        if (num <= 2) return 'kolay';
-        if (num === 3) return 'orta';
-        return 'zor';
-      })();
-      formData.append('zorluk_seviyesi', zorlukStr);
+        if (Number.isNaN(num)) return '3';
+        return String(Math.min(5, Math.max(1, num)));
+      };
+      formData.append('zorluk_seviyesi', normalizeZorluk());
 
       let htmlContent = components.map(c => {
         let style = "";
