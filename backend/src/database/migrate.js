@@ -54,7 +54,7 @@ const cleanupInvalidDurumValues = async () => {
     const selectSql = `
       SELECT id, durum
       FROM sorular
-      WHERE durum IS NULL OR LOWER(durum) NOT IN (${placeholders})
+      WHERE durum IS NULL OR TRIM(LOWER(durum)) NOT IN (${placeholders})
     `;
     const { rows } = await client.query(selectSql, allowedLower);
 
@@ -63,7 +63,7 @@ const cleanupInvalidDurumValues = async () => {
       const updateSql = `
         UPDATE sorular
         SET durum = 'beklemede'
-        WHERE durum IS NULL OR LOWER(durum) NOT IN (${placeholders})
+        WHERE durum IS NULL OR TRIM(LOWER(durum)) NOT IN (${placeholders})
       `;
       await client.query(updateSql, allowedLower);
     }

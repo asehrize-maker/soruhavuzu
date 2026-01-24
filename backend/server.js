@@ -77,6 +77,24 @@ const startServer = async () => {
     ];
     const statusSqlList = allStatuses.map(s => `'${s}'`).join(',');
 
+    // 2a) Constraint eklenmeden önce bozuk kayıtları temizle
+    try {
+      const placeholders = allStatuses.map((_, i) => `$${i + 1}`).join(',');
+      const { rows: badRows } = await pool.query(
+        `SELECT id, durum FROM sorular WHERE durum IS NULL OR TRIM(LOWER(durum)) NOT IN (${placeholders})`,
+        allStatuses
+      );
+      if (badRows.length > 0) {
+        console.warn('WARN: Izinli olmayan durum degerleri bulundu, \"beklemede\" olarak guncellenecek.', badRows);
+        await pool.query(
+          `UPDATE sorular SET durum = 'beklemede' WHERE durum IS NULL OR TRIM(LOWER(durum)) NOT IN (${placeholders})`,
+          allStatuses
+        );
+      }
+    } catch (cleanErr) {
+      console.error('ERROR: Durum temizleme basarisiz:', cleanErr.message);
+    }
+
     try {
       console.log('🔄 Veritabanı kuralları zorla güncelleniyor...');
 
