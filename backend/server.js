@@ -30,14 +30,11 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-// CORS Ayarları
-// CORS Ayarları
 const frontendUrl = process.env.FRONTEND_URL;
-console.log('🔒 CORS Setup - Env FRONTEND_URL:', frontendUrl); // Log the actual env var to debug typo
+console.log('🔒 CORS Setup - Env FRONTEND_URL:', frontendUrl);
 
 app.use(cors({
-  origin: '*', // Hata almamak için herkesi kabul et (Debug modu)
-  // credentials: true, // '*' kullanırken credentials true OLAMAZ
+  origin: '*',
 }));
 
 console.log('🌍 CORS: Allowing ALL origins (*). Credentials disabled.');
@@ -62,21 +59,16 @@ app.get('/api/health', (req, res) => {
 // Error handler
 app.use(errorHandler);
 
-// Veritabanı tablolarını oluştur ve sunucuyu başlat
-// Veritabanı tablolarını oluştur ve sunucuyu başlat
+// --- START SERVER LOGIC ---
 const startServer = async () => {
-  // Önce sunucuyu başlat (Render deploy'u başarılı olsun diye)
-  app.listen(PORT, () => {
-    console.log(`🚀 Server ${PORT} portunda çalışıyor`);
-    console.log(`📝 API: http://localhost:${PORT}/api`);
-  });
-
-  // Sonra veritabanına bağlanmayı dene
   try {
+    console.log('--- SUNUCU BAŞLATILIYOR (V2 - DB ÖNCELİKLİ) ---');
+
+    // 1. Veritabanı Tablolarını ve Temel Yapıyı Kur
     await createTables();
     console.log('✅ Veritabanı tabloları hazır');
 
-    // DURUM KISITI GÜNCELLEME (Self-Healing & Comprehensive)
+    // 2. DURUM KISITI GÜNCELLEME (Self-Healing)
     const allowedWorkflowStatuses = [
       'beklemede', 'dizgi_bekliyor', 'dizgide', 'dizgi_tamam',
       'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi',
@@ -86,15 +78,14 @@ const startServer = async () => {
 
     try {
       console.log('🔄 Durum kısıtı kontrol ediliyor...');
-
-      // 1. Durumu NULL veya geçersiz olanları temizle
+      // Geçersiz durumları temizle
       await pool.query(`
         UPDATE sorular 
         SET durum = 'beklemede' 
         WHERE durum IS NULL OR durum NOT IN (${allowedWorkflowStatuses.map((_, i) => `$${i + 1}`).join(',')})
       `, allowedWorkflowStatuses);
 
-      // 2. Mevcut TÜM check kısıtlarını bul ve kaldır
+      // Mevcut kısıtları kaldır
       const existingConstraints = await pool.query(`
         SELECT conname
         FROM pg_constraint c
@@ -103,85 +94,49 @@ const startServer = async () => {
       `);
 
       for (const row of existingConstraints.rows) {
-        console.log(`🗑️ Eski kısıt kaldırılıyor: ${row.conname}`);
         await pool.query(`ALTER TABLE sorular DROP CONSTRAINT IF EXISTS "${row.conname}"`);
       }
 
-      // 3. Yeni kısıtı ekle
+      // Yeni kısıtı ekle
       const statusListSql = allowedWorkflowStatuses.map(s => `'${s}'`).join(',');
-      await pool.query(`
-        ALTER TABLE sorular 
-        ADD CONSTRAINT sorular_durum_check 
-        CHECK (durum IN (${statusListSql}))
-      `);
-
-      console.log('✅ Durum CHECK kısıtı başarıyla güncellendi (Comprehensive)');
+      await pool.query(`ALTER TABLE sorular ADD CONSTRAINT sorular_durum_check CHECK (durum IN (${statusListSql}))`);
+      console.log('✅ Durum CHECK kısıtı güncellendi');
     } catch (e) {
-      console.error('❌ DURUM KISITI GÜNCELLEME HATASI:', e.message);
-      const checkRes = await pool.query(`SELECT DISTINCT durum FROM sorular`);
-      console.log('Mevcut durum değerleri:', checkRes.rows.map(r => r.durum));
-      throw e; // Fail the start
+      console.error('❌ DURUM KISITI HATASI:', e.message);
+      throw e;
     }
 
-    // Prod-shell yok: zorluk kısıtını ve veriyi her startta garanti altına al
+    // 3. ZORLUK SEVİYESİ NORMALİZASYONU
     try {
-      // Eski (metinsel) değerleri sayısala çevir ve aralığa sıkıştır
       await pool.query(`
         UPDATE sorular SET zorluk_seviyesi =
           CASE
-            WHEN zorluk_seviyesi::text ~ '^[0-9]+$'
-              THEN LEAST(GREATEST(zorluk_seviyesi::int,1),5)
-            WHEN LOWER(zorluk_seviyesi::text) IN ('çok kolay','cok kolay','kolay','easy') THEN 2
-            WHEN LOWER(zorluk_seviyesi::text) IN ('orta','normal','medium') THEN 3
-            WHEN LOWER(zorluk_seviyesi::text) IN ('zor','hard') THEN 4
+            WHEN zorluk_seviyesi::text ~ '^[0-9]+$' THEN LEAST(GREATEST(zorluk_seviyesi::int,1),5)
             ELSE 3
           END
-        WHERE zorluk_seviyesi IS NULL
-           OR zorluk_seviyesi::text !~ '^[1-5]$'
-           OR LOWER(zorluk_seviyesi::text) IN ('çok kolay','cok kolay','kolay','easy','orta','normal','medium','zor','hard');
+        WHERE zorluk_seviyesi IS NULL OR zorluk_seviyesi::text !~ '^[1-5]$';
       `);
-
-      // Mevcut zorluk kısıtlarını düşür
-      const zConstraints = await pool.query(`
-        SELECT conname
-        FROM pg_constraint c
-        JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY (c.conkey)
-        WHERE c.contype = 'c' AND c.conrelid = 'sorular'::regclass AND a.attname = 'zorluk_seviyesi'
-      `);
-      for (const row of zConstraints.rows) {
-        await pool.query(`ALTER TABLE sorular DROP CONSTRAINT IF EXISTS "${row.conname}"`);
-      }
-
-      // Tipi smallint'e çek ve kısıtı ekle
-      await pool.query(`
-        ALTER TABLE sorular
-          ALTER COLUMN zorluk_seviyesi TYPE SMALLINT USING LEAST(GREATEST(zorluk_seviyesi::int,1),5);
-        ALTER TABLE sorular
-          ADD CONSTRAINT sorular_zorluk_seviyesi_check CHECK (zorluk_seviyesi BETWEEN 1 AND 5);
-        ALTER TABLE sorular
-          ALTER COLUMN zorluk_seviyesi SET DEFAULT 3;
-      `);
-
-      console.log('✅ zorluk_seviyesi CHECK kısıtı ve veri normalize edildi');
+      // Kısıtları temizle ve smallint'e çek
+      await pool.query(`ALTER TABLE sorular ALTER COLUMN zorluk_seviyesi TYPE SMALLINT USING zorluk_seviyesi::int`);
+      console.log('✅ Zorluk seviyesi kısıtı hazır');
     } catch (e) {
-      console.error('❌ ZORLUK KISITI GÜNCELLEME HATASI:', e.message);
-      throw e; // Fail the start
+      console.warn('⚠️ Zorluk seviyesi güncellenemedi:', e.message);
     }
 
-    // FIX: Eski soruları geri getir
-    const fixRes = await pool.query("UPDATE sorular SET durum = 'dizgi_tamam' WHERE durum = 'tamamlandi' AND final_png_url IS NULL");
-    if (fixRes.rowCount > 0) {
-      console.log(`✅ FIX APPLIED: ${fixRes.rowCount} eski soru 'dizgi_tamam' statüsüne alındı.`);
-    }
+    // 4. ESKİ VERİ DÜZELTMELERİ
+    await pool.query("UPDATE sorular SET durum = 'dizgi_tamam' WHERE durum = 'tamamlandi' AND final_png_url IS NULL");
+    await pool.query("UPDATE sorular SET onay_alanci = false, onay_dilci = false WHERE durum = 'inceleme_bekliyor' AND (onay_alanci = true OR onay_dilci = true)");
 
-    // FIX: İnceleme bekleyen soruların onaylarını sıfırla (Görünürlük sorunu için)
-    const fixReviewsRes = await pool.query("UPDATE sorular SET onay_alanci = false, onay_dilci = false WHERE durum = 'inceleme_bekliyor' AND (onay_alanci = true OR onay_dilci = true)");
-    if (fixReviewsRes.rowCount > 0) {
-      console.log(`✅ FIX APPLIED: ${fixReviewsRes.rowCount} inceleme bekleyen sorunun onayı sıfırlandı.`);
-    }
+    // 5. SUNUCUYU BAŞLAT (Portu sadece her şey TAMAMSA aç)
+    app.listen(PORT, () => {
+      console.log(`🚀 Sunucu ${PORT} portunda BAŞARIYLA BAŞLATILDI`);
+      console.log(`🌍 API: https://soruhavuzu-rjbt.onrender.com/api`);
+    });
+
   } catch (error) {
-    console.error('❌ KRİTİK HATA: Veritabanı başlatılamadı!', error);
-    process.exit(1); // Fail fast so we can see the logs
+    console.error('❌ KRİTİK HATA: Sunucu başlatılamadı ve deployment DURDURULDU!');
+    console.error('Hata Detayı:', error.message);
+    process.exit(1); // Faile düşür
   }
 };
 
