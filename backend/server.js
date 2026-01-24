@@ -76,6 +76,24 @@ const startServer = async () => {
     await createTables();
     console.log('✅ Veritabanı tabloları hazır');
 
+    // Prod-shell yok: durum kısıtını her startta garanti altına al
+    try {
+      await pool.query(`
+        ALTER TABLE sorular DROP CONSTRAINT IF EXISTS sorular_durum_check;
+        ALTER TABLE sorular
+        ADD CONSTRAINT sorular_durum_check
+        CHECK (
+          durum IN (
+            'beklemede','inceleme_bekliyor','incelemede','revize_istendi','revize_gerekli',
+            'dizgi_bekliyor','dizgide','dizgi_tamam','inceleme_tamam','tamamlandi','arsiv'
+          )
+        );
+      `);
+      console.log('✅ durum CHECK kısıtı güncellendi');
+    } catch (e) {
+      console.error('⚠️ durum kısıtı güncellenemedi:', e.message);
+    }
+
     // FIX: Eski soruları geri getir
     const fixRes = await pool.query("UPDATE sorular SET durum = 'dizgi_tamam' WHERE durum = 'tamamlandi' AND final_png_url IS NULL");
     if (fixRes.rowCount > 0) {
