@@ -2,11 +2,17 @@ import pool from '../../config/database.js';
 
 const VALID_STATUSES = [
   'beklemede',
-  'inceleme_bekliyor',
-  'revize_istendi',
-  'revize_gerekli',
   'dizgi_bekliyor',
   'dizgide',
+  'dizgi_tamam',
+  'alan_incelemede',
+  'alan_onaylandi',
+  'dil_incelemede',
+  'dil_onaylandi',
+  'revize_istendi',
+  'revize_gerekli',
+  'inceleme_bekliyor',
+  'incelemede',
   'inceleme_tamam',
   'tamamlandi',
   'arsiv'
@@ -46,4 +52,3 @@ export const normalizeSorularDurum = async () => {
     client.release();
   }
 };
-
