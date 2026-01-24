@@ -20,6 +20,7 @@ import { mergeDuplicateBranslar } from './migrations/019_merge_duplicate_bransla
 import { updateZorlukSchema } from './migrations/021_update_zorluk_schema.js';
 import { addDizgiTamamStatus } from './migrations/022_add_dizgi_tamam_enum.js';
 import { addDizgiDateColumns } from './migrations/023_add_dizgi_date_columns.js';
+import { addKoordinatorRole } from './migrations/024_add_koordinator_role.js';
 import { ultimateDurumFix } from './migrations/025_ultimate_durum_fix.js';
 
 const createTables = async () => {
