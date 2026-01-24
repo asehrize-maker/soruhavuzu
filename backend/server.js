@@ -76,32 +76,51 @@ const startServer = async () => {
     await createTables();
     console.log('✅ Veritabanı tabloları hazır');
 
-    // Prod-shell yok: durum kısıtını her startta garanti altına al
+    // DURUM KISITI GÜNCELLEME (Self-Healing & Comprehensive)
+    const allowedWorkflowStatuses = [
+      'beklemede', 'dizgi_bekliyor', 'dizgide', 'dizgi_tamam',
+      'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi',
+      'revize_istendi', 'revize_gerekli', 'inceleme_bekliyor', 'incelemede', 'inceleme_tamam',
+      'tamamlandi', 'arsiv'
+    ];
+
     try {
-      // Tüm mevcut CHECK kısıtlarını temizle (isim değişmiş olabilir)
-      const existing = await pool.query(`
+      console.log('🔄 Durum kısıtı kontrol ediliyor...');
+
+      // 1. Durumu NULL veya geçersiz olanları temizle
+      await pool.query(`
+        UPDATE sorular 
+        SET durum = 'beklemede' 
+        WHERE durum IS NULL OR durum NOT IN (${allowedWorkflowStatuses.map((_, i) => `$${i + 1}`).join(',')})
+      `, allowedWorkflowStatuses);
+
+      // 2. Mevcut TÜM check kısıtlarını bul ve kaldır
+      const existingConstraints = await pool.query(`
         SELECT conname
         FROM pg_constraint c
         JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY (c.conkey)
         WHERE c.contype = 'c' AND c.conrelid = 'sorular'::regclass AND a.attname = 'durum'
       `);
-      for (const row of existing.rows) {
+
+      for (const row of existingConstraints.rows) {
+        console.log(`🗑️ Eski kısıt kaldırılıyor: ${row.conname}`);
         await pool.query(`ALTER TABLE sorular DROP CONSTRAINT IF EXISTS "${row.conname}"`);
       }
+
+      // 3. Yeni kısıtı ekle
+      const statusListSql = allowedWorkflowStatuses.map(s => `'${s}'`).join(',');
       await pool.query(`
-        ALTER TABLE sorular DROP CONSTRAINT IF EXISTS sorular_durum_check;
-        ALTER TABLE sorular
-        ADD CONSTRAINT sorular_durum_check
-        CHECK (
-          durum IN (
-            'beklemede','inceleme_bekliyor','incelemede','revize_istendi','revize_gerekli',
-            'dizgi_bekliyor','dizgide','dizgi_tamam','inceleme_tamam','tamamlandi','arsiv'
-          )
-        );
+        ALTER TABLE sorular 
+        ADD CONSTRAINT sorular_durum_check 
+        CHECK (durum IN (${statusListSql}))
       `);
-      console.log('✅ durum CHECK kısıtı güncellendi');
+
+      console.log('✅ Durum CHECK kısıtı başarıyla güncellendi (Comprehensive)');
     } catch (e) {
-      console.error('⚠️ durum kısıtı güncellenemedi:', e.message);
+      console.error('❌ Durum kısıtı güncellenirken hata oluştu:', e.message);
+      // Hangi değerin hataya sebep olduğunu bulmak için detaylı log
+      const checkRes = await pool.query(`SELECT DISTINCT durum FROM sorular`);
+      console.log('Mevcut durum değerleri:', checkRes.rows.map(r => r.durum));
     }
 
     // Prod-shell yok: zorluk kısıtını ve veriyi her startta garanti altına al
