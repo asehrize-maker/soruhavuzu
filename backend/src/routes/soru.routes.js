@@ -139,15 +139,17 @@ router.get('/', authenticate, async (req, res, next) => {
     const params = [];
     let paramCount = 1;
 
+    const targetRole = (req.user.rol === 'admin' && req.query.role) ? req.query.role.toLowerCase() : req.user.rol;
+
     // Rol bazlı filtreleme ve İZOLASYON
-    if (req.user.rol === 'dizgici') {
+    if (targetRole === 'dizgici') {
       // Dizgici: Havuzdaki (dizgi_bekliyor/revize_istendi) veya kendine atanmış işleri görür
       query += ` AND (
         s.durum IN ('dizgi_bekliyor', 'revize_istendi') 
         OR s.dizgici_id = $${paramCount++}
       )`;
       params.push(req.user.id);
-    } else if (req.user.rol !== 'admin' && req.user.rol !== 'incelemeci') {
+    } else if (targetRole !== 'admin' && targetRole !== 'incelemeci') {
 
       if (scope === 'brans' || brans_id) {
         // Branş Havuzu: Sadece yetkili olduğu branşlar (Tüm durumlar)
@@ -162,7 +164,6 @@ router.get('/', authenticate, async (req, res, next) => {
         // Ortak Havuz (Varsayılan): Tamamlanmış veya Dizgisi bitmiş (kontrol için) sorular
         query += ` AND (s.durum = 'tamamlandi' OR s.durum = 'dizgi_tamam')`;
       }
-
     }
 
     if (durum) {
@@ -800,11 +801,15 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
 // Dizgi için branş bazlı bekleyen soru sayıları
 router.get('/stats/dizgi-brans', authenticate, async (req, res, next) => {
   try {
-    const isAdmin = req.user.rol === 'admin';
+    const targetRole = (req.user.rol === 'admin' && req.query.role) ? req.query.role.toLowerCase() : req.user.rol;
+    const isActuallyDizgici = targetRole === 'dizgici';
+    const isActuallyAdmin = req.user.rol === 'admin';
+
     let query;
     let params = [];
 
-    if (isAdmin) {
+    // Dizgiciler için genellikle branş kısıtlaması olmaz (Havuz mantığı)
+    if (isActuallyAdmin || isActuallyDizgici) {
       query = `
         SELECT b.id, b.brans_adi, COALESCE(COUNT(s.id) FILTER (WHERE s.durum IN ('dizgi_bekliyor', 'revize_istendi')), 0) as dizgi_bekliyor
         FROM branslar b

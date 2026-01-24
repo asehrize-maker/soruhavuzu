@@ -150,12 +150,21 @@ export default function Sorular({ scope }) {
       const response = await soruAPI.getAll({
         durum: filters.durum || undefined,
         brans_id: filters.brans_id || undefined,
+        scope: scope || undefined
       });
       let data = response.data.data || [];
-      if (effectiveRole === 'dizgici') {
-        data = data.filter(s => ['dizgi_bekliyor', 'dizgide'].includes(s.durum));
+
+      // Branş Havuzu için Sekme Bazlı Filtreleme
+      if (scope === 'brans') {
+        if (activeTab === 'taslaklar') {
+          data = data.filter(s =>
+            ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli', 'alan_incelemede', 'dil_incelemede'].includes(s.durum)
+          );
+        } else {
+          data = data.filter(s => ['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam'].includes(s.durum));
+        }
       }
-      // Branş havuzu mantığı: Writer tüm branch sorularını görür (Backend zaten bunu sağlıyor)
+
       setSorular(data);
       setSelectedQuestions([]);
       alert(`✅ ${idList.length} soru başarıyla dizgiye gönderildi.`);
@@ -175,16 +184,16 @@ export default function Sorular({ scope }) {
 
     try {
       setLoading(true);
-      await Promise.all(idList.map(id => soruAPI.updateDurum(id, { yeni_durum: 'inceleme_bekliyor' })));
+      await Promise.all(idList.map(id => soruAPI.updateDurum(id, { yeni_durum: 'alan_incelemede' })));
 
       // Veriyi yenile
       const response = await soruAPI.getAll({ scope });
       let data = response.data.data || [];
       if (scope === 'brans') {
         if (activeTab === 'taslaklar') {
-          data = data.filter(s => s.olusturan_kullanici_id == user?.id && ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli'].includes(s.durum));
+          data = data.filter(s => ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli', 'alan_incelemede', 'dil_incelemede'].includes(s.durum));
         } else {
-          data = data.filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum));
+          data = data.filter(s => ['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam'].includes(s.durum));
         }
       }
       setSorular(data);
@@ -212,9 +221,9 @@ export default function Sorular({ scope }) {
       let data = response.data.data || [];
       if (scope === 'brans') {
         if (activeTab === 'taslaklar') {
-          data = data.filter(s => s.olusturan_kullanici_id == user?.id && ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli'].includes(s.durum));
+          data = data.filter(s => ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli', 'alan_incelemede', 'dil_incelemede'].includes(s.durum));
         } else {
-          data = data.filter(s => ['dizgi_tamam', 'inceleme_tamam'].includes(s.durum));
+          data = data.filter(s => ['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam'].includes(s.durum));
         }
       }
       setSorular(data);
