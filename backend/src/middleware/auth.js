@@ -5,13 +5,13 @@ import pool from '../config/database.js';
 export const authenticate = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
-    
+
     if (!token) {
       throw new AppError('Token bulunamadı. Lütfen giriş yapın.', 401);
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     const result = await pool.query(
       'SELECT id, ad_soyad, email, rol, inceleme_alanci, inceleme_dilci, ekip_id, brans_id FROM kullanicilar WHERE id = $1 AND aktif = true',
       [decoded.id]
@@ -22,6 +22,11 @@ export const authenticate = async (req, res, next) => {
     }
 
     req.user = result.rows[0];
+
+    // Online durumunu güncelle (Arka planda, isteği bekletmeden)
+    pool.query('UPDATE kullanicilar SET son_gorulme = CURRENT_TIMESTAMP WHERE id = $1', [req.user.id])
+      .catch(err => console.error('Son görülme güncellenemedi:', err.message));
+
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
@@ -38,7 +43,7 @@ export const authorize = (...roles) => {
   return (req, res, next) => {
     // Eğer roles[0] bir array ise, onu kullan
     const allowedRoles = Array.isArray(roles[0]) ? roles[0] : roles;
-    
+
     if (!allowedRoles.includes(req.user.rol)) {
       throw new AppError('Bu işlem için yetkiniz yok', 403);
     }

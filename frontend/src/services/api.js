@@ -53,6 +53,7 @@ export const userAPI = {
   adminCreate: (data) => api.post('/users/admin-create', data),
   update: (id, data) => api.put(`/users/${id}`, data),
   delete: (id) => api.delete(`/users/${id}`),
+  getOnline: () => api.get('/users/online'),
 };
 
 // Ekip API

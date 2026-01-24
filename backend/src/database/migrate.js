@@ -23,6 +23,7 @@ import { addDizgiDateColumns } from './migrations/023_add_dizgi_date_columns.js'
 import { addKoordinatorRole } from './migrations/024_add_koordinator_role.js';
 import { ultimateDurumFix } from './migrations/025_ultimate_durum_fix.js';
 import { workflowV2Statuses } from './migrations/026_workflow_v2_statuses.js';
+import { addLastSeenField } from './migrations/027_add_last_seen.js';
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -184,6 +185,7 @@ const createTables = async () => {
 
     // Workflow V2 Stage Statuses
     await workflowV2Statuses();
+    await addLastSeenField();
 
   } catch (error) {
     await client.query('ROLLBACK');

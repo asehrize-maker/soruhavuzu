@@ -6,6 +6,26 @@ import { AppError } from '../middleware/errorHandler.js';
 
 const router = express.Router();
 
+// Online kullanıcıları getir (Son 2 dakika içinde aktif olanlar)
+router.get('/online', authenticate, async (req, res, next) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, ad_soyad, rol, son_gorulme
+      FROM kullanicilar
+      WHERE son_gorulme >= CURRENT_TIMESTAMP - INTERVAL '2 minutes'
+      AND aktif = true
+      ORDER BY son_gorulme DESC
+    `);
+
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Admin: yeni kullanıcı oluştur
 router.post('/admin-create', authenticate, authorize('admin'), async (req, res, next) => {
   try {
