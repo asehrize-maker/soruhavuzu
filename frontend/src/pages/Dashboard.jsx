@@ -78,27 +78,27 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
           {sorular.map(soru => {
             const zorluk = normalizeZorlukToScale(soru.zorluk_seviyesi);
             return (
-            <div key={soru.id} className="card bg-white p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition flex justify-between items-start group">
-              <div className="flex gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <span className={`px-2 py-0.5 text-xs rounded-full font-bold uppercase tracking-wide ${
-                      zorluk === 1 ? 'bg-green-100 text-green-700' :
-                      zorluk === 2 ? 'bg-green-50 text-green-600' :
-                      zorluk === 3 ? 'bg-yellow-100 text-yellow-700' :
-                      zorluk === 4 ? 'bg-orange-100 text-orange-700' :
-                      zorluk === 5 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'
-                    }`}>
-                      {['ÇOK KOLAY', 'KOLAY', 'ORTA', 'ZOR', 'ÇOK ZOR'][(zorluk || 0) - 1] || 'BELİRSİZ'}
-                    </span>
-                    <span className="text-xs text-gray-400 font-mono">#{soru.id}</span>
+              <div key={soru.id} className="card bg-white p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition flex justify-between items-start group">
+                <div className="flex gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <span className={`px-2 py-0.5 text-xs rounded-full font-bold uppercase tracking-wide ${zorluk === 1 ? 'bg-green-100 text-green-700' :
+                          zorluk === 2 ? 'bg-green-50 text-green-600' :
+                            zorluk === 3 ? 'bg-yellow-100 text-yellow-700' :
+                              zorluk === 4 ? 'bg-orange-100 text-orange-700' :
+                                zorluk === 5 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'
+                        }`}>
+                        {['ÇOK KOLAY', 'KOLAY', 'ORTA', 'ZOR', 'ÇOK ZOR'][(zorluk || 0) - 1] || 'BELİRSİZ'}
+                      </span>
+                      <span className="text-xs text-gray-400 font-mono">#{soru.id}</span>
+                    </div>
+                    <div className="text-gray-900 font-medium line-clamp-2 text-sm" dangerouslySetInnerHTML={{ __html: soru.soru_metni?.substring(0, 150) }} />
                   </div>
-                  <div className="text-gray-900 font-medium line-clamp-2 text-sm" dangerouslySetInnerHTML={{ __html: soru.soru_metni?.substring(0, 150) }} />
                 </div>
+                <Link to={`/sorular/${soru.id}?incelemeTuru=${reviewMode}`} className="btn btn-primary btn-sm">Gör & İncele</Link>
               </div>
-              <Link to={`/sorular/${soru.id}?incelemeTuru=${reviewMode}`} className="btn btn-primary btn-sm">Gör & İncele</Link>
-            </div>
-          );})}
+            );
+          })}
         </div>
       )}
     </div>
@@ -236,24 +236,24 @@ export default function Dashboard() {
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">📊 İş Yükü Özeti</h2>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
-            <Link to="/sorular?durum=beklemede" className="p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-300 transition group">
+            <Link to="/brans-havuzu?tab=taslaklar&durum=beklemede" className="p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-300 transition group">
               <p className="text-xs font-bold text-gray-400 group-hover:text-blue-500 transition">TASLAK</p>
               <p className="text-2xl font-black text-gray-700">{detayliStats?.genel?.beklemede || 0}</p>
             </Link>
-            <Link to="/sorular?durum=inceleme_bekliyor" className="p-4 bg-yellow-50 rounded-xl border border-yellow-200 hover:border-yellow-400 transition group">
+            <Link to="/brans-havuzu?tab=taslaklar" className="p-4 bg-yellow-50 rounded-xl border border-yellow-200 hover:border-yellow-400 transition group">
               <p className="text-xs font-bold text-yellow-600">İNCELEME</p>
               <p className="text-2xl font-black text-yellow-700">{(parseInt(detayliStats?.genel?.inceleme_bekliyor) || 0) + (parseInt(detayliStats?.genel?.incelemede) || 0)}</p>
             </Link>
-            <Link to="/sorular?durum=revize_istendi" className="p-4 bg-red-50 rounded-xl border border-red-200 hover:border-red-400 transition group">
+            <Link to="/brans-havuzu?tab=taslaklar&durum=revize_istendi" className="p-4 bg-red-50 rounded-xl border border-red-200 hover:border-red-400 transition group">
               <p className="text-xs font-bold text-red-600">REVİZE</p>
               <p className="text-2xl font-black text-red-700">{detayliStats?.genel?.revize_istendi || 0}</p>
             </Link>
-            <Link to="/sorular?durum=dizgi_bekliyor" className="p-4 bg-orange-50 rounded-xl border border-orange-200 hover:border-orange-400 transition group">
+            <Link to="/brans-havuzu?tab=taslaklar&durum=dizgi_bekliyor" className="p-4 bg-orange-50 rounded-xl border border-orange-200 hover:border-orange-400 transition group">
               <p className="text-xs font-bold text-orange-600">DİZGİ</p>
-              <p className="text-2xl font-black text-orange-700">{(parseInt(detayliStats?.genel?.dizgi_bekliyor) || 0) + (parseInt(detayliStats?.genel?.dizgide) || 0) + (parseInt(detayliStats?.genel?.inceleme_tamam) || 0)}</p>
+              <p className="text-2xl font-black text-orange-700">{(parseInt(detayliStats?.genel?.dizgi_bekliyor) || 0) + (parseInt(detayliStats?.genel?.dizgide) || 0)}</p>
             </Link>
             <Link to="/sorular?durum=tamamlandi" className="p-4 bg-green-50 rounded-xl border border-green-200 hover:border-green-400 transition group">
-              <p className="text-xs font-bold text-green-600">TAMAM</p>
+              <p className="text-xs font-bold text-green-600">ORTAK HAVUZ</p>
               <p className="text-2xl font-black text-green-700">{detayliStats?.genel?.tamamlandi || 0}</p>
             </Link>
           </div>

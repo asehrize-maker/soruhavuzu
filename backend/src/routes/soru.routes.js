@@ -1431,7 +1431,7 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
         SELECT
           COUNT(*) as toplam,
           COUNT(*) FILTER(WHERE durum = 'beklemede') as beklemede,
-          COUNT(*) FILTER(WHERE durum IN ('inceleme_bekliyor', 'alan_incelemede', 'dil_incelemede')) as inceleme_bekliyor,
+          COUNT(*) FILTER(WHERE durum IN ('inceleme_bekliyor', 'alan_incelemede', 'dil_incelemede', 'incelemede')) as inceleme_bekliyor,
           COUNT(*) FILTER(WHERE durum = 'dizgi_bekliyor') as dizgi_bekliyor,
           COUNT(*) FILTER(WHERE durum = 'dizgide') as dizgide,
           COUNT(*) FILTER(WHERE durum IN ('dizgi_tamam', 'inceleme_tamam', 'alan_onaylandi', 'dil_onaylandi')) as dizgi_tamam,

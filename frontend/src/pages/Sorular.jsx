@@ -66,10 +66,12 @@ export default function Sorular({ scope }) {
         // Branş Havuzu için Sekme Bazlı Filtreleme
         if (scope === 'brans') {
           if (activeTab === 'taslaklar') {
+            // "Süreçteki Sorularım" sekmesi: Kesinlikle tamamlanmamış ve onay aşamasına gelmemiş her şeyi göster
             data = data.filter(s =>
-              ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli', 'alan_incelemede', 'dil_incelemede', 'inceleme_bekliyor', 'incelemede'].includes(s.durum)
+              !['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam', 'tamamlandi', 'arsiv'].includes(s.durum)
             );
           } else {
+            // "Onaylanacaklar" sekmesi: Dizgi ve İnceleme aşamalarından dönen, öğretmenin nihai onayını bekleyenler
             data = data.filter(s => ['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam'].includes(s.durum));
           }
         }
