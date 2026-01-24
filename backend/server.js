@@ -62,28 +62,28 @@ app.use(errorHandler);
 // --- START SERVER LOGIC ---
 const startServer = async () => {
   try {
-    console.log('--- SUNUCU BAŞLATILIYOR (V2 - DB ÖNCELİKLİ) ---');
+    console.log('--- SUNUCU BAŞLATILIYOR (V3 - PARANOID MODE) ---');
 
     // 1. Veritabanı Tablolarını ve Temel Yapıyı Kur
     await createTables();
     console.log('✅ Veritabanı tabloları hazır');
 
-    // 2. DURUM KISITI GÜNCELLEME (Self-Healing)
-    const allowedWorkflowStatuses = [
+    // 2. KRİTİK VERİTABANI ÖN-HAZIRLIK (FAIL-FAST)
+    const allStatuses = [
       'beklemede', 'dizgi_bekliyor', 'dizgide', 'dizgi_tamam',
       'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi',
       'revize_istendi', 'revize_gerekli', 'inceleme_bekliyor', 'incelemede', 'inceleme_tamam',
       'tamamlandi', 'arsiv'
     ];
+    const statusSqlList = allStatuses.map(s => `'${s}'`).join(',');
 
-    // --- KRİTİK VERİTABANI ÖN-HAZIRLIK ---
     try {
-      console.log('🔄 Veritabanı kuralları (Durum/Zorluk) zorla güncelleniyor...');
+      console.log('🔄 Veritabanı kuralları zorla güncelleniyor...');
 
-      // 1. Tip Güvencesi: Eğer ENUM tipi takılıyorsa VARCHAR'a zorla
+      // Tip Güvencesi
       await pool.query(`ALTER TABLE sorular ALTER COLUMN durum TYPE VARCHAR(50)`);
 
-      // 2. Tüm eski kısıtları isimden bağımsız süpür
+      // Tüm eski kısıtları süpür
       const oldConstraints = await pool.query(`
         SELECT conname FROM pg_constraint 
         WHERE conrelid = 'sorular'::regclass AND contype = 'c'
@@ -92,60 +92,35 @@ const startServer = async () => {
         await pool.query(`ALTER TABLE sorular DROP CONSTRAINT IF EXISTS "${row.conname}"`);
       }
 
-      // 3. Kapsamlı Durum Listesini Uygula
-      const allStatuses = [
-        'beklemede', 'dizgi_bekliyor', 'dizgide', 'dizgi_tamam',
-        'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi',
-        'revize_istendi', 'revize_gerekli', 'inceleme_bekliyor', 'incelemede', 'inceleme_tamam',
-        'tamamlandi', 'arsiv'
-      ].map(s => `'${s}'`).join(',');
+      // Yeni Kapsamlı Durum Listesini Uygula
+      await pool.query(`ALTER TABLE sorular ADD CONSTRAINT sorular_durum_check_final CHECK (durum IN (${statusSqlList}))`);
 
-      await pool.query(`ALTER TABLE sorular ADD CONSTRAINT sorular_durum_check_final CHECK (durum IN (${allStatuses}))`);
-
-      // 4. Zorluk Seviyesini Sayısala Zorla
-      await pool.query(`
-        UPDATE sorular SET zorluk_seviyesi = 3 
-        WHERE zorluk_seviyesi::text !~ '^[1-5]$';
-        ALTER TABLE sorular ALTER COLUMN zorluk_seviyesi TYPE SMALLINT USING zorluk_seviyesi::int;
+      // İSTEK ÜZERİNE KATI DENETİM (Integrity Check)
+      const integrityCheck = await pool.query(`
+        SELECT id, durum FROM sorular 
+        WHERE durum NOT IN (${statusSqlList})
       `);
 
-      console.log('✅ Veritabanı KURALLARI %100 güncellendi.');
+      if (integrityCheck.rows.length > 0) {
+        console.error('❌ KRİTİK HATALI VERİ TESPİT EDİLDİ!');
+        console.error('Şu IDli sorular hatalı durumda:', integrityCheck.rows.map(r => `${r.id}: ${r.durum}`));
+        process.exit(1); // FAİLE DÜŞÜR!
+      }
+
+      console.log('✅ Veritabanı bütünlüğü doğrulandı.');
     } catch (e) {
-      console.error('❌ KRİTİK VERİTABANI HATASI (Deployment Durduruldu):', e.message);
+      console.error('❌ KRİTİK VERİTABANI HATASI:', e.message);
       process.exit(1); // FAİLE DÜŞÜR!
     }
 
-    // 3. ZORLUK SEVİYESİ NORMALİZASYONU
-    try {
-      await pool.query(`
-        UPDATE sorular SET zorluk_seviyesi =
-          CASE
-            WHEN zorluk_seviyesi::text ~ '^[0-9]+$' THEN LEAST(GREATEST(zorluk_seviyesi::int,1),5)
-            ELSE 3
-          END
-        WHERE zorluk_seviyesi IS NULL OR zorluk_seviyesi::text !~ '^[1-5]$';
-      `);
-      // Kısıtları temizle ve smallint'e çek
-      await pool.query(`ALTER TABLE sorular ALTER COLUMN zorluk_seviyesi TYPE SMALLINT USING zorluk_seviyesi::int`);
-      console.log('✅ Zorluk seviyesi kısıtı hazır');
-    } catch (e) {
-      console.warn('⚠️ Zorluk seviyesi güncellenemedi:', e.message);
-    }
-
-    // 4. ESKİ VERİ DÜZELTMELERİ
-    await pool.query("UPDATE sorular SET durum = 'dizgi_tamam' WHERE durum = 'tamamlandi' AND final_png_url IS NULL");
-    await pool.query("UPDATE sorular SET onay_alanci = false, onay_dilci = false WHERE durum = 'inceleme_bekliyor' AND (onay_alanci = true OR onay_dilci = true)");
-
-    // 5. SUNUCUYU BAŞLAT (Portu sadece her şey TAMAMSA aç)
+    // 3. SUNUCUYU BAŞLAT
     app.listen(PORT, () => {
       console.log(`🚀 Sunucu ${PORT} portunda BAŞARIYLA BAŞLATILDI`);
-      console.log(`🌍 API: https://soruhavuzu-rjbt.onrender.com/api`);
     });
 
   } catch (error) {
-    console.error('❌ KRİTİK HATA: Sunucu başlatılamadı ve deployment DURDURULDU!');
-    console.error('Hata Detayı:', error.message);
-    process.exit(1); // Faile düşür
+    console.error('❌ SUNUCU BAŞLATILAMADI!', error.message);
+    process.exit(1);
   }
 };
 
