@@ -119,7 +119,9 @@ const upload = uploadFotograf;
 // Tüm soruları getir (filtreleme ile)
 router.get('/', authenticate, async (req, res, next) => {
   try {
-    console.log('GET /sorular Request:', req.query, 'User Role:', req.user?.rol);
+    console.log('--- GET /sorular DEBUG ---');
+    console.log('Query Params:', req.query);
+    console.log('Auth User ID:', req.user?.id, 'Role:', req.user?.rol);
     const { durum, brans_id, ekip_id, olusturan_id, scope } = req.query;
 
     let query = `
@@ -151,10 +153,13 @@ router.get('/', authenticate, async (req, res, next) => {
       } else {
         query += ` AND (
           s.durum IN ('dizgi_bekliyor', 'revize_istendi') 
-          OR s.dizgici_id = $${paramCount++}
+          OR (s.durum = 'dizgide' AND s.dizgici_id = $${paramCount})
+          OR (s.durum = 'dizgi_tamam' AND s.dizgici_id = $${paramCount})
         )`;
         params.push(req.user.id);
+        paramCount++;
       }
+      console.log('Dizgici Isolation Added. Params:', params);
     } else if (targetRole !== 'admin' && targetRole !== 'incelemeci') {
       if (scope === 'brans' || brans_id) {
         // Branş Havuzu: Sadece yetkili olduğu branşlar (Tüm durumlar)
@@ -1153,9 +1158,9 @@ router.post('/:id(\\d+)/dizgi-al', authenticate, authorize('dizgici', 'admin'), 
 
     const result = await pool.query(
       `UPDATE sorular 
-       SET durum = 'dizgide', dizgici_id = $1, guncellenme_tarihi = CURRENT_TIMESTAMP
-       WHERE id = $2 AND(durum = 'dizgi_bekliyor' OR durum = 'beklemede')-- beklemede geçici uyumluluk için
-       RETURNING * `,
+        SET durum = 'dizgide', dizgici_id = $1, guncellenme_tarihi = CURRENT_TIMESTAMP
+        WHERE id = $2 AND (durum = 'dizgi_bekliyor' OR durum = 'beklemede' OR durum = 'revize_istendi')
+        RETURNING * `,
       [req.user.id, id]
     );
 

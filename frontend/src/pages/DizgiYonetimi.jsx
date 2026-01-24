@@ -60,13 +60,13 @@ export default function DizgiYonetimi() {
   const handleDizgiAl = async (soruId) => {
     try {
       setLoading(true);
-      await soruAPI.dizgiAl(soruId);
+      const res = await soruAPI.dizgiAl(soruId);
       alert('Soru üzerinize alındı!');
+      if (res.data.success) {
+        setSelectedSoru(res.data.data);
+      }
       await loadSorular();
       loadBransCounts();
-      // Seçili soruyu güncelle ki sağ panel yenilensin
-      const updated = sorular.find(s => s.id === soruId);
-      if (updated) setSelectedSoru({ ...updated, durum: 'dizgide' });
     } catch (err) {
       alert(err.response?.data?.error || 'Soru alınamadı');
     } finally {
