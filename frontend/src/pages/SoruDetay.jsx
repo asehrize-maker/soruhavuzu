@@ -591,7 +591,7 @@ export default function SoruDetay() {
                   )}
 
                   {/* Dizgiye Gönder */}
-                  {['beklemede', 'revize_istendi', 'revize_gerekli'].includes(soru.durum) && (
+                  {['beklemede', 'revize_istendi', 'revize_gerekli', 'inceleme_bekliyor', 'incelemede'].includes(soru.durum) && (
                     <button
                       onClick={() => handleUpdateStatus('dizgi_bekliyor', 'Soru dizgiye gönderilecektir. Emin misiniz?')}
                       className="px-6 py-3 bg-purple-600 text-white rounded-xl font-black text-sm hover:bg-purple-700 transition shadow-lg flex items-center gap-2 border-b-4 border-purple-800 active:border-b-0 active:translate-y-1"

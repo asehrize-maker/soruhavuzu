@@ -67,7 +67,7 @@ export default function Sorular({ scope }) {
         if (scope === 'brans') {
           if (activeTab === 'taslaklar') {
             data = data.filter(s =>
-              ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli', 'alan_incelemede', 'dil_incelemede'].includes(s.durum)
+              ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli', 'alan_incelemede', 'dil_incelemede', 'inceleme_bekliyor', 'incelemede'].includes(s.durum)
             );
           } else {
             data = data.filter(s => ['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam'].includes(s.durum));
