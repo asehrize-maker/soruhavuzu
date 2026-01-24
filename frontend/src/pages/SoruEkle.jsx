@@ -257,6 +257,14 @@ export default function SoruEkle() {
   const onDragEnd = () => setDraggedItemIndex(null);
   const execCmd = (cmd) => document.execCommand(cmd, false, null);
 
+  const mapZorlukToBackend = (value) => {
+    const num = parseInt(value, 10);
+    if (Number.isNaN(num)) return 'orta';
+    if (num <= 2) return 'kolay';
+    if (num === 3) return 'orta';
+    return 'zor'; // 4-5
+  };
+
   const handleSave = async () => {
     if (components.length === 0) return alert("Soru içeriği boş!");
     if (!metadata.dogruCevap) return alert("Lütfen Doğru Cevabı seçiniz.");
@@ -267,6 +275,8 @@ export default function SoruEkle() {
       formData.append('dogru_cevap', metadata.dogruCevap);
       formData.append('brans_id', metadata.brans_id);
       formData.append('kazanim', metadata.kazanim || 'Genel');
+       // Zorluk bilgisini backend'in beklediği metinsel forma çevir
+       formData.append('zorluk_seviyesi', mapZorlukToBackend(metadata.zorluk));
       // Otomatik İncelemeye Gönder
       formData.append('durum', 'inceleme_bekliyor');
 

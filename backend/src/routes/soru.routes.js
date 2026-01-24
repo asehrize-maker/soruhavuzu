@@ -9,6 +9,27 @@ import { createNotification } from './bildirim.routes.js';
 
 const router = express.Router();
 
+// Zorluk değerini normalize et (hem sayısal hem metinsel girişleri destekler)
+const normalizeZorlukSeviyesi = (value) => {
+  if (value === undefined || value === null) return 'orta';
+
+  const raw = String(value).trim().toLowerCase();
+  const num = parseInt(raw, 10);
+
+  if (!Number.isNaN(num)) {
+    if (num <= 2) return 'kolay';
+    if (num === 3) return 'orta';
+    if (num >= 4) return 'zor';
+  }
+
+  if (['çok kolay', 'cok kolay', 'kolay', 'easy'].includes(raw)) return 'kolay';
+  if (['orta', 'normal', 'medium'].includes(raw)) return 'orta';
+  if (['zor', 'hard'].includes(raw)) return 'zor';
+
+  // Bilinmeyen değerler için güvenli varsayılan
+  return 'orta';
+};
+
 // Multer config (memory storage) - Fotoğraf için
 const uploadFotograf = multer({
   storage: multer.memoryStorage(),
@@ -253,6 +274,8 @@ router.post('/', [
       fotograf_konumu
     } = req.body;
 
+    const normalizedZorluk = normalizeZorlukSeviyesi(zorluk_seviyesi);
+
     let fotograf_url = null;
     let fotograf_public_id = null;
     let dosya_url = null;
@@ -354,7 +377,7 @@ router.post('/', [
       ) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) RETURNING *`,
       [
-        soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi || null, brans_id,
+        soru_metni, fotograf_url, fotograf_public_id, normalizedZorluk, brans_id,
         latex_kodu || null, kazanim || null, req.user.id,
         dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
         secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust'
@@ -480,6 +503,8 @@ router.put('/:id(\\d+)', [
       fotograf_konumu
     } = req.body;
 
+    const normalizedZorluk = normalizeZorlukSeviyesi(zorluk_seviyesi);
+
     // Soru sahibi kontrolü ve yetki doğrulama
     const checkResult = await pool.query('SELECT * FROM sorular WHERE id = $1', [id]);
 
@@ -569,7 +594,7 @@ router.put('/:id(\\d+)', [
            versiyon = COALESCE(versiyon, 1) + 1
        WHERE id = $14 RETURNING *`,
       [
-        soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, req.body.kazanim || null, yeniDurum,
+        soru_metni, fotograf_url, fotograf_public_id, normalizedZorluk, req.body.kazanim || null, yeniDurum,
         secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null,
         dogru_cevap || null, fotograf_konumu || 'ust',
         id

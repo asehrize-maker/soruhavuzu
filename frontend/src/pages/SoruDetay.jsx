@@ -457,8 +457,17 @@ export default function SoruDetay() {
 
   const handleEditStart = () => {
     setComponents(parseHtmlToComponents(soru.soru_metni));
+    const toScale = (value) => {
+      const raw = String(value || '').toLowerCase();
+      const num = parseInt(raw, 10);
+      if (!Number.isNaN(num)) return String(Math.min(Math.max(num, 1), 5));
+      if (raw.includes('kolay')) return '2';
+      if (raw.includes('orta')) return '3';
+      if (raw.includes('zor')) return '4';
+      return '3';
+    };
     setEditMetadata({
-      zorluk: soru.zorluk_seviyesi || '3',
+      zorluk: toScale(soru.zorluk_seviyesi),
       dogruCevap: soru.dogru_cevap || '',
       brans_id: soru.brans_id || '',
       kazanim: soru.kazanim || ''
@@ -476,7 +485,15 @@ export default function SoruDetay() {
       formData.append('dogru_cevap', editMetadata.dogruCevap);
       formData.append('brans_id', editMetadata.brans_id);
       formData.append('kazanim', editMetadata.kazanim || 'Genel');
-      formData.append('zorluk_seviyesi', editMetadata.zorluk);
+      // Zorluk değerini backend'in beklediği metinsel forma çevir (kolay/orta/zor)
+      const zorlukStr = (() => {
+        const num = parseInt(editMetadata.zorluk, 10);
+        if (Number.isNaN(num)) return 'orta';
+        if (num <= 2) return 'kolay';
+        if (num === 3) return 'orta';
+        return 'zor';
+      })();
+      formData.append('zorluk_seviyesi', zorlukStr);
 
       let htmlContent = components.map(c => {
         let style = "";

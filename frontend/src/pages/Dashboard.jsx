@@ -13,6 +13,17 @@ import {
   InformationCircleIcon
 } from '@heroicons/react/24/outline';
 
+const normalizeZorlukToScale = (value) => {
+  if (value === null || value === undefined) return null;
+  const raw = String(value).toLowerCase();
+  const num = parseInt(raw, 10);
+  if (!Number.isNaN(num)) return Math.min(Math.max(num, 1), 5);
+  if (raw.includes('kolay')) return 2;
+  if (raw.includes('orta')) return 3;
+  if (raw.includes('zor')) return 4;
+  return null;
+};
+
 // --- ALT BİLEŞEN: İNCELEME LİSTESİ ---
 function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
   const [sorular, setSorular] = useState([]);
@@ -83,7 +94,9 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
         </div>
       ) : (
         <div className="grid gap-4">
-          {sorular.map(soru => (
+          {sorular.map(soru => {
+            const zorluk = normalizeZorlukToScale(soru.zorluk_seviyesi);
+            return (
             <div key={soru.id} className="card bg-white p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition flex justify-between items-start group">
               <div className="flex gap-4">
                 {soru.fotograf_url ? (
@@ -96,13 +109,14 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
 
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
-                    <span className={`px-2 py-0.5 text-xs rounded-full font-bold uppercase tracking-wide ${soru.zorluk_seviyesi == 1 ? 'bg-green-100 text-green-700' :
-                      soru.zorluk_seviyesi == 2 ? 'bg-green-50 text-green-600' :
-                        soru.zorluk_seviyesi == 3 ? 'bg-yellow-100 text-yellow-700' :
-                          soru.zorluk_seviyesi == 4 ? 'bg-orange-100 text-orange-700' :
-                            'bg-red-100 text-red-700'
-                      }`}>
-                      {['ÇOK KOLAY', 'KOLAY', 'ORTA', 'ZOR', 'ÇOK ZOR'][soru.zorluk_seviyesi - 1] || 'BELİRSİZ'}
+                    <span className={`px-2 py-0.5 text-xs rounded-full font-bold uppercase tracking-wide ${
+                      zorluk === 1 ? 'bg-green-100 text-green-700' :
+                      zorluk === 2 ? 'bg-green-50 text-green-600' :
+                      zorluk === 3 ? 'bg-yellow-100 text-yellow-700' :
+                      zorluk === 4 ? 'bg-orange-100 text-orange-700' :
+                      zorluk === 5 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      {['ÇOK KOLAY', 'KOLAY', 'ORTA', 'ZOR', 'ÇOK ZOR'][(zorluk || 0) - 1] || 'BELİRSİZ'}
                     </span>
                     <span className="text-xs text-gray-400 font-mono">#{soru.id}</span>
                   </div>
@@ -128,7 +142,7 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
                 {reviewMode === 'alanci' ? 'Alan İncele' : 'Dil İncele'} &rarr;
               </Link>
             </div>
-          ))}
+          );})}
         </div>
       )}
     </div>
