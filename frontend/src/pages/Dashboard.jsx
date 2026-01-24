@@ -43,11 +43,10 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
         const filtered = allQuestions.filter(s => {
           if (parseInt(s.brans_id) !== parseInt(bransId)) return false;
 
-          if (reviewMode === 'alanci') return s.durum === 'alan_incelemede';
-          if (reviewMode === 'dilci') return s.durum === 'dil_incelemede';
+          if (reviewMode === 'alanci') return ['alan_incelemede', 'inceleme_bekliyor', 'incelemede'].includes(s.durum);
+          if (reviewMode === 'dilci') return ['dil_incelemede', 'inceleme_bekliyor', 'incelemede'].includes(s.durum);
 
-          // Default fallback
-          return ['alan_incelemede', 'dil_incelemede'].includes(s.durum);
+          return ['alan_incelemede', 'dil_incelemede', 'inceleme_bekliyor', 'incelemede'].includes(s.durum);
         });
         setSorular(filtered);
       } catch (err) {
@@ -83,10 +82,10 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
                       <span className={`px-2 py-0.5 text-xs rounded-full font-bold uppercase tracking-wide ${zorluk === 1 ? 'bg-green-100 text-green-700' :
-                          zorluk === 2 ? 'bg-green-50 text-green-600' :
-                            zorluk === 3 ? 'bg-yellow-100 text-yellow-700' :
-                              zorluk === 4 ? 'bg-orange-100 text-orange-700' :
-                                zorluk === 5 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'
+                        zorluk === 2 ? 'bg-green-50 text-green-600' :
+                          zorluk === 3 ? 'bg-yellow-100 text-yellow-700' :
+                            zorluk === 4 ? 'bg-orange-100 text-orange-700' :
+                              zorluk === 5 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'
                         }`}>
                         {['ÇOK KOLAY', 'KOLAY', 'ORTA', 'ZOR', 'ÇOK ZOR'][(zorluk || 0) - 1] || 'BELİRSİZ'}
                       </span>

@@ -76,40 +76,43 @@ const startServer = async () => {
       'tamamlandi', 'arsiv'
     ];
 
+    // --- KRİTİK VERİTABANI ÖN-HAZIRLIK ---
     try {
-      console.log('🔄 Durum kısıtı kontrol ediliyor ve temizleniyor...');
+      console.log('🔄 Veritabanı kuralları (Durum/Zorluk) zorla güncelleniyor...');
 
-      // 1. Durumu NULL veya geçersiz olanları temizle
-      await pool.query(`
-        UPDATE sorular 
-        SET durum = 'beklemede' 
-        WHERE durum IS NULL OR durum NOT IN (${allowedWorkflowStatuses.map((_, i) => `$${i + 1}`).join(',')})
-      `, allowedWorkflowStatuses);
+      // 1. Tip Güvencesi: Eğer ENUM tipi takılıyorsa VARCHAR'a zorla
+      await pool.query(`ALTER TABLE sorular ALTER COLUMN durum TYPE VARCHAR(50)`);
 
-      // 2. TÜM check kısıtlarını bul ve kaldır (Daha agresif bir metod)
-      const existingConstraints = await pool.query(`
-        SELECT conname
-        FROM pg_constraint
+      // 2. Tüm eski kısıtları isimden bağımsız süpür
+      const oldConstraints = await pool.query(`
+        SELECT conname FROM pg_constraint 
         WHERE conrelid = 'sorular'::regclass AND contype = 'c'
       `);
-
-      for (const row of existingConstraints.rows) {
-        console.log(`🗑️ Kısıt kaldırılıyor: ${row.conname}`);
+      for (const row of oldConstraints.rows) {
         await pool.query(`ALTER TABLE sorular DROP CONSTRAINT IF EXISTS "${row.conname}"`);
       }
 
-      // 3. Yeni kısıtı ekle
-      const statusListSql = allowedWorkflowStatuses.map(s => `'${s}'`).join(',');
+      // 3. Kapsamlı Durum Listesini Uygula
+      const allStatuses = [
+        'beklemede', 'dizgi_bekliyor', 'dizgide', 'dizgi_tamam',
+        'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi',
+        'revize_istendi', 'revize_gerekli', 'inceleme_bekliyor', 'incelemede', 'inceleme_tamam',
+        'tamamlandi', 'arsiv'
+      ].map(s => `'${s}'`).join(',');
+
+      await pool.query(`ALTER TABLE sorular ADD CONSTRAINT sorular_durum_check_final CHECK (durum IN (${allStatuses}))`);
+
+      // 4. Zorluk Seviyesini Sayısala Zorla
       await pool.query(`
-        ALTER TABLE sorular 
-        ADD CONSTRAINT sorular_durum_check_v2
-        CHECK (durum IN (${statusListSql}))
+        UPDATE sorular SET zorluk_seviyesi = 3 
+        WHERE zorluk_seviyesi::text !~ '^[1-5]$';
+        ALTER TABLE sorular ALTER COLUMN zorluk_seviyesi TYPE SMALLINT USING zorluk_seviyesi::int;
       `);
 
-      console.log('✅ Durum CHECK kısıtı (v2) başarıyla güncellendi');
+      console.log('✅ Veritabanı KURALLARI %100 güncellendi.');
     } catch (e) {
-      console.error('❌ DURUM KISITI HATASI:', e.message);
-      throw e;
+      console.error('❌ KRİTİK VERİTABANI HATASI (Deployment Durduruldu):', e.message);
+      process.exit(1); // FAİLE DÜŞÜR!
     }
 
     // 3. ZORLUK SEVİYESİ NORMALİZASYONU
