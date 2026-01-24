@@ -87,20 +87,24 @@ export default function SoruDetay() {
   const incelemeTuru = queryParams.get('incelemeTuru'); // 'alanci' | 'dilci'
 
   const { user: authUser, viewRole } = useAuthStore();
-  const effectiveRole = viewRole || authUser?.rol;
+  const rawRole = viewRole || authUser?.rol;
+  // UI logic normalization (alan_incelemeci/dil_incelemeci -> incelemeci)
+  const effectiveRole = ['alan_incelemeci', 'dil_incelemeci', 'incelemeci'].includes(rawRole)
+    ? 'incelemeci'
+    : rawRole;
   const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
 
   const effectiveIncelemeTuru = useMemo(() => {
     if (incelemeTuru === 'alanci' || incelemeTuru === 'dilci') return incelemeTuru;
     if (effectiveRole === 'incelemeci') {
-      const alan = !!authUser?.inceleme_alanci;
-      const dil = !!authUser?.inceleme_dilci;
+      const alan = !!authUser?.inceleme_alanci || rawRole === 'alan_incelemeci';
+      const dil = !!authUser?.inceleme_dilci || rawRole === 'dil_incelemeci';
       if (alan && !dil) return 'alanci';
       if (dil && !alan) return 'dilci';
       if (alan && dil) return 'alanci';
     }
     return null;
-  }, [incelemeTuru, effectiveRole, authUser]);
+  }, [incelemeTuru, effectiveRole, authUser, rawRole]);
 
   const canReview = effectiveRole === 'admin' || (effectiveRole === 'incelemeci' && !!effectiveIncelemeTuru);
 

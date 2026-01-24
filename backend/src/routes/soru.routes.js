@@ -1434,6 +1434,7 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
 
     // Admin simülasyonu için rol parametresi desteği
     const targetRole = (req.user.rol === 'admin' && req.query.role) ? req.query.role.toLowerCase() : req.user.rol;
+    const isAnyIncelemeci = targetRole === 'incelemeci' || targetRole === 'alan_incelemeci' || targetRole === 'dil_incelemeci';
 
     if (targetRole === 'soru_yazici') {
       const isActuallyAdmin = req.user.rol === 'admin';
@@ -1474,8 +1475,8 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
         SELECT COUNT(*) FILTER(WHERE s.durum IN ('inceleme_bekliyor', 'incelemede') AND s.${isAlan ? 'onay_alanci' : 'onay_dilci'} = false ${isActuallyAdmin ? '' : `AND (s.brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR s.brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1))`}) as inceleme_bekliyor 
         FROM sorular s 
       `;
-      params = isActuallyAdmin ? [] : [req.user.id];
-    } else if (targetRole === 'incelemeci') {
+      params = [];
+    } else if (isAnyIncelemeci) {
       const isAdmin = req.user.rol === 'admin';
       const canAlan = isAdmin || !!req.user.inceleme_alanci;
       const canDil = isAdmin || !!req.user.inceleme_dilci;
@@ -1857,7 +1858,9 @@ router.post('/admin-cleanup', authenticate, authorize(['admin']), async (req, re
 // İncelemeci detaylı istatistikler (Ekip ve Branş bazlı)
 router.get('/stats/inceleme-detayli', authenticate, async (req, res, next) => {
   try {
-    if (req.user.rol !== 'admin' && req.user.rol !== 'incelemeci') {
+    const isReviewer = req.user.rol === 'admin' || req.user.rol === 'incelemeci' || req.user.rol === 'alan_incelemeci' || req.user.rol === 'dil_incelemeci' || req.user.inceleme_alanci || req.user.inceleme_dilci;
+
+    if (!isReviewer) {
       throw new AppError('Bu işlem için yetkiniz yok', 403);
     }
 

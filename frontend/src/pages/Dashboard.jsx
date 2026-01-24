@@ -147,9 +147,14 @@ export default function Dashboard() {
   const outletContext = useOutletContext();
   const effectiveRoleFromContext = outletContext?.effectiveRole;
 
-  const activeRole = (user?.rol === 'admin' && effectiveRoleFromContext)
+  const rawRole = (user?.rol === 'admin' && effectiveRoleFromContext)
     ? effectiveRoleFromContext
     : (user?.rol || effectiveRoleFromContext);
+
+  // UI blokları için rolü normalleştiriyoruz (alan_incelemeci/dil_incelemeci -> incelemeci)
+  const activeRole = ['alan_incelemeci', 'dil_incelemeci', 'incelemeci'].includes(rawRole)
+    ? 'incelemeci'
+    : rawRole;
 
   const [stats, setStats] = useState(null);
   const [detayliStats, setDetayliStats] = useState(null);
@@ -163,14 +168,22 @@ export default function Dashboard() {
   const getReviewModeFromUrl = () => {
     const params = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
     const mode = params.get('mode');
-    return (mode === 'alanci' || mode === 'dilci') ? mode : null;
+    if (mode === 'alanci' || mode === 'dilci') return mode;
+
+    // Otomatik mod seçimi (Eğer sadece bir yetkisi varsa ve URL boşsa)
+    if (rawRole === 'alan_incelemeci') return 'alanci';
+    if (rawRole === 'dil_incelemeci') return 'dilci';
+    if (user?.inceleme_alanci && !user?.inceleme_dilci) return 'alanci';
+    if (!user?.inceleme_alanci && user?.inceleme_dilci) return 'dilci';
+
+    return null;
   };
 
   const [reviewMode, setReviewMode] = useState(getReviewModeFromUrl);
 
   const isActualAdmin = user?.rol === 'admin';
-  const canAlanInceleme = isActualAdmin || !!user?.inceleme_alanci;
-  const canDilInceleme = isActualAdmin || !!user?.inceleme_dilci;
+  const canAlanInceleme = isActualAdmin || !!user?.inceleme_alanci || rawRole === 'alan_incelemeci' || rawRole === 'incelemeci';
+  const canDilInceleme = isActualAdmin || !!user?.inceleme_dilci || rawRole === 'dil_incelemeci' || rawRole === 'incelemeci';
 
   const fetchData = useCallback(async () => {
     if (!activeRole) return;
