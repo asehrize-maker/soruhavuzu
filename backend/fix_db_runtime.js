@@ -28,6 +28,20 @@ CHECK (
 );
 ALTER TABLE sorular ALTER COLUMN durum SET DEFAULT 'beklemede';
 
+-- Zorluk değerlerini normalize et ve kısıtı güncelle
+ALTER TABLE sorular DROP CONSTRAINT IF EXISTS sorular_zorluk_seviyesi_check;
+
+UPDATE sorular SET zorluk_seviyesi = CASE
+  WHEN zorluk_seviyesi IN ('1','2') THEN 'kolay'
+  WHEN zorluk_seviyesi = '3' THEN 'orta'
+  WHEN zorluk_seviyesi IN ('4','5') THEN 'zor'
+  ELSE COALESCE(zorluk_seviyesi, 'orta')
+END;
+
+ALTER TABLE sorular
+ADD CONSTRAINT sorular_zorluk_seviyesi_check
+CHECK (zorluk_seviyesi IN ('kolay','orta','zor'));
+
 UPDATE sorular SET durum = 'inceleme_bekliyor'
 WHERE durum IN ('incelemede','inceleme','inceleme_tamamlanmadi');
 
