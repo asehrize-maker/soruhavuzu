@@ -138,8 +138,8 @@ export default function SoruEkle() {
       formData.append('brans_id', metadata.brans_id);
       formData.append('kazanim', metadata.kazanim || 'Genel');
       formData.append('zorluk_seviyesi', normalizeZorluk(metadata.zorluk));
-      // Otomatik İncelemeye Gönder
-      formData.append('durum', 'inceleme_bekliyor');
+      // Başlangıç durumu: Taslak (Branş Öğretmeni sürecinde)
+      formData.append('durum', 'beklemede');
 
       let htmlContent = components.map(c => {
         let style = "";
