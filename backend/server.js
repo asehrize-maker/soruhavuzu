@@ -77,30 +77,36 @@ const startServer = async () => {
     ];
 
     try {
-      console.log('🔄 Durum kısıtı kontrol ediliyor...');
-      // Geçersiz durumları temizle
+      console.log('🔄 Durum kısıtı kontrol ediliyor ve temizleniyor...');
+
+      // 1. Durumu NULL veya geçersiz olanları temizle
       await pool.query(`
         UPDATE sorular 
         SET durum = 'beklemede' 
         WHERE durum IS NULL OR durum NOT IN (${allowedWorkflowStatuses.map((_, i) => `$${i + 1}`).join(',')})
       `, allowedWorkflowStatuses);
 
-      // Mevcut kısıtları kaldır
+      // 2. TÜM check kısıtlarını bul ve kaldır (Daha agresif bir metod)
       const existingConstraints = await pool.query(`
         SELECT conname
-        FROM pg_constraint c
-        JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY (c.conkey)
-        WHERE c.contype = 'c' AND c.conrelid = 'sorular'::regclass AND a.attname = 'durum'
+        FROM pg_constraint
+        WHERE conrelid = 'sorular'::regclass AND contype = 'c'
       `);
 
       for (const row of existingConstraints.rows) {
+        console.log(`🗑️ Kısıt kaldırılıyor: ${row.conname}`);
         await pool.query(`ALTER TABLE sorular DROP CONSTRAINT IF EXISTS "${row.conname}"`);
       }
 
-      // Yeni kısıtı ekle
+      // 3. Yeni kısıtı ekle
       const statusListSql = allowedWorkflowStatuses.map(s => `'${s}'`).join(',');
-      await pool.query(`ALTER TABLE sorular ADD CONSTRAINT sorular_durum_check CHECK (durum IN (${statusListSql}))`);
-      console.log('✅ Durum CHECK kısıtı güncellendi');
+      await pool.query(`
+        ALTER TABLE sorular 
+        ADD CONSTRAINT sorular_durum_check_v2
+        CHECK (durum IN (${statusListSql}))
+      `);
+
+      console.log('✅ Durum CHECK kısıtı (v2) başarıyla güncellendi');
     } catch (e) {
       console.error('❌ DURUM KISITI HATASI:', e.message);
       throw e;
