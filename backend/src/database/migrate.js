@@ -25,6 +25,56 @@ import { ultimateDurumFix } from './migrations/025_ultimate_durum_fix.js';
 import { workflowV2Statuses } from './migrations/026_workflow_v2_statuses.js';
 import { addLastSeenField } from './migrations/027_add_last_seen.js';
 
+// En güncel durum listesi (workflow v2 + dizgi tamam)
+const ALLOWED_DURUMLAR = [
+  'beklemede',
+  'dizgi_bekliyor',
+  'dizgide',
+  'dizgi_tamam',
+  'alan_incelemede',
+  'alan_onaylandi',
+  'dil_incelemede',
+  'dil_onaylandi',
+  'revize_istendi',
+  'revize_gerekli',
+  'inceleme_bekliyor',
+  'incelemede',
+  'inceleme_tamam',
+  'tamamlandi',
+  'arsiv'
+];
+
+// Mevcut tabloda izinli olmayan durum değerlerini güvenli bir değere çevir
+const cleanupInvalidDurumValues = async () => {
+  const client = await pool.connect();
+  try {
+    const allowedLower = ALLOWED_DURUMLAR.map((d) => d.toLowerCase());
+    const placeholders = allowedLower.map((_, idx) => `$${idx + 1}`).join(', ');
+
+    const selectSql = `
+      SELECT id, durum
+      FROM sorular
+      WHERE durum IS NULL OR LOWER(durum) NOT IN (${placeholders})
+    `;
+    const { rows } = await client.query(selectSql, allowedLower);
+
+    if (rows.length > 0) {
+      console.warn('WARN sorular.durum alanında izinli olmayan kayıtlar bulundu, \"beklemede\" olarak güncelleniyor...', rows);
+      const updateSql = `
+        UPDATE sorular
+        SET durum = 'beklemede'
+        WHERE durum IS NULL OR LOWER(durum) NOT IN (${placeholders})
+      `;
+      await client.query(updateSql, allowedLower);
+    }
+  } catch (error) {
+    console.error('ERROR Durum temizleme başarısız:', error.message);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 const createTables = async () => {
   const client = await pool.connect();
 
@@ -119,6 +169,9 @@ const createTables = async () => {
 
     await client.query('COMMIT');
     console.log('✅ Tüm tablolar başarıyla oluşturuldu');
+
+    // Constraint eklenmeden önce bozuk durum değerlerini temizle
+    await cleanupInvalidDurumValues();
 
     // Gelişmiş özellikler migration'ını çalıştır
     await createAdvancedFeatures();
