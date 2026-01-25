@@ -506,8 +506,14 @@ export default function Sorular({ scope }) {
                     )}
                   </div>
 
-                  {/* HTML Render Fix */}
-                  <div className="text-gray-900 line-clamp-3 mb-2 text-sm question-preview" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
+                  {/* HTML Render Fix or Final PNG Preview */}
+                  {soru.durum === 'tamamlandi' && soru.final_png_url ? (
+                    <div className="my-3 flex justify-center bg-gray-50 p-4 rounded-lg border border-gray-100">
+                      <img src={soru.final_png_url} className="max-h-64 object-contain shadow-sm rounded" alt="Final Soru" />
+                    </div>
+                  ) : (
+                    <div className="text-gray-900 line-clamp-3 mb-2 text-sm question-preview" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
+                  )}
 
                   <div className="flex items-center space-x-4 text-sm text-gray-500">
                     <span>Yazan: {soru.olusturan_ad}</span>
@@ -523,14 +529,16 @@ export default function Sorular({ scope }) {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 mt-2 text-xs">
-                    <span className={`px-2 py-1 rounded-full font-semibold ${soru.onay_alanci ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
-                      Alan İnceleme: {soru.onay_alanci ? 'Tamam' : 'Bekliyor'}
-                    </span>
-                    <span className={`px-2 py-1 rounded-full font-semibold ${soru.onay_dilci ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
-                      Dil İnceleme: {soru.onay_dilci ? 'Tamam' : 'Bekliyor'}
-                    </span>
-                  </div>
+                  {soru.durum !== 'tamamlandi' && (
+                    <div className="flex items-center gap-2 mt-2 text-xs">
+                      <span className={`px-2 py-1 rounded-full font-semibold ${soru.onay_alanci ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
+                        Alan İnceleme: {soru.onay_alanci ? 'Tamam' : 'Bekliyor'}
+                      </span>
+                      <span className={`px-2 py-1 rounded-full font-semibold ${soru.onay_dilci ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
+                        Dil İnceleme: {soru.onay_dilci ? 'Tamam' : 'Bekliyor'}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="ml-4 flex flex-col space-y-2">
