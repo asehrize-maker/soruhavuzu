@@ -1610,19 +1610,20 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
     // Branş bazlı istatistikler
     const bransStats = await pool.query(`
       SELECT
-      b.id,
+        b.id,
         b.brans_adi,
         e.ekip_adi,
         COUNT(s.id) as soru_sayisi,
-        COUNT(CASE WHEN s.durum = 'beklemede' THEN 1 END) as beklemede,
-        COUNT(CASE WHEN s.durum = 'dizgide' THEN 1 END) as dizgide,
+        COUNT(CASE WHEN s.durum IN ('beklemede', 'revize_istendi', 'revize_gerekli') THEN 1 END) as beklemede,
+        COUNT(CASE WHEN s.durum IN ('dizgi_bekliyor', 'dizgide', 'dizgi_tamam') THEN 1 END) as dizgide,
+        COUNT(CASE WHEN s.durum IN ('alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi', 'inceleme_tamam') THEN 1 END) as incelemede,
         COUNT(CASE WHEN s.durum = 'tamamlandi' THEN 1 END) as tamamlandi
       FROM branslar b
       LEFT JOIN ekipler e ON b.ekip_id = e.id
       LEFT JOIN sorular s ON b.id = s.brans_id
       GROUP BY b.id, b.brans_adi, e.ekip_adi
       ORDER BY soru_sayisi DESC
-        `);
+    `);
 
     // Kullanıcı performans istatistikleri
     const kullaniciStats = await pool.query(`
