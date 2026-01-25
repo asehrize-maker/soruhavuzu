@@ -179,7 +179,9 @@ export default function Kullanicilar() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{kullanici.email}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{getRolBadge(kullanici)}</td>
                   <td className="px-6 py-4 text-sm text-gray-900">
-                    <div className="font-bold">{kullanici.ekip_adi || '-'}</div>
+                    <div className="font-bold">
+                      {kullanici.rol === 'admin' ? <span className="text-purple-600">Tüm Ekipler</span> : (kullanici.ekip_adi || '-')}
+                    </div>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {kullanici.branslar?.map(b => (
                         <span key={b.id} className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-[10px]">{b.brans_adi}</span>
