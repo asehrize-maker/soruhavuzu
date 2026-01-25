@@ -6,20 +6,7 @@ import { AppError } from '../middleware/errorHandler.js';
 
 const router = express.Router();
 
-// Online kullanıcıları getir (Dashboard için)
-router.get('/online', authenticate, async (req, res, next) => {
-  try {
-    // Şimdilik aktif kullanıcıları döndürelim
-    // İlerde last_seen veya socket tabanlı gerçek online durumu eklenebilir
-    const result = await pool.query('SELECT id, ad_soyad, rol, k.ekip_id FROM kullanicilar k WHERE k.aktif = true ORDER BY k.ad_soyad');
-    res.json({
-      success: true,
-      data: result.rows
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+
 
 // Admin: yeni kullanıcı oluştur
 router.post('/admin-create', authenticate, authorize('admin'), async (req, res, next) => {
@@ -50,7 +37,7 @@ router.post('/admin-create', authenticate, authorize('admin'), async (req, res, 
         `INSERT INTO kullanicilar (ad_soyad, email, sifre, rol, ekip_id, brans_id, inceleme_alanci, inceleme_dilci)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING id`,
-        [ad_soyad, email, hashed, rol, ekip_id || null, brans_id || null, flagAlan, flagDil]
+        [ad_soyad, email, hashed, rol, ekip_id ? parseInt(ekip_id) : null, brans_id || null, flagAlan, flagDil]
       );
 
       const userId = insert.rows[0].id;
@@ -195,8 +182,8 @@ router.put('/:id', authenticate, async (req, res, next) => {
       if (req.user.rol === 'admin') {
         if (ekip_id !== undefined) {
           updates.push(`ekip_id = $${paramCount++}`);
-          // Boş string gelirse null olarak kaydet
-          values.push((ekip_id === '' || ekip_id === null) ? null : ekip_id);
+          // Boş string gelirse null olarak kaydet, değilse integer'a çevir
+          values.push((ekip_id === '' || ekip_id === null) ? null : parseInt(ekip_id));
         }
 
         if (req.body.rol) {

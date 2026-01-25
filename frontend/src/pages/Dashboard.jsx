@@ -24,41 +24,7 @@ const normalizeZorlukToScale = (value) => {
   return null;
 };
 
-// --- ALT BİLEŞEN: ONLİNE KULLANICILAR ---
-function OnlineKullanicilar() {
-  const [onlineUsers, setOnlineUsers] = useState([]);
 
-  useEffect(() => {
-    const fetchOnline = async () => {
-      try {
-        const res = await userAPI.getOnline();
-        if (res.data.success) setOnlineUsers(res.data.data);
-      } catch (e) { console.error("Online users error:", e); }
-    };
-    fetchOnline();
-    const interval = setInterval(fetchOnline, 30000); // 30 saniyede bir güncelle
-    return () => clearInterval(interval);
-  }, []);
-
-  if (onlineUsers.length === 0) return null;
-
-  return (
-    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm mb-6">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-        <h4 className="text-sm font-bold text-gray-700">Şu An Online ({onlineUsers.length})</h4>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {onlineUsers.map(u => (
-          <div key={u.id} className="flex items-center gap-1.5 px-3 py-1 bg-gray-50 rounded-full border border-gray-200 text-xs">
-            <span className="font-bold text-gray-800">{u.ad_soyad}</span>
-            <span className="text-gray-400 capitalize">({u.rol})</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 // --- ALT BİLEŞEN: İNCELEME LİSTESİ ---
 function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
@@ -254,7 +220,7 @@ export default function Dashboard() {
   // 3. RENDER
   return (
     <div className="space-y-6">
-      <OnlineKullanicilar />
+
       {activeRole === 'admin' ? (
         <div className="space-y-8 animate-fade-in">
           <div className="flex justify-between items-center">
