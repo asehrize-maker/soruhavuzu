@@ -16,6 +16,7 @@ import Raporlar from './pages/Raporlar';
 import Duyurular from './pages/Duyurular';
 import Logs from './pages/Logs';
 import Ajanda from './pages/Ajanda';
+import Settings from './pages/Settings';
 import Layout from './components/Layout';
 
 function PrivateRoute({ children }) {
@@ -80,6 +81,11 @@ function App() {
         <Route path="ajanda" element={
           <AdminRoute>
             <Ajanda />
+          </AdminRoute>
+        } />
+        <Route path="settings" element={
+          <AdminRoute>
+            <Settings />
           </AdminRoute>
         } />
       </Route>

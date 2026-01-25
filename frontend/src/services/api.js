@@ -57,6 +57,8 @@ export const userAPI = {
   getLoginLogs: () => api.get('/users/logs/login'),
   getActivityLogs: () => api.get('/users/logs/activity'),
   getAgendaStats: () => api.get('/users/stats/agenda'),
+  getSettings: () => api.get('/users/settings/all'),
+  updateSettings: (data) => api.put('/users/settings/update', data),
 };
 
 // Ekip API

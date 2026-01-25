@@ -346,4 +346,45 @@ router.get('/stats/agenda', authenticate, authorize('admin'), async (req, res, n
   }
 });
 
+// Sistem ayarlarını getir (Sadece admin)
+router.get('/settings/all', authenticate, authorize('admin'), async (req, res, next) => {
+  try {
+    const result = await pool.query('SELECT * FROM sistem_ayarlari ORDER BY anahtar');
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Sistem ayarlarını güncelle (Sadece admin)
+router.put('/settings/update', authenticate, authorize('admin'), async (req, res, next) => {
+  try {
+    const { ayarlar } = req.body; // Array of { anahtar, deger }
+
+    if (!Array.isArray(ayarlar)) {
+      throw new AppError('Ayarlar listesi gerekli', 400);
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      for (const ayar of ayarlar) {
+        await client.query(
+          'UPDATE sistem_ayarlari SET deger = $1, guncellenme_tarihi = CURRENT_TIMESTAMP WHERE anahtar = $2',
+          [ayar.deger, ayar.anahtar]
+        );
+      }
+      await client.query('COMMIT');
+      res.json({ success: true, message: 'Ayarlar güncellendi' });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
