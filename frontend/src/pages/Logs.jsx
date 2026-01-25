@@ -14,9 +14,12 @@ export default function Logs() {
     const [activityLogs, setActivityLogs] = useState([]);
     const [activeTab, setActiveTab] = useState('login'); // 'login' or 'activity'
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 20;
 
     const fetchLogs = async () => {
         setLoading(true);
+        setCurrentPage(1); // Reset page on fetch
         try {
             if (activeTab === 'login') {
                 const res = await userAPI.getLoginLogs();
@@ -35,6 +38,13 @@ export default function Logs() {
     useEffect(() => {
         fetchLogs();
     }, [activeTab]);
+
+    // Pagination Logic
+    const currentLogs = activeTab === 'login' ? loginLogs : activityLogs;
+    const totalPages = Math.ceil(currentLogs.length / itemsPerPage);
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const paginatedLogs = currentLogs.slice(indexOfFirstItem, indexOfLastItem);
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -78,101 +88,141 @@ export default function Logs() {
             </div>
 
             {/* Table Section */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
                 {loading ? (
                     <div className="p-20 text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto"></div>
                         <p className="mt-4 text-gray-500 font-medium">Loglar getiriliyor...</p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-100">
-                            <thead className="bg-gray-50">
-                                {activeTab === 'login' ? (
-                                    <tr>
-                                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Kullanıcı</th>
-                                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">IP Adresi</th>
-                                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Tarih / Saat</th>
-                                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Tarayıcı</th>
-                                    </tr>
-                                ) : (
-                                    <tr>
-                                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Kullanıcı</th>
-                                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">İşlem</th>
-                                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Açıklama</th>
-                                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Tarih / Saat</th>
-                                    </tr>
-                                )}
-                            </thead>
-                            <tbody className="divide-y divide-gray-50 bg-white">
-                                {activeTab === 'login' ? (
-                                    loginLogs.length > 0 ? loginLogs.map((log) => (
-                                        <tr key={log.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
-                                                        {log.ad_soyad?.charAt(0)}
+                    <>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-100">
+                                <thead className="bg-gray-50">
+                                    {activeTab === 'login' ? (
+                                        <tr>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Kullanıcı</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">IP Adresi</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Tarih / Saat</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Tarayıcı</th>
+                                        </tr>
+                                    ) : (
+                                        <tr>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Kullanıcı</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">İşlem</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Açıklama</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Tarih / Saat</th>
+                                        </tr>
+                                    )}
+                                </thead>
+                                <tbody className="divide-y divide-gray-50 bg-white">
+                                    {activeTab === 'login' ? (
+                                        paginatedLogs.length > 0 ? paginatedLogs.map((log) => (
+                                            <tr key={log.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
+                                                            {log.ad_soyad?.charAt(0)}
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-sm font-bold text-gray-900">{log.ad_soyad}</div>
+                                                            <div className="text-xs text-gray-500">{log.email}</div>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <div className="text-sm font-bold text-gray-900">{log.ad_soyad}</div>
-                                                        <div className="text-xs text-gray-500">{log.email}</div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="text-sm font-mono text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                                                        {log.ip_adresi || 'Unknown'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                    <div className="flex items-center gap-2">
+                                                        <ClockIcon className="w-4 h-4 text-gray-400" />
+                                                        {new Date(log.tarih).toLocaleDateString('tr-TR')} {new Date(log.tarih).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="text-sm font-mono text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                                                    {log.ip_adresi || 'Unknown'}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                                <div className="flex items-center gap-2">
-                                                    <ClockIcon className="w-4 h-4 text-gray-400" />
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-400 max-w-xs truncate">
+                                                    {log.user_agent}
+                                                </td>
+                                            </tr>
+                                        )) : (
+                                            <tr><td colSpan="4" className="p-8 text-center text-gray-500 italic">Giriş kaydı bulunamadı.</td></tr>
+                                        )
+                                    ) : (
+                                        paginatedLogs.length > 0 ? paginatedLogs.map((log) => (
+                                            <tr key={log.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-xs text-center uppercase">
+                                                            {log.ad_soyad?.substring(0, 2)}
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-sm font-bold text-gray-900">{log.ad_soyad}</div>
+                                                            <div className="text-xs text-purple-600 font-medium">{log.rol}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${log.islem_turu.includes('silme') ? 'bg-red-100 text-red-700' :
+                                                        log.islem_turu.includes('ekleme') ? 'bg-green-100 text-green-700' :
+                                                            'bg-blue-100 text-blue-700'
+                                                        }`}>
+                                                        {log.islem_turu.replace(/_/g, ' ')}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-700">
+                                                    {log.aciklama}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                                     {new Date(log.tarih).toLocaleDateString('tr-TR')} {new Date(log.tarih).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-400 max-w-xs truncate">
-                                                {log.user_agent}
-                                            </td>
-                                        </tr>
-                                    )) : (
-                                        <tr><td colSpan="4" className="p-8 text-center text-gray-500 italic">Giriş kaydı bulunamadı.</td></tr>
-                                    )
-                                ) : (
-                                    activityLogs.length > 0 ? activityLogs.map((log) => (
-                                        <tr key={log.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-xs text-center uppercase">
-                                                        {log.ad_soyad?.substring(0, 2)}
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-sm font-bold text-gray-900">{log.ad_soyad}</div>
-                                                        <div className="text-xs text-purple-600 font-medium">{log.rol}</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${log.islem_turu.includes('silme') ? 'bg-red-100 text-red-700' :
-                                                    log.islem_turu.includes('ekleme') ? 'bg-green-100 text-green-700' :
-                                                        'bg-blue-100 text-blue-700'
-                                                    }`}>
-                                                    {log.islem_turu.replace(/_/g, ' ')}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-700">
-                                                {log.aciklama}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                                {new Date(log.tarih).toLocaleDateString('tr-TR')} {new Date(log.tarih).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                                            </td>
-                                        </tr>
-                                    )) : (
-                                        <tr><td colSpan="4" className="p-8 text-center text-gray-500 italic">İşlem kaydı bulunamadı.</td></tr>
-                                    )
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                                </td>
+                                            </tr>
+                                        )) : (
+                                            <tr><td colSpan="4" className="p-8 text-center text-gray-500 italic">İşlem kaydı bulunamadı.</td></tr>
+                                        )
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Pagination Footer */}
+                        {totalPages > 1 && (
+                            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                                <div className="text-sm text-gray-500 font-medium">
+                                    Toplam <span className="text-gray-900">{currentLogs.length}</span> kayıttan
+                                    <span className="text-gray-900"> {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, currentLogs.length)}</span> arası gösteriliyor
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                        disabled={currentPage === 1}
+                                        className="px-3 py-1 text-sm font-bold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                                    >
+                                        Geri
+                                    </button>
+                                    {[...Array(totalPages)].map((_, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => setCurrentPage(i + 1)}
+                                            className={`w-8 h-8 text-sm font-bold rounded-lg transition-all ${currentPage === i + 1
+                                                    ? 'bg-blue-600 text-white shadow-md'
+                                                    : 'text-gray-500 hover:bg-gray-100'
+                                                }`}
+                                        >
+                                            {i + 1}
+                                        </button>
+                                    ))}
+                                    <button
+                                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className="px-3 py-1 text-sm font-bold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                                    >
+                                        İleri
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>
