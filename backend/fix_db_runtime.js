@@ -18,12 +18,26 @@ SET inceleme_alanci = false, inceleme_dilci = false
 WHERE rol <> 'incelemeci';
 
 ALTER TABLE sorular DROP CONSTRAINT IF EXISTS sorular_durum_check;
+-- Güncel ve genişletilmiş durum listesi (workflow v2 + dizgi_tamam)
 ALTER TABLE sorular
 ADD CONSTRAINT sorular_durum_check
 CHECK (
   durum IN (
-    'beklemede','inceleme_bekliyor','incelemede','revize_istendi','revize_gerekli',
-    'dizgi_bekliyor','dizgide','dizgi_tamam','inceleme_tamam','tamamlandi','arsiv'
+    'beklemede',
+    'dizgi_bekliyor',
+    'dizgide',
+    'dizgi_tamam',
+    'alan_incelemede',
+    'alan_onaylandi',
+    'dil_incelemede',
+    'dil_onaylandi',
+    'revize_istendi',
+    'revize_gerekli',
+    'inceleme_bekliyor',
+    'incelemede',
+    'inceleme_tamam',
+    'tamamlandi',
+    'arsiv'
   )
 );
 ALTER TABLE sorular ALTER COLUMN durum SET DEFAULT 'beklemede';
@@ -48,14 +62,22 @@ ALTER TABLE sorular
 ADD CONSTRAINT sorular_zorluk_seviyesi_check
 CHECK (zorluk_seviyesi BETWEEN 1 AND 5);
 
+-- Eski veya hatalı durumları normalize et, ancak dil/alan inceleme aşamalarını koru
 UPDATE sorular SET durum = 'inceleme_bekliyor'
 WHERE durum IN ('incelemede','inceleme','inceleme_tamamlanmadi');
 
 UPDATE sorular SET durum = 'revize_gerekli'
 WHERE durum IN ('revize','revize_bekliyor');
 
+-- Sadece tanımsız durumları beklemede'ye çek (tüm geniş listeyi koru)
 UPDATE sorular SET durum = 'beklemede'
-WHERE durum NOT IN ('beklemede','inceleme_bekliyor','incelemede','revize_istendi','revize_gerekli','dizgi_bekliyor','dizgide','dizgi_tamam','inceleme_tamam','tamamlandi','arsiv');
+WHERE durum NOT IN (
+  'beklemede','dizgi_bekliyor','dizgide','dizgi_tamam',
+  'alan_incelemede','alan_onaylandi','dil_incelemede','dil_onaylandi',
+  'revize_istendi','revize_gerekli',
+  'inceleme_bekliyor','incelemede','inceleme_tamam',
+  'tamamlandi','arsiv'
+);
 `;
 
 async function run() {

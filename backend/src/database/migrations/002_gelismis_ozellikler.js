@@ -10,7 +10,23 @@ export async function createAdvancedFeatures() {
     await client.query(`
       ALTER TABLE sorular 
       ADD COLUMN IF NOT EXISTS latex_kodu TEXT,
-      ADD COLUMN IF NOT EXISTS durum VARCHAR(20) DEFAULT 'beklemede' CHECK (durum IN ('beklemede', 'dizgide', 'tamamlandi', 'revize_gerekli')),
+      ADD COLUMN IF NOT EXISTS durum VARCHAR(20) DEFAULT 'beklemede' CHECK (durum IN (
+        'beklemede',
+        'dizgi_bekliyor',
+        'dizgide',
+        'dizgi_tamam',
+        'alan_incelemede',
+        'alan_onaylandi',
+        'dil_incelemede',
+        'dil_onaylandi',
+        'revize_istendi',
+        'revize_gerekli',
+        'inceleme_bekliyor',
+        'incelemede',
+        'inceleme_tamam',
+        'tamamlandi',
+        'arsiv'
+      )),
       ADD COLUMN IF NOT EXISTS dizgici_id INTEGER REFERENCES kullanicilar(id),
       ADD COLUMN IF NOT EXISTS dizgi_baslama_tarihi TIMESTAMP,
       ADD COLUMN IF NOT EXISTS dizgi_bitis_tarihi TIMESTAMP,
