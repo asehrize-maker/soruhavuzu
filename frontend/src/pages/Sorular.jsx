@@ -606,14 +606,7 @@ export default function Sorular({ scope }) {
                     </button>
                   )}
 
-                  {user?.rol === 'dizgici' && soru.durum === 'dizgide' && (
-                    <Link
-                      to={`/sorular/${soru.id}${scope ? `?scope=${scope}` : ''}`}
-                      className="btn bg-green-600 text-white hover:bg-green-700 text-sm text-center"
-                    >
-                      Dizgiyi Tamamla
-                    </Link>
-                  )}
+
                 </div>
               </div>
             </div>

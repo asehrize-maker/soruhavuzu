@@ -1506,6 +1506,7 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
       params = isActuallyAdmin ? [] : [req.user.id];
     } else if (targetRole === 'dizgici') {
       // Dizgici: Genel havuzdaki işler (Sadece kendi ekibindekiler)
+      // Hem branşın ekibine hem de oluşturan kişinin ekibine bakıyoruz
       query = `
         SELECT
           COUNT(*) FILTER(WHERE s.durum IN ('dizgi_bekliyor', 'revize_istendi')) as dizgi_bekliyor,
@@ -1513,11 +1514,10 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
           COUNT(*) FILTER(WHERE (s.durum = 'dizgi_tamam' AND s.dizgici_id = $1) OR (s.durum = 'tamamlandi' AND s.final_png_url IS NULL AND s.dizgici_id = $1)) as dosya_bekliyor,
           COUNT(*) FILTER(WHERE s.durum = 'tamamlandi' AND s.final_png_url IS NOT NULL) as tamamlandi
         FROM sorular s
-        JOIN branslar b ON s.brans_id = b.id
-        WHERE b.ekip_id = $2
+        Left JOIN branslar b ON s.brans_id = b.id
+        LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
+        WHERE (b.ekip_id = $2 OR k.ekip_id = $2)
       `;
-      // Parametreler: [userId, ekipId]
-      // req.user.ekip_id yoksa (örn. null ise) -1 vererek hiçbir şey döndürmemesini sağla veya mantıklı bir default
       params = [req.user.id, req.user.ekip_id || -1];
     } else if (targetRole === 'alan_incelemeci' || targetRole === 'dil_incelemeci') {
       const isAlan = targetRole === 'alan_incelemeci';
