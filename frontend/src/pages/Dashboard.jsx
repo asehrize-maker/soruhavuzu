@@ -11,7 +11,8 @@ import {
   ClockIcon,
   BookOpenIcon,
   PencilSquareIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  MegaphoneIcon
 } from '@heroicons/react/24/outline';
 
 const normalizeZorlukToScale = (value) => {
@@ -264,14 +265,14 @@ export default function Dashboard() {
       {/* GLOBAL DASHBOARD ALERT */}
       {panelConfig?.panel_duyuru_aktif === 'true' && panelConfig?.panel_duyuru_mesaj && (
         <div className={`p-5 rounded-3xl border-2 shadow-sm flex items-start gap-4 animate-bounce-short ${panelConfig.panel_duyuru_tip === 'success' ? 'bg-green-50 border-green-100 text-green-800' :
-            panelConfig.panel_duyuru_tip === 'warning' ? 'bg-orange-50 border-orange-100 text-orange-800' :
-              panelConfig.panel_duyuru_tip === 'error' ? 'bg-red-50 border-red-100 text-red-800' :
-                'bg-blue-50 border-blue-100 text-blue-800'
+          panelConfig.panel_duyuru_tip === 'warning' ? 'bg-orange-50 border-orange-100 text-orange-800' :
+            panelConfig.panel_duyuru_tip === 'error' ? 'bg-red-50 border-red-100 text-red-800' :
+              'bg-blue-50 border-blue-100 text-blue-800'
           }`}>
           <div className={`p-3 rounded-2xl flex-shrink-0 ${panelConfig.panel_duyuru_tip === 'success' ? 'bg-green-100 text-green-600' :
-              panelConfig.panel_duyuru_tip === 'warning' ? 'bg-orange-100 text-orange-600' :
-                panelConfig.panel_duyuru_tip === 'error' ? 'bg-red-100 text-red-600' :
-                  'bg-blue-100 text-blue-600'
+            panelConfig.panel_duyuru_tip === 'warning' ? 'bg-orange-100 text-orange-600' :
+              panelConfig.panel_duyuru_tip === 'error' ? 'bg-red-100 text-red-600' :
+                'bg-blue-100 text-blue-600'
             }`}>
             <MegaphoneIcon className="w-6 h-6" />
           </div>
