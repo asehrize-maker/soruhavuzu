@@ -507,7 +507,7 @@ export default function Sorular({ scope }) {
                   </div>
 
                   {/* HTML Render Fix or Final PNG Preview */}
-                  {soru.durum === 'tamamlandi' && soru.final_png_url ? (
+                  {['tamamlandi', 'dizgi_tamam'].includes(soru.durum) && soru.final_png_url ? (
                     <div className="my-3 flex justify-center bg-gray-50 p-4 rounded-lg border border-gray-100">
                       <img src={soru.final_png_url} className="max-h-64 object-contain shadow-sm rounded" alt="Final Soru" />
                     </div>
