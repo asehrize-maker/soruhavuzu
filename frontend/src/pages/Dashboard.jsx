@@ -282,7 +282,7 @@ export default function Dashboard() {
           </div>
 
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">📊 İş Yükü Özeti</h2>
+            <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">📊 İş Akış Özeti</h2>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
               <Link to="/brans-havuzu?tab=taslaklar&durum=beklemede" className="p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-300 transition group">
                 <p className="text-xs font-bold text-gray-400 group-hover:text-blue-500 transition">TASLAK</p>
