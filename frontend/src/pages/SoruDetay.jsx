@@ -618,24 +618,93 @@ export default function SoruDetay() {
           {/* SYSTEM LOGS / HISTORY */}
           <div className="bg-white rounded-[3rem] p-8 shadow-xl shadow-gray-200/50 border border-gray-50 space-y-6">
             <h4 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2 uppercase"><ClockIcon className="w-6 h-6 text-amber-500" /> Soru Yaşam Döngüsü</h4>
-            <div className="space-y-6 border-l-2 border-dashed border-gray-100 ml-4 pl-8 pb-4 relative">
-              <div className="absolute top-0 left-[-6px] w-3 h-3 bg-emerald-500 rounded-full ring-4 ring-emerald-100"></div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">HAZIRLIK TAMAMLANDI</p>
-                <p className="text-xs font-bold text-gray-700">Taslak oluşturuldu ve dizgiye hazır hale getirildi.</p>
+            <div className="space-y-4 border-l-2 border-dashed border-gray-200 ml-4 pl-6 pb-2 relative">
+              {/* Oluşturuldu */}
+              <div className="relative">
+                <div className="absolute left-[-30px] w-3 h-3 bg-emerald-500 rounded-full ring-4 ring-emerald-100"></div>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">OLUŞTURULDU</p>
+                  <p className="text-[11px] font-bold text-gray-500">{soru.olusturan_ad} tarafından taslak hazırlandı</p>
+                </div>
               </div>
-              {soru.durum === 'tamamlandi' && (
-                <div className="relative pt-6">
-                  <div className="absolute top-6 left-[-38px] w-3 h-3 bg-emerald-500 rounded-full ring-4 ring-emerald-100"></div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">ORTAK HAVUZA AKTARILDI</p>
-                    <p className="text-xs font-bold text-gray-700">Tüm süreçler bitti, soru son versiyonda.</p>
+
+              {/* Dizgi Bekliyor */}
+              <div className="relative">
+                <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${['dizgi_bekliyor', 'dizgide', 'dizgi_tamam', 'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi', 'tamamlandi'].includes(soru.durum) ? 'bg-purple-500 ring-purple-100' : 'bg-gray-300 ring-gray-100'}`}></div>
+                <div className="space-y-0.5">
+                  <p className={`text-[10px] font-black uppercase tracking-widest ${['dizgi_bekliyor', 'dizgide', 'dizgi_tamam', 'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi', 'tamamlandi'].includes(soru.durum) ? 'text-purple-600' : 'text-gray-400'}`}>DİZGİYE GÖNDERİLDİ</p>
+                  <p className="text-[11px] font-bold text-gray-500">{soru.durum === 'dizgi_bekliyor' ? 'Dizgici ataması bekleniyor' : (soru.dizgici_ad ? `${soru.dizgici_ad} işliyor` : 'Dizgi sürecinde')}</p>
+                </div>
+              </div>
+
+              {/* Dizgi Tamamlandı */}
+              <div className="relative">
+                <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${['dizgi_tamam', 'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi', 'tamamlandi'].includes(soru.durum) ? 'bg-blue-500 ring-blue-100' : 'bg-gray-300 ring-gray-100'}`}></div>
+                <div className="space-y-0.5">
+                  <p className={`text-[10px] font-black uppercase tracking-widest ${['dizgi_tamam', 'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi', 'tamamlandi'].includes(soru.durum) ? 'text-blue-600' : 'text-gray-400'}`}>DİZGİ TAMAMLANDI</p>
+                  <p className="text-[11px] font-bold text-gray-500">Final görsel hazır</p>
+                </div>
+              </div>
+
+              {/* Alan İnceleme */}
+              <div className="relative">
+                <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${soru.onay_alanci || ['alan_onaylandi', 'dil_incelemede', 'dil_onaylandi', 'tamamlandi'].includes(soru.durum) ? 'bg-orange-500 ring-orange-100' : (soru.durum === 'alan_incelemede' ? 'bg-orange-400 ring-orange-100 animate-pulse' : 'bg-gray-300 ring-gray-100')}`}></div>
+                <div className="space-y-0.5">
+                  <p className={`text-[10px] font-black uppercase tracking-widest ${soru.onay_alanci || soru.durum === 'alan_incelemede' ? 'text-orange-600' : 'text-gray-400'}`}>
+                    {soru.onay_alanci ? 'ALAN ONAYLI ✓' : (soru.durum === 'alan_incelemede' ? 'ALAN İNCELEMEDE...' : 'ALAN İNCELEME')}
+                  </p>
+                  <p className="text-[11px] font-bold text-gray-500">{soru.onay_alanci ? 'Uzman onayı alındı' : 'Konu uzmanı kontrolü'}</p>
+                </div>
+              </div>
+
+              {/* Dil İnceleme */}
+              <div className="relative">
+                <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${soru.onay_dilci || soru.durum === 'tamamlandi' ? 'bg-cyan-500 ring-cyan-100' : (soru.durum === 'dil_incelemede' ? 'bg-cyan-400 ring-cyan-100 animate-pulse' : 'bg-gray-300 ring-gray-100')}`}></div>
+                <div className="space-y-0.5">
+                  <p className={`text-[10px] font-black uppercase tracking-widest ${soru.onay_dilci || soru.durum === 'dil_incelemede' ? 'text-cyan-600' : 'text-gray-400'}`}>
+                    {soru.onay_dilci ? 'DİL ONAYLI ✓' : (soru.durum === 'dil_incelemede' ? 'DİL İNCELEMEDE...' : 'DİL İNCELEME')}
+                  </p>
+                  <p className="text-[11px] font-bold text-gray-500">{soru.onay_dilci ? 'Dil uzmanı onayı alındı' : 'Dil ve yazım kontrolü'}</p>
+                </div>
+              </div>
+
+              {/* Tamamlandı */}
+              <div className="relative">
+                <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${soru.durum === 'tamamlandi' ? 'bg-emerald-500 ring-emerald-100' : 'bg-gray-300 ring-gray-100'}`}></div>
+                <div className="space-y-0.5">
+                  <p className={`text-[10px] font-black uppercase tracking-widest ${soru.durum === 'tamamlandi' ? 'text-emerald-600' : 'text-gray-400'}`}>
+                    {soru.durum === 'tamamlandi' ? 'ORTAK HAVUZDA ✓' : 'ORTAK HAVUZ'}
+                  </p>
+                  <p className="text-[11px] font-bold text-gray-500">{soru.durum === 'tamamlandi' ? 'Tüm süreçler tamamlandı' : 'Son aşama'}</p>
+                </div>
+              </div>
+
+              {/* Revize durumu göster */}
+              {['revize_istendi', 'revize_gerekli'].includes(soru.durum) && (
+                <div className="relative mt-4 pt-4 border-t border-dashed border-rose-200">
+                  <div className="absolute left-[-30px] w-3 h-3 bg-rose-500 rounded-full ring-4 ring-rose-100 animate-pulse"></div>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest">⚠️ REVİZE GEREKLİ</p>
+                    <p className="text-[11px] font-bold text-gray-500">Düzeltme yapılması bekleniyor</p>
                   </div>
                 </div>
               )}
             </div>
+
+            {/* Mevcut Durum Kartı */}
+            <div className={`p-5 rounded-[2rem] border text-center ${soru.durum === 'tamamlandi' ? 'bg-emerald-50 border-emerald-100' :
+                ['revize_istendi', 'revize_gerekli'].includes(soru.durum) ? 'bg-rose-50 border-rose-100' :
+                  'bg-gray-50 border-gray-100'
+              }`}>
+              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">GÜNCEL DURUM</p>
+              <p className={`text-sm font-black uppercase tracking-wide ${soru.durum === 'tamamlandi' ? 'text-emerald-700' :
+                  ['revize_istendi', 'revize_gerekli'].includes(soru.durum) ? 'text-rose-700' :
+                    'text-gray-700'
+                }`}>{soru.durum?.replace(/_/g, ' ')}</p>
+            </div>
+
             <div className="p-5 bg-gray-50 rounded-[2rem] border border-gray-100 text-center">
-              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">SON GÜNCELLEME</p>
+              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">OLUŞTURULMA TARİHİ</p>
               <p className="text-xs font-black text-gray-900">{new Date(soru.olusturulma_tarihi).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
             </div>
           </div>
