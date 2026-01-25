@@ -535,7 +535,7 @@ export default function Sorular({ scope }) {
 
                 <div className="ml-4 flex flex-col space-y-2">
                   <Link
-                    to={`/sorular/${soru.id}`}
+                    to={`/sorular/${soru.id}${scope ? `?scope=${scope}` : ''}`}
                     className="btn btn-secondary text-sm text-center"
                   >
                     Detay
@@ -599,7 +599,7 @@ export default function Sorular({ scope }) {
 
                   {user?.rol === 'dizgici' && soru.durum === 'dizgide' && (
                     <Link
-                      to={`/sorular/${soru.id}`}
+                      to={`/sorular/${soru.id}${scope ? `?scope=${scope}` : ''}`}
                       className="btn bg-green-600 text-white hover:bg-green-700 text-sm text-center"
                     >
                       Dizgiyi Tamamla

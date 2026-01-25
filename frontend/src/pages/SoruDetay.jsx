@@ -85,6 +85,7 @@ export default function SoruDetay() {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const incelemeTuru = queryParams.get('incelemeTuru'); // 'alanci' | 'dilci'
+  const scope = queryParams.get('scope');
 
   const { user: authUser, viewRole } = useAuthStore();
   const rawRole = viewRole || authUser?.rol;
