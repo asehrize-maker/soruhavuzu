@@ -8,6 +8,26 @@ import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Public ayarları getir (Giriş sayfası için)
+router.get('/config', async (req, res, next) => {
+  try {
+    const result = await pool.query(`
+      SELECT anahtar, deger 
+      FROM sistem_ayarlari 
+      WHERE anahtar IN ('site_basligi', 'duyuru_aktif', 'duyuru_mesaji', 'kayit_acik', 'footer_metni')
+    `);
+
+    const config = {};
+    result.rows.forEach(row => {
+      config[row.anahtar] = row.deger;
+    });
+
+    res.json({ success: true, data: config });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Kayıt olma
 router.post('/register', [
   body('ad_soyad').trim().notEmpty().withMessage('Ad soyad gerekli'),

@@ -43,6 +43,7 @@ export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
   getMe: () => api.get('/auth/me'),
+  getConfig: () => api.get('/auth/config'), // Yeni public endpoint
   me: () => api.get('/auth/me'),
 };
 
