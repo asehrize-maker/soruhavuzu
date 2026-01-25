@@ -308,102 +308,6 @@ export default function Dashboard() {
               </Link>
             </div>
           </div>
-
-
-
-
-          {/* 1. EKİP İSTATİSTİKLERİ */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8">
-            <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">🏆 Ekip Bazlı İstatistikler</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50 text-gray-700 font-bold uppercase text-xs">
-                  <tr>
-                    <th className="px-4 py-3 rounded-l-lg">Ekip Adı</th>
-                    <th className="px-4 py-3 text-center">Toplam Soru</th>
-                    <th className="px-4 py-3 text-center">Bekleyen</th>
-                    <th className="px-4 py-3 text-center">Dizgide</th>
-                    <th className="px-4 py-3 text-center">İncelemede</th>
-                    <th className="px-4 py-3 text-center rounded-r-lg">Tamamlanan</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {detayliStats?.ekipler?.map((ekip) => (
-                    <tr key={ekip.id} className="hover:bg-gray-50 transition">
-                      <td className="px-4 py-3 font-bold text-gray-800">{ekip.ekip_adi || 'Atanmamış'}</td>
-                      <td className="px-4 py-3 text-center font-bold text-blue-600">{ekip.soru_sayisi}</td>
-                      <td className="px-4 py-3 text-center text-gray-600 font-medium">{ekip.beklemede}</td>
-                      <td className="px-4 py-3 text-center text-orange-600 font-medium">{ekip.dizgide}</td>
-                      <td className="px-4 py-3 text-center text-purple-600 font-medium">{ekip.incelemede}</td>
-                      <td className="px-4 py-3 text-center text-green-600 font-bold">{ekip.tamamlandi}</td>
-                    </tr>
-                  ))}
-                  {(!detayliStats?.ekipler || detayliStats.ekipler.length === 0) && (
-                    <tr><td colSpan="6" className="text-center py-4 text-gray-400">Veri bulunamadı</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* 2. BRANŞ İSTATİSTİKLERİ (Hiyerarşik: Branş -> Ekipler) */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">📊 Branş Bazlı Detaylar (Branş &rarr; Ekipler)</h2>
-            <div className="space-y-8">
-              {detayliStats?.branslar && Object.entries(
-                detayliStats.branslar.reduce((acc, curr) => {
-                  const bKey = curr.brans_adi;
-                  if (!acc[bKey]) acc[bKey] = [];
-                  acc[bKey].push(curr);
-                  return acc;
-                }, {})
-              ).map(([bransAdi, branchItems]) => (
-                <div key={bransAdi} className="border rounded-xl overflow-hidden">
-                  <div className="bg-blue-50 px-6 py-4 border-b flex justify-between items-center">
-                    <h3 className="font-bold text-blue-900 text-lg">{bransAdi}</h3>
-                    <span className="text-xs bg-white text-blue-600 border border-blue-200 px-3 py-1 rounded-full font-bold">{branchItems.length} Ekip</span>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-gray-50 text-gray-500 font-medium uppercase text-[10px] border-b">
-                        <tr>
-                          <th className="px-6 py-3">Ekip Adı</th>
-                          <th className="px-6 py-3 text-center">Toplam</th>
-                          <th className="px-6 py-3 text-center">Bekleyen</th>
-                          <th className="px-6 py-3 text-center">Dizgide</th>
-                          <th className="px-6 py-3 text-center">İncelemede</th>
-                          <th className="px-6 py-3 text-center">Tamamlanan</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50">
-                        {branchItems.map(item => (
-                          <tr key={item.id} className="hover:bg-gray-50 transition">
-                            <td className="px-6 py-3 font-bold text-gray-700">{item.ekip_adi || 'Ekipsiz / Atanmamış'}</td>
-                            <td className="px-6 py-3 text-center font-bold text-blue-600">{item.soru_sayisi}</td>
-                            <td className="px-6 py-3 text-center text-gray-500">{item.beklemede}</td>
-                            <td className="px-6 py-3 text-center text-orange-600 font-medium">{item.dizgide}</td>
-                            <td className="px-6 py-3 text-center text-purple-600 font-medium">{item.incelemede}</td>
-                            <td className="px-6 py-3 text-center text-green-600 font-bold">{item.tamamlandi}</td>
-                          </tr>
-                        ))}
-                        <tr className="bg-gray-50 font-bold text-xs border-t-2 border-gray-100">
-                          <td className="px-6 py-3 text-right text-gray-600 uppercase tracking-widest">TOPLAM ({bransAdi})</td>
-                          <td className="px-6 py-3 text-center text-blue-700">{branchItems.reduce((a, b) => a + Number(b.soru_sayisi), 0)}</td>
-                          <td className="px-6 py-3 text-center text-gray-600">{branchItems.reduce((a, b) => a + Number(b.beklemede), 0)}</td>
-                          <td className="px-6 py-3 text-center text-orange-700">{branchItems.reduce((a, b) => a + Number(b.dizgide), 0)}</td>
-                          <td className="px-6 py-3 text-center text-purple-700">{branchItems.reduce((a, b) => a + Number(b.incelemede), 0)}</td>
-                          <td className="px-6 py-3 text-center text-green-700">{branchItems.reduce((a, b) => a + Number(b.tamamlandi), 0)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ))}
-              {(!detayliStats?.branslar || detayliStats.branslar.length === 0) && (
-                <div className="text-center py-8 text-gray-400">Veri bulunamadı</div>
-              )}
-            </div>
-          </div>
         </div>
       ) : activeRole === 'incelemeci' ? (
         reviewMode ? (
@@ -545,8 +449,7 @@ export default function Dashboard() {
             </Link>
           </div>
         </div>
-      ) : null
-      }
-    </div >
+      ) : null}
+    </div>
   );
 }
