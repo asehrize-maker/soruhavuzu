@@ -19,7 +19,8 @@ import {
   RocketLaunchIcon,
   MagnifyingGlassPlusIcon,
   ArchiveBoxArrowDownIcon,
-  PrinterIcon
+  PrinterIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 
 export default function Sorular({ scope }) {
