@@ -1539,7 +1539,9 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
           ${canAlan ? "COUNT(*) FILTER(WHERE s.durum IN ('alan_incelemede', 'inceleme_bekliyor', 'incelemede'))" : "0"} as inceleme_bekliyor_alanci,
           ${canDil ? "COUNT(*) FILTER(WHERE s.durum IN ('dil_incelemede', 'inceleme_bekliyor', 'incelemede'))" : "0"} as inceleme_bekliyor_dilci
         FROM sorular s
-        ${isAdmin ? '' : 'JOIN branslar b ON s.brans_id = b.id WHERE b.ekip_id = $1'}
+        JOIN branslar b ON s.brans_id = b.id
+        LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
+        ${isAdmin ? '' : 'WHERE (b.ekip_id = $1 OR k.ekip_id = $1)'}
       `;
       params = isAdmin ? [] : [req.user.ekip_id || -1];
     } else {
@@ -1923,22 +1925,24 @@ router.get('/stats/inceleme-detayli', authenticate, async (req, res, next) => {
     }
 
     const query = `
-SELECT
-COALESCE(e.id, 0) as ekip_id,
-  COALESCE(e.ekip_adi, 'Ekipsiz Branşlar') as ekip_adi,
-  b.id as brans_id,
-  b.brans_adi,
-  COUNT(s.id) FILTER(WHERE s.durum IN('inceleme_bekliyor', 'incelemede', 'revize_istendi', 'alan_incelemede') AND s.onay_alanci = false) as alanci_bekleyen,
-    COUNT(s.id) FILTER(WHERE s.durum IN('inceleme_bekliyor', 'incelemede', 'revize_istendi', 'dil_incelemede') AND s.onay_dilci = false) as dilci_bekleyen,
+    SELECT
+      COALESCE(e.id, ${req.user.ekip_id || 0}) as ekip_id,
+      COALESCE(e.ekip_adi, 'Genel / Paylaşımlı') as ekip_adi,
+      b.id as brans_id,
+      b.brans_adi,
+      COUNT(s.id) FILTER(WHERE s.durum IN('inceleme_bekliyor', 'incelemede', 'revize_istendi', 'alan_incelemede') AND s.onay_alanci = false) as alanci_bekleyen,
+      COUNT(s.id) FILTER(WHERE s.durum IN('inceleme_bekliyor', 'incelemede', 'revize_istendi', 'dil_incelemede') AND s.onay_dilci = false) as dilci_bekleyen,
       COUNT(s.id) as toplam_bekleyen
-      FROM branslar b
-      LEFT JOIN ekipler e ON b.ekip_id = e.id
-      LEFT JOIN sorular s ON s.brans_id = b.id AND s.durum IN('inceleme_bekliyor', 'incelemede', 'revize_istendi', 'alan_incelemede', 'dil_incelemede')
-      WHERE 1=1 ${req.user.rol !== 'admin' ? `AND e.id = ${req.user.ekip_id || -1}` : ''}
-      GROUP BY e.id, e.ekip_adi, b.id, b.brans_adi
-      HAVING COUNT(s.id) > 0
-      ORDER BY e.ekip_adi NULLS LAST, b.brans_adi
-  `;
+    FROM sorular s
+    JOIN branslar b ON s.brans_id = b.id
+    LEFT JOIN ekipler e ON b.ekip_id = e.id
+    LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
+    WHERE 
+      s.durum IN('inceleme_bekliyor', 'incelemede', 'revize_istendi', 'alan_incelemede', 'dil_incelemede')
+      ${req.user.rol !== 'admin' ? `AND (b.ekip_id = ${req.user.ekip_id || -1} OR k.ekip_id = ${req.user.ekip_id || -1})` : ''}
+    GROUP BY e.id, e.ekip_adi, b.id, b.brans_adi
+    ORDER BY b.brans_adi
+    `;
 
     const result = await pool.query(query);
 
