@@ -3,6 +3,7 @@ import { useOutletContext, Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { soruAPI, bransAPI, userAPI } from '../services/api';
 import {
+  ArrowPathIcon,
   ChartBarIcon,
   UserGroupIcon,
   DocumentTextIcon,
@@ -10,8 +11,7 @@ import {
   ClockIcon,
   BookOpenIcon,
   PencilSquareIcon,
-  InformationCircleIcon,
-  ArrowPathIcon
+  InformationCircleIcon
 } from '@heroicons/react/24/outline';
 
 const normalizeZorlukToScale = (value) => {

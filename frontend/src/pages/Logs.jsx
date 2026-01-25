@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { userAPI } from '../services/api';
 import {
-    ShieldCheckIcon,
     ArrowPathIcon,
+    ShieldCheckIcon,
     CircleStackIcon,
     UserCircleIcon,
     ComputerDesktopIcon,
@@ -58,8 +58,8 @@ export default function Logs() {
                 <button
                     onClick={() => setActiveTab('login')}
                     className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'login'
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'text-gray-500 hover:bg-gray-50'
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'text-gray-500 hover:bg-gray-50'
                         }`}
                 >
                     <ComputerDesktopIcon className="w-5 h-5" />
@@ -68,8 +68,8 @@ export default function Logs() {
                 <button
                     onClick={() => setActiveTab('activity')}
                     className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'activity'
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'text-gray-500 hover:bg-gray-50'
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'text-gray-500 hover:bg-gray-50'
                         }`}
                 >
                     <CircleStackIcon className="w-5 h-5" />
@@ -153,8 +153,8 @@ export default function Logs() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${log.islem_turu.includes('silme') ? 'bg-red-100 text-red-700' :
-                                                        log.islem_turu.includes('ekleme') ? 'bg-green-100 text-green-700' :
-                                                            'bg-blue-100 text-blue-700'
+                                                    log.islem_turu.includes('ekleme') ? 'bg-green-100 text-green-700' :
+                                                        'bg-blue-100 text-blue-700'
                                                     }`}>
                                                     {log.islem_turu.replace(/_/g, ' ')}
                                                 </span>
