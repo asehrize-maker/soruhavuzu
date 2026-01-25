@@ -127,7 +127,7 @@ export const soruAPI = {
 // Bildirim API
 export const bildirimAPI = {
   getAll: () => api.get('/bildirimler'),
-  getOkunmamiSayisi: () => api.get('/bildirimler/okunmamis-sayisi'),
+  getOkunmamisSayisi: () => api.get('/bildirimler/okunmamis-sayisi'),
   markAsRead: (id) => api.put(`/bildirimler/${id}/okundu`),
   markAllAsRead: () => api.put('/bildirimler/hepsini-okundu-isaretle'),
   duyuruGonder: (data) => api.post('/bildirimler/duyuru', data),

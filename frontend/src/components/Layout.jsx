@@ -40,7 +40,7 @@ export default function Layout() {
     try {
       const [mesajRes, bildirimRes] = await Promise.all([
         kullaniciMesajAPI.getOkunmamisSayisi().catch(() => ({ data: { data: { sayi: 0 } } })),
-        bildirimAPI.getOkunmamiSayisi().catch(() => ({ data: { data: { sayi: 0 } } })),
+        bildirimAPI.getOkunmamisSayisi().catch(() => ({ data: { data: { sayi: 0 } } })),
       ]);
       setOkunmamisMesajSayisi(mesajRes.data.data?.sayi || 0);
       setOkunmamisBildirimSayisi(bildirimRes.data.data?.sayi || 0);
