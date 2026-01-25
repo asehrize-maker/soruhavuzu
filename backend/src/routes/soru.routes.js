@@ -695,11 +695,23 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
     const { id } = req.params;
     const { yeni_durum, aciklama } = req.body;
 
+    // Backend güncel durum listesi (DB ile hizalı)
     const allowedStatuses = [
-      'beklemede', 'dizgi_bekliyor', 'dizgide', 'dizgi_tamam',
-      'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi',
-      'revize_istendi', 'revize_gerekli', 'inceleme_bekliyor', 'inceleme_tamam',
-      'tamamlandi', 'arsiv'
+      'beklemede',
+      'dizgi_bekliyor',
+      'dizgide',
+      'dizgi_tamam',
+      'alan_incelemede',
+      'alan_onaylandi',
+      'dil_incelemede',
+      'dil_onaylandi',
+      'revize_istendi',
+      'revize_gerekli',
+      'inceleme_bekliyor',
+      'incelemede',       // DB kısıtında var, API listesinde eksikti
+      'inceleme_tamam',
+      'tamamlandi',
+      'arsiv'
     ];
 
     if (!allowedStatuses.includes(yeni_durum)) {
