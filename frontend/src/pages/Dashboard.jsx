@@ -10,7 +10,8 @@ import {
   ClockIcon,
   BookOpenIcon,
   PencilSquareIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 
 const normalizeZorlukToScale = (value) => {
