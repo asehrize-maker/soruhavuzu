@@ -144,6 +144,13 @@ router.get('/', authenticate, async (req, res, next) => {
     const targetRole = (req.user.rol === 'admin' && req.query.role) ? req.query.role.toLowerCase() : req.user.rol;
     console.log('Final Target Role for Isolation:', targetRole);
 
+    // EKİP İZOLASYONU (Admin hariç herkese uygula)
+    // Eğer kullanıcının bir ekibi varsa, sadece kendi ekibindeki branşlara ait soruları görebilir
+    if (req.user.rol !== 'admin' && req.user.ekip_id) {
+      query += ` AND b.ekip_id = $${paramCount++}`;
+      params.push(req.user.ekip_id);
+    }
+
     // İnceleme yetkisi kontrolü (Flag veya Rol bazlı)
     const isReviewerRole = targetRole === 'incelemeci' || targetRole === 'alan_incelemeci' || targetRole === 'dil_incelemeci';
     const hasReviewFlags = req.user.inceleme_alanci || req.user.inceleme_dilci;
@@ -1492,7 +1499,7 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
       `;
       params = isActuallyAdmin ? [] : [req.user.id];
     } else if (targetRole === 'dizgici') {
-      // Dizgici: Genel havuzdaki işler
+      // Dizgici: Genel havuzdaki işler (Sadece kendi ekibindekiler)
       query = `
         SELECT
           COUNT(*) FILTER(WHERE s.durum IN ('dizgi_bekliyor', 'revize_istendi')) as dizgi_bekliyor,
@@ -1500,8 +1507,12 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
           COUNT(*) FILTER(WHERE (s.durum = 'dizgi_tamam' AND s.dizgici_id = $1) OR (s.durum = 'tamamlandi' AND s.final_png_url IS NULL AND s.dizgici_id = $1)) as dosya_bekliyor,
           COUNT(*) FILTER(WHERE s.durum = 'tamamlandi' AND s.final_png_url IS NOT NULL) as tamamlandi
         FROM sorular s
+        JOIN branslar b ON s.brans_id = b.id
+        WHERE b.ekip_id = $2
       `;
-      params = [req.user.id];
+      // Parametreler: [userId, ekipId]
+      // req.user.ekip_id yoksa (örn. null ise) -1 vererek hiçbir şey döndürmemesini sağla veya mantıklı bir default
+      params = [req.user.id, req.user.ekip_id || -1];
     } else if (targetRole === 'alan_incelemeci' || targetRole === 'dil_incelemeci') {
       const isAlan = targetRole === 'alan_incelemeci';
       const isActuallyAdmin = req.user.rol === 'admin';
@@ -1516,13 +1527,15 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
       const canDil = isAdmin || !!req.user.inceleme_dilci;
 
       // İncelemeciler için branch kısıtlamasını kaldırıyoruz (Küresel müfettiş rolü)
+      // ANCAK: Ekip kısıtlaması ekliyoruz. Sadece kendi ekibine ait soruların sayılarını görebilir.
       query = `
         SELECT
           ${canAlan ? "COUNT(*) FILTER(WHERE s.durum IN ('alan_incelemede', 'inceleme_bekliyor', 'incelemede'))" : "0"} as inceleme_bekliyor_alanci,
           ${canDil ? "COUNT(*) FILTER(WHERE s.durum IN ('dil_incelemede', 'inceleme_bekliyor', 'incelemede'))" : "0"} as inceleme_bekliyor_dilci
         FROM sorular s
+        ${isAdmin ? '' : 'JOIN branslar b ON s.brans_id = b.id WHERE b.ekip_id = $1'}
       `;
-      params = [];
+      params = isAdmin ? [] : [req.user.ekip_id || -1];
     } else {
       // Admin: Global istatistikler
       query = `
@@ -1915,6 +1928,7 @@ COALESCE(e.id, 0) as ekip_id,
       FROM branslar b
       LEFT JOIN ekipler e ON b.ekip_id = e.id
       LEFT JOIN sorular s ON s.brans_id = b.id AND s.durum IN('inceleme_bekliyor', 'incelemede', 'revize_istendi', 'alan_incelemede', 'dil_incelemede')
+      WHERE 1=1 ${req.user.rol !== 'admin' ? `AND e.id = ${req.user.ekip_id || -1}` : ''}
       GROUP BY e.id, e.ekip_adi, b.id, b.brans_adi
       HAVING COUNT(s.id) > 0
       ORDER BY e.ekip_adi NULLS LAST, b.brans_adi
