@@ -208,6 +208,38 @@ export default function Dashboard() {
     return { groupedTeams: grouped, teamAggregates: aggregates };
   }, [incelemeBransCounts, reviewMode]);
 
+  const [expandedBranch, setExpandedBranch] = useState(null);
+
+  const groupedBranchStats = useMemo(() => {
+    if (!detayliStats?.branslar) return [];
+
+    const groups = {};
+    detayliStats.branslar.forEach(item => {
+      const id = item.id;
+      if (!groups[id]) {
+        groups[id] = {
+          id: id,
+          brans_adi: item.brans_adi,
+          teams: [],
+          total: {
+            soru: 0, beklemede: 0, incelemede: 0, revize: 0,
+            dizgide: 0, onay: 0, tamamlandi: 0
+          }
+        };
+      }
+      groups[id].teams.push(item);
+      groups[id].total.soru += Number(item.soru_sayisi || 0);
+      groups[id].total.beklemede += Number(item.beklemede || 0);
+      groups[id].total.incelemede += Number(item.incelemede || 0);
+      groups[id].total.revize += Number(item.revize || 0);
+      groups[id].total.dizgide += Number(item.dizgide || 0);
+      groups[id].total.onay += Number(item.onay_bekleyen || 0);
+      groups[id].total.tamamlandi += Number(item.tamamlandi || 0);
+    });
+
+    return Object.values(groups).sort((a, b) => b.total.soru - a.total.soru);
+  }, [detayliStats]);
+
   // 2. CONDITIONAL RENDERING (After all hooks)
   if (loading) {
     return (
@@ -284,8 +316,7 @@ export default function Dashboard() {
               <table className="min-w-full text-sm text-left">
                 <thead className="bg-gray-50 text-gray-600 font-bold uppercase text-xs">
                   <tr>
-                    <th className="px-4 py-3 rounded-l-lg">Ekip</th>
-                    <th className="px-4 py-3">Branş</th>
+                    <th className="px-4 py-3 rounded-l-lg cursor-help" title="Alt ekipleri görmek için branş ismine tıklayın">Branş (Detay)</th>
                     <th className="px-4 py-3 text-center">Toplam</th>
                     <th className="px-4 py-3 text-center text-gray-400">Taslak</th>
                     <th className="px-4 py-3 text-center text-blue-600">İnceleme</th>
@@ -296,22 +327,46 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {detayliStats?.branslar?.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50 transition">
-                      <td className="px-4 py-3 font-semibold text-gray-700">{item.ekip_adi}</td>
-                      <td className="px-4 py-3 text-gray-600">{item.brans_adi}</td>
-                      <td className="px-4 py-3 text-center font-bold bg-gray-50/50">{item.soru_sayisi}</td>
-                      <td className="px-4 py-3 text-center text-gray-400">{item.beklemede || '-'}</td>
-                      <td className="px-4 py-3 text-center text-blue-600 font-medium">{item.incelemede || '-'}</td>
-                      <td className="px-4 py-3 text-center text-red-600 font-medium">{item.revize || '-'}</td>
-                      <td className="px-4 py-3 text-center text-orange-600 font-medium">{item.dizgide || '-'}</td>
-                      <td className="px-4 py-3 text-center text-emerald-600 font-medium">{item.onay_bekleyen || '-'}</td>
-                      <td className="px-4 py-3 text-center text-green-700 font-bold bg-green-50/30">{item.tamamlandi || '-'}</td>
-                    </tr>
+                  {groupedBranchStats.map((group) => (
+                    <>
+                      <tr
+                        key={group.id}
+                        className="hover:bg-gray-50 transition cursor-pointer group"
+                        onClick={() => setExpandedBranch(expandedBranch === group.id ? null : group.id)}
+                      >
+                        <td className="px-4 py-3 font-semibold text-gray-700 flex items-center gap-2">
+                          <span className={`transition-transform duration-200 ${expandedBranch === group.id ? 'rotate-90' : ''}`}>▶</span>
+                          {group.brans_adi}
+                        </td>
+                        <td className="px-4 py-3 text-center font-bold bg-gray-50/50">{group.total.soru}</td>
+                        <td className="px-4 py-3 text-center text-gray-400">{group.total.beklemede || '-'}</td>
+                        <td className="px-4 py-3 text-center text-blue-600 font-medium">{group.total.incelemede || '-'}</td>
+                        <td className="px-4 py-3 text-center text-red-600 font-medium">{group.total.revize || '-'}</td>
+                        <td className="px-4 py-3 text-center text-orange-600 font-medium">{group.total.dizgide || '-'}</td>
+                        <td className="px-4 py-3 text-center text-emerald-600 font-medium">{group.total.onay || '-'}</td>
+                        <td className="px-4 py-3 text-center text-green-700 font-bold bg-green-50/30">{group.total.tamamlandi || '-'}</td>
+                      </tr>
+                      {expandedBranch === group.id && (
+                        group.teams.map((team, idx) => (
+                          <tr key={`${group.id}-${idx}`} className="bg-gray-50/50 animate-fade-in text-xs">
+                            <td className="px-4 py-2 pl-12 text-gray-500 font-medium flex items-center gap-2">
+                              <span>↳</span> {team.ekip_adi}
+                            </td>
+                            <td className="px-4 py-2 text-center text-gray-500">{team.soru_sayisi}</td>
+                            <td className="px-4 py-2 text-center text-gray-400 opacity-70">{team.beklemede || '-'}</td>
+                            <td className="px-4 py-2 text-center text-blue-500 opacity-70">{team.incelemede || '-'}</td>
+                            <td className="px-4 py-2 text-center text-red-500 opacity-70">{team.revize || '-'}</td>
+                            <td className="px-4 py-2 text-center text-orange-500 opacity-70">{team.dizgide || '-'}</td>
+                            <td className="px-4 py-2 text-center text-emerald-500 opacity-70">{team.onay_bekleyen || '-'}</td>
+                            <td className="px-4 py-2 text-center text-green-600 opacity-70">{team.tamamlandi || '-'}</td>
+                          </tr>
+                        ))
+                      )}
+                    </>
                   ))}
-                  {(!detayliStats?.branslar || detayliStats.branslar.length === 0) && (
+                  {groupedBranchStats.length === 0 && (
                     <tr>
-                      <td colSpan="9" className="text-center py-8 text-gray-400">Veri bulunamadı</td>
+                      <td colSpan="8" className="text-center py-8 text-gray-400">Veri bulunamadı</td>
                     </tr>
                   )}
                 </tbody>
