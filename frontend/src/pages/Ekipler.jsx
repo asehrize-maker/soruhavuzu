@@ -98,9 +98,55 @@ export default function Ekipler() {
     } catch (e) { console.error(e); }
   };
 
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [selectedUserToAdd, setSelectedUserToAdd] = useState('');
+
+  // ... (existing code)
+
+  const handleRemoveMember = async (userId) => {
+    if (!confirm('Bu kullanıcıyı ekipten çıkarmak istediğinize emin misiniz?')) return;
+    try {
+      await userAPI.update(userId, { ekip_id: null }); // Send null to unassign
+
+      // Refresh user list
+      const userRes = await userAPI.getAll();
+      setUsers(userRes.data.data);
+      alert('Kullanıcı ekipten çıkarıldı');
+    } catch (error) {
+      alert('İşlem başarısız: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  const handleAddMemberToTeam = async (e) => {
+    e.preventDefault();
+    if (!selectedUserToAdd || !selectedTeam) return;
+
+    try {
+      await userAPI.update(selectedUserToAdd, { ekip_id: selectedTeam.id });
+
+      // Refresh users
+      const userRes = await userAPI.getAll();
+      setUsers(userRes.data.data);
+
+      setShowAddMemberModal(false);
+      setSelectedUserToAdd('');
+      alert('Kullanıcı ekibe eklendi');
+    } catch (error) {
+      alert('Ekleme başarısız: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
   const getTeamUsers = (teamId) => {
     if (!users) return [];
     return users.filter(u => u.ekip_id === teamId);
+  };
+
+  const getAvailableUsers = () => {
+    if (!users) return [];
+    // Kullanıcı zaten bu ekipteyse gösterme. Başka ekipteyse de gösterebiliriz (transfer için)
+    // Ama şimdilik sadece boşta olanları veya diğer ekipten transfer edilecekleri gösterelim.
+    // Dashboard'daki logic: All users except those already in THIS team.
+    return users.filter(u => u.ekip_id !== selectedTeam?.id).sort((a, b) => a.ad_soyad.localeCompare(b.ad_soyad));
   };
 
   return (
@@ -185,14 +231,22 @@ export default function Ekipler() {
                 <h2 className="text-2xl font-bold text-gray-900">{selectedTeam.ekip_adi}</h2>
                 <p className="text-sm text-gray-500 mt-1">Ekip Detayları ve Üyeleri</p>
               </div>
-              <button
-                onClick={() => setShowDetailModal(false)}
-                className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-white"
-              >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowAddMemberModal(true)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-bold flex items-center gap-2"
+                >
+                  <span>+ Üye Ekle</span>
+                </button>
+                <button
+                  onClick={() => setShowDetailModal(false)}
+                  className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-white"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div className="p-6 overflow-y-auto">
@@ -211,6 +265,7 @@ export default function Ekipler() {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branş</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -243,6 +298,14 @@ export default function Ekipler() {
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {user.email}
                             </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                              <button
+                                onClick={() => handleRemoveMember(user.id)}
+                                className="text-red-600 hover:text-red-900 font-medium text-xs bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition"
+                              >
+                                Çıkar
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -260,6 +323,38 @@ export default function Ekipler() {
                 Kapat
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Member Modal */}
+      {showAddMemberModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold mb-4">Ekibe Üye Ekle</h3>
+            <form onSubmit={handleAddMemberToTeam}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Kullanıcı Seçin</label>
+                <select
+                  className="input"
+                  value={selectedUserToAdd}
+                  onChange={e => setSelectedUserToAdd(e.target.value)}
+                  required
+                >
+                  <option value="">Seçiniz...</option>
+                  {getAvailableUsers().map(u => (
+                    <option key={u.id} value={u.id}>
+                      {u.ad_soyad} ({u.ekip_adi ? `Mevcut: ${u.ekip_adi}` : 'Ekipsiz'}) - {u.rol}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Not: Başka bir ekibe kayıtlı kullanıcıyı seçerseniz, kullanıcının ekibi değiştirilecektir.</p>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setShowAddMemberModal(false)} className="btn btn-secondary">İptal</button>
+                <button type="submit" className="btn btn-primary">Ekle</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
