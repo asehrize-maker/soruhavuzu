@@ -311,35 +311,52 @@ export default function Dashboard() {
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
               <ClockIcon className="w-6 h-6 text-blue-500" />
-              Son Aktiviteler
+              Sistem Akış Özeti
             </h2>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {detayliStats?.sonAktiviteler?.length > 0 ? (
-                detayliStats.sonAktiviteler.map((activity, idx) => (
-                  <div key={idx} className="flex items-start gap-4 p-3 hover:bg-gray-50 rounded-lg transition border-b last:border-0 border-gray-50">
-                    <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${activity.durum === 'beklemede' ? 'bg-gray-400' :
-                        activity.durum === 'tamamlandi' ? 'bg-green-500' :
-                          activity.durum === 'revize_istendi' ? 'bg-red-500' :
-                            activity.durum === 'dizgide' ? 'bg-orange-500' :
-                              'bg-blue-500'
-                      }`} />
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start">
-                        <span className="text-sm font-semibold text-gray-900">{activity.kullanici_adi || 'Bilinmeyen Kullanıcı'}</span>
-                        <span className="text-xs text-gray-400">{new Date(activity.tarih).toLocaleDateString('tr-TR')} {new Date(activity.tarih).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+                detayliStats.sonAktiviteler.slice(0, 10).map((activity, idx) => {
+                  const islem = activity.durum; // Backend islem_turu'nu durum olarak gönderiyor
+                  let icon = <ClockIcon className="w-5 h-5" />;
+                  let iconBg = "bg-gray-100 text-gray-500";
+
+                  if (islem === 'soru_ekleme') {
+                    icon = <PencilSquareIcon className="w-5 h-5" />;
+                    iconBg = "bg-green-100 text-green-600";
+                  } else if (islem === 'durum_degisikligi') {
+                    icon = <ArrowPathIcon className="w-5 h-5" />;
+                    iconBg = "bg-blue-100 text-blue-600";
+                  } else if (islem === 'dizgi_yukleme' || islem === 'dizgi_bitirme') {
+                    icon = <CheckCircleIcon className="w-5 h-5" />;
+                    iconBg = "bg-purple-100 text-purple-600";
+                  } else if (islem === 'soru_silme') {
+                    icon = <InformationCircleIcon className="w-5 h-5" />;
+                    iconBg = "bg-red-100 text-red-600";
+                  }
+
+                  return (
+                    <div key={idx} className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-xl transition-all border border-transparent hover:border-gray-100 group">
+                      <div className={`p-2 rounded-lg flex-shrink-0 ${iconBg} shadow-sm group-hover:scale-110 transition-transform`}>
+                        {icon}
                       </div>
-                      <p className="text-xs text-gray-600 mt-1">
-                        <span className="font-medium text-gray-700">{activity.ekip_adi || '-'} / {activity.brans_adi}</span> branşında soruyu güncelledi.
-                      </p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded uppercase font-bold tracking-wider">{activity.durum.replace('_', ' ')}</span>
-                        <span className="text-xs text-gray-400 line-clamp-1 italic">"{activity.metin_ozeti}..."</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="text-sm font-bold text-gray-900 truncate">{activity.kullanici_adi}</span>
+                          <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap">{new Date(activity.tarih).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <p className="text-xs text-gray-500 truncate mt-0.5">
+                          {activity.aciklama || activity.metin_ozeti}
+                        </p>
+                      </div>
+                      <div className="hidden md:block text-right">
+                        <span className="text-[10px] font-bold text-gray-400 block uppercase">{activity.brans_adi}</span>
+                        <span className="text-[9px] text-gray-300 block">{new Date(activity.tarih).toLocaleDateString('tr-TR')}</span>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
-                <div className="text-center py-8 text-gray-400 italic">Henüz aktivite kaydı yok.</div>
+                <div className="text-center py-8 text-gray-300 italic text-sm">Henüz aktivite kaydı bulunmuyor.</div>
               )}
             </div>
           </div>
