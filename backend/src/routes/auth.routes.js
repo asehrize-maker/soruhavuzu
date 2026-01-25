@@ -131,6 +131,18 @@ router.post('/login', [
       expiresIn: process.env.JWT_EXPIRE || '7d'
     });
 
+    // Giriş logu oluştur
+    try {
+      const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+      const userAgent = req.get('User-Agent');
+      await pool.query(
+        'INSERT INTO giris_loglari (kullanici_id, ip_adresi, user_agent) VALUES ($1, $2, $3)',
+        [user.id, ip, userAgent]
+      );
+    } catch (logError) {
+      console.error('Giriş logu kaydedilemedi:', logError);
+    }
+
     // Şifreyi response'dan çıkar
     delete user.sifre;
 

@@ -292,4 +292,36 @@ router.delete('/:id', authenticate, authorize('admin'), async (req, res, next) =
   }
 });
 
+// Giriş loglarını getir (Sadece admin)
+router.get('/logs/login', authenticate, authorize('admin'), async (req, res, next) => {
+  try {
+    const result = await pool.query(`
+      SELECT g.*, k.ad_soyad, k.email, k.rol
+      FROM giris_loglari g
+      LEFT JOIN kullanicilar k ON g.kullanici_id = k.id
+      ORDER BY g.tarih DESC
+      LIMIT 200
+    `);
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Aktivite loglarını getir (Sadece admin)
+router.get('/logs/activity', authenticate, authorize('admin'), async (req, res, next) => {
+  try {
+    const result = await pool.query(`
+      SELECT a.*, k.ad_soyad, k.email, k.rol
+      FROM aktivite_loglari a
+      LEFT JOIN kullanicilar k ON a.kullanici_id = k.id
+      ORDER BY a.tarih DESC
+      LIMIT 200
+    `);
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

@@ -14,6 +14,7 @@ import DizgiYonetimi from './pages/DizgiYonetimi';
 import Mesajlar from './pages/Mesajlar';
 import Raporlar from './pages/Raporlar';
 import Duyurular from './pages/Duyurular';
+import Logs from './pages/Logs';
 import Layout from './components/Layout';
 
 function PrivateRoute({ children }) {
@@ -68,6 +69,11 @@ function App() {
         <Route path="duyurular" element={
           <AdminRoute>
             <Duyurular />
+          </AdminRoute>
+        } />
+        <Route path="logs" element={
+          <AdminRoute>
+            <Logs />
           </AdminRoute>
         } />
       </Route>

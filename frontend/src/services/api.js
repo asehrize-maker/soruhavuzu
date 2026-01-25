@@ -54,6 +54,8 @@ export const userAPI = {
   update: (id, data) => api.put(`/users/${id}`, data),
   delete: (id) => api.delete(`/users/${id}`),
   getOnline: () => api.get('/users/online'),
+  getLoginLogs: () => api.get('/users/logs/login'),
+  getActivityLogs: () => api.get('/users/logs/activity'),
 };
 
 // Ekip API
