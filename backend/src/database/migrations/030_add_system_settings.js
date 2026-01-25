@@ -19,8 +19,12 @@ export const addSystemSettings = async () => {
             ['bakim_modu', 'false', 'Siteyi bakıma alır, admin dışındaki girişleri engeller (true/false)'],
             ['kayit_acik', 'true', 'Dışarıdan kullanıcı kaydına izin verir (true/false)'],
             ['iletisim_email', 'admin@soruhavuzu.com', 'Sistem üzerinden gönderilecek otomatik e-postalar için kaynak adres'],
-            ['duyuru_aktif', 'false', 'Giriş sayfasında global bir duyuru gösterir (true/false)'],
-            ['duyuru_mesaji', '', 'Duyuru metni'],
+            ['duyuru_aktif', 'false', 'Giriş sayfasında (Giriş yapmadan önce) global bir duyuru gösterir (true/false)'],
+            ['duyuru_mesaji', '', 'Giriş sayfası duyuru metni'],
+            ['panel_duyuru_aktif', 'false', 'Kullanıcı paneline girişte (Dashboard) duyuru gösterir (true/false)'],
+            ['panel_duyuru_baslik', 'Sistem Duyurusu', 'Panel duyuru başlığı'],
+            ['panel_duyuru_mesaj', '', 'Panel duyuru içeriği'],
+            ['panel_duyuru_tip', 'info', 'Panel duyuru tipi (info, success, warning, error)'],
             ['footer_metni', '© 2026 Soru Havuzu Yönetim Sistemi', 'Sayfa alt bilgisinde görünecek metin']
         ];
 

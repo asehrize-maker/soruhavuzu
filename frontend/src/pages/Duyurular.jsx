@@ -1,20 +1,40 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import { bildirimAPI } from '../services/api';
+import { bildirimAPI, userAPI } from '../services/api';
+import {
+  MegaphoneIcon,
+  BellIcon,
+  ComputerDesktopIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  InformationCircleIcon,
+  XCircleIcon,
+  ArrowPathIcon,
+  CloudArrowUpIcon
+} from '@heroicons/react/24/outline';
 
 export default function Duyurular() {
   const navigate = useNavigate();
   const { user: authUser, viewRole } = useAuthStore();
   const effectiveRole = viewRole || authUser?.rol;
   const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
+
+  const [activeTab, setActiveTab] = useState('bildirim'); // 'bildirim' or 'popup'
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+
+  // Standard Notification Form
+  const [notificationData, setNotificationData] = useState({
     baslik: '',
     mesaj: '',
     tip: 'duyuru',
     link: ''
   });
+
+  // Popup/Dashboard Alert Settings
+  const [popupSettings, setPopupSettings] = useState([]);
+  const [popupLoading, setPopupLoading] = useState(false);
+  const [popupMessage, setPopupMessage] = useState(null);
 
   // Admin değilse yönlendir
   if (user?.rol !== 'admin') {
@@ -22,45 +42,59 @@ export default function Duyurular() {
     return null;
   }
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
+  useEffect(() => {
+    if (activeTab === 'popup') {
+      fetchPopupSettings();
+    }
+  }, [activeTab]);
+
+  const fetchPopupSettings = async () => {
+    setPopupLoading(true);
+    try {
+      const res = await userAPI.getSettings();
+      if (res.data.success) {
+        // Only target panel_duyuru keys
+        const filtered = res.data.data.filter(s => s.anahtar.startsWith('panel_duyuru_'));
+        setPopupSettings(filtered);
+      }
+    } catch (error) {
+      console.error('Popup ayarları yüklenemedi:', error);
+    } finally {
+      setPopupLoading(false);
+    }
+  };
+
+  const handleNotificationChange = (e) => {
+    setNotificationData({
+      ...notificationData,
       [e.target.name]: e.target.value
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handlePopupSettingChange = (anahtar, deger) => {
+    setPopupSettings(prev => prev.map(s =>
+      s.anahtar === anahtar ? { ...s, deger } : s
+    ));
+  };
 
-    if (!formData.baslik.trim() || !formData.mesaj.trim()) {
+  const handleNotificationSubmit = async (e) => {
+    e.preventDefault();
+    if (!notificationData.baslik.trim() || !notificationData.mesaj.trim()) {
       alert('Başlık ve mesaj alanları gereklidir');
       return;
     }
-
-    if (!confirm('Bu duyuruyu tüm kullanıcılara göndermek istediğinizden emin misiniz?')) {
+    if (!confirm('Bu duyuruyu tüm kullanıcılara bildirim olarak göndermek istediğinizden emin misiniz?')) {
       return;
     }
 
     setLoading(true);
     try {
-      const payload = {
-        baslik: formData.baslik,
-        mesaj: formData.mesaj,
-        tip: formData.tip,
-        link: formData.link || null
-      };
-
-      const response = await bildirimAPI.duyuruGonder(payload);
-      
-      alert(`Duyuru başarıyla gönderildi! ${response.data.data.gonderilen_sayi} kullanıcıya ulaştı.`);
-      
-      // Formu temizle
-      setFormData({
-        baslik: '',
-        mesaj: '',
-        tip: 'duyuru',
-        link: ''
+      const response = await bildirimAPI.duyuruGonder({
+        ...notificationData,
+        link: notificationData.link || null
       });
+      alert(`Duyuru başarıyla gönderildi! ${response.data.data.gonderilen_sayi} kullanıcıya ulaştı.`);
+      setNotificationData({ baslik: '', mesaj: '', tip: 'duyuru', link: '' });
     } catch (error) {
       alert(error.response?.data?.error || 'Duyuru gönderilirken hata oluştu');
     } finally {
@@ -68,183 +102,261 @@ export default function Duyurular() {
     }
   };
 
+  const handlePopupSubmit = async (e) => {
+    e.preventDefault();
+    setPopupLoading(true);
+    setPopupMessage(null);
+    try {
+      const res = await userAPI.updateSettings({ ayarlar: popupSettings });
+      if (res.data.success) {
+        setPopupMessage({ type: 'success', text: 'Panel duyurusu güncellendi.' });
+        setTimeout(() => setPopupMessage(null), 3000);
+      }
+    } catch (error) {
+      setPopupMessage({ type: 'error', text: 'Hata oluştu.' });
+    } finally {
+      setPopupLoading(false);
+    }
+  };
+
+  const getPopupValue = (key) => popupSettings.find(s => s.anahtar === key)?.deger || '';
+
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Duyuru Yönetimi</h1>
-        <p className="mt-2 text-gray-600">Tüm kullanıcılara duyuru gönderin</p>
+    <div className="max-w-5xl mx-auto space-y-6 animate-fade-in">
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Duyuru Yönetimi</h1>
+          <p className="mt-2 text-gray-500 font-medium">Sistem geneline veya kullanıcı bildirimlerine müdahale edin.</p>
+        </div>
+        <div className="flex bg-gray-100 p-1 rounded-2xl border border-gray-200 shadow-sm">
+          <button
+            onClick={() => setActiveTab('bildirim')}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'bildirim' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+          >
+            <BellIcon className="w-5 h-5" />
+            Anlık Bildirim Gönder
+          </button>
+          <button
+            onClick={() => setActiveTab('popup')}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'popup' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+          >
+            <ComputerDesktopIcon className="w-5 h-5" />
+            Panel Giriş Duyurusu
+          </button>
+        </div>
       </div>
 
-      <div className="card">
-        <div className="mb-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
-          <div className="flex items-start">
-            <svg className="w-6 h-6 text-blue-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <h4 className="font-semibold text-blue-900">Bilgilendirme</h4>
-              <p className="text-blue-700 mt-1 text-sm">
-                Bu formla gönderdiğiniz duyuru, sisteme kayıtlı tüm kullanıcılara bildirim olarak iletilecektir.
-                Kullanıcılar bildirimleri başlık kısmındaki zil ikonundan görebilirler.
-              </p>
+      {activeTab === 'bildirim' ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* FORM */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+              <form onSubmit={handleNotificationSubmit} className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Duyuru Tipi</label>
+                    <select
+                      name="tip"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                      value={notificationData.tip}
+                      onChange={handleNotificationChange}
+                    >
+                      <option value="duyuru">📢 Genel Duyuru</option>
+                      <option value="success">✅ Başarılı İşlem</option>
+                      <option value="warning">⚠️ Kritik Uyarı</option>
+                      <option value="error">❌ Hata / Önemli</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Başlık</label>
+                    <input
+                      type="text"
+                      name="baslik"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                      placeholder="Örn: Sunucu Bakımı"
+                      value={notificationData.baslik}
+                      onChange={handleNotificationChange}
+                      maxLength={100}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Duyuru Mesajı</label>
+                  <textarea
+                    name="mesaj"
+                    rows="6"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    placeholder="Duyuru içeriğini buraya yazın..."
+                    value={notificationData.mesaj}
+                    onChange={handleNotificationChange}
+                    maxLength={500}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Yönlendirme Linki (Opsiyonel)</label>
+                  <input
+                    type="text"
+                    name="link"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    placeholder="Örn: /sorular veya https://google.com"
+                    value={notificationData.link}
+                    onChange={handleNotificationChange}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-lg hover:shadow-blue-200 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {loading ? <ArrowPathIcon className="w-5 h-5 animate-spin" /> : <MegaphoneIcon className="w-5 h-5" />}
+                  Bildirimleri Gönder
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {/* PREVIEW */}
+          <div className="space-y-6">
+            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Canlı Önizleme</h4>
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-start gap-4">
+              <div className={`p-3 rounded-2xl flex-shrink-0 ${notificationData.tip === 'duyuru' ? 'bg-blue-100 text-blue-600' :
+                  notificationData.tip === 'success' ? 'bg-green-100 text-green-600' :
+                    notificationData.tip === 'warning' ? 'bg-yellow-100 text-yellow-600' :
+                      'bg-red-100 text-red-600'
+                }`}>
+                {notificationData.tip === 'duyuru' && <MegaphoneIcon className="w-6 h-6" />}
+                {notificationData.tip === 'success' && <CheckCircleIcon className="w-6 h-6" />}
+                {notificationData.tip === 'warning' && <ExclamationTriangleIcon className="w-6 h-6" />}
+                {notificationData.tip === 'error' && <XCircleIcon className="w-6 h-6" />}
+              </div>
+              <div className="flex-1 space-y-1">
+                <h5 className="font-black text-gray-900 leading-tight">{notificationData.baslik || 'Başlık'}</h5>
+                <p className="text-sm text-gray-500 leading-relaxed">{notificationData.mesaj || 'Mesaj içeriği burada görünecek...'}</p>
+                {notificationData.link && <p className="text-[10px] text-blue-500 font-bold font-mono truncate">{notificationData.link}</p>}
+              </div>
+            </div>
+
+            <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 space-y-2">
+              <InformationCircleIcon className="w-6 h-6 text-blue-600" />
+              <h6 className="font-black text-blue-800 uppercase tracking-widest text-[10px]">Bilgi</h6>
+              <p className="text-xs text-blue-700 leading-relaxed font-medium">Bu duyuru, sistemdeki tüm kullanıcılara sağ üstteki <b>zil ikonu</b> aracılığıyla bir bildirim olarak iletilecektir.</p>
             </div>
           </div>
         </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+              {popupLoading ? (
+                <div className="flex justify-center p-12"><ArrowPathIcon className="w-8 h-8 animate-spin text-gray-300" /></div>
+              ) : (
+                <form onSubmit={handlePopupSubmit} className="space-y-8">
+                  {popupMessage && (
+                    <div className={`p-4 rounded-xl flex items-center gap-3 ${popupMessage.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                      }`}>
+                      <CheckCircleIcon className="w-5 h-5" />
+                      <span className="font-bold text-sm">{popupMessage.text}</span>
+                    </div>
+                  )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Duyuru Tipi */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Duyuru Tipi
-            </label>
-            <select
-              name="tip"
-              className="input"
-              value={formData.tip}
-              onChange={handleChange}
-              required
-            >
-              <option value="duyuru">📢 Duyuru (Mavi)</option>
-              <option value="info">ℹ️ Bilgi (Mavi)</option>
-              <option value="success">✅ Başarı (Yeşil)</option>
-              <option value="warning">⚠️ Uyarı (Sarı)</option>
-              <option value="error">❌ Önemli (Kırmızı)</option>
-            </select>
-          </div>
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                      <div>
+                        <h4 className="font-black text-gray-800 text-sm uppercase tracking-widest leading-none">Duyuru Durumu</h4>
+                        <p className="text-xs text-gray-400 mt-1 font-medium">Kullanıcı paneline girişte duyuruyu göster</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handlePopupSettingChange('panel_duyuru_aktif', getPopupValue('panel_duyuru_aktif') === 'true' ? 'false' : 'true')}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${getPopupValue('panel_duyuru_aktif') === 'true' ? 'bg-blue-600' : 'bg-gray-300'
+                          }`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${getPopupValue('panel_duyuru_aktif') === 'true' ? 'translate-x-6' : 'translate-x-1'
+                          }`} />
+                      </button>
+                    </div>
 
-          {/* Başlık */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Başlık *
-            </label>
-            <input
-              type="text"
-              name="baslik"
-              className="input"
-              placeholder="Örn: Sistemsel Güncelleme Duyurusu"
-              value={formData.baslik}
-              onChange={handleChange}
-              required
-              maxLength={100}
-            />
-            <p className="mt-1 text-sm text-gray-500">
-              {formData.baslik.length}/100 karakter
-            </p>
-          </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Görünüm Çeşidi</label>
+                        <select
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                          value={getPopupValue('panel_duyuru_tip')}
+                          onChange={(e) => handlePopupSettingChange('panel_duyuru_tip', e.target.value)}
+                        >
+                          <option value="info">🔵 Bilgi (Soft Mavi)</option>
+                          <option value="success">🟢 Başarı (Soft Yeşil)</option>
+                          <option value="warning">🟠 Uyarı (Soft Turuncu)</option>
+                          <option value="error">🔴 Acil (Soft Kırmızı)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Başlık</label>
+                        <input
+                          type="text"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                          value={getPopupValue('panel_duyuru_baslik')}
+                          onChange={(e) => handlePopupSettingChange('panel_duyuru_baslik', e.target.value)}
+                        />
+                      </div>
+                    </div>
 
-          {/* Mesaj */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Mesaj *
-            </label>
-            <textarea
-              name="mesaj"
-              rows="6"
-              className="input"
-              placeholder="Duyuru içeriğini buraya yazın..."
-              value={formData.mesaj}
-              onChange={handleChange}
-              required
-              maxLength={500}
-            />
-            <p className="mt-1 text-sm text-gray-500">
-              {formData.mesaj.length}/500 karakter
-            </p>
-          </div>
-
-          {/* Link (Opsiyonel) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Yönlendirme Linki (Opsiyonel)
-            </label>
-            <input
-              type="text"
-              name="link"
-              className="input"
-              placeholder="Örn: /sorular veya https://example.com"
-              value={formData.link}
-              onChange={handleChange}
-            />
-            <p className="mt-1 text-sm text-gray-500">
-              Kullanıcılar bildirime tıkladığında bu adrese yönlendirilir
-            </p>
-          </div>
-
-          {/* Önizleme */}
-          {(formData.baslik || formData.mesaj) && (
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-semibold mb-3">Önizleme</h3>
-              <div className={`p-4 rounded-lg border-l-4 ${
-                formData.tip === 'duyuru' || formData.tip === 'info' ? 'bg-blue-50 border-blue-500' :
-                formData.tip === 'success' ? 'bg-green-50 border-green-500' :
-                formData.tip === 'warning' ? 'bg-yellow-50 border-yellow-500' :
-                'bg-red-50 border-red-500'
-              }`}>
-                <div className="flex items-start">
-                  <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                    formData.tip === 'duyuru' || formData.tip === 'info' ? 'bg-blue-100' :
-                    formData.tip === 'success' ? 'bg-green-100' :
-                    formData.tip === 'warning' ? 'bg-yellow-100' :
-                    'bg-red-100'
-                  }`}>
-                    <span className="text-xl">
-                      {formData.tip === 'duyuru' ? '📢' :
-                       formData.tip === 'info' ? 'ℹ️' :
-                       formData.tip === 'success' ? '✅' :
-                       formData.tip === 'warning' ? '⚠️' : '❌'}
-                    </span>
+                    <div>
+                      <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Mesaj İçeriği</label>
+                      <textarea
+                        rows="4"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                        value={getPopupValue('panel_duyuru_mesaj')}
+                        onChange={(e) => handlePopupSettingChange('panel_duyuru_mesaj', e.target.value)}
+                      />
+                    </div>
                   </div>
-                  <div className="ml-4 flex-1">
-                    <h4 className="font-semibold text-gray-900">
-                      {formData.baslik || 'Başlık buraya gelecek'}
-                    </h4>
-                    <p className="mt-1 text-gray-700 text-sm">
-                      {formData.mesaj || 'Mesaj içeriği buraya gelecek'}
-                    </p>
-                    {formData.link && (
-                      <p className="mt-2 text-xs text-gray-500">
-                        🔗 Yönlendirilecek: {formData.link}
-                      </p>
-                    )}
-                    <p className="mt-2 text-xs text-gray-400">
-                      Şimdi
-                    </p>
-                  </div>
-                </div>
+
+                  <button
+                    type="submit"
+                    disabled={popupLoading}
+                    className="w-full bg-gray-900 hover:bg-black text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {popupLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin" /> : <CloudArrowUpIcon className="w-5 h-5" />}
+                    Ayarları Güncelle & Yayınla
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Panel Önizlemesi</h4>
+            <div className="bg-white p-6 rounded-3xl border-2 border-dashed border-gray-200 opacity-80">
+              <div className={`p-5 rounded-2xl border ${getPopupValue('panel_duyuru_tip') === 'info' ? 'bg-blue-50 border-blue-100 text-blue-800' :
+                  getPopupValue('panel_duyuru_tip') === 'success' ? 'bg-green-50 border-green-100 text-green-800' :
+                    getPopupValue('panel_duyuru_tip') === 'warning' ? 'bg-orange-50 border-orange-100 text-orange-800' :
+                      'bg-red-50 border-red-100 text-red-800'
+                }`}>
+                <h5 className="font-black flex items-center gap-2">
+                  <InformationCircleIcon className="w-5 h-5" />
+                  {getPopupValue('panel_duyuru_baslik') || 'Başlık'}
+                </h5>
+                <p className="text-sm mt-1 font-medium leading-relaxed opacity-90">
+                  {getPopupValue('panel_duyuru_mesaj') || 'Henüz bir mesaj girilmedi...'}
+                </p>
               </div>
             </div>
-          )}
-
-          {/* Butonlar */}
-          <div className="flex justify-between items-center pt-6 border-t">
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="btn btn-secondary"
-              disabled={loading}
-            >
-              İptal
-            </button>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={loading}
-            >
-              {loading ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Gönderiliyor...
-                </span>
-              ) : (
-                '📢 Duyuruyu Gönder'
-              )}
-            </button>
+            <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100 space-y-2">
+              <InformationCircleIcon className="w-6 h-6 text-orange-600" />
+              <h6 className="font-black text-orange-800 uppercase tracking-widest text-[10px]">Bilgi</h6>
+              <p className="text-xs text-orange-700 leading-relaxed font-medium">Panel içi duyurular, kullanıcılar giriş yaptıktan sonra <b>Dashboard</b> sayfasında en tepede sabit olarak görünecektir.</p>
+            </div>
           </div>
-        </form>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

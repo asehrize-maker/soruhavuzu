@@ -14,7 +14,10 @@ router.get('/config', async (req, res, next) => {
     const result = await pool.query(`
       SELECT anahtar, deger 
       FROM sistem_ayarlari 
-      WHERE anahtar IN ('site_basligi', 'duyuru_aktif', 'duyuru_mesaji', 'kayit_acik', 'footer_metni')
+      WHERE anahtar IN (
+        'site_basligi', 'duyuru_aktif', 'duyuru_mesaji', 'kayit_acik', 'footer_metni',
+        'panel_duyuru_aktif', 'panel_duyuru_baslik', 'panel_duyuru_mesaj', 'panel_duyuru_tip'
+      )
     `);
 
     const config = {};

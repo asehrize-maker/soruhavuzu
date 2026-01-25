@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import { soruAPI, bransAPI, userAPI } from '../services/api';
+import { soruAPI, bransAPI, userAPI, authAPI } from '../services/api';
 import {
   ArrowPathIcon,
   ChartBarIcon,
@@ -130,6 +130,7 @@ export default function Dashboard() {
   const [selectedBrans, setSelectedBrans] = useState(null);
   const [selectedEkip, setSelectedEkip] = useState(null);
   const [selectedStat, setSelectedStat] = useState(null);
+  const [panelConfig, setPanelConfig] = useState(null);
 
   // URL'den inceleme modunu al (alanci/dilci)
   const getReviewModeFromUrl = () => {
@@ -180,6 +181,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchData();
+    const fetchConfig = async () => {
+      try {
+        const res = await authAPI.getConfig();
+        if (res.data.success) setPanelConfig(res.data.data);
+      } catch (err) { console.warn("Config load error", err); }
+    };
+    fetchConfig();
   }, [fetchData]);
 
   // URL değişikliklerini dinle
@@ -253,6 +261,36 @@ export default function Dashboard() {
   // 3. RENDER
   return (
     <div className="space-y-6">
+      {/* GLOBAL DASHBOARD ALERT */}
+      {panelConfig?.panel_duyuru_aktif === 'true' && panelConfig?.panel_duyuru_mesaj && (
+        <div className={`p-5 rounded-3xl border-2 shadow-sm flex items-start gap-4 animate-bounce-short ${panelConfig.panel_duyuru_tip === 'success' ? 'bg-green-50 border-green-100 text-green-800' :
+            panelConfig.panel_duyuru_tip === 'warning' ? 'bg-orange-50 border-orange-100 text-orange-800' :
+              panelConfig.panel_duyuru_tip === 'error' ? 'bg-red-50 border-red-100 text-red-800' :
+                'bg-blue-50 border-blue-100 text-blue-800'
+          }`}>
+          <div className={`p-3 rounded-2xl flex-shrink-0 ${panelConfig.panel_duyuru_tip === 'success' ? 'bg-green-100 text-green-600' :
+              panelConfig.panel_duyuru_tip === 'warning' ? 'bg-orange-100 text-orange-600' :
+                panelConfig.panel_duyuru_tip === 'error' ? 'bg-red-100 text-red-600' :
+                  'bg-blue-100 text-blue-600'
+            }`}>
+            <MegaphoneIcon className="w-6 h-6" />
+          </div>
+          <div className="flex-1 pt-1">
+            <h4 className="font-black uppercase tracking-widest text-xs mb-1">
+              {panelConfig.panel_duyuru_baslik || 'Sistem Duyurusu'}
+            </h4>
+            <p className="text-sm font-bold opacity-90 leading-relaxed">
+              {panelConfig.panel_duyuru_mesaj}
+            </p>
+          </div>
+          <button
+            onClick={() => setPanelConfig(prev => ({ ...prev, panel_duyuru_aktif: 'false' }))}
+            className="p-2 hover:bg-black/5 rounded-xl transition-colors"
+          >
+            <InformationCircleIcon className="w-5 h-5 opacity-40" />
+          </button>
+        </div>
+      )}
 
       {activeRole === 'admin' ? (
         <div className="space-y-8 animate-fade-in">
