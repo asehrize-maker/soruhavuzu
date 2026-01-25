@@ -1608,6 +1608,7 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
         `);
 
     // Branş bazlı istatistikler
+    // Branş bazlı istatistikler (Ekipleri oluşturulan soruların yazarından al)
     const bransStats = await pool.query(`
       SELECT
         b.id,
@@ -1619,10 +1620,11 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
         COUNT(CASE WHEN s.durum IN ('alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi', 'inceleme_tamam') THEN 1 END) as incelemede,
         COUNT(CASE WHEN s.durum = 'tamamlandi' THEN 1 END) as tamamlandi
       FROM branslar b
-      LEFT JOIN ekipler e ON b.ekip_id = e.id
       LEFT JOIN sorular s ON b.id = s.brans_id
+      LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
+      LEFT JOIN ekipler e ON k.ekip_id = e.id
       GROUP BY b.id, b.brans_adi, e.ekip_adi
-      ORDER BY soru_sayisi DESC
+      ORDER BY b.brans_adi, soru_sayisi DESC
     `);
 
     // Kullanıcı performans istatistikleri
@@ -1687,6 +1689,7 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
         `);
 
     // Ekiplerin detaylı istatistikleri
+    // Ekiplerin detaylı istatistikleri (Soruyu yazan kullanıcı üzerinden)
     const ekipStats = await pool.query(`
       SELECT
         e.id,
@@ -1697,8 +1700,8 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
         COUNT(CASE WHEN s.durum IN ('alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi', 'inceleme_tamam') THEN 1 END) as incelemede,
         COUNT(CASE WHEN s.durum = 'tamamlandi' THEN 1 END) as tamamlandi
       FROM ekipler e
-      LEFT JOIN branslar b ON e.id = b.ekip_id
-      LEFT JOIN sorular s ON b.id = s.brans_id
+      LEFT JOIN kullanicilar k ON e.id = k.ekip_id
+      LEFT JOIN sorular s ON k.id = s.olusturan_kullanici_id
       GROUP BY e.id, e.ekip_adi
       ORDER BY soru_sayisi DESC
     `);
