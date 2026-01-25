@@ -627,8 +627,8 @@ export default function SoruDetay() {
                     </button>
                   )}
 
-                  {/* Ortak Havuza Gönder (Dil onaylı ve Alan onaylı ise) */}
-                  {soru.durum === 'dil_onaylandi' && soru.onay_alanci && (
+                  {/* Ortak Havuza Gönder (Dizgi bittiyse veya Dil/Alan onaylı ise) */}
+                  {(soru.durum === 'dizgi_tamam' || (soru.durum === 'dil_onaylandi' && soru.onay_alanci)) && (
                     <button
                       onClick={() => handleUpdateStatus('tamamlandi', 'Soru ORTAK HAVUZA (Final) gönderilecektir. Bu işlem geri alınamaz (Admin hariç). Emin misiniz?')}
                       className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-black text-sm hover:bg-emerald-700 transition shadow-lg flex items-center gap-2 border-b-4 border-emerald-800 active:border-b-0 active:translate-y-1"
@@ -637,8 +637,8 @@ export default function SoruDetay() {
                     </button>
                   )}
 
-                  {/* İnceleme sonrası dizgiye geri gönderme (Revize) */}
-                  {['alan_onaylandi', 'dil_onaylandi', 'alan_incelemede', 'dil_incelemede'].includes(soru.durum) && (
+                  {/* Dizgi sonrası veya İnceleme sonrası dizgiye geri gönderme (Revize) */}
+                  {['alan_onaylandi', 'dil_onaylandi', 'alan_incelemede', 'dil_incelemede', 'dizgi_tamam'].includes(soru.durum) && (
                     <button
                       onClick={() => handleUpdateStatus('revize_istendi', 'Dizgi hatası mı var? Soruyu dizgiye revize için geri göndermek istiyor musunuz?')}
                       className="px-6 py-3 bg-red-100 text-red-700 rounded-xl font-black text-sm hover:bg-red-200 transition shadow-sm flex items-center gap-2 border-b-4 border-red-300 active:border-b-0 active:translate-y-1"
