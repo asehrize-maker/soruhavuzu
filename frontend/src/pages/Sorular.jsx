@@ -163,11 +163,24 @@ export default function Sorular({ scope }) {
     if (!window.confirm(`${idList.length} soruyu dizgiye göndermek istediğinize emin misiniz?`)) return;
     try {
       setLoading(true);
-      await Promise.all(idList.map(id => soruAPI.updateDurum(id, { yeni_durum: 'dizgi_bekliyor' })));
-      loadSorular();
+      const results = await Promise.allSettled(idList.map(id => soruAPI.updateDurum(id, { yeni_durum: 'dizgi_bekliyor' })));
+      const failed = results.filter(r => r.status === 'rejected');
+      const succeeded = results.filter(r => r.status === 'fulfilled');
+
+      if (failed.length > 0) {
+        const errorDetails = failed.map((f, i) => {
+          const errMsg = f.reason?.response?.data?.error || f.reason?.message || 'Bilinmeyen hata';
+          return `Soru #${idList[results.indexOf(f)]}: ${errMsg}`;
+        }).join('\n');
+        alert(`${failed.length} hata oluştu:\n\n${errorDetails}`);
+      }
+
+      if (succeeded.length > 0) {
+        loadSorular();
+      }
       setSelectedQuestions([]);
     } catch (error) {
-      alert('İşlem sırasında bir hata oluştu.');
+      alert('İşlem sırasında beklenmeyen bir hata oluştu: ' + (error.message || error));
     } finally {
       setLoading(false);
     }
