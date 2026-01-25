@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { userAPI } from '../services/api';
 import {
     ArrowPathIcon,
-    ShieldCheckIcon,
     CircleStackIcon,
-    UserCircleIcon,
     ComputerDesktopIcon,
-    ClockIcon
+    ClockIcon,
+    InformationCircleIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
+    MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
 
 export default function Logs() {
@@ -19,14 +21,14 @@ export default function Logs() {
 
     const fetchLogs = async () => {
         setLoading(true);
-        setCurrentPage(1); // Reset page on fetch
+        setCurrentPage(1);
         try {
             if (activeTab === 'login') {
                 const res = await userAPI.getLoginLogs();
-                if (res.data.success) setLoginLogs(res.data.data);
+                if (res.data.success) setLoginLogs(res.data.data || []);
             } else {
                 const res = await userAPI.getActivityLogs();
-                if (res.data.success) setActivityLogs(res.data.data);
+                if (res.data.success) setActivityLogs(res.data.data || []);
             }
         } catch (error) {
             console.error('Loglar yüklenemedi:', error);
@@ -39,7 +41,6 @@ export default function Logs() {
         fetchLogs();
     }, [activeTab]);
 
-    // Pagination Logic
     const currentLogs = activeTab === 'login' ? loginLogs : activityLogs;
     const totalPages = Math.ceil(currentLogs.length / itemsPerPage);
     const indexOfLastItem = currentPage * itemsPerPage;
@@ -47,138 +48,134 @@ export default function Logs() {
     const paginatedLogs = currentLogs.slice(indexOfFirstItem, indexOfLastItem);
 
     return (
-        <div className="space-y-6 animate-fade-in">
-            <div className="flex justify-between items-center">
+        <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-12">
+            {/* HEADER */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-800">Sistem Logları</h1>
-                    <p className="text-gray-500 mt-1">Sisteme giriş ve işlem geçmişini buradan takip edebilirsiniz.</p>
+                    <h1 className="text-4xl font-black text-gray-900 tracking-tight">Sistem Denetimi</h1>
+                    <p className="mt-2 text-gray-500 font-medium">Tüm kullanıcı hareketlerini ve sistem loglarını şeffaf bir şekilde izleyin.</p>
                 </div>
-                <button
-                    onClick={fetchLogs}
-                    disabled={loading}
-                    className="btn btn-secondary flex items-center gap-2"
-                >
-                    <ArrowPathIcon className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-                    Yenile
-                </button>
+                <div className="flex items-center gap-4">
+                    <div className="flex bg-gray-100 p-1 rounded-2xl border border-gray-200 shadow-sm">
+                        <button
+                            onClick={() => setActiveTab('login')}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'login' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            <ComputerDesktopIcon className="w-4 h-4" />
+                            Giriş Kayıtları
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('activity')}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'activity' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            <CircleStackIcon className="w-4 h-4" />
+                            İşlem Kayıtları
+                        </button>
+                    </div>
+                    <button
+                        onClick={fetchLogs}
+                        disabled={loading}
+                        className="bg-white hover:bg-gray-50 text-gray-700 rounded-2xl p-4 transition-all shadow-sm border border-gray-100 active:scale-95 flex items-center gap-2 font-black text-[10px] uppercase tracking-widest"
+                    >
+                        <ArrowPathIcon className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
+                </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-100 max-w-md">
-                <button
-                    onClick={() => setActiveTab('login')}
-                    className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'login'
-                        ? 'bg-blue-600 text-white shadow-md'
-                        : 'text-gray-500 hover:bg-gray-50'
-                        }`}
-                >
-                    <ComputerDesktopIcon className="w-5 h-5" />
-                    Giriş Kayıtları
-                </button>
-                <button
-                    onClick={() => setActiveTab('activity')}
-                    className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'activity'
-                        ? 'bg-blue-600 text-white shadow-md'
-                        : 'text-gray-500 hover:bg-gray-50'
-                        }`}
-                >
-                    <CircleStackIcon className="w-5 h-5" />
-                    İşlem Kayıtları
-                </button>
-            </div>
-
-            {/* Table Section */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+            {/* TABLE CARD */}
+            <div className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden flex flex-col">
                 {loading ? (
-                    <div className="p-20 text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto"></div>
-                        <p className="mt-4 text-gray-500 font-medium">Loglar getiriliyor...</p>
+                    <div className="p-32 text-center space-y-4">
+                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-100 border-t-blue-600 mx-auto"></div>
+                        <p className="text-gray-400 font-black text-[10px] uppercase tracking-[0.2em]">Veriler İşleniyor...</p>
                     </div>
                 ) : (
                     <>
                         <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-100">
-                                <thead className="bg-gray-50">
+                            <table className="min-w-full divide-y divide-gray-50">
+                                <thead className="bg-gray-50/50">
                                     {activeTab === 'login' ? (
                                         <tr>
-                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Kullanıcı</th>
-                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">IP Adresi</th>
-                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Tarih / Saat</th>
-                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Tarayıcı</th>
+                                            <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Kullanıcı</th>
+                                            <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Ağ Adresi (IP)</th>
+                                            <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Zaman Damgası</th>
+                                            <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Cihaz Bilgisi</th>
                                         </tr>
                                     ) : (
                                         <tr>
-                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Kullanıcı</th>
-                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">İşlem</th>
-                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Açıklama</th>
-                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Tarih / Saat</th>
+                                            <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Sorumlu</th>
+                                            <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">İşlem Türü</th>
+                                            <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Detay / Açıklama</th>
+                                            <th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Tarih</th>
                                         </tr>
                                     )}
                                 </thead>
                                 <tbody className="divide-y divide-gray-50 bg-white">
                                     {activeTab === 'login' ? (
                                         paginatedLogs.length > 0 ? paginatedLogs.map((log) => (
-                                            <tr key={log.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
+                                            <tr key={log.id} className="hover:bg-blue-50/30 transition-colors group">
+                                                <td className="px-8 py-5 whitespace-nowrap">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center font-black text-xs group-hover:bg-white transition-colors">
                                                             {log.ad_soyad?.charAt(0)}
                                                         </div>
                                                         <div>
-                                                            <div className="text-sm font-bold text-gray-900">{log.ad_soyad}</div>
-                                                            <div className="text-xs text-gray-500">{log.email}</div>
+                                                            <div className="text-sm font-black text-gray-900">{log.ad_soyad}</div>
+                                                            <div className="text-[10px] font-bold text-gray-400 uppercase mt-0.5">{log.email}</div>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="text-sm font-mono text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                                                        {log.ip_adresi || 'Unknown'}
+                                                <td className="px-6 py-5 whitespace-nowrap">
+                                                    <span className="text-[11px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-xl">
+                                                        {log.ip_adresi || 'N/A'}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                                    <div className="flex items-center gap-2">
-                                                        <ClockIcon className="w-4 h-4 text-gray-400" />
-                                                        {new Date(log.tarih).toLocaleDateString('tr-TR')} {new Date(log.tarih).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                                                <td className="px-6 py-5 whitespace-nowrap">
+                                                    <div className="flex items-center gap-2 text-sm font-bold text-gray-600">
+                                                        <ClockIcon className="w-4 h-4 text-gray-300" />
+                                                        {new Date(log.tarih).toLocaleDateString('tr-TR')} <span className="text-gray-300 font-medium">|</span> {new Date(log.tarih).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-400 max-w-xs truncate">
+                                                <td className="px-8 py-5 whitespace-nowrap text-[10px] font-bold text-gray-400 italic max-w-xs truncate">
                                                     {log.user_agent}
                                                 </td>
                                             </tr>
                                         )) : (
-                                            <tr><td colSpan="4" className="p-8 text-center text-gray-500 italic">Giriş kaydı bulunamadı.</td></tr>
+                                            <tr><td colSpan="4" className="p-20 text-center text-gray-300 font-bold uppercase tracking-widest text-xs italic">Kayıt Bulunamadı.</td></tr>
                                         )
                                     ) : (
                                         paginatedLogs.length > 0 ? paginatedLogs.map((log) => (
-                                            <tr key={log.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-xs text-center uppercase">
+                                            <tr key={log.id} className="hover:bg-purple-50/30 transition-colors group">
+                                                <td className="px-8 py-5 whitespace-nowrap">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center font-black text-xs text-center uppercase group-hover:bg-white transition-colors">
                                                             {log.ad_soyad?.substring(0, 2)}
                                                         </div>
                                                         <div>
-                                                            <div className="text-sm font-bold text-gray-900">{log.ad_soyad}</div>
-                                                            <div className="text-xs text-purple-600 font-medium">{log.rol}</div>
+                                                            <div className="text-sm font-black text-gray-900">{log.ad_soyad}</div>
+                                                            <div className="text-[10px] font-black text-purple-600 uppercase tracking-widest mt-0.5">{log.rol}</div>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${log.islem_turu.includes('silme') ? 'bg-red-100 text-red-700' :
-                                                        log.islem_turu.includes('ekleme') ? 'bg-green-100 text-green-700' :
-                                                            'bg-blue-100 text-blue-700'
+                                                <td className="px-6 py-5 whitespace-nowrap">
+                                                    <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm border ${log.islem_turu.includes('silme') ? 'bg-red-50 text-red-600 border-red-100' :
+                                                            log.islem_turu.includes('ekleme') || log.islem_turu.includes('create') ? 'bg-green-50 text-green-600 border-green-100' :
+                                                                'bg-indigo-50 text-indigo-600 border-indigo-100'
                                                         }`}>
                                                         {log.islem_turu.replace(/_/g, ' ')}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 text-sm text-gray-700">
+                                                <td className="px-6 py-5 text-sm font-bold text-gray-600 leading-relaxed">
                                                     {log.aciklama}
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                                    {new Date(log.tarih).toLocaleDateString('tr-TR')} {new Date(log.tarih).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                                                <td className="px-8 py-5 whitespace-nowrap text-right text-sm font-bold text-gray-400">
+                                                    {new Date(log.tarih).toLocaleDateString('tr-TR')} <span className="text-gray-200 font-medium mx-1">/</span> {new Date(log.tarih).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                                                 </td>
                                             </tr>
                                         )) : (
-                                            <tr><td colSpan="4" className="p-8 text-center text-gray-500 italic">İşlem kaydı bulunamadı.</td></tr>
+                                            <tr><td colSpan="4" className="p-20 text-center text-gray-300 font-bold uppercase tracking-widest text-xs italic">Kayıt Bulunamadı.</td></tr>
                                         )
                                     )}
                                 </tbody>
@@ -186,44 +183,56 @@ export default function Logs() {
                         </div>
 
                         {/* Pagination Footer */}
-                        {totalPages > 1 && (
-                            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
-                                <div className="text-sm text-gray-500 font-medium">
-                                    Toplam <span className="text-gray-900">{currentLogs.length}</span> kayıttan
-                                    <span className="text-gray-900"> {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, currentLogs.length)}</span> arası gösteriliyor
-                                </div>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                        disabled={currentPage === 1}
-                                        className="px-3 py-1 text-sm font-bold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 transition-colors"
-                                    >
-                                        Geri
-                                    </button>
-                                    {[...Array(totalPages)].map((_, i) => (
-                                        <button
-                                            key={i}
-                                            onClick={() => setCurrentPage(i + 1)}
-                                            className={`w-8 h-8 text-sm font-bold rounded-lg transition-all ${currentPage === i + 1
-                                                    ? 'bg-blue-600 text-white shadow-md'
-                                                    : 'text-gray-500 hover:bg-gray-100'
-                                                }`}
-                                        >
-                                            {i + 1}
-                                        </button>
-                                    ))}
-                                    <button
-                                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                        disabled={currentPage === totalPages}
-                                        className="px-3 py-1 text-sm font-bold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 transition-colors"
-                                    >
-                                        İleri
-                                    </button>
-                                </div>
+                        <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
+                            <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em]">
+                                Toplam <span className="text-gray-900">{currentLogs.length}</span> olay kaydı <span className="mx-2">|</span> Sayfa <span className="text-gray-900">{currentPage} / {totalPages || 1}</span>
                             </div>
-                        )}
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="p-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                >
+                                    <ChevronLeftIcon className="w-5 h-5" />
+                                </button>
+
+                                <div className="flex bg-gray-100 p-1 rounded-xl">
+                                    {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                                        const pageNum = i + 1;
+                                        return (
+                                            <button
+                                                key={i}
+                                                onClick={() => setCurrentPage(pageNum)}
+                                                className={`w-8 h-8 text-[11px] font-black rounded-lg transition-all ${currentPage === pageNum
+                                                    ? 'bg-white text-blue-600 shadow-sm'
+                                                    : 'text-gray-400 hover:text-gray-600'
+                                                    }`}
+                                            >
+                                                {pageNum}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages || totalPages === 0}
+                                    className="p-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                >
+                                    <ChevronRightIcon className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
                     </>
                 )}
+            </div>
+
+            <div className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100 flex items-start gap-4">
+                <InformationCircleIcon className="w-6 h-6 text-blue-600 mt-1 flex-shrink-0" />
+                <div className="space-y-1">
+                    <h6 className="text-xs font-black text-blue-900 uppercase tracking-widest">Veri Politikası</h6>
+                    <p className="text-sm text-blue-700 font-medium leading-relaxed italic">Sistemdeki tüm hareketler 6698 sayılı KVKK kapsamında denetim amacıyla kayıt altına alınmaktadır. Silme işlemleri fiziksel olarak yapılamaz, sadece pasife alınabilir.</p>
+                </div>
             </div>
         </div>
     );

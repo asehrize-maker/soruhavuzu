@@ -5,12 +5,29 @@ import useAuthStore from '../store/authStore';
 import MesajKutusu from '../components/MesajKutusu';
 import { getDurumBadge } from '../utils/helpers';
 import html2canvas from 'html2canvas';
+import {
+  PaintBrushIcon,
+  ArrowPathIcon,
+  Squares2X2Icon,
+  ClockIcon,
+  CheckCircleIcon,
+  ChatBubbleLeftRightIcon,
+  ChevronRightIcon,
+  ArrowRightCircleIcon,
+  XMarkIcon,
+  PhotoIcon,
+  DocumentArrowUpIcon,
+  BeakerIcon,
+  SparklesIcon,
+  InformationCircleIcon
+} from '@heroicons/react/24/outline';
 
 export default function DizgiYonetimi() {
   const navigate = useNavigate();
   const { user: authUser, viewRole } = useAuthStore();
   const effectiveRole = viewRole || authUser?.rol;
   const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
+
   const [sorular, setSorular] = useState([]);
   const [pending, setPending] = useState([]);
   const [inProgress, setInProgress] = useState([]);
@@ -31,16 +48,16 @@ export default function DizgiYonetimi() {
   }, []);
 
   const loadSorular = async () => {
+    setLoading(true);
     try {
       const response = await soruAPI.getAll({ role: 'dizgici' });
       const all = (response.data.data || []);
       setPending(all.filter(s => s.durum === 'dizgi_bekliyor' || s.durum === 'revize_istendi'));
       setInProgress(all.filter(s => s.durum === 'dizgide'));
-      // Hem yeni 'dizgi_tamam' statüsünü hem de eski sistemden kalan (PNG'si olmayan) 'tamamlandi' sorularını göster
       setCompleted(all.filter(s => s.durum === 'dizgi_tamam' || (s.durum === 'tamamlandi' && !s.final_png_url)));
       setSorular(all);
     } catch (error) {
-      alert('Sorular yüklenemedi');
+      console.error('Sorular yüklenemedi');
     } finally {
       setLoading(false);
     }
@@ -61,7 +78,6 @@ export default function DizgiYonetimi() {
     try {
       setLoading(true);
       const res = await soruAPI.dizgiAl(soruId);
-      alert('Soru üzerinize alındı!');
       if (res.data.success) {
         setSelectedSoru(res.data.data);
       }
@@ -80,9 +96,7 @@ export default function DizgiYonetimi() {
       if (durum === 'revize_gerekli' && revizeNotu) {
         data.aciklama = revizeNotu;
       }
-
       await soruAPI.updateDurum(soruId, data);
-      alert('Durum güncellendi!');
       setShowModal(false);
       setShowCompleteModal(false);
       setSelectedSoru(null);
@@ -103,9 +117,7 @@ export default function DizgiYonetimi() {
       if (completeData.finalPng) {
         fd.append('final_png', completeData.finalPng);
       }
-
       await soruAPI.dizgiTamamlaWithFile(selectedSoru.id, fd);
-      alert('Dizgi başarıyla tamamlandı!');
       setShowCompleteModal(false);
       setSelectedSoru(null);
       setCompleteData({ notlar: '', finalPng: null });
@@ -122,7 +134,7 @@ export default function DizgiYonetimi() {
     if (!questionRef.current) return;
     try {
       const canvas = await html2canvas(questionRef.current, {
-        scale: 2, // Daha yüksek kalite
+        scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff'
       });
@@ -131,296 +143,324 @@ export default function DizgiYonetimi() {
       link.href = canvas.toDataURL('image/png');
       link.click();
     } catch (err) {
-      console.error('PNG yakalama hatası:', err);
       alert('Görsel oluşturulamadı.');
     }
   };
 
-  const openRevizeModal = (soru) => {
-    setSelectedSoru(soru);
-    setShowModal(true);
-  };
+  const QuestionCard = ({ soru }) => (
+    <div
+      onClick={() => setSelectedSoru(soru)}
+      className={`p-5 rounded-3xl border transition-all cursor-pointer group flex flex-col gap-3 relative overflow-hidden ${selectedSoru?.id === soru.id
+          ? 'bg-blue-600 border-blue-600 shadow-xl shadow-blue-200 ring-4 ring-blue-500/10'
+          : 'bg-white border-gray-100 hover:border-blue-200 hover:shadow-lg shadow-sm hover:shadow-gray-200/50'
+        }`}
+    >
+      <div className="flex justify-between items-start relative z-10">
+        <div className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest ${selectedSoru?.id === soru.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'
+          }`}>
+          Soru #{soru.id}
+        </div>
+        <div className={`text-[10px] font-black uppercase tracking-tighter ${selectedSoru?.id === soru.id ? 'text-blue-100' : 'text-blue-600'
+          }`}>
+          {soru.brans_adi}
+        </div>
+      </div>
 
+      <div
+        className={`text-sm font-bold line-clamp-2 leading-relaxed h-[2.5rem] ${selectedSoru?.id === soru.id ? 'text-white' : 'text-gray-700'
+          }`}
+        dangerouslySetInnerHTML={{ __html: soru.soru_metni }}
+      />
 
+      <div className="flex items-center justify-between mt-2 pt-3 border-t border-dashed border-gray-100/20">
+        <div className="flex -space-x-2">
+          <div className={`w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[8px] font-bold ${selectedSoru?.id === soru.id ? 'bg-blue-400 text-white' : 'bg-gray-200 text-gray-500'
+            }`}>
+            {soru.olusturan_ad?.charAt(0)}
+          </div>
+        </div>
+        {soru.fotograf_url && <PhotoIcon className={`w-4 h-4 ${selectedSoru?.id === soru.id ? 'text-blue-200' : 'text-gray-300'}`} />}
+      </div>
 
-  return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">Dizgi Yönetimi</h1>
-
-      {/* Branş bazlı bekleyen soru sayıları */}
-      {bransCounts && bransCounts.length > 0 && (
-        <div className="flex flex-wrap gap-3">
-          {bransCounts.filter(b => Number(b.dizgi_bekliyor) > 0).map(b => (
-            <div key={b.id} className="px-3 py-1 rounded-full bg-gray-100 text-sm font-semibold flex items-center gap-2">
-              <span className="text-gray-700">{b.brans_adi}</span>
-              <span className="bg-purple-600 text-white px-2 py-0.5 rounded-full text-xs">{b.dizgi_bekliyor}</span>
-            </div>
-          ))}
+      {selectedSoru?.id === soru.id && (
+        <div className="absolute -bottom-1 -right-1 p-2 opacity-20">
+          <PaintBrushIcon className="w-12 h-12 text-white" />
         </div>
       )}
+    </div>
+  );
+
+  return (
+    <div className="max-w-7xl mx-auto space-y-10 animate-fade-in pb-20">
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <PaintBrushIcon className="w-12 h-12 text-purple-600" strokeWidth={2.5} />
+            <h1 className="text-4xl font-black text-gray-900 tracking-tight">Dizgi Laboratuvarı</h1>
+          </div>
+          <p className="text-gray-500 font-medium tracking-tight">Soruları kontrol edin, LaTeX tasarımlarını yapın ve final çıktılarını sisteme yükleyin.</p>
+        </div>
+        <div className="flex items-center gap-4">
+          {bransCounts && bransCounts.filter(b => Number(b.dizgi_bekliyor) > 0).length > 0 && (
+            <div className="flex items-center gap-2 bg-purple-50 px-4 py-2.5 rounded-2xl border border-purple-100">
+              <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest leading-none">BEKLEYEN:</span>
+              <div className="flex -space-x-1">
+                {bransCounts.filter(b => Number(b.dizgi_bekliyor) > 0).slice(0, 3).map(b => (
+                  <span key={b.id} className="w-auto px-2 py-0.5 bg-purple-600 text-white rounded-lg text-[10px] font-black border border-white hover:z-10 transition-transform cursor-help" title={`${b.brans_adi}: ${b.dizgi_bekliyor}`}>
+                    {b.brans_adi}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          <button onClick={loadSorular} className="p-4 bg-white border border-gray-100 rounded-2xl hover:bg-gray-50 transition-all shadow-sm active:scale-95">
+            <ArrowPathIcon className={`w-5 h-5 text-gray-400 ${loading ? 'animate-spin' : ''}`} strokeWidth={2.5} />
+          </button>
+        </div>
+      </div>
 
       {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-      ) : sorular.length === 0 ? (
-        <div className="card text-center py-12">
-          <h3 className="text-lg font-medium text-gray-900">Henüz soru yok</h3>
+        <div className="p-32 text-center bg-white rounded-[4rem] border border-gray-50 shadow-sm">
+          <ArrowPathIcon className="w-12 h-12 text-blue-100 mx-auto animate-spin mb-4" strokeWidth={2.5} />
+          <p className="text-gray-400 font-black text-[10px] uppercase tracking-[0.3em]">PROBİS İş Akışı Yükleniyor...</p>
         </div>
       ) : (
-        <div className="flex gap-6">
-          {/* Left column: stacked sections */}
-          <div className="w-1/3 space-y-4 overflow-y-auto max-h-[75vh]">
-            <div className="bg-white p-3 rounded shadow-sm">
-              <h2 className="font-semibold mb-2">Dizgi Bekleyen</h2>
-              <div className="space-y-2">
-                {pending.map(soru => (
-                  <div key={soru.id} className="p-2 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedSoru(soru)}>
-                    <div className="flex justify-between items-center">
-                      <div className="text-sm font-medium">Soru #{soru.id}</div>
-                      <div className="text-xs text-gray-500">{soru.brans_adi}</div>
-                    </div>
-                    <div className="text-xs text-gray-600 mt-1 truncate" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
-                    {/* Show if a prepared PNG/PDF exists and label it with the source soru id */}
-                    {(soru.fotograf_url || soru.dosya_url) && (
-                      <div className="mt-2 text-xs text-gray-500">
-                        Hazırlanan dosya: Soru #{soru.id} • {soru.fotograf_url ? 'PNG' : ''}{soru.fotograf_url && soru.dosya_url ? ' / ' : ''}{soru.dosya_url ? 'PDF' : ''}
-                      </div>
-                    )}
-                  </div>
-                ))}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          {/* FLOW COLUMNS */}
+          <div className="lg:col-span-5 flex flex-col gap-10">
+            {/* COLUMN: PENDING */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between px-4">
+                <h3 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <ClockIcon className="w-4 h-4 text-amber-500" strokeWidth={2.5} /> Kuyrukta Bekleyenler
+                </h3>
+                <span className="bg-amber-100 text-amber-600 px-3 py-1 rounded-xl text-[10px] font-black">{pending.length}</span>
+              </div>
+              <div className="flex flex-col gap-4 max-h-[40vh] overflow-y-auto no-scrollbar pr-2">
+                {pending.map(soru => <QuestionCard key={soru.id} soru={soru} />)}
+                {pending.length === 0 && <div className="p-10 text-center border-2 border-dashed border-gray-100 rounded-3xl text-gray-300 font-bold uppercase tracking-widest text-xs italic">Kuyruk Boş</div>}
               </div>
             </div>
 
-            <div className="bg-white p-3 rounded shadow-sm">
-              <h2 className="font-semibold mb-2">Dizgide</h2>
-              <div className="space-y-2">
-                {inProgress.map(soru => (
-                  <div key={soru.id} className="p-2 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedSoru(soru)}>
-                    <div className="flex justify-between items-center">
-                      <div className="text-sm font-medium">Soru #{soru.id}</div>
-                      <div className="text-xs text-gray-500">{soru.brans_adi}</div>
-                    </div>
-                    <div className="text-xs text-gray-600 mt-1 truncate" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
-                    {(soru.fotograf_url || soru.dosya_url) && (
-                      <div className="mt-2 text-xs text-gray-500">
-                        Hazırlanan dosya: Soru #{soru.id} • {soru.fotograf_url ? (<a href={soru.fotograf_url} target="_blank" rel="noreferrer" className="text-blue-600">PNG</a>) : null}{soru.fotograf_url && soru.dosya_url ? ' / ' : ''}{soru.dosya_url ? (<a href={soru.dosya_url} target="_blank" rel="noreferrer" className="text-blue-600">PDF</a>) : null}
-                      </div>
-                    )}
-                  </div>
-                ))}
+            {/* COLUMN: IN PROGRESS */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between px-4">
+                <h3 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <BeakerIcon className="w-4 h-4 text-blue-500" strokeWidth={2.5} /> İşlemde Olanlar
+                </h3>
+                <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-xl text-[10px] font-black">{inProgress.length}</span>
+              </div>
+              <div className="flex flex-col gap-4 max-h-[40vh] overflow-y-auto no-scrollbar pr-2">
+                {inProgress.map(soru => <QuestionCard key={soru.id} soru={soru} />)}
+                {inProgress.length === 0 && <div className="p-10 text-center border-2 border-dashed border-gray-100 rounded-3xl text-gray-300 font-bold uppercase tracking-widest text-xs italic">Aktif işlem yok</div>}
               </div>
             </div>
 
-            <div className="bg-white p-3 rounded shadow-sm">
-              <h2 className="font-semibold mb-2">Tamamlanan (Dosya Bekleyen)</h2>
-              <div className="space-y-2">
-                {completed.map(soru => (
-                  <div key={soru.id} className="p-2 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedSoru(soru)}>
-                    <div className="flex justify-between items-center">
-                      <div className="text-sm font-medium">Soru #{soru.id}</div>
-                      <div className="text-xs text-gray-500">{soru.brans_adi}</div>
-                    </div>
-                    <div className="text-xs text-gray-600 mt-1 truncate" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
-                  </div>
-                ))}
+            {/* COLUMN: COMPLETED BUT WAITING FILE */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between px-4">
+                <h3 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <CheckCircleIcon className="w-4 h-4 text-emerald-500" strokeWidth={2.5} /> Onaya Hazır / Tamamlanan
+                </h3>
+                <span className="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-xl text-[10px] font-black">{completed.length}</span>
+              </div>
+              <div className="flex flex-col gap-4 max-h-[40vh] overflow-y-auto no-scrollbar pr-2">
+                {completed.map(soru => <QuestionCard key={soru.id} soru={soru} />)}
+                {completed.length === 0 && <div className="p-10 text-center border-2 border-dashed border-gray-100 rounded-3xl text-gray-300 font-bold uppercase tracking-widest text-xs italic">Tamamlanan bulunamadı</div>}
               </div>
             </div>
           </div>
 
-          {/* Right column: selected soru details */}
-          <div className="w-2/3">
+          {/* PREVIEW & ACTIONS AREA */}
+          <div className="lg:col-span-12 xl:col-span-7 space-y-8">
             {selectedSoru ? (
-              <div className="card p-4">
-                <div className="flex justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold">Soru #{selectedSoru.id}</h3>
-                    <div className="text-sm text-gray-600">Branş: {selectedSoru.brans_adi} • Oluşturan: {selectedSoru.olusturan_ad}</div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => navigate(`/sorular/${selectedSoru.id}`)} className="btn btn-secondary btn-sm">Detay</button>
-                    <button onClick={() => setShowMesaj(showMesaj === selectedSoru.id ? null : selectedSoru.id)} className="btn btn-info btn-sm">💬</button>
-                    {selectedSoru.durum === 'dizgi_bekliyor' && <button onClick={() => handleDizgiAl(selectedSoru.id)} className="btn btn-primary btn-sm">Dizgiye Al</button>}
-                    {selectedSoru.durum === 'dizgide' && <button onClick={() => setShowCompleteModal(true)} className="btn btn-success btn-sm">✔ Dizgiyi Bitir</button>}
-                  </div>
-                </div>
+              <div className="sticky top-10 space-y-8 animate-scale-up">
+                {/* PREVIEW CARD */}
+                <div className="bg-white rounded-[3.5rem] p-12 shadow-2xl shadow-gray-200/50 border border-gray-50 flex flex-col gap-8">
+                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 border-b border-gray-50 pb-8">
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <h2 className="text-3xl font-black text-gray-900 tracking-tight">Soru #{selectedSoru.id}</h2>
+                        <div className={`px-4 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border ${selectedSoru.durum.includes('bekliyor') ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                            selectedSoru.durum.includes('dizgide') ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                              'bg-emerald-50 text-emerald-600 border-emerald-100'
+                          }`}>
+                          {selectedSoru.durum.replace(/_/g, ' ')}
+                        </div>
+                      </div>
+                      <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">
+                        {selectedSoru.brans_adi} <span className="mx-2 text-gray-200">|</span>
+                        Oluşturan: <span className="text-gray-600">{selectedSoru.olusturan_ad}</span>
+                      </p>
+                    </div>
 
-                <div className="mt-4 p-6 bg-white border rounded-lg shadow-sm" ref={questionRef}>
-                  <div className="text-gray-900 prose max-w-none" dangerouslySetInnerHTML={{ __html: selectedSoru.soru_metni }} />
-                  {(selectedSoru.fotograf_url) && (
-                    <div className="mt-4">
-                      <img src={selectedSoru.fotograf_url} className="max-w-full rounded border mx-auto" alt="Soru Görseli" />
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button onClick={() => navigate(`/sorular/${selectedSoru.id}`)} className="p-3 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-2xl transition shadow-sm border border-gray-100" title="Detay Sayfası">
+                        <ArrowRightCircleIcon className="w-6 h-6" />
+                      </button>
+                      <button onClick={() => setShowMesaj(showMesaj === selectedSoru.id ? null : selectedSoru.id)} className={`p-3 rounded-2xl transition shadow-sm border ${showMesaj === selectedSoru.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100'
+                        }`} title="Mesajlaşma">
+                        <ChatBubbleLeftRightIcon className="w-6 h-6" />
+                      </button>
+
+                      {selectedSoru.durum === 'dizgi_bekliyor' || selectedSoru.durum === 'revize_istendi' ? (
+                        <button onClick={() => handleDizgiAl(selectedSoru.id)} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-blue-100 active:scale-95 flex items-center gap-2">
+                          <PaintBrushIcon className="w-4 h-4" strokeWidth={2.5} /> Dizgiye Al
+                        </button>
+                      ) : selectedSoru.durum === 'dizgide' ? (
+                        <button onClick={() => setShowCompleteModal(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-emerald-100 active:scale-95 flex items-center gap-2">
+                          <CheckCircleIcon className="w-4 h-4" strokeWidth={2.5} /> Dizgiyi Bitir
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {/* QUESTION TEXT AREA */}
+                  <div className="relative group">
+                    <div className="absolute -top-4 -left-4 bg-indigo-600 text-white p-2 rounded-xl shadow-lg z-10 scale-0 group-hover:scale-100 transition-transform">
+                      <SparklesIcon className="w-4 h-4" />
+                    </div>
+                    <div className="p-10 bg-gray-50/50 rounded-[2.5rem] border border-gray-100 shadow-inner min-h-[15rem] relative" ref={questionRef}>
+                      <div className="text-gray-900 prose prose-xl max-w-none font-medium leading-relaxed" dangerouslySetInnerHTML={{ __html: selectedSoru.soru_metni }} />
+                      {selectedSoru.fotograf_url && (
+                        <div className="mt-10 p-4 bg-white rounded-3xl shadow-sm border border-gray-100 inline-block overflow-hidden max-w-full">
+                          <img src={selectedSoru.fotograf_url} className="max-w-full rounded-2xl mx-auto block hover:scale-[1.02] transition-transform duration-500" alt="Soru Görseli" />
+                        </div>
+                      )}
+                      <div className="absolute bottom-6 right-8 text-[9px] font-black text-gray-300 uppercase tracking-[0.3em]">PROBİS PREVIEW ENGINE</div>
+                    </div>
+                  </div>
+
+                  {/* ACTIONS FOR POST-COMPLETION */}
+                  {(selectedSoru.durum === 'tamamlandi' || selectedSoru.durum === 'dizgi_tamam') && (
+                    <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                      <button onClick={handleCapturePNG} className="flex-1 flex items-center justify-center gap-3 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.1em] transition-all shadow-sm active:scale-95">
+                        <PhotoIcon className="w-6 h-6" /> PNG ÇIKTISI AL (AUTO)
+                      </button>
+
+                      <label className="flex-1 flex items-center justify-center gap-3 bg-purple-600 hover:bg-purple-700 text-white py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.1em] transition-all shadow-lg shadow-purple-100 active:scale-95 cursor-pointer">
+                        <DocumentArrowUpIcon className="w-6 h-6" /> MANUEL DOSYA YÜKLE
+                        <input type="file" className="hidden" accept="image/*,application/pdf" onChange={async (e) => {
+                          const file = e.target.files[0];
+                          if (!file) return;
+                          if (!confirm("Seçilen dosya yüklenecek ve soru güncellenecek. Emin misiniz?")) { e.target.value = null; return; }
+                          const fd = new FormData();
+                          fd.append('final_png', file);
+                          try {
+                            await soruAPI.uploadFinal(selectedSoru.id, fd);
+                            alert('Dosya yüklendi ve havuza aktarıldı');
+                            await loadSorular();
+                            loadBransCounts();
+                          } catch (err) { alert(err.response?.data?.error || 'Dosya yüklenemedi'); }
+                        }} />
+                      </label>
+                    </div>
+                  )}
+
+                  {/* MESSAGING INTEGRATION */}
+                  {showMesaj === selectedSoru.id && (
+                    <div className="mt-4 border-t border-gray-100 pt-10 animate-fade-in">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-2 h-8 bg-blue-600 rounded-full"></div>
+                        <h4 className="text-xl font-black text-gray-900 tracking-tight">Eğitimci & Dizgici İletişimi</h4>
+                      </div>
+                      <div className="h-[500px] border border-gray-100 rounded-[2.5rem] overflow-hidden shadow-inner bg-gray-50/30">
+                        <MesajKutusu
+                          soruId={selectedSoru.id}
+                          soruSahibi={{ ad_soyad: selectedSoru.olusturan_ad }}
+                          dizgici={{ ad_soyad: user.ad_soyad }}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
-
-                {showMesaj === selectedSoru.id && (
-                  <div className="mt-4 border-t pt-4">
-                    <div className="h-[400px]">
-                      <MesajKutusu
-                        soruId={selectedSoru.id}
-                        soruSahibi={{ ad_soyad: selectedSoru.olusturan_ad }}
-                        dizgici={{ ad_soyad: user.ad_soyad }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Dosya ekleme ve PNG alma alanı for completed */}
-                {(selectedSoru.durum === 'tamamlandi' || selectedSoru.durum === 'dizgi_tamam') && (
-                  <div className="mt-4 flex gap-3">
-                    <button onClick={handleCapturePNG} className="btn bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200">
-                      🖼️ Sorunun PNG'sini Al
-                    </button>
-
-                    <label className="px-6 py-2 bg-purple-600 text-white rounded-xl font-bold text-sm hover:bg-purple-700 transition shadow-md flex items-center gap-2 cursor-pointer border-b-4 border-purple-800 active:border-b-0 active:translate-y-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                      </svg>
-                      📤 DOSYA EKLE (PNG/PDF)
-                      <input type="file" className="hidden" accept="image/*,application/pdf" onChange={async (e) => {
-                        const file = e.target.files[0];
-                        if (!file) return;
-
-                        if (!confirm("Seçilen dosya yüklenecek ve soru güncellenecek. Emin misiniz?")) {
-                          e.target.value = null; // Reset input
-                          return;
-                        }
-
-                        const fd = new FormData();
-                        // Backend 'final_png' field'ı bekliyor (resim veya pdf olsa da)
-                        fd.append('final_png', file);
-
-                        try {
-                          await soruAPI.uploadFinal(selectedSoru.id, fd);
-                          alert('Dosya yüklendi ve havuza aktarıldı');
-                          await loadSorular();
-                          loadBransCounts();
-                        } catch (err) {
-                          alert(err.response?.data?.error || 'Dosya yüklenemedi');
-                        }
-                      }} />
-                    </label>
-                  </div>
-                )}
               </div>
             ) : (
-              <div className="p-6 bg-white rounded shadow-sm text-gray-500">Sol sütundan bir soru seçin, detaylar burada gözükecek.</div>
+              <div className="bg-white rounded-[4rem] p-32 text-center border border-gray-50 shadow-sm flex flex-col items-center gap-6 group">
+                <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center group-hover:bg-blue-50 transition-colors">
+                  <Squares2X2Icon className="w-10 h-10 text-gray-200 group-hover:text-blue-200 transition-colors" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-black text-gray-300 uppercase tracking-widest leading-none">ÇALIŞMA ALANI BOŞ</h3>
+                  <p className="text-xs text-gray-300 font-bold uppercase tracking-widest italic opacity-60">LÜTFEN SOL SÜTUNDAN BİR GÖREV SEÇİN.</p>
+                </div>
+              </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Revize Modal */}
-      {showModal && selectedSoru && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-bold mb-4">
-              Revize Talebi - Soru #{selectedSoru.id}
-            </h2>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Revize Notu
-                </label>
-                <textarea
-                  rows="4"
-                  className="input"
-                  placeholder="Nelerin düzeltilmesi gerektiğini açıklayın..."
-                  value={revizeNotu}
-                  onChange={(e) => setRevizeNotu(e.target.value)}
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => {
-                    setShowModal(false);
-                    setRevizeNotu('');
-                  }}
-                  className="btn btn-secondary"
-                >
-                  İptal
-                </button>
-                <button
-                  onClick={() => handleDurumGuncelle(selectedSoru.id, 'revize_gerekli')}
-                  className="btn btn-error"
-                >
-                  Revize İste
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tamamla Modal */}
+      {/* COMPLETE MODAL */}
       {showCompleteModal && selectedSoru && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-bold mb-4">
-              Dizgi Tamamla - Soru #{selectedSoru.id}
-            </h2>
-
-            <div className="space-y-4">
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-6">
+          <div className="bg-white rounded-[3rem] p-10 max-w-xl w-full shadow-2xl border border-gray-50 animate-scale-up">
+            <div className="flex justify-between items-start mb-8">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Final PNG (Seçenekelidir)
-                </label>
+                <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                  <CheckCircleIcon className="w-8 h-8 text-emerald-500" /> Görevi Sonlandır
+                </h2>
+                <p className="text-gray-400 font-bold text-xs uppercase tracking-widest mt-1">Soru #{selectedSoru.id} Final Çıktısı</p>
+              </div>
+              <button onClick={() => setShowCompleteModal(false)} className="p-3 hover:bg-gray-100 rounded-2xl transition">
+                <XMarkIcon className="w-7 h-7 text-gray-300" />
+              </button>
+            </div>
+
+            <div className="space-y-8">
+              <div className="relative">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 ml-1">Final PNG Yükle (LaTeX / Tasarım)</label>
                 <div className="flex items-center justify-center w-full">
-                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <svg className="w-8 h-8 mb-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" />
-                      </svg>
-                      <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">PNG Yükle</span></p>
-                      <p className="text-xs text-gray-500">{completeData.finalPng ? completeData.finalPng.name : 'PNG dosyası seçiniz'}</p>
+                  <label className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-[2rem] cursor-pointer transition-all ${completeData.finalPng ? 'bg-emerald-50 border-emerald-300' : 'bg-gray-50 border-gray-200 hover:bg-white hover:border-blue-400'
+                    }`}>
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                      {completeData.finalPng ? (
+                        <DocumentArrowUpIcon className="w-12 h-12 text-emerald-500 mb-3 animate-bounce-short" />
+                      ) : (
+                        <PhotoIcon className="w-12 h-12 text-gray-300 mb-3" />
+                      )}
+                      <p className={`text-xs font-black uppercase tracking-widest ${completeData.finalPng ? 'text-emerald-700' : 'text-gray-400'}`}>
+                        {completeData.finalPng ? 'DOSYA SEÇİLDİ' : 'GÖRSELİ BURAYA SÜRÜKLEYİN'}
+                      </p>
+                      <p className="mt-1 text-[10px] text-gray-400 font-medium italic">
+                        {completeData.finalPng ? completeData.finalPng.name : 'Veya buraya tıklayarak dosya seçin'}
+                      </p>
                     </div>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/png,image/jpeg"
-                      onChange={(e) => setCompleteData({ ...completeData, finalPng: e.target.files[0] })}
-                    />
+                    <input type="file" className="hidden" accept="image/png,image/jpeg" onChange={(e) => setCompleteData({ ...completeData, finalPng: e.target.files[0] })} />
                   </label>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notlar
-                </label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 ml-1">Eğitimci/Yazar Notu</label>
                 <textarea
-                  rows="3"
-                  className="input"
-                  placeholder="Eklemek istediğiniz notlar..."
+                  rows="4"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-[2rem] px-6 py-5 text-sm font-bold text-gray-700 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all outline-none"
+                  placeholder="Dizgi hakkında teknik detaylar, kullanılan fontlar vb. bilgiler ekleyebilirsiniz..."
                   value={completeData.notlar}
                   onChange={(e) => setCompleteData({ ...completeData, notlar: e.target.value })}
                 />
               </div>
 
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => {
-                    setShowCompleteModal(false);
-                    setCompleteData({ notlar: '', finalPng: null });
-                  }}
-                  className="btn btn-secondary"
-                >
-                  İptal
-                </button>
-                <button
-                  onClick={handleDizgiTamamla}
-                  className="btn btn-success"
-                >
-                  ✅ Tamamla ve Havuza Gönder
+              <div className="flex gap-4">
+                <button onClick={() => setShowCompleteModal(false)} className="flex-1 py-5 rounded-3xl text-[11px] font-black text-gray-400 uppercase tracking-widest hover:bg-gray-50 transition-colors">İPTAL</button>
+                <button onClick={handleDizgiTamamla} className="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white rounded-3xl py-5 font-black text-sm uppercase tracking-[0.1em] transition-all shadow-xl shadow-emerald-100 active:scale-95 flex items-center justify-center gap-2">
+                  GÖREVİ HAVUZA GÖNDER
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* INFO FOOTER */}
+      <div className="mx-4 bg-purple-50 p-8 rounded-[3rem] border border-purple-100 flex items-start gap-5">
+        <InformationCircleIcon className="w-8 h-8 text-purple-600 mt-1 flex-shrink-0" />
+        <div className="space-y-1">
+          <h6 className="text-[11px] font-black text-purple-900 uppercase tracking-[0.2em]">Dizgi Personeli Rehberi</h6>
+          <p className="text-sm text-purple-700 font-medium leading-relaxed italic pr-10">Soruları PNG formatına dönüştürürken 150-300 DPI aralığında ve şeffaf arka plan olmadan (tercihen beyaz) çıktı almanız önerilir. LaTeX formülleri içeren sorularda sembollerin okunabilirliğini manuel olarak kontrol ediniz.</p>
+        </div>
+      </div>
     </div>
   );
 }

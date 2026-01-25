@@ -3,6 +3,24 @@ import { Link, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { soruAPI, bransAPI } from '../services/api';
 import { getDurumBadge, generateExportHtml } from '../utils/helpers';
+import {
+  Squares2X2Icon,
+  FunnelIcon,
+  ArrowPathIcon,
+  TrashIcon,
+  DocumentArrowUpIcon,
+  CheckCircleIcon,
+  ChevronRightIcon,
+  MagnifyingGlassIcon,
+  FolderOpenIcon,
+  InboxIcon,
+  SparklesIcon,
+  PhotoIcon,
+  RocketLaunchIcon,
+  MagnifyingGlassPlusIcon,
+  ArchiveBoxArrowDownIcon,
+  PrinterIcon
+} from '@heroicons/react/24/outline';
 
 export default function Sorular({ scope }) {
   const { user: authUser, viewRole } = useAuthStore();
@@ -22,7 +40,6 @@ export default function Sorular({ scope }) {
     brans_id: '',
   });
 
-  // reset filter when switching modes
   useEffect(() => {
     setFilters(prev => ({
       ...prev,
@@ -31,11 +48,10 @@ export default function Sorular({ scope }) {
   }, [isTakipModu, scope, urlDurum]);
 
   const [selectedQuestions, setSelectedQuestions] = useState([]);
-  const [activeTab, setActiveTab] = useState(queryParams.get('tab') || 'taslaklar'); // 'taslaklar' or 'dizgi_sonrasi'
+  const [activeTab, setActiveTab] = useState(queryParams.get('tab') || 'taslaklar');
 
   useEffect(() => {
     if (!user) return;
-
     const loadBranslar = async () => {
       if (user.rol !== 'admin') return;
       try {
@@ -45,13 +61,11 @@ export default function Sorular({ scope }) {
         console.error('Branşlar yüklenemedi:', error);
       }
     };
-
     loadBranslar();
   }, [user?.id, user?.rol]);
 
   useEffect(() => {
     if (!user) return;
-
     const loadSorular = async () => {
       setLoading(true);
       try {
@@ -63,34 +77,26 @@ export default function Sorular({ scope }) {
         const response = await soruAPI.getAll(params);
         let data = response.data.data || [];
 
-        // Branş Havuzu için Sekme Bazlı Filtreleme
         if (scope === 'brans') {
           if (activeTab === 'taslaklar') {
-            // "Süreçteki Sorularım" sekmesi: Taslak (beklemede), inceleme, revize, dizgi aşamasındaki tüm soruları göster
             data = data.filter(s =>
-              // Açıkça belirtilen durumlar:
               ['beklemede', 'inceleme_bekliyor', 'incelemede', 'alan_incelemede', 'dil_incelemede', 'revize_istendi', 'revize_gerekli', 'dizgi_bekliyor', 'dizgide'].includes(s.durum)
             );
           } else {
-            // "Onaylanacaklar" sekmesi: Dizgi ve İnceleme aşamalarından dönen, öğretmenin nihai onayını bekleyenler
             data = data.filter(s => ['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam'].includes(s.durum));
           }
         }
 
-        // Frontend kısıtlamaları
         if (effectiveRole === 'dizgici' && authUser?.rol !== 'admin') {
           data = data.filter(s => ['dizgi_bekliyor', 'dizgide'].includes(s.durum));
         }
-
         setSorular(data);
       } catch (error) {
-        console.error('Sorular yüklenemedi:', error);
         setSorular([]);
       } finally {
         setLoading(false);
       }
     };
-
     loadSorular();
   }, [user?.id, effectiveRole, filters.durum, filters.brans_id, scope, activeTab]);
 
@@ -100,7 +106,6 @@ export default function Sorular({ scope }) {
         await soruAPI.delete(id);
         setSorular(sorular.filter(s => s.id !== id));
       } catch (err) {
-        console.error('Silme hatası:', err);
         alert('Silme işlemi başarısız oldu.');
       }
     }
@@ -109,12 +114,7 @@ export default function Sorular({ scope }) {
   const handleDizgiAl = async (soruId) => {
     try {
       await soruAPI.dizgiAl(soruId);
-      const response = await soruAPI.getAll({
-        durum: filters.durum || undefined,
-        brans_id: filters.brans_id || undefined,
-        scope: scope || undefined
-      });
-      setSorular(response.data.data || []);
+      loadSorular();
     } catch (error) {
       alert(error.response?.data?.error || 'Soru dizgiye alınamadı');
     }
@@ -130,9 +130,7 @@ export default function Sorular({ scope }) {
         durum: filters.durum || undefined
       });
       setSorular(response.data.data || []);
-      alert(`✅ Soru durumu '${status}' olarak güncellendi.`);
     } catch (error) {
-      console.error('Durum güncelleme hatası:', error);
       alert('Hata: ' + (error.response?.data?.error || error.message));
     } finally {
       setLoading(false);
@@ -142,98 +140,13 @@ export default function Sorular({ scope }) {
   const handleDizgiyeGonder = async (ids) => {
     const idList = Array.isArray(ids) ? ids : [ids];
     if (idList.length === 0) return;
-
-    if (!window.confirm(`${idList.length} soruyu dizgi birimine göndermek istediğinize emin misiniz?`)) return;
-
+    if (!window.confirm(`${idList.length} soruyu dizgiye göndermek istediğinize emin misiniz?`)) return;
     try {
       setLoading(true);
       await Promise.all(idList.map(id => soruAPI.updateDurum(id, { yeni_durum: 'dizgi_bekliyor' })));
-
-      // Listeyi yenile
-      const response = await soruAPI.getAll({
-        durum: filters.durum || undefined,
-        brans_id: filters.brans_id || undefined,
-        scope: scope || undefined
-      });
-      let data = response.data.data || [];
-
-      // Branş Havuzu için Sekme Bazlı Filtreleme
-      if (scope === 'brans') {
-        if (activeTab === 'taslaklar') {
-          data = data.filter(s =>
-            ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli', 'alan_incelemede', 'dil_incelemede'].includes(s.durum)
-          );
-        } else {
-          data = data.filter(s => ['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam'].includes(s.durum));
-        }
-      }
-
-      setSorular(data);
+      loadSorular();
       setSelectedQuestions([]);
-      alert(`✅ ${idList.length} soru başarıyla dizgiye gönderildi.`);
     } catch (error) {
-      console.error('Dizgiye gönderme hatası:', error);
-      alert('İşlem sırasında bir hata oluştu.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleİncelemeyeGonder = async (ids) => {
-    const idList = Array.isArray(ids) ? ids : [ids];
-    if (idList.length === 0) return;
-
-    if (!window.confirm(`${idList.length} soruyu ALAN İNCELEME birimine göndermek istediğinize emin misiniz?`)) return;
-
-    try {
-      setLoading(true);
-      await Promise.all(idList.map(id => soruAPI.updateDurum(id, { yeni_durum: 'alan_incelemede' })));
-
-      // Veriyi yenile
-      const response = await soruAPI.getAll({ scope });
-      let data = response.data.data || [];
-      if (scope === 'brans') {
-        if (activeTab === 'taslaklar') {
-          data = data.filter(s => ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli', 'alan_incelemede', 'dil_incelemede'].includes(s.durum));
-        } else {
-          data = data.filter(s => ['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam'].includes(s.durum));
-        }
-      }
-      setSorular(data);
-      setSelectedQuestions([]);
-      alert(`✅ ${idList.length} soru başarıyla ALAN İNCELEMEYE gönderildi.`);
-    } catch (error) {
-      console.error('İncelemeye gönderme hatası:', error);
-      alert('İşlem sırasında bir hata oluştu.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOrtakHavuzaGonder = async (ids) => {
-    const idList = Array.isArray(ids) ? ids : [ids];
-    if (idList.length === 0) return;
-
-    if (!window.confirm(`${idList.length} soruyu ORTAK HAVUZA (Tamamlandı) göndermek istediğinize emin misiniz?`)) return;
-
-    try {
-      setLoading(true);
-      await Promise.all(idList.map(id => soruAPI.updateDurum(id, { yeni_durum: 'tamamlandi' })));
-
-      const response = await soruAPI.getAll({ scope });
-      let data = response.data.data || [];
-      if (scope === 'brans') {
-        if (activeTab === 'taslaklar') {
-          data = data.filter(s => ['beklemede', 'dizgi_bekliyor', 'dizgide', 'revize_istendi', 'revize_gerekli', 'alan_incelemede', 'dil_incelemede'].includes(s.durum));
-        } else {
-          data = data.filter(s => ['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam'].includes(s.durum));
-        }
-      }
-      setSorular(data);
-      setSelectedQuestions([]);
-      alert(`✅ ${idList.length} soru başarıyla Ortak Havuza gönderildi.`);
-    } catch (error) {
-      console.error('Tamamlama hatası:', error);
       alert('İşlem sırasında bir hata oluştu.');
     } finally {
       setLoading(false);
@@ -242,42 +155,44 @@ export default function Sorular({ scope }) {
 
   const handleExport = () => {
     if (selectedQuestions.length === 0) return;
-
     const selectedData = sorular.filter(s => selectedQuestions.includes(s.id));
     const htmlContent = generateExportHtml(selectedData);
-
-    // Basit bir HTML çıktısı oluştur ve yeni pencerede aç (Yazdırma/Kopyalama için)
     const exportWindow = window.open('', '_blank');
     exportWindow.document.write(htmlContent);
     exportWindow.document.close();
   };
 
-
-
-  // Admin için Branş Seçimi Landing Page
   if (user?.rol === 'admin' && !filters.brans_id) {
     return (
-      <div className="max-w-6xl mx-auto py-10 space-y-8 animate-fade-in-up">
-        <div className="text-center">
-          <h1 className="text-4xl font-extrabold text-gray-900 mb-2">Soru Havuzu</h1>
-          <p className="text-xl text-gray-500">Lütfen işlem yapmak istediğiniz branşı seçiniz</p>
+      <div className="max-w-7xl mx-auto py-12 space-y-10 animate-fade-in-up">
+        <div className="text-center space-y-4">
+          <Squares2X2Icon className="w-16 h-16 text-blue-600 mx-auto" strokeWidth={2.5} />
+          <h1 className="text-5xl font-black text-gray-900 tracking-tight">Merkezi Soru Havuzu</h1>
+          <p className="text-gray-500 font-medium max-w-2xl mx-auto">İşlem yapmak istediğiniz branş birimini seçerek devam edin. Tüm sorulardan bağımsız branş bazlı yönetim paneline erişeceksiniz.</p>
         </div>
 
         {loading ? (
-          <div className="text-center py-12"><div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div></div>
+          <div className="py-20 flex flex-col items-center gap-4">
+            <ArrowPathIcon className="w-10 h-10 text-gray-200 animate-spin" strokeWidth={3} />
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Branşlar Listeleniyor...</p>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
             {branslar.map(brans => (
               <button
                 key={brans.id}
                 onClick={() => setFilters({ ...filters, brans_id: brans.id })}
-                className="group flex flex-col items-center p-8 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-xl hover:border-blue-500 hover:bg-gradient-to-br hover:from-white hover:to-blue-50 transition-all transform hover:-translate-y-1"
+                className="group p-8 rounded-[2.5rem] bg-white border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all flex flex-col items-center text-center relative overflow-hidden"
               >
-                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-4xl mb-6 group-hover:scale-110 transition-transform shadow-inner">📚</div>
-                <h3 className="text-2xl font-bold text-gray-800 group-hover:text-blue-700">{brans.brans_adi}</h3>
-                <p className="text-sm font-medium text-gray-500 mt-2 bg-gray-100 px-3 py-1 rounded-full">{brans.ekip_adi}</p>
-                <div className="mt-6 text-blue-600 font-semibold opacity-0 group-hover:opacity-100 transition-opacity flex items-center">
-                  Soruları Görüntüle <span className="ml-2">→</span>
+                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform"><Squares2X2Icon className="w-24 h-24" /></div>
+                <div className="w-24 h-24 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center text-3xl font-black mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner">
+                  {brans.brans_adi.charAt(0)}
+                </div>
+                <h3 className="text-2xl font-black text-gray-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{brans.brans_adi}</h3>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2">{brans.ekip_adi}</p>
+
+                <div className="mt-8 flex items-center gap-2 text-blue-600 font-black text-[10px] uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 group-hover:translate-y-0 translate-y-2 transition-all">
+                  HAVUZA GİRİŞ YAP <ChevronRightIcon className="w-4 h-4" strokeWidth={3} />
                 </div>
               </button>
             ))}
@@ -288,333 +203,272 @@ export default function Sorular({ scope }) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          {user?.rol === 'admin' && filters.brans_id && (
-            <button
-              onClick={() => setFilters({ ...filters, brans_id: '' })}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-sm"
-              title="Branş Seçimine Dön"
-            >
-              <span className="text-xl font-bold">←</span>
-            </button>
-          )}
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            {isTakipModu ? 'Bekleyen İş Takibi' : (scope === 'brans' ? 'Branş Havuzu' : 'Ortak Soru Havuzu')}
+    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-20">
+      {/* HEADER AREA */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
+        <div>
+          <div className="flex items-center gap-4 mb-2">
             {user?.rol === 'admin' && filters.brans_id && (
-              <span className="text-gray-400 font-light ml-3 text-2xl flex items-center">
-                <span className="mx-2">/</span>
-                <span className="text-blue-600">{branslar.find(b => b.id == filters.brans_id)?.brans_adi}</span>
-              </span>
+              <button onClick={() => setFilters({ ...filters, brans_id: '' })} className="p-3 bg-white border border-gray-100 rounded-2xl hover:bg-gray-50 text-gray-400 hover:text-gray-900 transition-all shadow-sm">
+                <ChevronRightIcon className="w-6 h-6 rotate-180" strokeWidth={3} />
+              </button>
             )}
-          </h1>
+            <div className="flex flex-col">
+              <h1 className="text-4xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                {isTakipModu ? <ArrowPathIcon className="w-10 h-10 text-amber-500" /> : <InboxIcon className="w-10 h-10 text-blue-600" />}
+                {isTakipModu ? 'Bekleyen İş Takibi' : (scope === 'brans' ? 'Branş Havuzu' : 'Ortak Soru Havuzu')}
+              </h1>
+              {user?.rol === 'admin' && filters.brans_id && (
+                <p className="text-indigo-600 font-black text-xs uppercase tracking-[0.2em] mt-1 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-indigo-600 rounded-full animate-pulse"></span>
+                  {branslar.find(b => b.id == filters.brans_id)?.brans_adi} BİRİMİ KONTROLÜ
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Branş Havuzu Sekmeleri */}
         {scope === 'brans' && (
-          <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-100 w-fit">
+          <div className="flex bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shadow-inner">
             <button
               onClick={() => { setActiveTab('taslaklar'); setFilters(f => ({ ...f, durum: '' })); setSelectedQuestions([]); }}
-              className={`px-6 py-2 rounded-lg font-bold text-sm transition ${activeTab === 'taslaklar' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
+              className={`px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === 'taslaklar' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
             >
-              ✍️ Süreçteki Sorularım
+              ✍️ SÜREÇTEKİ SORULARIM
             </button>
             <button
               onClick={() => { setActiveTab('dizgi_sonrasi'); setFilters(f => ({ ...f, durum: '' })); setSelectedQuestions([]); }}
-              className={`px-6 py-2 rounded-lg font-bold text-sm transition ${activeTab === 'dizgi_sonrasi' ? 'bg-emerald-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
+              className={`px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === 'dizgi_sonrasi' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
             >
-              🏁 Dizgiden Gelenler (Onaylanacak)
+              🏁 ONAY BEKLEYENLER
             </button>
           </div>
         )}
       </div>
 
-      {/* Filtreler */}
-      <div className="card">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {isTakipModu && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Durum</label>
-              <select
-                className="input"
-                value={filters.durum}
-                onChange={(e) => setFilters({ ...filters, durum: e.target.value })}
-              >
-                <option value="">Tümü</option>
-                <option value="beklemede">Beklemede</option>
-                <option value="dizgi_bekliyor">Dizgi Bekliyor</option>
-                <option value="dizgide">Dizgide</option>
-                <option value="tamamlandi">Tamamlandı</option>
-                <option value="revize_gerekli">Revize Gerekli</option>
-                <option value="revize_istendi">Revize İstendi</option>
-              </select>
-            </div>
-          )}
+      {/* FILTER & TOOLS */}
+      <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex flex-col md:flex-row items-center gap-6 w-full md:w-auto">
+          <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
+            <FunnelIcon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
+            <select
+              value={filters.durum}
+              onChange={(e) => setFilters({ ...filters, durum: e.target.value })}
+              className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
+            >
+              <option value="">TÜM DURUMLAR</option>
+              <option value="beklemede">BEKLEMEDE</option>
+              <option value="dizgi_bekliyor">DİZGİ BEKLİYOR</option>
+              <option value="dizgide">DİZGİDE</option>
+              <option value="tamamlandi">TAMAMLANDI</option>
+              <option value="revize_gerekli">REVİZE GEREKLİ</option>
+              <option value="revize_istendi">REVİZE İSTENDİ</option>
+            </select>
+          </div>
 
           {user?.rol === 'admin' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Branş</label>
+            <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
+              <Squares2X2Icon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
               <select
-                className="input"
                 value={filters.brans_id}
                 onChange={(e) => setFilters({ ...filters, brans_id: e.target.value })}
+                className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
               >
-                <option value="">Tümü</option>
+                <option value="">TÜM BRANŞLAR</option>
                 {branslar.map((brans) => (
-                  <option key={brans.id} value={brans.id}>
-                    {brans.brans_adi} ({brans.ekip_adi})
-                  </option>
+                  <option key={brans.id} value={brans.id}>{brans.brans_adi}</option>
                 ))}
               </select>
             </div>
           )}
         </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {selectedQuestions.length > 0 && (
+            <div className="flex items-center gap-2">
+              {activeTab === 'taslaklar' && (
+                <button onClick={() => handleDizgiyeGonder(selectedQuestions)} className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-purple-100 transition-all flex items-center gap-2 active:scale-95">
+                  <RocketLaunchIcon className="w-4 h-4" strokeWidth={2.5} /> DİZGİYE GÖNDER
+                </button>
+              )}
+              <button onClick={handleExport} className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-100 px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-sm transition-all flex items-center gap-2 active:scale-95">
+                <PrinterIcon className="w-4 h-4" strokeWidth={2.5} /> YAZDIR / WORD
+              </button>
+              <button onClick={() => setSelectedQuestions([])} className="p-3 text-rose-500 hover:bg-rose-50 rounded-2xl transition" title="Seçimi Temizle">
+                <XMarkIcon className="w-5 h-5" strokeWidth={3} />
+              </button>
+            </div>
+          )}
+          <div className="relative">
+            <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" strokeWidth={3} />
+            <input placeholder="SORU ARA..." className="bg-gray-50 border-none rounded-2xl pl-12 pr-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] outline-none focus:ring-4 focus:ring-blue-500/10 transition-all w-[180px]" />
+          </div>
+        </div>
       </div>
 
-      {/* Araç Çubuğu (Dışa Aktarma / Çoklu İşlem) */}
-      {scope === 'brans' && (
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                className="w-5 h-5 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
-                checked={sorular.length > 0 && selectedQuestions.length === sorular.length && sorular.length > 0}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    setSelectedQuestions(sorular.map(s => s.id));
-                  } else {
-                    setSelectedQuestions([]);
-                  }
-                }}
-              />
-              <span className="text-sm font-bold text-gray-700">Tümünü Seç</span>
-            </label>
-            {selectedQuestions.length > 0 && (
-              <span className="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100">
-                {selectedQuestions.length} soru seçildi
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            {activeTab === 'taslaklar' && (
-              <button
-                onClick={() => handleDizgiyeGonder(selectedQuestions)}
-                disabled={selectedQuestions.length === 0}
-                className="btn bg-purple-600 hover:bg-purple-700 text-white text-sm py-2 px-4 shadow-sm disabled:opacity-50 disabled:grayscale transition-all flex items-center gap-2"
-              >
-                🚀 Seçilenleri DİZGİYE Gönder
-              </button>
-            )}
-
-            {activeTab === 'dizgi_sonrasi' && (
-              <>
-                <button
-                  onClick={() => handleİncelemeyeGonder(selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'dizgi_tamam'))}
-                  disabled={selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'dizgi_tamam').length === 0}
-                  className="btn bg-orange-600 hover:bg-orange-700 text-white text-sm py-2 px-4 shadow-sm disabled:opacity-50 transition-all flex items-center gap-2"
-                >
-                  🔍 Seçilenleri ALAN İNCELEMEYE Gönder
-                </button>
-                <button
-                  onClick={() => handleOrtakHavuzaGonder(selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'dil_onaylandi'))}
-                  disabled={selectedQuestions.filter(id => sorular.find(s => s.id === id)?.durum === 'dil_onaylandi').length === 0}
-                  className="btn bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-2 px-4 shadow-sm disabled:opacity-50 transition-all flex items-center gap-2"
-                >
-                  ✅ Seçilenleri ORTAK HAVUZA Gönder
-                </button>
-              </>
-            )}
-
-            <button
-              onClick={handleExport}
-              disabled={selectedQuestions.length === 0}
-              className="btn btn-secondary text-sm py-2 px-4 disabled:opacity-50"
-            >
-              📄 Word / Yazdır
-            </button>
-
-            {selectedQuestions.length > 0 && (
-              <button
-                onClick={() => setSelectedQuestions([])}
-                className="text-xs text-red-600 hover:underline px-2"
-              >
-                Seçimi Temizle
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {!scope && selectedQuestions.length > 0 && (
-        <div className="flex justify-end items-center bg-indigo-50 p-4 rounded-xl border border-indigo-200 gap-4">
-          <span className="text-sm font-medium text-indigo-800">{selectedQuestions.length} soru seçildi</span>
-          <button onClick={handleExport} className="btn btn-primary text-sm py-2 px-4">📄 Seçilenleri Dışa Aktar</button>
-          <button onClick={() => setSelectedQuestions([])} className="text-xs text-red-600 hover:underline">Temizle</button>
-        </div>
-      )}
-
-      {/* Sorular Listesi */}
+      {/* QUESTION LIST */}
       {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="py-40 text-center">
+          <ArrowPathIcon className="w-12 h-12 text-blue-100 animate-spin mx-auto mb-4" strokeWidth={3} />
+          <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em]">Havuza Bağlanılıyor...</p>
         </div>
       ) : sorular.length === 0 ? (
-        <div className="card text-center py-12">
-          <h3 className="mt-2 text-lg font-medium text-gray-900">Henüz soru eklenmedi</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            {user?.rol === 'soru_yazici'
-              ? 'İlk soruyu ekleyerek soru havuzunu oluşturmaya başlayabilirsiniz.'
-              : 'Bu kriterlere uygun henüz soru bulunmamaktadır.'}
-          </p>
-          {/* Empty State Cleaned */}
+        <div className="bg-white rounded-[3.5rem] p-32 text-center border border-gray-50 shadow-sm space-y-4">
+          <InboxIcon className="w-20 h-20 text-gray-100 mx-auto" strokeWidth={1} />
+          <div className="space-y-1">
+            <h3 className="text-xl font-black text-gray-300 uppercase tracking-widest">Henüz Veri Yok</h3>
+            <p className="text-gray-300 font-bold uppercase tracking-widest text-[10px] italic">BU FİLTRELER ALTINDA KAYITLI SORU BULUNAMADI.</p>
+          </div>
         </div>
       ) : (
-        <div className="space-y-4">
-          {sorular.map((soru) => (
-            <div key={soru.id} className={`card hover:shadow-lg transition-shadow border-l-4 ${selectedQuestions.includes(soru.id) ? 'border-primary-500 bg-blue-50' : 'border-transparent'}`}>
-              <div className="flex items-start">
-
-                {/* Checkbox Seçimi: Sekmedeki tüm sorular seçilebilir olmalı */}
-                {(scope === 'brans' || user?.rol === 'admin' || soru.durum === 'tamamlandi') && (
-                  <label className="mr-5 mt-1 cursor-pointer flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 transition-colors z-10">
-                    <input
-                      type="checkbox"
-                      className="w-6 h-6 text-primary-600 rounded-md border-gray-400 focus:ring-primary-500 cursor-pointer shadow-sm"
-                      checked={selectedQuestions.includes(soru.id)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        if (e.target.checked) setSelectedQuestions([...selectedQuestions, soru.id]);
-                        else setSelectedQuestions(selectedQuestions.filter(id => id !== soru.id));
-                      }}
-                    />
-                  </label>
-                )}
-
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    {getDurumBadge(soru.durum)}
-                    <span className="text-sm text-gray-500">
-                      {soru.brans_adi} • {soru.ekip_adi} • <span className="font-bold text-amber-600">V{soru.versiyon || 1}</span>
-                    </span>
-                    {soru.zorluk_seviyesi && (
-                      <span className="text-sm text-gray-500">
-                        Zorluk: {soru.zorluk_seviyesi}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* HTML Render Fix or Final PNG Preview */}
-                  {['tamamlandi', 'dizgi_tamam'].includes(soru.durum) && soru.final_png_url ? (
-                    <div className="my-3 flex justify-center bg-gray-50 p-4 rounded-lg border border-gray-100">
-                      <img src={soru.final_png_url} className="max-h-64 object-contain shadow-sm rounded" alt="Final Soru" />
-                    </div>
-                  ) : (
-                    <div className="text-gray-900 line-clamp-3 mb-2 text-sm question-preview" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
-                  )}
-
-                  <div className="flex items-center space-x-4 text-sm text-gray-500">
-                    <span>Yazan: {soru.olusturan_ad}</span>
-                    {soru.dizgici_ad && <span>Dizgici: {soru.dizgici_ad}</span>}
-                    <span>{new Date(soru.olusturulma_tarihi).toLocaleDateString('tr-TR')}</span>
-                    {soru.fotograf_url && (
-                      <span className="text-primary-600">📷 Görsel</span>
-                    )}
-                    {soru.final_png_url && (
-                      <a href={soru.final_png_url} target="_blank" rel="noreferrer" className="text-green-600 font-bold flex items-center gap-1 bg-green-50 px-2 py-0.5 rounded border border-green-200">
-                        🖼️ PNG
-                      </a>
-                    )}
-                  </div>
-
-                  {soru.durum !== 'tamamlandi' && (
-                    <div className="flex items-center gap-2 mt-2 text-xs">
-                      <span className={`px-2 py-1 rounded-full font-semibold ${soru.onay_alanci ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
-                        Alan İnceleme: {soru.onay_alanci ? 'Tamam' : 'Bekliyor'}
-                      </span>
-                      <span className={`px-2 py-1 rounded-full font-semibold ${soru.onay_dilci ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
-                        Dil İnceleme: {soru.onay_dilci ? 'Tamam' : 'Bekliyor'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="ml-4 flex flex-col space-y-2">
-                  <Link
-                    to={`/sorular/${soru.id}${scope ? `?scope=${scope}` : ''}`}
-                    className="btn btn-secondary text-sm text-center"
-                  >
-                    Detay
-                  </Link>
-
-                  {(user?.rol === 'admin' || (user?.rol === 'soru_yazici' && soru.olusturan_kullanici_id === user?.id && soru.durum !== 'tamamlandi')) && (
-                    <button
-                      onClick={() => handleSil(soru.id)}
-                      className="btn bg-white text-red-600 border border-red-200 hover:bg-red-50 text-sm"
-                    >
-                      🗑 Sil
-                    </button>
-                  )}
-
-                  {/* BRANŞ ÖĞRETMENİ AKSİYONLARI (LİSTE ÜZERİNDEN) */}
-                  {user?.rol === 'soru_yazici' && (
-                    <div className="flex flex-wrap gap-1">
-                      {['beklemede', 'revize_istendi', 'revize_gerekli'].includes(soru.durum) && (
-                        <button
-                          onClick={() => handleDizgiyeGonder(soru.id)}
-                          className="btn bg-purple-100 text-purple-700 border border-purple-200 hover:bg-purple-200 text-xs py-1 px-2"
-                        >
-                          🚀 Dizgiye Gönder
-                        </button>
-                      )}
-                      {soru.durum === 'dizgi_tamam' && (
-                        <button
-                          onClick={() => handleUpdateStatusIndividual(soru.id, 'alan_incelemede')}
-                          className="btn bg-orange-100 text-orange-700 border border-orange-200 hover:bg-orange-200 text-xs py-1 px-2"
-                        >
-                          🔍 Alan İncelemeye Gönder
-                        </button>
-                      )}
-                      {soru.durum === 'alan_onaylandi' && (
-                        <button
-                          onClick={() => handleUpdateStatusIndividual(soru.id, 'dil_incelemede')}
-                          className="btn bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200 text-xs py-1 px-2"
-                        >
-                          🔤 Dil İncelemeye Gönder
-                        </button>
-                      )}
-                      {soru.durum === 'dil_onaylandi' && (
-                        <button
-                          onClick={() => handleOrtakHavuzaGonder(soru.id)}
-                          className="btn bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-200 text-xs py-1 px-2"
-                        >
-                          ✅ Havuza Gönder
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  {user?.rol === 'dizgici' && soru.durum === 'dizgi_bekliyor' && (
-                    <button
-                      onClick={() => handleDizgiAl(soru.id)}
-                      className="btn btn-primary text-sm"
-                    >
-                      Dizgiye Al
-                    </button>
-                  )}
-
-
-                </div>
+        <div className="flex flex-col gap-6">
+          <div className="flex items-center gap-4 px-6 mb-2">
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${sorular.length > 0 && selectedQuestions.length === sorular.length ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-200 group-hover:border-blue-300 shadow-inner'
+                }`} onClick={() => {
+                  if (selectedQuestions.length === sorular.length) setSelectedQuestions([]);
+                  else setSelectedQuestions(sorular.map(s => s.id));
+                }}>
+                {selectedQuestions.length === sorular.length && <CheckCircleIcon className="w-4 h-4 text-white" strokeWidth={3} />}
               </div>
-            </div>
-          ))}
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover:text-gray-600 transition-colors">TÜMÜNÜ SEÇ ({sorular.length})</span>
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6">
+            {sorular.map((soru) => {
+              const isSelected = selectedQuestions.includes(soru.id);
+              return (
+                <div
+                  key={soru.id}
+                  className={`group relative bg-white rounded-[2.5rem] p-8 shadow-sm hover:shadow-2xl transition-all border border-transparent ${isSelected ? 'border-blue-600 shadow-blue-100/50 ring-4 ring-blue-500/5' : 'hover:border-blue-100'
+                    }`}
+                >
+                  <div className="flex flex-col lg:flex-row gap-8">
+                    {/* SELECTION & INFO */}
+                    <div className="flex lg:flex-col items-center justify-between lg:justify-start gap-4 lg:w-16">
+                      <div
+                        onClick={() => {
+                          if (isSelected) setSelectedQuestions(selectedQuestions.filter(id => id !== soru.id));
+                          else setSelectedQuestions([...selectedQuestions, soru.id]);
+                        }}
+                        className={`w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-all shadow-sm ${isSelected ? 'bg-blue-600 text-white shadow-blue-200' : 'bg-gray-50 text-gray-300 border border-gray-100 hover:bg-blue-50 hover:text-blue-300'
+                          }`}
+                      >
+                        {isSelected ? <CheckCircleIcon className="w-6 h-6" strokeWidth={2.5} /> : <div className="text-xs font-black uppercase tracking-tighter">SEC</div>}
+                      </div>
+                      <div className="flex flex-row lg:flex-col gap-2">
+                        <button onClick={() => handleSil(soru.id)} className="p-3 text-gray-300 hover:text-rose-500 bg-gray-50 hover:bg-rose-50 rounded-2xl transition-all border border-gray-100">
+                          <TrashIcon className="w-5 h-5" />
+                        </button>
+                        <Link to={`/sorular/${soru.id}${scope ? `?scope=${scope}` : ''}`} className="p-3 text-gray-300 hover:text-blue-600 bg-gray-50 hover:bg-blue-50 rounded-2xl transition-all border border-gray-100">
+                          <ChevronRightIcon className="w-5 h-5" strokeWidth={3} />
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* CONTENT AREA */}
+                    <div className="flex-1 space-y-6">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          {getDurumBadge(soru.durum)}
+                          <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 uppercase tracking-widest">{soru.brans_adi}</span>
+                        </div>
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic flex items-center gap-1">
+                          <SparklesIcon className="w-3 h-3" /> VERSIYON {soru.versiyon || 1}
+                        </span>
+                        {soru.zorluk_seviyesi && (
+                          <span className={`text-[10px] font-black px-3 py-1.5 rounded-xl border uppercase tracking-widest ${soru.zorluk_seviyesi === 'Zor' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                              soru.zorluk_seviyesi === 'Orta' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                'bg-emerald-50 text-emerald-600 border-emerald-100'
+                            }`}>
+                            {soru.zorluk_seviyesi}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="relative group">
+                        {['tamamlandi', 'dizgi_tamam'].includes(soru.durum) && soru.final_png_url ? (
+                          <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 flex justify-center group-hover:bg-white transition-colors duration-500">
+                            <img src={soru.final_png_url} className="max-h-56 object-contain drop-shadow-2xl rounded-xl group-hover:scale-[1.03] transition-transform duration-500" alt="Final Out" />
+                          </div>
+                        ) : (
+                          <div className="text-gray-800 text-sm font-semibold line-clamp-3 leading-relaxed tracking-tight group-hover:text-black transition-colors" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-6 pt-4 border-t border-gray-50">
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-gray-100 rounded-xl flex items-center justify-center font-black text-xs text-gray-400">
+                              {soru.olusturan_ad?.charAt(0)}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-black text-gray-400 uppercase leading-none">Yazan</span>
+                              <span className="text-xs font-bold text-gray-700">{soru.olusturan_ad}</span>
+                            </div>
+                          </div>
+                          {soru.dizgici_ad && (
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 bg-purple-50 rounded-xl flex items-center justify-center font-black text-xs text-purple-400">
+                                {soru.dizgici_ad?.charAt(0)}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-[10px] font-black text-purple-400 uppercase leading-none">Dizgi</span>
+                                <span className="text-xs font-bold text-purple-700">{soru.dizgici_ad}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="ml-auto flex items-center gap-4">
+                          {soru.fotograf_url && <div className="flex items-center gap-1 px-3 py-1.5 bg-gray-50 text-gray-500 rounded-xl border border-gray-100 font-black text-[9px] uppercase tracking-widest"><PhotoIcon className="w-4 h-4" /> GÖRSEL</div>}
+                          <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{new Date(soru.olusturulma_tarihi).toLocaleDateString('tr-TR')}</span>
+                        </div>
+                      </div>
+
+                      {/* STATUS TRACKER */}
+                      {soru.durum !== 'tamamlandi' && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <div className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 ${soru.onay_alanci ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-50 text-gray-300 border border-gray-100'
+                            }`}>
+                            {soru.onay_alanci && <CheckCircleIcon className="w-3 h-3" />} Alan Kontrol
+                          </div>
+                          <div className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 ${soru.onay_dilci ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-50 text-gray-300 border border-gray-100'
+                            }`}>
+                            {soru.onay_dilci && <CheckCircleIcon className="w-3 h-3" />} Dil Kontrol
+                          </div>
+                        </div>
+                      )}
+
+                      {/* CONTEXT ACTIONS */}
+                      {user?.rol === 'soru_yazici' && (
+                        <div className="flex flex-wrap gap-2 pt-2">
+                          {['beklemede', 'revize_istendi', 'revize_gerekli'].includes(soru.durum) && (
+                            <button onClick={() => handleDizgiyeGonder(soru.id)} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-purple-100 flex items-center gap-2 active:scale-95">
+                              <RocketLaunchIcon className="w-4 h-4" strokeWidth={2.5} /> DİZGİYE GÖNDER
+                            </button>
+                          )}
+                          {soru.durum === 'dizgi_tamam' && (
+                            <button onClick={() => handleUpdateStatusIndividual(soru.id, 'alan_incelemede')} className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-orange-100 flex items-center gap-2 active:scale-95">
+                              <MagnifyingGlassPlusIcon className="w-4 h-4" strokeWidth={2.5} /> ALAN İNCELEMEYE GÖNDER
+                            </button>
+                          )}
+                          {soru.durum === 'dil_onaylandi' && (
+                            <button onClick={() => handleOrtakHavuzaGonder(soru.id)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-emerald-100 flex items-center gap-2 active:scale-95">
+                              <ArchiveBoxArrowDownIcon className="w-4 h-4" strokeWidth={2.5} /> ORTAK HAVUZA AKTAR
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
   );
 }
-
-

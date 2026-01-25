@@ -1,5 +1,18 @@
 import { useState, useEffect } from 'react';
 import { ekipAPI, userAPI } from '../services/api';
+import {
+  UserGroupIcon,
+  PlusIcon,
+  PencilSquareIcon,
+  TrashIcon,
+  XMarkIcon,
+  UsersIcon,
+  BookOpenIcon,
+  Squares2X2Icon,
+  ArrowPathIcon,
+  ChevronRightIcon,
+  UserPlusIcon
+} from '@heroicons/react/24/outline';
 
 export default function Ekipler() {
   const [ekipler, setEkipler] = useState([]);
@@ -14,32 +27,39 @@ export default function Ekipler() {
     aciklama: '',
   });
 
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [selectedUserToAdd, setSelectedUserToAdd] = useState('');
+
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
+    setLoading(true);
     try {
       const [ekipRes, userRes] = await Promise.all([
         ekipAPI.getAll(),
         userAPI.getAll()
       ]);
-      setEkipler(ekipRes.data.data);
-      setUsers(userRes.data.data);
+      setEkipler(ekipRes.data.data || []);
+      setUsers(userRes.data.data || []);
     } catch (error) {
       console.error('Veriler yüklenemedi', error);
-      alert('Veriler yüklenemedi');
     } finally {
       setLoading(false);
     }
   };
 
   const loadEkipler = async () => {
-    // Reload just teams usually, but users might change teams so better reload all if needed.
-    // For simple CRUD, reloading just teams is fine, but if we view details we need fresh users?
-    // Users are only assigned via Branslar page now (mostly), so maybe just reload teams is enough for CRUD.
     const response = await ekipAPI.getAll();
-    setEkipler(response.data.data);
+    setEkipler(response.data.data || []);
+  };
+
+  const refreshUsers = async () => {
+    try {
+      const userRes = await userAPI.getAll();
+      setUsers(userRes.data.data || []);
+    } catch (e) { console.error(e); }
   };
 
   const handleSubmit = async (e) => {
@@ -47,10 +67,8 @@ export default function Ekipler() {
     try {
       if (editingEkip) {
         await ekipAPI.update(editingEkip.id, formData);
-        alert('Ekip güncellendi!');
       } else {
         await ekipAPI.create(formData);
-        alert('Ekip oluşturuldu!');
       }
       setShowModal(false);
       setFormData({ ekip_adi: '', aciklama: '' });
@@ -71,11 +89,9 @@ export default function Ekipler() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Bu ekibi silmek istediğinizden emin misiniz?')) return;
-
+    if (!confirm('Bu ekibi (ve bağlı tüm verilerini) silmek istediğinizden emin misiniz?')) return;
     try {
       await ekipAPI.delete(id);
-      alert('Ekip silindi');
       loadEkipler();
     } catch (error) {
       alert(error.response?.data?.error || 'Silme işlemi başarısız');
@@ -88,30 +104,16 @@ export default function Ekipler() {
     setShowModal(true);
   };
 
-  const handleTeamClick = async (ekip) => {
+  const handleTeamClick = (ekip) => {
     setSelectedTeam(ekip);
     setShowDetailModal(true);
-    // Refresh users to be sure
-    try {
-      const userRes = await userAPI.getAll();
-      setUsers(userRes.data.data);
-    } catch (e) { console.error(e); }
   };
-
-  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
-  const [selectedUserToAdd, setSelectedUserToAdd] = useState('');
-
-  // ... (existing code)
 
   const handleRemoveMember = async (userId) => {
     if (!confirm('Bu kullanıcıyı ekipten çıkarmak istediğinize emin misiniz?')) return;
     try {
-      await userAPI.update(userId, { ekip_id: null }); // Send null to unassign
-
-      // Refresh user list
-      const userRes = await userAPI.getAll();
-      setUsers(userRes.data.data);
-      alert('Kullanıcı ekipten çıkarıldı');
+      await userAPI.update(userId, { ekip_id: null });
+      await refreshUsers();
     } catch (error) {
       alert('İşlem başarısız: ' + (error.response?.data?.error || error.message));
     }
@@ -120,17 +122,11 @@ export default function Ekipler() {
   const handleAddMemberToTeam = async (e) => {
     e.preventDefault();
     if (!selectedUserToAdd || !selectedTeam) return;
-
     try {
       await userAPI.update(selectedUserToAdd, { ekip_id: selectedTeam.id });
-
-      // Refresh users
-      const userRes = await userAPI.getAll();
-      setUsers(userRes.data.data);
-
+      await refreshUsers();
       setShowAddMemberModal(false);
       setSelectedUserToAdd('');
-      alert('Kullanıcı ekibe eklendi');
     } catch (error) {
       alert('Ekleme başarısız: ' + (error.response?.data?.error || error.message));
     }
@@ -143,80 +139,90 @@ export default function Ekipler() {
 
   const getAvailableUsers = () => {
     if (!users) return [];
-    // Kullanıcı zaten bu ekipteyse gösterme. Başka ekipteyse de gösterebiliriz (transfer için)
-    // Ama şimdilik sadece boşta olanları veya diğer ekipten transfer edilecekleri gösterelim.
-    // Dashboard'daki logic: All users except those already in THIS team.
     return users.filter(u => u.ekip_id !== selectedTeam?.id).sort((a, b) => a.ad_soyad.localeCompare(b.ad_soyad));
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Ekip Yönetimi</h1>
-        <button onClick={openNewModal} className="btn btn-primary">
-          + Yeni Ekip
+    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-12">
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <h1 className="text-4xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+            <UserGroupIcon className="w-12 h-12 text-blue-600" strokeWidth={2} />
+            Ekip Yönetimi
+          </h1>
+          <p className="mt-2 text-gray-500 font-medium">Branşları ve personelleri gruplandırmak için ekipler oluşturun.</p>
+        </div>
+        <button
+          onClick={openNewModal}
+          className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-8 py-4 font-black text-sm uppercase tracking-widest transition-all shadow-xl hover:shadow-blue-200 active:scale-95 flex items-center gap-2"
+        >
+          <PlusIcon className="w-6 h-6" strokeWidth={3} />
+          Yeni Ekip Oluştur
         </button>
       </div>
 
       {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="flex justify-center items-center h-64 bg-white rounded-3xl border border-gray-100 shadow-sm">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-100 border-t-blue-600"></div>
         </div>
       ) : ekipler.length === 0 ? (
-        <div className="card text-center py-12">
-          <h3 className="text-lg font-medium text-gray-900">Henüz ekip yok</h3>
-          <p className="mt-1 text-sm text-gray-500">Yeni ekip oluşturun</p>
+        <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-20 text-center">
+          <UserGroupIcon className="w-20 h-20 text-gray-100 mx-auto mb-6" />
+          <h3 className="text-xl font-black text-gray-400 uppercase tracking-[0.2em]">Henüz Ekip Tanımı Yok</h3>
+          <p className="mt-2 text-gray-400 font-medium italic">Sistemi yapılandırmak için ilk ekibinizi oluşturun.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {ekipler.map((ekip) => (
             <div
               key={ekip.id}
-              className="card hover:shadow-lg transition-shadow cursor-pointer relative group"
+              className="bg-white rounded-[2rem] p-8 shadow-sm hover:shadow-2xl hover:shadow-gray-200/50 border border-gray-50 transition-all cursor-pointer group relative overflow-hidden"
               onClick={() => handleTeamClick(ekip)}
             >
-              <div className="flex justify-between items-start mb-3">
-                <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                  {ekip.ekip_adi}
-                </h3>
-                <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    onClick={() => handleEdit(ekip)}
-                    className="text-gray-400 hover:text-blue-600 p-1"
-                    title="Düzenle"
-                  >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => handleDelete(ekip.id)}
-                    className="text-gray-400 hover:text-red-600 p-1"
-                    title="Sil"
-                  >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
+              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
+                <UserGroupIcon className="w-24 h-24" />
               </div>
 
-              {ekip.aciklama && (
-                <p className="text-gray-600 text-sm mb-4">{ekip.aciklama}</p>
-              )}
-
-              <div className="grid grid-cols-2 gap-4 text-sm mt-4 pt-4 border-t border-gray-100">
-                <div>
-                  <span className="text-gray-500 block text-xs uppercase tracking-wide">Branş Sayısı</span>
-                  <span className="font-semibold text-lg text-gray-800">{ekip.brans_sayisi || 0}</span>
+              <div className="relative z-10 space-y-4">
+                <div className="flex justify-between items-start">
+                  <h3 className="text-2xl font-black text-gray-900 group-hover:text-blue-600 transition-colors tracking-tight">
+                    {ekip.ekip_adi}
+                  </h3>
+                  <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                    <button onClick={() => handleEdit(ekip)} className="p-2 hover:bg-blue-50 text-gray-400 hover:text-blue-600 rounded-lg transition">
+                      <PencilSquareIcon className="w-5 h-5" />
+                    </button>
+                    <button onClick={() => handleDelete(ekip.id)} className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition">
+                      <TrashIcon className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-gray-500 block text-xs uppercase tracking-wide">Kullanıcı</span>
-                  <span className="font-semibold text-lg text-gray-800">{ekip.kullanici_sayisi || 0}</span>
+
+                <p className="text-gray-500 text-sm font-medium leading-relaxed italic min-h-[3rem]">
+                  {ekip.aciklama || 'Bu ekip için henüz bir açıklama girilmemiş.'}
+                </p>
+
+                <div className="grid grid-cols-2 gap-4 pt-6 mt-6 border-t border-gray-50">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] flex items-center gap-1">
+                      <BookOpenIcon className="w-3 h-3" /> Branşlar
+                    </span>
+                    <span className="font-black text-2xl text-gray-800">{ekip.brans_sayisi || 0}</span>
+                  </div>
+                  <div className="space-y-1 text-right">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] flex items-center gap-1 justify-end">
+                      <UsersIcon className="w-3 h-3" /> Personeller
+                    </span>
+                    <span className="font-black text-2xl text-gray-800">{ekip.kullanici_sayisi || 0}</span>
+                  </div>
+                </div>
+
+                <div className="pt-4 flex items-center justify-between text-blue-600 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
+                  <span className="text-xs font-black uppercase tracking-widest">Ekip Detaylarını Gör</span>
+                  <ChevronRightIcon className="w-5 h-5" strokeWidth={3} />
                 </div>
               </div>
-
-              <div className="absolute inset-0 border-2 border-transparent group-hover:border-blue-500/20 rounded-lg pointer-events-none transition-colors"></div>
             </div>
           ))}
         </div>
@@ -224,86 +230,102 @@ export default function Ekipler() {
 
       {/* Detail Modal */}
       {showDetailModal && selectedTeam && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">{selectedTeam.ekip_adi}</h2>
-                <p className="text-sm text-gray-500 mt-1">Ekip Detayları ve Üyeleri</p>
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-6">
+          <div className="bg-white rounded-[3rem] shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-scale-up">
+            <div className="p-10 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <div className="flex items-center gap-6">
+                <div className="bg-blue-600 text-white p-4 rounded-[1.5rem] shadow-lg shadow-blue-200">
+                  <UserGroupIcon className="w-8 h-8" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-black text-gray-900 tracking-tight">{selectedTeam.ekip_adi}</h2>
+                  <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mt-1">Ekip Detayları & Mevcut Üyeler</p>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <button
                   onClick={() => setShowAddMemberModal(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-bold flex items-center gap-2"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-lg hover:shadow-blue-200 active:scale-95 flex items-center gap-2"
                 >
-                  <span>+ Üye Ekle</span>
+                  <UserPlusIcon className="w-5 h-5" />
+                  Üye Ekle
                 </button>
                 <button
                   onClick={() => setShowDetailModal(false)}
-                  className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-white"
+                  className="p-3 hover:bg-white rounded-2xl transition"
                 >
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <XMarkIcon className="w-7 h-7 text-gray-400" strokeWidth={2.5} />
                 </button>
               </div>
             </div>
 
-            <div className="p-6 overflow-y-auto">
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3 border-l-4 border-blue-600 pl-3">Ekip Üyeleri</h3>
+            <div className="p-10 overflow-y-auto no-scrollbar flex-1 bg-white">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+                <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100">
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Künye</h4>
+                  <p className="text-gray-600 font-bold leading-relaxed">{selectedTeam.aciklama || 'Açıklama girilmemiş.'}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-blue-50/50 rounded-3xl p-6 border border-blue-50 flex flex-col justify-center items-center text-center">
+                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1">Branş Sayısı</span>
+                    <span className="text-3xl font-black text-blue-700">{selectedTeam.brans_sayisi || 0}</span>
+                  </div>
+                  <div className="bg-indigo-50/50 rounded-3xl p-6 border border-indigo-50 flex flex-col justify-center items-center text-center">
+                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-1">Aktif Personel</span>
+                    <span className="text-3xl font-black text-indigo-700">{getTeamUsers(selectedTeam.id).length}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                  <UsersIcon className="w-6 h-6 text-blue-500" />
+                  Kayıtlı Personel Listesi
+                </h3>
+
                 {getTeamUsers(selectedTeam.id).length === 0 ? (
-                  <div className="bg-gray-50 rounded-lg p-8 text-center text-gray-500">
-                    Bu ekipte henüz kayıtlı kullanıcı bulunmuyor.
+                  <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-[2rem] p-12 text-center text-gray-400 font-bold uppercase tracking-widest text-sm italic">
+                    Erişim yetkisi olan herhangi bir personel bulunamadı.
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+                  <div className="bg-white border border-gray-100 rounded-[2rem] overflow-hidden shadow-sm">
+                    <table className="min-w-full divide-y divide-gray-50">
+                      <thead className="bg-gray-100/50">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ad Soyad</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branş</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</th>
+                          <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Kullanıcı</th>
+                          <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Sistem Rolü</th>
+                          <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Ana Branşı</th>
+                          <th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Eylem</th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
+                      <tbody className="divide-y divide-gray-50">
                         {getTeamUsers(selectedTeam.id).map(user => (
-                          <tr key={user.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center">
-                                <div className="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs uppercase">
-                                  {user.ad_soyad.substring(0, 2)}
+                          <tr key={user.id} className="hover:bg-blue-50/20 transition-colors group">
+                            <td className="px-8 py-5">
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center font-black text-xs uppercase">
+                                  {user.ad_soyad.charAt(0)}
                                 </div>
-                                <div className="ml-4">
-                                  <div className="text-sm font-medium text-gray-900">{user.ad_soyad}</div>
+                                <div>
+                                  <div className="text-sm font-black text-gray-900">{user.ad_soyad}</div>
+                                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-0.5">{user.email}</div>
                                 </div>
                               </div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.rol === 'admin' ? 'bg-purple-100 text-purple-800' :
-                                user.rol === 'soru_yazici' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                                }`}>
-                                {user.rol === 'admin' ? 'Yönetici' : user.rol === 'soru_yazici' ? 'Branş' : 'Dizgici'}
+                            <td className="px-6 py-5">
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100 bg-blue-50 text-blue-700`}>
+                                {user.rol === 'admin' ? 'Yönetici' : user.rol === 'soru_yazici' ? 'Branş' : user.rol}
                               </span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {user.brans_adi ? (
-                                <span className="text-blue-600 font-medium">{user.brans_adi}</span>
-                              ) : (
-                                <span className="text-gray-400 italic">-</span>
-                              )}
+                            <td className="px-6 py-5">
+                              <span className="text-sm font-bold text-gray-600">{user.brans_adi || '-'}</span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {user.email}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                            <td className="px-8 py-5 text-right whitespace-nowrap">
                               <button
                                 onClick={() => handleRemoveMember(user.id)}
-                                className="text-red-600 hover:text-red-900 font-medium text-xs bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition"
+                                className="px-4 py-2 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-red-100 hover:bg-red-600 hover:text-white transition-all shadow-sm"
                               >
-                                Çıkar
+                                EKİPTEN ÇIKAR
                               </button>
                             </td>
                           </tr>
@@ -315,12 +337,9 @@ export default function Ekipler() {
               </div>
             </div>
 
-            <div className="p-4 bg-gray-50 border-t border-gray-100 text-right">
-              <button
-                onClick={() => setShowDetailModal(false)}
-                className="btn btn-secondary"
-              >
-                Kapat
+            <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex justify-end">
+              <button onClick={() => setShowDetailModal(false)} className="px-10 py-4 bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-2xl font-black text-sm uppercase tracking-widest transition-all">
+                KAPAT
               </button>
             </div>
           </div>
@@ -329,14 +348,14 @@ export default function Ekipler() {
 
       {/* Add Member Modal */}
       {showAddMemberModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold mb-4">Ekibe Üye Ekle</h3>
-            <form onSubmit={handleAddMemberToTeam}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kullanıcı Seçin</label>
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl animate-scale-up">
+            <h3 className="text-2xl font-black text-gray-900 tracking-tight mb-8">Ekibe Üye Dahil Et</h3>
+            <form onSubmit={handleAddMemberToTeam} className="space-y-6">
+              <div>
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Personel Seçin</label>
                 <select
-                  className="input"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold text-gray-700 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                   value={selectedUserToAdd}
                   onChange={e => setSelectedUserToAdd(e.target.value)}
                   required
@@ -344,15 +363,18 @@ export default function Ekipler() {
                   <option value="">Seçiniz...</option>
                   {getAvailableUsers().map(u => (
                     <option key={u.id} value={u.id}>
-                      {u.ad_soyad} ({u.ekip_adi ? `Mevcut: ${u.ekip_adi}` : 'Ekipsiz'}) - {u.rol}
+                      {u.ad_soyad} ({u.ekip_adi ? `Aktif: ${u.ekip_adi}` : 'EKİPSİZ'})
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-500 mt-1">Not: Başka bir ekibe kayıtlı kullanıcıyı seçerseniz, kullanıcının ekibi değiştirilecektir.</p>
+                <div className="mt-4 p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3 italic">
+                  <InformationCircleIcon className="w-5 h-5 text-amber-500 flex-shrink-0" />
+                  <p className="text-[10px] text-amber-700 font-bold uppercase leading-relaxed">Başka bir ekibe kayıtlı olan kullanıcıyı buraya eklerseniz, eski ekip kaydı silinip buraya transfer edilecektir.</p>
+                </div>
               </div>
-              <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setShowAddMemberModal(false)} className="btn btn-secondary">İptal</button>
-                <button type="submit" className="btn btn-primary">Ekle</button>
+              <div className="flex gap-4">
+                <button type="button" onClick={() => setShowAddMemberModal(false)} className="flex-1 px-4 py-4 bg-gray-100 text-gray-500 rounded-2xl text-[10px] font-black uppercase tracking-widest">İptal</button>
+                <button type="submit" className="flex-1 bg-blue-600 text-white rounded-2xl py-4 font-black text-sm uppercase tracking-widest shadow-lg shadow-blue-200">EKLE</button>
               </div>
             </form>
           </div>
@@ -361,48 +383,48 @@ export default function Ekipler() {
 
       {/* CRUD Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-bold mb-4">
-              {editingEkip ? 'Ekip Düzenle' : 'Yeni Ekip'}
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-[2.5rem] p-10 max-w-lg w-full shadow-2xl border border-gray-100 animate-scale-up">
+            <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-8 flex items-center gap-3">
+              <Squares2X2Icon className="w-8 h-8 text-blue-600" />
+              {editingEkip ? 'Ekibi Güncelle' : 'Yeni Ekip Tanımı'}
             </h2>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Ekip Adı *
-                </label>
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Ekip Adı *</label>
                 <input
                   type="text"
                   required
-                  className="input"
+                  placeholder="Örn: Sivas İl Milli Eğitim"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-6 py-4 text-sm font-bold text-gray-700 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
                   value={formData.ekip_adi}
                   onChange={(e) => setFormData({ ...formData, ekip_adi: e.target.value })}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Açıklama
-                </label>
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Ekip Misyonu / Açıklama</label>
                 <textarea
-                  rows="3"
-                  className="input"
+                  rows="4"
+                  placeholder="Ekip hakkında kısa bir tanıtım girin..."
+                  className="w-full bg-gray-50 border border-gray-200 rounded-3xl px-6 py-4 text-sm font-bold text-gray-700 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
                   value={formData.aciklama}
                   onChange={(e) => setFormData({ ...formData, aciklama: e.target.value })}
                 />
               </div>
 
-              <div className="flex justify-end space-x-3">
+              <div className="flex gap-4 pt-4 border-t border-gray-50">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="btn btn-secondary"
+                  className="flex-1 px-4 py-4 bg-gray-100 text-gray-500 rounded-2xl text-[10px] font-black uppercase tracking-widest"
                 >
-                  İptal
+                  VAZGEÇ
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  {editingEkip ? 'Güncelle' : 'Oluştur'}
+                <button type="submit" className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl hover:shadow-blue-200 active:scale-95 flex items-center justify-center gap-2">
+                  <CloudArrowUpIcon className="w-5 h-5" />
+                  {editingEkip ? 'Ayarları Güncelle' : 'Ekibi Sisteme Kaydet'}
                 </button>
               </div>
             </form>
