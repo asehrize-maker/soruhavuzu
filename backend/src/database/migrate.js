@@ -24,6 +24,7 @@ import { addKoordinatorRole } from './migrations/024_add_koordinator_role.js';
 import { ultimateDurumFix } from './migrations/025_ultimate_durum_fix.js';
 import { workflowV2Statuses } from './migrations/026_workflow_v2_statuses.js';
 import { addLastSeenField } from './migrations/027_add_last_seen.js';
+import { addAktiviteLoglari } from './migrations/028_add_aktivite_loglari.js';
 
 // En güncel durum listesi (workflow v2 + dizgi tamam)
 const ALLOWED_DURUMLAR = [
@@ -243,6 +244,7 @@ const createTables = async () => {
     // Workflow V2 Stage Statuses
     await workflowV2Statuses();
     await addLastSeenField();
+    await addAktiviteLoglari();
 
   } catch (error) {
     await client.query('ROLLBACK');
