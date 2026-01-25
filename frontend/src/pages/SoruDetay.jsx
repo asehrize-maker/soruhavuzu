@@ -532,10 +532,12 @@ export default function SoruDetay() {
   if (!soru) return null;
 
   const isOwner = soru.olusturan_kullanici_id == user?.id;
+  const isBranchTeacher = user?.rol === 'soru_yazici' && user?.brans_id === soru.brans_id;
   const isAdmin = effectiveRole === 'admin';
+  const hasFullAccess = isAdmin || isOwner || isBranchTeacher;
 
   const availableStatusesForEdit = ['beklemede', 'revize_gerekli', 'revize_istendi', 'dizgi_bekliyor', 'dizgide', 'dizgi_tamam'];
-  const canEdit = isAdmin || (isOwner && availableStatusesForEdit.includes(soru.durum));
+  const canEdit = isAdmin || ((isOwner || isBranchTeacher) && availableStatusesForEdit.includes(soru.durum));
 
 
 
@@ -583,7 +585,7 @@ export default function SoruDetay() {
               )}
 
               {/* BRANŞ (YAZAR) VEYA ADMIN İÇİN AKSİYONLAR */}
-              {(isAdmin || isOwner) && (
+              {hasFullAccess && (
                 <div className="flex flex-wrap gap-2">
                   {/* Düzenle Butonu */}
                   {canEdit && (
@@ -868,8 +870,8 @@ export default function SoruDetay() {
 
       {/* Alt Araç Çubuğu - Sadece Sil butonu */}
       <div className="flex gap-2">
-        {/* SADECE ADMIN VE SAHİBİ SİLEBİLİR - İNCELEMECİ SİLEMEZ */}
-        {(effectiveRole === 'admin' || (soru.olusturan_kullanici_id === user?.id && effectiveRole !== 'incelemeci')) && (
+        {/* SADECE ADMIN, SAHİP VEYA BRANŞ TEACHER SİLEBİLİR - İNCELEMECİ SİLEMEZ */}
+        {hasFullAccess && effectiveRole !== 'incelemeci' && (
           <button onClick={handleSil} className="btn btn-danger">Sil</button>
         )}
       </div>

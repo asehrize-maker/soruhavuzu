@@ -735,13 +735,25 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
     const isDizgici = req.user.rol === 'dizgici';
     const isReviewer = req.user.rol === 'incelemeci';
 
+    // Branş yetkisi kontrolü (Kendi branşındaki soruları yönetebilme)
+    let isBranchTeacher = false;
+    if (req.user.rol === 'soru_yazici') {
+      const authBrans = await pool.query(`
+        SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1 AND brans_id = $2
+        UNION
+        SELECT 1 FROM kullanicilar WHERE id = $1 AND brans_id = $2
+      `, [req.user.id, soru.brans_id]);
+      if (authBrans.rows.length > 0) isBranchTeacher = true;
+    }
+
     // ROL VE DURUM BAZLI YETKİ KONTROLÜ
     let hasPermission = isAdmin;
 
     if (!hasPermission) {
+      const isCreatorOrBranch = isOwner || isBranchTeacher;
       switch (yeni_durum) {
         case 'dizgi_bekliyor':
-          if (isOwner) hasPermission = true;
+          if (isCreatorOrBranch) hasPermission = true;
           break;
         case 'dizgide':
           if (isDizgici) hasPermission = true;
@@ -752,8 +764,8 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         case 'alan_incelemede':
         case 'dil_incelemede':
         case 'tamamlandi':
-          // Branş öğretmeni (sahibi) ilerlemesi gereken yerler
-          if (isOwner) hasPermission = true;
+          // Branş öğretmeni (sahibi veya branş yetkilisi) ilerlemesi gereken yerler
+          if (isCreatorOrBranch) hasPermission = true;
           break;
         case 'alan_onaylandi':
           if (isReviewer && req.user.inceleme_alanci) hasPermission = true;
@@ -763,7 +775,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
           break;
         case 'revize_istendi':
         case 'revize_gerekli':
-          if (isReviewer || isDizgici) hasPermission = true;
+          if (isReviewer || isDizgici || isCreatorOrBranch) hasPermission = true;
           break;
         default:
           break;
@@ -1398,8 +1410,18 @@ router.delete('/:id(\\d+)', authenticate, async (req, res, next) => {
 
     const soru = checkResult.rows[0];
 
-    // Yetki kontrolü
-    if (req.user.rol !== 'admin' && soru.olusturan_kullanici_id !== req.user.id) {
+    // Yetki kontrolü (Admin, Soru sahibi veya Branş öğretmeni)
+    let hasDeletePermission = req.user.rol === 'admin' || soru.olusturan_kullanici_id === req.user.id;
+    if (!hasDeletePermission && req.user.rol === 'soru_yazici') {
+      const authBrans = await pool.query(`
+        SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1 AND brans_id = $2
+        UNION
+        SELECT 1 FROM kullanicilar WHERE id = $1 AND brans_id = $2
+      `, [req.user.id, soru.brans_id]);
+      if (authBrans.rows.length > 0) hasDeletePermission = true;
+    }
+
+    if (!hasDeletePermission) {
       throw new AppError('Bu soruyu silme yetkiniz yok', 403);
     }
 
