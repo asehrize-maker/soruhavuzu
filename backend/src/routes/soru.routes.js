@@ -172,7 +172,8 @@ router.get('/', authenticate, async (req, res, next) => {
       }
     } else if (targetRole !== 'admin' && !isAnyReviewer) {
       // Soru yazarları ve diğerleri için
-      if (scope === 'brans' || brans_id) {
+      // Eğer scope 'brans' ise VEYA kullanıcı 'soru_yazici' ise ve scope 'common' değilse --> Kendi branşındaki TÜM durumu (beklemede dahil) görsün
+      if (scope === 'brans' || brans_id || (targetRole === 'soru_yazici' && scope !== 'common')) {
         query += ` AND s.brans_id IN (
           SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount}
           UNION 
@@ -181,7 +182,7 @@ router.get('/', authenticate, async (req, res, next) => {
         params.push(req.user.id);
         paramCount++;
       } else {
-        // Ortak Havuz
+        // Ortak Havuz (Sadece tamamlanmışlar)
         query += ` AND (s.durum = 'tamamlandi' OR s.durum = 'dizgi_tamam')`;
       }
     } else if (isAnyReviewer && targetRole !== 'admin') {
