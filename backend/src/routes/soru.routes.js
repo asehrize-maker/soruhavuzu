@@ -1628,6 +1628,25 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
       LIMIT 10
         `);
 
+    // Son aktiviteler (Son eklenen/güncellenen 10 soru hareketini çekelim)
+    const sonAktiviteler = await pool.query(`
+      SELECT 
+        s.id,
+        LEFT(s.soru_metni, 50) as metin_ozeti,
+        s.durum,
+        s.guncellenme_tarihi as tarih,
+        k.ad_soyad as kullanici_adi,
+        k.rol as kullanici_rolu,
+        COALESCE(e.ekip_adi, 'Ekipsiz') as ekip_adi,
+        COALESCE(b.brans_adi, 'Belirsiz') as brans_adi
+      FROM sorular s
+      LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
+      LEFT JOIN branslar b ON s.brans_id = b.id
+      LEFT JOIN ekipler e ON k.ekip_id = e.id
+      ORDER BY s.guncellenme_tarihi DESC
+      LIMIT 10
+    `);
+
     // Branş ve Ekip bazlı istatistikler (Kullanıcının ekibine göre)
     const bransStats = await pool.query(`
       SELECT
@@ -1726,6 +1745,7 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
       data: {
         genel: genelStats.rows[0],
         son_sorular: sonSorular.rows,
+        sonAktiviteler: sonAktiviteler.rows,
         branslar: bransStats.rows,
         kullanicilar: kullaniciStats.rows,
         dizgiciler: dizgiStats.rows,

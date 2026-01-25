@@ -307,6 +307,43 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* SON AKTİVİTELER */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <ClockIcon className="w-6 h-6 text-blue-500" />
+              Son Aktiviteler
+            </h2>
+            <div className="space-y-4">
+              {detayliStats?.sonAktiviteler?.length > 0 ? (
+                detayliStats.sonAktiviteler.map((activity, idx) => (
+                  <div key={idx} className="flex items-start gap-4 p-3 hover:bg-gray-50 rounded-lg transition border-b last:border-0 border-gray-50">
+                    <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${activity.durum === 'beklemede' ? 'bg-gray-400' :
+                        activity.durum === 'tamamlandi' ? 'bg-green-500' :
+                          activity.durum === 'revize_istendi' ? 'bg-red-500' :
+                            activity.durum === 'dizgide' ? 'bg-orange-500' :
+                              'bg-blue-500'
+                      }`} />
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start">
+                        <span className="text-sm font-semibold text-gray-900">{activity.kullanici_adi || 'Bilinmeyen Kullanıcı'}</span>
+                        <span className="text-xs text-gray-400">{new Date(activity.tarih).toLocaleDateString('tr-TR')} {new Date(activity.tarih).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      <p className="text-xs text-gray-600 mt-1">
+                        <span className="font-medium text-gray-700">{activity.ekip_adi || '-'} / {activity.brans_adi}</span> branşında soruyu güncelledi.
+                      </p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded uppercase font-bold tracking-wider">{activity.durum.replace('_', ' ')}</span>
+                        <span className="text-xs text-gray-400 line-clamp-1 italic">"{activity.metin_ozeti}..."</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-400 italic">Henüz aktivite kaydı yok.</div>
+              )}
+            </div>
+          </div>
+
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
               <UserGroupIcon className="w-6 h-6 text-purple-600" />
