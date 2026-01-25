@@ -13,6 +13,7 @@ export const getDurumBadge = (durum) => {
     revize_gerekli: 'badge badge-error',
     revize_istendi: 'badge badge-error',
     inceleme_bekliyor: 'badge badge-primary',
+    incelemede: 'badge badge-primary',
     inceleme_tamam: 'badge bg-teal-100 text-teal-700',
   };
   const labels = {
@@ -28,6 +29,7 @@ export const getDurumBadge = (durum) => {
     revize_gerekli: 'Revize Gerekli',
     revize_istendi: 'Revize İstendi',
     inceleme_bekliyor: 'İnceleme Bekliyor',
+    incelemede: 'İncelemede',
     inceleme_tamam: 'İnceleme Tamamlandı',
   };
 
