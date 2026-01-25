@@ -1686,10 +1686,22 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
       FROM kullanicilar
         `);
 
-    // Ekip sayıları
+    // Ekiplerin detaylı istatistikleri
     const ekipStats = await pool.query(`
-      SELECT COUNT(*) as toplam_ekip FROM ekipler
-        `);
+      SELECT
+        e.id,
+        e.ekip_adi,
+        COUNT(s.id) as soru_sayisi,
+        COUNT(CASE WHEN s.durum IN ('beklemede', 'revize_istendi', 'revize_gerekli') THEN 1 END) as beklemede,
+        COUNT(CASE WHEN s.durum IN ('dizgi_bekliyor', 'dizgide', 'dizgi_tamam') THEN 1 END) as dizgide,
+        COUNT(CASE WHEN s.durum IN ('alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi', 'inceleme_tamam') THEN 1 END) as incelemede,
+        COUNT(CASE WHEN s.durum = 'tamamlandi' THEN 1 END) as tamamlandi
+      FROM ekipler e
+      LEFT JOIN branslar b ON e.id = b.ekip_id
+      LEFT JOIN sorular s ON b.id = s.brans_id
+      GROUP BY e.id, e.ekip_adi
+      ORDER BY soru_sayisi DESC
+    `);
 
     // Branş sayıları (Tekil - Büyük/küçük harf duyarsız, boşluklar temizlenmiş)
     const bransStatsCount = await pool.query(`
@@ -1702,12 +1714,13 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
         genel: genelStats.rows[0],
         son_sorular: sonSorular.rows,
         branslar: bransStats.rows,
+        ekipler: ekipStats.rows,
         kullanicilar: kullaniciStats.rows,
         dizgiciler: dizgiStats.rows,
         trend: trendStats.rows,
         sistem: {
           ...kullaniciSayilari.rows[0],
-          toplam_ekip: ekipStats.rows[0].toplam_ekip,
+          toplam_ekip: ekipStats.rows.length,
           toplam_brans: bransStatsCount.rows[0].toplam_brans
         }
       }
