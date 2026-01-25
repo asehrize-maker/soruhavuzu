@@ -308,59 +308,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* SON AKTİVİTELER */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-              <ClockIcon className="w-6 h-6 text-blue-500" />
-              Sistem Akış Özeti
-            </h2>
-            <div className="space-y-3">
-              {detayliStats?.sonAktiviteler?.length > 0 ? (
-                detayliStats.sonAktiviteler.slice(0, 10).map((activity, idx) => {
-                  const islem = activity.durum; // Backend islem_turu'nu durum olarak gönderiyor
-                  let icon = <ClockIcon className="w-5 h-5" />;
-                  let iconBg = "bg-gray-100 text-gray-500";
 
-                  if (islem === 'soru_ekleme') {
-                    icon = <PencilSquareIcon className="w-5 h-5" />;
-                    iconBg = "bg-green-100 text-green-600";
-                  } else if (islem === 'durum_degisikligi') {
-                    icon = <ArrowPathIcon className="w-5 h-5" />;
-                    iconBg = "bg-blue-100 text-blue-600";
-                  } else if (islem === 'dizgi_yukleme' || islem === 'dizgi_bitirme') {
-                    icon = <CheckCircleIcon className="w-5 h-5" />;
-                    iconBg = "bg-purple-100 text-purple-600";
-                  } else if (islem === 'soru_silme') {
-                    icon = <InformationCircleIcon className="w-5 h-5" />;
-                    iconBg = "bg-red-100 text-red-600";
-                  }
-
-                  return (
-                    <div key={idx} className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-xl transition-all border border-transparent hover:border-gray-100 group">
-                      <div className={`p-2 rounded-lg flex-shrink-0 ${iconBg} shadow-sm group-hover:scale-110 transition-transform`}>
-                        {icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-center gap-2">
-                          <span className="text-sm font-bold text-gray-900 truncate">{activity.kullanici_adi}</span>
-                          <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap">{new Date(activity.tarih).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
-                        </div>
-                        <p className="text-xs text-gray-500 truncate mt-0.5">
-                          {activity.aciklama || activity.metin_ozeti}
-                        </p>
-                      </div>
-                      <div className="hidden md:block text-right">
-                        <span className="text-[10px] font-bold text-gray-400 block uppercase">{activity.brans_adi}</span>
-                        <span className="text-[9px] text-gray-300 block">{new Date(activity.tarih).toLocaleDateString('tr-TR')}</span>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="text-center py-8 text-gray-300 italic text-sm">Henüz aktivite kaydı bulunmuyor.</div>
-              )}
-            </div>
-          </div>
 
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
