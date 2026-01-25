@@ -10,7 +10,8 @@ import {
     ClockIcon,
     ChartBarIcon,
     TrophyIcon,
-    SparklesIcon
+    SparklesIcon,
+    InformationCircleIcon
 } from '@heroicons/react/24/outline';
 
 export default function Ajanda() {
