@@ -65,39 +65,40 @@ export default function Sorular({ scope }) {
     loadBranslar();
   }, [user?.id, user?.rol]);
 
-  useEffect(() => {
+  const loadSorular = async () => {
     if (!user) return;
-    const loadSorular = async () => {
-      setLoading(true);
-      try {
-        const params = {
-          durum: filters.durum || undefined,
-          brans_id: filters.brans_id || undefined,
-          scope: scope || undefined
-        };
-        const response = await soruAPI.getAll(params);
-        let data = response.data.data || [];
+    setLoading(true);
+    try {
+      const params = {
+        durum: filters.durum || undefined,
+        brans_id: filters.brans_id || undefined,
+        scope: scope || undefined
+      };
+      const response = await soruAPI.getAll(params);
+      let data = response.data.data || [];
 
-        if (scope === 'brans') {
-          if (activeTab === 'taslaklar') {
-            data = data.filter(s =>
-              ['beklemede', 'inceleme_bekliyor', 'incelemede', 'alan_incelemede', 'dil_incelemede', 'revize_istendi', 'revize_gerekli', 'dizgi_bekliyor', 'dizgide'].includes(s.durum)
-            );
-          } else {
-            data = data.filter(s => ['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam'].includes(s.durum));
-          }
+      if (scope === 'brans') {
+        if (activeTab === 'taslaklar') {
+          data = data.filter(s =>
+            ['beklemede', 'inceleme_bekliyor', 'incelemede', 'alan_incelemede', 'dil_incelemede', 'revize_istendi', 'revize_gerekli', 'dizgi_bekliyor', 'dizgide'].includes(s.durum)
+          );
+        } else {
+          data = data.filter(s => ['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam'].includes(s.durum));
         }
-
-        if (effectiveRole === 'dizgici' && authUser?.rol !== 'admin') {
-          data = data.filter(s => ['dizgi_bekliyor', 'dizgide'].includes(s.durum));
-        }
-        setSorular(data);
-      } catch (error) {
-        setSorular([]);
-      } finally {
-        setLoading(false);
       }
-    };
+
+      if (effectiveRole === 'dizgici' && authUser?.rol !== 'admin') {
+        data = data.filter(s => ['dizgi_bekliyor', 'dizgide'].includes(s.durum));
+      }
+      setSorular(data);
+    } catch (error) {
+      setSorular([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadSorular();
   }, [user?.id, effectiveRole, filters.durum, filters.brans_id, scope, activeTab]);
 
