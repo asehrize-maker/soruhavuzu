@@ -1607,21 +1607,26 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
       LIMIT 10
         `);
 
-    // Branş bazlı istatistikler
+    // Branş ve Ekip bazlı istatistikler (Kullanıcının ekibine göre)
     const bransStats = await pool.query(`
       SELECT
-      b.id,
+        b.id,
         b.brans_adi,
-        e.ekip_adi,
+        COALESCE(ue.ekip_adi, 'Ekipsiz / Belirsiz') as ekip_adi,
         COUNT(s.id) as soru_sayisi,
         COUNT(CASE WHEN s.durum = 'beklemede' THEN 1 END) as beklemede,
-        COUNT(CASE WHEN s.durum = 'dizgide' THEN 1 END) as dizgide,
+        COUNT(CASE WHEN s.durum IN ('inceleme_bekliyor', 'incelemede', 'alan_incelemede', 'dil_incelemede') THEN 1 END) as incelemede,
+        COUNT(CASE WHEN s.durum IN ('revize_istendi', 'revize_gerekli') THEN 1 END) as revize,
+        COUNT(CASE WHEN s.durum IN ('dizgi_bekliyor', 'dizgide') THEN 1 END) as dizgide,
+        COUNT(CASE WHEN s.durum IN ('dizgi_tamam', 'inceleme_tamam', 'alan_onaylandi', 'dil_onaylandi') THEN 1 END) as onay_bekleyen,
         COUNT(CASE WHEN s.durum = 'tamamlandi' THEN 1 END) as tamamlandi
       FROM branslar b
-      LEFT JOIN ekipler e ON b.ekip_id = e.id
       LEFT JOIN sorular s ON b.id = s.brans_id
-      GROUP BY b.id, b.brans_adi, e.ekip_adi
-      ORDER BY soru_sayisi DESC
+      LEFT JOIN kullanicilar u ON s.olusturan_kullanici_id = u.id
+      LEFT JOIN ekipler ue ON u.ekip_id = ue.id
+      GROUP BY b.id, b.brans_adi, ue.ekip_adi
+      HAVING COUNT(s.id) > 0
+      ORDER BY ue.ekip_adi, b.brans_adi
         `);
 
     // Kullanıcı performans istatistikleri

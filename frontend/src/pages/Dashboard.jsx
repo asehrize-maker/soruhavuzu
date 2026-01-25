@@ -274,6 +274,50 @@ export default function Dashboard() {
               </Link>
             </div>
           </div>
+
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <UserGroupIcon className="w-6 h-6 text-purple-600" />
+              Detaylı Branş & Ekip Analizi
+            </h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm text-left">
+                <thead className="bg-gray-50 text-gray-600 font-bold uppercase text-xs">
+                  <tr>
+                    <th className="px-4 py-3 rounded-l-lg">Ekip</th>
+                    <th className="px-4 py-3">Branş</th>
+                    <th className="px-4 py-3 text-center">Toplam</th>
+                    <th className="px-4 py-3 text-center text-gray-400">Taslak</th>
+                    <th className="px-4 py-3 text-center text-blue-600">İnceleme</th>
+                    <th className="px-4 py-3 text-center text-red-600">Revize</th>
+                    <th className="px-4 py-3 text-center text-orange-600">Dizgi</th>
+                    <th className="px-4 py-3 text-center text-emerald-600">Onay</th>
+                    <th className="px-4 py-3 rounded-r-lg text-center text-green-700">Tamamlanan</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {detayliStats?.branslar?.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50 transition">
+                      <td className="px-4 py-3 font-semibold text-gray-700">{item.ekip_adi}</td>
+                      <td className="px-4 py-3 text-gray-600">{item.brans_adi}</td>
+                      <td className="px-4 py-3 text-center font-bold bg-gray-50/50">{item.soru_sayisi}</td>
+                      <td className="px-4 py-3 text-center text-gray-400">{item.beklemede || '-'}</td>
+                      <td className="px-4 py-3 text-center text-blue-600 font-medium">{item.incelemede || '-'}</td>
+                      <td className="px-4 py-3 text-center text-red-600 font-medium">{item.revize || '-'}</td>
+                      <td className="px-4 py-3 text-center text-orange-600 font-medium">{item.dizgide || '-'}</td>
+                      <td className="px-4 py-3 text-center text-emerald-600 font-medium">{item.onay_bekleyen || '-'}</td>
+                      <td className="px-4 py-3 text-center text-green-700 font-bold bg-green-50/30">{item.tamamlandi || '-'}</td>
+                    </tr>
+                  ))}
+                  {(!detayliStats?.branslar || detayliStats.branslar.length === 0) && (
+                    <tr>
+                      <td colSpan="9" className="text-center py-8 text-gray-400">Veri bulunamadı</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       ) : activeRole === 'incelemeci' ? (
         reviewMode ? (
