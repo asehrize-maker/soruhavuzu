@@ -146,9 +146,14 @@ router.get('/', authenticate, async (req, res, next) => {
 
     // EKİP İZOLASYONU (Admin hariç herkese uygula)
     // Eğer kullanıcının bir ekibi varsa, sadece kendi ekibindeki branşlara ait soruları görebilir
+    // EKİP İZOLASYONU (Admin hariç herkese uygula)
+    // Eğer kullanıcının bir ekibi varsa:
+    // 1. Ya sorunun branşı o ekibe aittir (b.ekip_id)
+    // 2. Ya da soruyu oluşturan kişi o ekiptendir (k.ekip_id)
     if (req.user.rol !== 'admin' && req.user.ekip_id) {
-      query += ` AND b.ekip_id = $${paramCount++}`;
+      query += ` AND (b.ekip_id = $${paramCount} OR k.ekip_id = $${paramCount})`;
       params.push(req.user.ekip_id);
+      paramCount++;
     }
 
     // İnceleme yetkisi kontrolü (Flag veya Rol bazlı)
