@@ -74,7 +74,7 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
       {sorular.length === 0 ? (
         <div className="p-8 bg-gray-50 rounded-xl text-center text-gray-500 border border-gray-200">
           <BookOpenIcon className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-          <p>Bu branşta şu an incelencek soru bulunmuyor.</p>
+          <p>Bu branşta şu an incelenecek soru bulunmuyor.</p>
         </div>
       ) : (
         <div className="grid gap-4">

@@ -138,8 +138,8 @@ export default function SoruEkle() {
 
   const handleSave = async () => {
     if (components.length === 0) return alert("Soru içeriği boş!");
-    if (!metadata.dogruCevap) return alert("Lütfen Doğru Cevabı seçiniz.");
-    if (!metadata.brans_id) return alert("Lütfen Branş seçiniz!");
+    if (!metadata.dogruCevap) return alert("Lütfen doğru cevabı seçiniz.");
+    if (!metadata.brans_id) return alert("Lütfen branş seçiniz!");
 
     try {
       const formData = new FormData();

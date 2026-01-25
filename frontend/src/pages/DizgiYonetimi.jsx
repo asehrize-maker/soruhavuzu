@@ -151,8 +151,8 @@ export default function DizgiYonetimi() {
     <div
       onClick={() => setSelectedSoru(soru)}
       className={`p-5 rounded-3xl border transition-all cursor-pointer group flex flex-col gap-3 relative overflow-hidden ${selectedSoru?.id === soru.id
-          ? 'bg-blue-600 border-blue-600 shadow-xl shadow-blue-200 ring-4 ring-blue-500/10'
-          : 'bg-white border-gray-100 hover:border-blue-200 hover:shadow-lg shadow-sm hover:shadow-gray-200/50'
+        ? 'bg-blue-600 border-blue-600 shadow-xl shadow-blue-200 ring-4 ring-blue-500/10'
+        : 'bg-white border-gray-100 hover:border-blue-200 hover:shadow-lg shadow-sm hover:shadow-gray-200/50'
         }`}
     >
       <div className="flex justify-between items-start relative z-10">
@@ -267,7 +267,7 @@ export default function DizgiYonetimi() {
               </div>
               <div className="flex flex-col gap-4 max-h-[40vh] overflow-y-auto no-scrollbar pr-2">
                 {completed.map(soru => <QuestionCard key={soru.id} soru={soru} />)}
-                {completed.length === 0 && <div className="p-10 text-center border-2 border-dashed border-gray-100 rounded-3xl text-gray-300 font-bold uppercase tracking-widest text-xs italic">Tamamlanan bulunamadı</div>}
+                {completed.length === 0 && <div className="p-10 text-center border-2 border-dashed border-gray-100 rounded-3xl text-gray-300 font-bold uppercase tracking-widest text-xs italic">Tamamlanan iş bulunamadı</div>}
               </div>
             </div>
           </div>
@@ -283,8 +283,8 @@ export default function DizgiYonetimi() {
                       <div className="flex items-center gap-3 mb-2">
                         <h2 className="text-3xl font-black text-gray-900 tracking-tight">Soru #{selectedSoru.id}</h2>
                         <div className={`px-4 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border ${selectedSoru.durum.includes('bekliyor') ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                            selectedSoru.durum.includes('dizgide') ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                              'bg-emerald-50 text-emerald-600 border-emerald-100'
+                          selectedSoru.durum.includes('dizgide') ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                            'bg-emerald-50 text-emerald-600 border-emerald-100'
                           }`}>
                           {selectedSoru.durum.replace(/_/g, ' ')}
                         </div>
