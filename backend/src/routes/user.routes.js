@@ -324,4 +324,26 @@ router.get('/logs/activity', authenticate, authorize('admin'), async (req, res, 
   }
 });
 
+// Ajanda istatistiklerini getir (Sadece admin)
+router.get('/stats/agenda', authenticate, authorize('admin'), async (req, res, next) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        DATE(tarih) as tarih,
+        COUNT(*) FILTER (WHERE islem_turu = 'soru_ekleme') as soru_ekleme,
+        COUNT(*) FILTER (WHERE islem_turu = 'durum_degisikligi') as durum_degisikligi,
+        COUNT(*) FILTER (WHERE islem_turu = 'dizgi_yukleme' OR islem_turu = 'dizgi_bitirme') as dizgi_isleri,
+        COUNT(*) FILTER (WHERE islem_turu = 'soru_silme') as soru_silme,
+        COUNT(*) as toplam_aktivite
+      FROM aktivite_loglari
+      WHERE tarih >= CURRENT_DATE - INTERVAL '30 days'
+      GROUP BY DATE(tarih)
+      ORDER BY DATE(tarih) DESC
+    `);
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

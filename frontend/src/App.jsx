@@ -15,6 +15,7 @@ import Mesajlar from './pages/Mesajlar';
 import Raporlar from './pages/Raporlar';
 import Duyurular from './pages/Duyurular';
 import Logs from './pages/Logs';
+import Ajanda from './pages/Ajanda';
 import Layout from './components/Layout';
 
 function PrivateRoute({ children }) {
@@ -74,6 +75,11 @@ function App() {
         <Route path="logs" element={
           <AdminRoute>
             <Logs />
+          </AdminRoute>
+        } />
+        <Route path="ajanda" element={
+          <AdminRoute>
+            <Ajanda />
           </AdminRoute>
         } />
       </Route>
