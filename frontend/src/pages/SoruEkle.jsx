@@ -7,7 +7,6 @@ import {
   DocumentTextIcon,
   QueueListIcon,
   Squares2X2Icon,
-  BoldIcon,
   DocumentArrowUpIcon,
   TrashIcon,
   Bars4Icon,
@@ -16,7 +15,8 @@ import {
   DevicePhoneMobileIcon,
   CheckBadgeIcon,
   ArrowRightIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import EditableBlock from '../components/EditableBlock';
 import ResizableImage from '../components/ResizableImage';
@@ -367,3 +367,10 @@ export default function SoruEkle() {
     </div>
   );
 }
+
+const BoldIcon = (props) => (
+  <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3.75h4.5a.75.75 0 01.75.75v14.25a.75.75 0 01-.75.75h-4.5a.75.75 0 01-.75-.75V4.5a.75.75 0 01.75-.75z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12.75 3.75h3a3.75 3.75 0 010 7.5h-3m0 0h3a3.75 3.75 0 010 7.5h-3" />
+  </svg>
+);

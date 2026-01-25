@@ -14,7 +14,6 @@ import {
   TrashIcon,
   PhotoIcon,
   QueueListIcon,
-  BoldIcon,
   DocumentTextIcon,
   Bars4Icon,
   PencilSquareIcon,
@@ -31,7 +30,8 @@ import {
   PlusIcon,
   ChatBubbleLeftRightIcon,
   ClockIcon,
-  CheckBadgeIcon
+  CheckBadgeIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
@@ -211,6 +211,16 @@ export default function SoruDetay() {
     } catch (error) {
       navigate('/sorular');
     } finally { setLoading(false); }
+  };
+
+  const handleSil = async () => {
+    if (!confirm('Bu soruyu havuzdan tamamen silmek istediğinize emin misiniz?')) return;
+    try {
+      await soruAPI.delete(id);
+      navigate(scope === 'brans' ? '/brans-havuzu' : '/sorular');
+    } catch (e) {
+      alert('Silme işlemi başarısız');
+    }
   };
 
   const loadRevizeNotlari = async () => {
@@ -673,3 +683,10 @@ export default function SoruDetay() {
     </div>
   );
 }
+
+const BoldIcon = (props) => (
+  <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3.75h4.5a.75.75 0 01.75.75v14.25a.75.75 0 01-.75.75h-4.5a.75.75 0 01-.75-.75V4.5a.75.75 0 01.75-.75z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12.75 3.75h3a3.75 3.75 0 010 7.5h-3m0 0h3a3.75 3.75 0 010 7.5h-3" />
+  </svg>
+);

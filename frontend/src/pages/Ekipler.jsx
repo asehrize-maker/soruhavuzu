@@ -11,7 +11,9 @@ import {
   Squares2X2Icon,
   ArrowPathIcon,
   ChevronRightIcon,
-  UserPlusIcon
+  UserPlusIcon,
+  InformationCircleIcon,
+  CloudArrowUpIcon
 } from '@heroicons/react/24/outline';
 
 export default function Ekipler() {

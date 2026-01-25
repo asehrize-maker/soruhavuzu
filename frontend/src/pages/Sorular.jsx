@@ -111,6 +111,25 @@ export default function Sorular({ scope }) {
     }
   };
 
+  const handleOrtakHavuzaGonder = async (id) => {
+    if (!window.confirm('Bu soruyu ortak havuza aktarmak istediğinize emin misiniz?')) return;
+    try {
+      setLoading(true);
+      await soruAPI.updateDurum(id, { yeni_durum: 'tamamlandi' });
+      const response = await soruAPI.getAll({
+        scope,
+        brans_id: filters.brans_id || undefined,
+        durum: filters.durum || undefined
+      });
+      setSorular(response.data.data || []);
+      alert('Soru başarıyla ortak havuza aktarıldı.');
+    } catch (error) {
+      alert('Hata: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDizgiAl = async (soruId) => {
     try {
       await soruAPI.dizgiAl(soruId);
@@ -379,8 +398,8 @@ export default function Sorular({ scope }) {
                         </span>
                         {soru.zorluk_seviyesi && (
                           <span className={`text-[10px] font-black px-3 py-1.5 rounded-xl border uppercase tracking-widest ${soru.zorluk_seviyesi === 'Zor' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                              soru.zorluk_seviyesi === 'Orta' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                'bg-emerald-50 text-emerald-600 border-emerald-100'
+                            soru.zorluk_seviyesi === 'Orta' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                              'bg-emerald-50 text-emerald-600 border-emerald-100'
                             }`}>
                             {soru.zorluk_seviyesi}
                           </span>

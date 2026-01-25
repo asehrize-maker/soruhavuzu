@@ -17,7 +17,8 @@ import {
   AcademicCapIcon,
   ClockIcon,
   XMarkIcon,
-  SparklesIcon
+  SparklesIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 
 export default function Raporlar() {

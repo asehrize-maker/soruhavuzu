@@ -16,7 +16,9 @@ import {
   BookOpenIcon,
   EnvelopeIcon,
   LockClosedIcon,
-  CheckBadgeIcon
+  CheckBadgeIcon,
+  ArrowPathIcon,
+  InformationCircleIcon
 } from '@heroicons/react/24/outline';
 
 const MAIN_BRANCHES = [
