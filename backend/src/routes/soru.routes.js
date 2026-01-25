@@ -7,7 +7,23 @@ import { authenticate, authorize } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { createNotification } from './bildirim.routes.js';
 
+// Helper: Aktivite Loglama
+const logActivity = async (client, kullaniciId, islemTuru, aciklama, soruId = null, detay = null) => {
+  if (!kullaniciId) return;
+  try {
+    // client can be pool or transaction client
+    await client.query(`
+      INSERT INTO aktivite_loglari (kullanici_id, soru_id, islem_turu, aciklama, detay)
+      VALUES ($1, $2, $3, $4, $5)
+    `, [kullaniciId, soruId, islemTuru, aciklama, detay]);
+  } catch (err) {
+    console.error('Activity Log Error:', err);
+  }
+};
+
 const router = express.Router();
+
+// ... existing code ...
 
 // Zorluk değerini 1-5 arasına sabitle (hem sayısal hem metinsel girişleri destekler)
 const normalizeZorlukSeviyesi = (value) => {
@@ -429,6 +445,9 @@ router.post('/', [
 
     console.log('Soru başarıyla eklendi, ID:', result.rows[0].id);
 
+    // LOGLAMA
+    await logActivity(pool, req.user.id, 'soru_ekleme', 'Yeni bir soru ekledi', result.rows[0].id, { brans_id });
+
     res.status(201).json({
       success: true,
       data: result.rows[0]
@@ -598,6 +617,11 @@ router.put('/:id(\\d+)', [
         id
       ]
     );
+
+
+
+    // LOGLAMA
+    await logActivity(pool, req.user.id, 'guncelleme', 'Sorunun içeriğini güncelledi', id, { brans_id: soru.brans_id });
 
     // Eğer revize durumundan güncellendiyse ve dizgici atanmışsa, dizgiciye bildirim gönder
     if (soru.durum === 'revize_gerekli' && soru.dizgici_id) {
@@ -826,6 +850,10 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         [id, req.user.id, `Durum: ${yeni_durum}. Açıklama: ${aciklama}`]
       );
     }
+
+    // LOGLAMA
+    const logDesc = `Durum: ${yeni_durum}.${aciklama ? ' Not: ' + aciklama : ''}`;
+    await logActivity(pool, req.user.id, 'durum_degisikligi', logDesc, id, { brans_id: soru.brans_id, yeni_durum });
 
     // BİLDİRİM GÖNDERME
     let bildirimAliciId = null;
@@ -1102,6 +1130,9 @@ router.put('/:id/final-upload', [authenticate, upload.single('final_png')], asyn
     `;
 
     const updateRes = await pool.query(updateQuery, [finalUrl, finalPublicId, req.user.id, id]);
+
+    // LOGLAMA
+    await logActivity(pool, req.user.id, 'dizgi_yukleme', 'Dizgi dosyasını yükledi', id);
 
     res.json({
       success: true,
@@ -1392,6 +1423,9 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
         );
       }
 
+      // LOGLAMA (Transaction client ile)
+      await logActivity(client, req.user.id, 'dizgi_bitirme', `Sorunun dizgisini tamamladı. Not: ${notlar || '-'}`, id);
+
       await client.query('COMMIT');
 
       res.json({
@@ -1461,6 +1495,9 @@ router.delete('/:id(\\d+)', authenticate, async (req, res, next) => {
         // Cloudinary hatası olsa bile soru silinmeye devam edecek
       }
     }
+
+    // LOGLAMA (Silinmeden önce)
+    await logActivity(pool, req.user.id, 'soru_silme', 'Soruyu sildi', null, { brans_id: soru.brans_id, silinen_soru_id: id });
 
     await pool.query('DELETE FROM sorular WHERE id = $1', [id]);
 
@@ -1628,22 +1665,23 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
       LIMIT 10
         `);
 
-    // Son aktiviteler (Son eklenen/güncellenen 10 soru hareketini çekelim)
+    // Son aktiviteler (Gerçek log tablosundan)
     const sonAktiviteler = await pool.query(`
       SELECT 
-        s.id,
-        LEFT(s.soru_metni, 50) as metin_ozeti,
-        s.durum,
-        s.guncellenme_tarihi as tarih,
+        a.id,
+        a.aciklama as metin_ozeti, -- Frontend metin_ozeti bekliyor olabilir veya aciklama
+        a.islem_turu as durum, -- Frontend renk kodlaması için durum kullanıyor, islem_turu'nu mapleyebiliriz
+        a.tarih,
         k.ad_soyad as kullanici_adi,
         k.rol as kullanici_rolu,
-        COALESCE(e.ekip_adi, 'Ekipsiz') as ekip_adi,
-        COALESCE(b.brans_adi, 'Belirsiz') as brans_adi
-      FROM sorular s
-      LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
-      LEFT JOIN branslar b ON s.brans_id = b.id
+        COALESCE(a.detay->>'ekip_adi', e.ekip_adi, 'Ekipsiz') as ekip_adi,
+        COALESCE(a.detay->>'brans_adi', b.brans_adi, 'Belirsiz') as brans_adi
+      FROM aktivite_loglari a
+      LEFT JOIN kullanicilar k ON a.kullanici_id = k.id
       LEFT JOIN ekipler e ON k.ekip_id = e.id
-      ORDER BY s.guncellenme_tarihi DESC
+      LEFT JOIN sorular s ON a.soru_id = s.id
+      LEFT JOIN branslar b ON s.brans_id = b.id
+      ORDER BY a.tarih DESC
       LIMIT 10
     `);
 
