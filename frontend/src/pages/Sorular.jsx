@@ -66,9 +66,10 @@ export default function Sorular({ scope }) {
         // Branş Havuzu için Sekme Bazlı Filtreleme
         if (scope === 'brans') {
           if (activeTab === 'taslaklar') {
-            // "Süreçteki Sorularım" sekmesi: Kesinlikle tamamlanmamış ve onay aşamasına gelmemiş her şeyi göster
+            // "Süreçteki Sorularım" sekmesi: Taslak (beklemede), inceleme, revize, dizgi aşamasındaki tüm soruları göster
             data = data.filter(s =>
-              !['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam', 'tamamlandi', 'arsiv'].includes(s.durum)
+              // Açıkça belirtilen durumlar:
+              ['beklemede', 'inceleme_bekliyor', 'incelemede', 'alan_incelemede', 'dil_incelemede', 'revize_istendi', 'revize_gerekli', 'dizgi_bekliyor', 'dizgide'].includes(s.durum)
             );
           } else {
             // "Onaylanacaklar" sekmesi: Dizgi ve İnceleme aşamalarından dönen, öğretmenin nihai onayını bekleyenler
