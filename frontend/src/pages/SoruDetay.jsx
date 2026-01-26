@@ -770,18 +770,33 @@ export default function SoruDetay() {
                     const [x, y] = not.secilen_metin.replace('IMG##', '').split(',').map(Number);
                     if (isNaN(x) || isNaN(y)) return null;
 
+                    const colorClass = not.inceleme_turu === 'alanci' ? 'blue' : 'emerald';
+                    const colorHex = not.inceleme_turu === 'alanci' ? '#2563eb' : '#059669';
+
                     return (
                       <div
                         key={not.id}
-                        className="absolute w-8 h-8 -ml-4 -mt-8 flex flex-col items-center group/marker z-10 hover:z-20"
+                        className="absolute w-12 h-12 -ml-6 -mt-6 flex items-center justify-center group/marker z-10 hover:z-30 transition-all"
                         style={{ left: `${x}%`, top: `${y}%` }}
                       >
-                        <div className={`w-6 h-6 rounded-full border-2 border-white shadow-md flex items-center justify-center text-[10px] font-bold text-white transition-transform hover:scale-125 ${not.inceleme_turu === 'alanci' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
+                        {/* Ripple/Highlighter effect */}
+                        <div className={`absolute inset-0 rounded-full animate-ping opacity-20 bg-${colorClass}-500`} style={{ animationDuration: '3s' }}></div>
+                        <div className={`absolute w-full h-full rounded-full opacity-10 bg-${colorClass}-500 border-2 border-${colorClass}-400`}></div>
+
+                        {/* Center Dot/Number */}
+                        <div className={`relative w-7 h-7 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-[10px] font-black text-white transition-all group-hover/marker:scale-125 z-10 ${not.inceleme_turu === 'alanci' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
                           {i + 1}
                         </div>
-                        <div className="opacity-0 group-hover/marker:opacity-100 absolute bottom-full mb-2 bg-gray-900 text-white text-xs p-2 rounded-lg whitespace-nowrap shadow-xl transition-opacity pointer-events-none">
-                          <span className="font-bold opacity-50 block text-[9px] uppercase tracking-widest">{not.inceleme_turu} UZMANI</span>
-                          {not.not_metni}
+
+                        {/* Tooltip */}
+                        <div className="opacity-0 group-hover/marker:opacity-100 absolute bottom-full mb-3 bg-gray-900/95 backdrop-blur-md text-white text-xs p-3 rounded-2xl whitespace-nowrap shadow-2xl transition-all translate-y-2 group-hover/marker:translate-y-0 pointer-events-none z-[100] border border-white/10">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`w-2 h-2 rounded-full bg-${colorClass}-400`}></span>
+                            <span className="font-black opacity-60 text-[9px] uppercase tracking-widest">{not.inceleme_turu} UZMANI</span>
+                          </div>
+                          <p className="font-bold leading-relaxed">{not.not_metni}</p>
+                          {/* Arrow */}
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900/95"></div>
                         </div>
                       </div>
                     );
