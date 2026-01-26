@@ -516,13 +516,27 @@ export default function SoruDetay() {
               >
                 {editMode ? (
                   <div className="space-y-1 relative" style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}>
-                    <div className="absolute top-[-40px] left-0 right-0 h-10 bg-gray-100 rounded-xl flex items-center px-4 gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <RibbonButton cmd="bold" label="B" />
-                      <RibbonButton cmd="italic" label="I" />
-                      <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                      <button onClick={addKoku} className="text-[9px] font-black uppercase text-gray-500 hover:text-blue-600 px-2">KÖK +</button>
-                      <button onClick={addGovde} className="text-[9px] font-black uppercase text-gray-500 hover:text-blue-600 px-2">METİN +</button>
-                      <button onClick={() => addSecenekler('list')} className="text-[9px] font-black uppercase text-gray-500 hover:text-blue-600 px-2">ŞIKLAR +</button>
+                    {/* Edit Toolbar - Always Visible */}
+                    <div className="sticky top-0 -mt-4 mb-4 -mx-2 bg-gradient-to-r from-gray-800 to-gray-900 rounded-2xl p-3 flex items-center justify-between gap-4 shadow-xl z-[80]">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest mr-2">Format:</span>
+                        <button onMouseDown={(e) => { e.preventDefault(); execCmd('bold'); }} className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg text-white font-bold text-sm transition-all" title="Kalın">B</button>
+                        <button onMouseDown={(e) => { e.preventDefault(); execCmd('italic'); }} className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg text-white italic text-sm transition-all" title="İtalik">I</button>
+                        <button onMouseDown={(e) => { e.preventDefault(); execCmd('underline'); }} className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg text-white underline text-sm transition-all" title="Altı Çizili">U</button>
+                        <button onMouseDown={(e) => { e.preventDefault(); execCmd('subscript'); }} className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg text-white text-xs transition-all" title="Alt Simge">X₂</button>
+                        <button onMouseDown={(e) => { e.preventDefault(); execCmd('superscript'); }} className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg text-white text-xs transition-all" title="Üst Simge">X²</button>
+                      </div>
+                      <div className="h-6 w-px bg-gray-600"></div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest mr-2">Ekle:</span>
+                        <button onClick={addKoku} className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/40 text-amber-400 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all">+ Kök</button>
+                        <button onClick={addGovde} className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/40 text-blue-400 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all">+ Metin</button>
+                        <button onClick={() => addSecenekler('list')} className="px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/40 text-purple-400 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all">+ Şıklar</button>
+                        <label className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all cursor-pointer">
+                          + Görsel
+                          <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                        </label>
+                      </div>
                     </div>
                     {components.map((comp, index) => (
                       <div
