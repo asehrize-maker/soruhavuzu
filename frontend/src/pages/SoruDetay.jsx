@@ -297,7 +297,10 @@ export default function SoruDetay() {
   const handleTextSelection = () => {
     const selection = window.getSelection();
     const text = selection.toString().trim();
-    if (text) setSelectedText(text);
+    if (text) {
+      setSelectedText(text);
+      setSelectedImagePoint(null);
+    }
   };
 
 
@@ -1025,16 +1028,23 @@ export default function SoruDetay() {
       </div>
 
       {/* FLOATING ANNOTATION UI */}
-      {selectedText && canReview && (
+      {(selectedText || selectedImagePoint) && canReview && (
         <div className="fixed bottom-12 right-12 z-[100] w-[400px] bg-white rounded-[2.5rem] shadow-[0_30px_60px_-12px_rgba(0,0,0,0.25)] border border-gray-50 overflow-hidden animate-scale-up">
           <div className="p-6 bg-gray-900 text-white flex justify-between items-center px-8">
             <h5 className="font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-2"><PlusIcon className="w-4 h-4 text-rose-500" /> Yeni Revize Notu</h5>
-            <button onClick={() => setSelectedText('')} className="hover:bg-white/10 p-2 rounded-xl transition-all"><XMarkIcon className="w-6 h-6" /></button>
+            <button onClick={() => { setSelectedText(''); setSelectedImagePoint(null); setRevizeNotuInput(''); }} className="hover:bg-white/10 p-2 rounded-xl transition-all"><XMarkIcon className="w-6 h-6" /></button>
           </div>
           <div className="p-8 space-y-6">
             <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-              <span className="text-[9px] font-black text-gray-400 uppercase block mb-1">SEÇİLEN KESİT</span>
-              <p className="text-xs font-bold text-gray-700 line-clamp-2 italic">"{selectedText}"</p>
+              <span className="text-[9px] font-black text-gray-400 uppercase block mb-1">SEÇİLEN {selectedImagePoint ? 'KONUM' : 'KESİT'}</span>
+              {selectedImagePoint ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-rose-500 rounded-full animate-pulse"></div>
+                  <p className="text-xs font-bold text-gray-700">Görsel üzerinde işaretlenen nokta</p>
+                </div>
+              ) : (
+                <p className="text-xs font-bold text-gray-700 line-clamp-2 italic">"{selectedText}"</p>
+              )}
             </div>
             <textarea
               className="w-full bg-gray-50 border-2 border-transparent border-dashed focus:border-indigo-600 rounded-2xl p-5 text-sm font-bold text-gray-800 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none resize-none"
