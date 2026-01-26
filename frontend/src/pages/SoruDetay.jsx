@@ -40,19 +40,26 @@ const parseHtmlToComponents = (html) => {
   if (!html) return [];
   const div = document.createElement('div');
   div.innerHTML = html;
-  const nodes = Array.from(div.children);
-  const structured = nodes.filter(n => n.classList.contains('q-txt') || n.classList.contains('q-img'));
 
-  if (structured.length === 0) {
-    return [{ id: generateId(), type: 'text', subtype: 'govde', content: html, label: 'Gövde' }];
+  // Eğer hiç çocuk element yoksa (sadece düz metin varsa)
+  if (div.children.length === 0) {
+    return html.trim() ? [{ id: generateId(), type: 'text', subtype: 'govde', content: html, label: 'Gövde' }] : [];
   }
 
-  return structured.map((node, idx) => {
-    if (node.classList.contains('q-img')) {
-      const img = node.querySelector('img');
+  const nodes = Array.from(div.children);
+
+  return nodes.map((node, idx) => {
+    // RESİM KONTROLÜ: q-img class'lı, doğrudan img etiketi veya içinde sadece img olan div/p
+    const isImageNode = node.classList.contains('q-img') || node.tagName === 'IMG' || (node.querySelector('img') && node.innerText.trim() === '');
+
+    if (isImageNode) {
+      const img = node.tagName === 'IMG' ? node : node.querySelector('img');
+      if (!img) return null;
+
       const style = node.getAttribute('style') || '';
       const wMatch = style.match(/width:\s*(\d+)%/);
       const hMatch = style.match(/height:\s*(\d+)px/);
+
       let align = 'center';
       if (style.includes('float: left')) align = 'left';
       else if (style.includes('float: right')) align = 'right';
@@ -60,16 +67,32 @@ const parseHtmlToComponents = (html) => {
       return {
         id: generateId() + idx,
         type: 'image',
-        content: img ? img.src : '',
+        content: img.src,
         width: wMatch ? parseInt(wMatch[1]) : 50,
         height: hMatch ? parseInt(hMatch[1]) : 'auto',
         align: align
       };
-    } else {
-      const subtype = Array.from(node.classList).find(c => c.startsWith('q-'))?.replace('q-', '') || 'govde';
+    }
+    // METİN KONTROLÜ
+    else {
+      let subtype = 'govde';
+      let width = 100;
+      let float = 'none';
+
+      // q-txt yapısı varsa özelliklerini al
+      if (node.classList.contains('q-txt')) {
+        subtype = Array.from(node.classList).find(c => c.startsWith('q-') && c !== 'q-txt')?.replace('q-', '') || 'govde';
+      } else {
+        // Yapı yoksa içerkten tahmin et
+        const text = node.innerText.trim();
+        if (text.match(/^[A-E]\)/) || text.match(/^[A-E]\s\)/) || node.innerHTML.includes('<b>A)')) subtype = 'secenek';
+      }
+
       const style = node.getAttribute('style') || '';
       const wMatch = style.match(/width:\s*(\d+)%/);
       const fMatch = style.match(/float:\s*(\w+)/);
+      if (wMatch) width = parseInt(wMatch[1]);
+      if (fMatch) float = fMatch[1];
 
       return {
         id: generateId() + idx,
@@ -77,11 +100,11 @@ const parseHtmlToComponents = (html) => {
         subtype: subtype,
         content: node.innerHTML,
         label: subtype === 'koku' ? 'Soru Kökü' : (subtype === 'secenek' ? 'Seçenek' : 'Gövde'),
-        width: wMatch ? parseInt(wMatch[1]) : 100,
-        float: fMatch ? fMatch[1] : 'none'
+        width: width,
+        float: float
       };
     }
-  });
+  }).filter(Boolean);
 };
 
 export default function SoruDetay() {
