@@ -381,6 +381,7 @@ export default function SoruDetay() {
         }
       }).join('');
       formData.append('soru_metni', htmlContent);
+      formData.append('increment_version', 'true');
       await soruAPI.update(id, formData);
       setEditMode(false);
       loadSoru();
@@ -429,7 +430,7 @@ export default function SoruDetay() {
   const isBranchTeacher = user?.rol === 'soru_yazici' && user?.brans_id === soru.brans_id;
   const isAdmin = effectiveRole === 'admin';
   const hasFullAccess = isAdmin || isOwner || isBranchTeacher;
-  const availableStatusesForEdit = ['beklemede', 'revize_gerekli', 'revize_istendi', 'dizgi_bekliyor', 'dizgide', 'dizgi_tamam'];
+  const availableStatusesForEdit = ['beklemede', 'revize_gerekli', 'revize_istendi', 'dizgi_bekliyor', 'dizgide', 'dizgi_tamam', 'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi'];
   const canEdit = isAdmin || ((isOwner || isBranchTeacher) && availableStatusesForEdit.includes(soru.durum));
 
   return (
@@ -693,13 +694,13 @@ export default function SoruDetay() {
 
             {/* Mevcut Durum Kartı */}
             <div className={`p-5 rounded-[2rem] border text-center ${soru.durum === 'tamamlandi' ? 'bg-emerald-50 border-emerald-100' :
-                ['revize_istendi', 'revize_gerekli'].includes(soru.durum) ? 'bg-rose-50 border-rose-100' :
-                  'bg-gray-50 border-gray-100'
+              ['revize_istendi', 'revize_gerekli'].includes(soru.durum) ? 'bg-rose-50 border-rose-100' :
+                'bg-gray-50 border-gray-100'
               }`}>
               <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">GÜNCEL DURUM</p>
               <p className={`text-sm font-black uppercase tracking-wide ${soru.durum === 'tamamlandi' ? 'text-emerald-700' :
-                  ['revize_istendi', 'revize_gerekli'].includes(soru.durum) ? 'text-rose-700' :
-                    'text-gray-700'
+                ['revize_istendi', 'revize_gerekli'].includes(soru.durum) ? 'text-rose-700' :
+                  'text-gray-700'
                 }`}>{soru.durum?.replace(/_/g, ' ')}</p>
             </div>
 

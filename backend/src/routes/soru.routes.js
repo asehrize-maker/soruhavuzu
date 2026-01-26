@@ -529,7 +529,7 @@ router.put('/:id(\\d+)', [
 
     // İncelemeye giden sorularda değişiklik yapılamamalı (Admin hariç)
     // Ancak branş sahipleri revize bekleyen veya dizgi/inceleme bekleyen sorular üzerinde çalışabilir.
-    const isAllowedDurum = ['beklemede', 'revize_istendi', 'revize_gerekli', 'dizgi_bekliyor', 'inceleme_bekliyor', 'inceleme_tamam'].includes(soru.durum);
+    const isAllowedDurum = ['beklemede', 'revize_istendi', 'revize_gerekli', 'dizgi_bekliyor', 'dizgide', 'dizgi_tamam', 'inceleme_bekliyor', 'inceleme_tamam', 'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi'].includes(soru.durum);
     if (req.user.rol !== 'admin' && !isAllowedDurum && (soru.durum === 'dizgide' || soru.durum === 'tamamlandi')) {
       throw new AppError('İşlemdeki veya tamamlanmış sorular düzenlenemez.', 403);
     }
@@ -950,7 +950,7 @@ router.put('/:id(\\d+)', [
 
     // İncelemeye giden sorularda değişiklik yapılamamalı (Admin hariç)
     // Ancak branş sahipleri revize bekleyen veya dizgi/inceleme bekleyen sorular üzerinde çalışabilir.
-    const isAllowedDurum = ['beklemede', 'revize_istendi', 'revize_gerekli', 'dizgi_bekliyor', 'inceleme_bekliyor', 'inceleme_tamam'].includes(soru.durum);
+    const isAllowedDurum = ['beklemede', 'revize_istendi', 'revize_gerekli', 'dizgi_bekliyor', 'dizgide', 'dizgi_tamam', 'inceleme_bekliyor', 'inceleme_tamam', 'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi'].includes(soru.durum);
     if (req.user.rol !== 'admin' && !isAllowedDurum && (soru.durum === 'dizgide' || soru.durum === 'tamamlandi')) {
       throw new AppError('İşlemdeki veya tamamlanmış sorular düzenlenemez.', 403);
     }
