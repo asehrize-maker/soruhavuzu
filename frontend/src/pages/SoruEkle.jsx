@@ -99,14 +99,23 @@ export default function SoruEkle() {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setComponents(prev => [...prev, { id: generateId(), type: 'image', content: URL.createObjectURL(file), file: file, width: 50, height: 'auto', align: 'center' }]);
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.src = objectUrl;
+      img.onload = () => {
+        let w = 50;
+        if (img.naturalHeight > img.naturalWidth) w = 30; // Portrait -> smaller width
+        else if (img.naturalWidth > img.naturalHeight * 1.5) w = 80; // Wide -> larger width
+        setComponents(prev => [...prev, { id: generateId(), type: 'image', content: objectUrl, file: file, width: w, height: 'auto', align: 'center' }]);
+      };
     }
   };
 
   const handleReadyQuestionUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setComponents(prev => [...prev, { id: generateId(), type: 'image', content: URL.createObjectURL(file), file: file, width: 100, height: 'auto', align: 'center' }]);
+      const objectUrl = URL.createObjectURL(file);
+      setComponents(prev => [...prev, { id: generateId(), type: 'image', content: objectUrl, file: file, width: 100, height: 'auto', align: 'center' }]);
     }
   };
 
@@ -244,17 +253,7 @@ export default function SoruEkle() {
                 </button>
               </div>
 
-              <div className="pt-2">
-                <h5 className="text-[10px] font-black text-gray-300 uppercase tracking-widest text-center mb-3">SEÇENEK ŞABLONLARI</h5>
-                <div className="grid grid-cols-2 gap-3">
-                  <button onClick={() => addSecenekler('list')} className="flex items-center gap-2 p-4 bg-emerald-50 hover:bg-emerald-600 group rounded-2xl text-[10px] font-black text-emerald-700 group-hover:text-white border border-emerald-100 uppercase tracking-widest transition-all">
-                    <QueueListIcon className="w-5 h-5 group-hover:text-white" /> LİSTE
-                  </button>
-                  <button onClick={() => addSecenekler('grid')} className="flex items-center gap-2 p-4 bg-teal-50 hover:bg-teal-600 group rounded-2xl text-[10px] font-black text-teal-700 group-hover:text-white border border-teal-100 uppercase tracking-widest transition-all">
-                    <Squares2X2Icon className="w-5 h-5 group-hover:text-white" /> IZGARA
-                  </button>
-                </div>
-              </div>
+
 
               <label className="flex flex-col p-5 bg-orange-50 hover:bg-orange-600 group rounded-3xl border border-orange-100 transition-all text-left cursor-pointer mt-2">
                 <div className="flex items-center gap-3 text-orange-700 group-hover:text-white font-black text-sm uppercase tracking-widest"><PhotoIcon className="w-5 h-5" /> Görsel Ekle</div>
@@ -272,7 +271,7 @@ export default function SoruEkle() {
         </div>
 
         {/* CENTER EDITOR */}
-        <div className="lg:col-span-9 flex flex-col items-center gap-10">
+        <div className="lg:col-span-7 flex flex-col items-center gap-10">
           <div className="bg-gray-800 p-2 rounded-3xl shadow-2xl flex items-center gap-1 border border-white/5 mx-auto">
             <RibbonButton cmd="bold" label="B" />
             <RibbonButton cmd="italic" label="I" />
@@ -360,6 +359,28 @@ export default function SoruEkle() {
                   className="border-0 shadow-none bg-transparent"
                 />
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT TOOLBAR */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="sticky top-32">
+            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 text-center">ŞIK EKLE</h4>
+            <div className="flex flex-col gap-4">
+              <button onClick={() => addSecenekler('list')} className="w-full py-6 flex flex-col items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-3xl shadow-xl shadow-emerald-200 transition-all hover:scale-105 active:scale-95 group">
+                <QueueListIcon className="w-8 h-8" strokeWidth={2} />
+                <span className="text-xs font-black uppercase tracking-widest">LİSTE</span>
+              </button>
+              <button onClick={() => addSecenekler('grid')} className="w-full py-6 flex flex-col items-center justify-center gap-3 bg-teal-600 hover:bg-teal-500 text-white rounded-3xl shadow-xl shadow-teal-200 transition-all hover:scale-105 active:scale-95 group">
+                <Squares2X2Icon className="w-8 h-8" strokeWidth={2} />
+                <span className="text-xs font-black uppercase tracking-widest">IZGARA</span>
+              </button>
+            </div>
+
+            <div className="mt-8 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 text-center">
+              <InformationCircleIcon className="w-6 h-6 text-blue-400 mx-auto mb-2" />
+              <p className="text-[10px] text-blue-800 font-bold leading-tight">Şıklar otomatik olarak A, B, C, D şeklinde sıralanır.</p>
             </div>
           </div>
         </div>

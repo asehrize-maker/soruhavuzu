@@ -296,8 +296,8 @@ export default function DizgiYonetimi() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
-                      <button onClick={() => navigate(`/sorular/${selectedSoru.id}`)} className="p-3 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-2xl transition shadow-sm border border-gray-100" title="Detay Sayfası">
-                        <ArrowRightCircleIcon className="w-6 h-6" />
+                      <button onClick={() => navigate(`/sorular/${selectedSoru.id}`)} className="p-4 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-2xl transition shadow-sm border border-gray-100 active:bg-gray-200 group" title="Detay Sayfası">
+                        <ArrowRightCircleIcon className="w-8 h-8 group-hover:text-blue-600 transition-colors" />
                       </button>
                       <button onClick={() => setShowMesaj(showMesaj === selectedSoru.id ? null : selectedSoru.id)} className={`p-3 rounded-2xl transition shadow-sm border ${showMesaj === selectedSoru.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100'
                         }`} title="Mesajlaşma">

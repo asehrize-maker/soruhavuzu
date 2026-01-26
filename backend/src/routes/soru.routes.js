@@ -1119,11 +1119,14 @@ router.put('/:id/final-upload', [authenticate, upload.single('final_png')], asyn
     const finalPublicId = uploadResult.public_id;
 
     // DB güncelle - Eğer dizgici_id yoksa yükleyen kişiyi ata
-    // AYRICA: Durumu 'tamamlandi' yap (Havuza gönder)
+    // AYRICA: Durumu 'inceleme_bekliyor' yap (Branşa gönder) ve onayları sıfırla
     const updateQuery = `
       UPDATE sorular 
       SET final_png_url = $1, final_png_public_id = $2,
           dizgici_id = COALESCE(dizgici_id, $3),
+          durum = 'inceleme_bekliyor',
+          onay_alanci = false,
+          onay_dilci = false,
           guncellenme_tarihi = CURRENT_TIMESTAMP
       WHERE id = $4 
       RETURNING *

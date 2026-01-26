@@ -379,28 +379,6 @@ export default function Sorular({ scope }) {
                     }`}
                 >
                   <div className="flex flex-col lg:flex-row gap-8">
-                    {/* SELECTION & INFO */}
-                    <div className="flex lg:flex-col items-center justify-between lg:justify-start gap-4 lg:w-16">
-                      <div
-                        onClick={() => {
-                          if (isSelected) setSelectedQuestions(selectedQuestions.filter(id => id !== soru.id));
-                          else setSelectedQuestions([...selectedQuestions, soru.id]);
-                        }}
-                        className={`w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-all shadow-sm ${isSelected ? 'bg-blue-600 text-white shadow-blue-200' : 'bg-gray-50 text-gray-300 border border-gray-100 hover:bg-blue-50 hover:text-blue-300'
-                          }`}
-                      >
-                        {isSelected ? <CheckCircleIcon className="w-6 h-6" strokeWidth={2.5} /> : <div className="text-xs font-black uppercase tracking-tighter">SEC</div>}
-                      </div>
-                      <div className="flex flex-row lg:flex-col gap-2">
-                        <button onClick={() => handleSil(soru.id)} className="p-3 text-gray-300 hover:text-rose-500 bg-gray-50 hover:bg-rose-50 rounded-2xl transition-all border border-gray-100">
-                          <TrashIcon className="w-5 h-5" />
-                        </button>
-                        <Link to={`/sorular/${soru.id}${scope ? `?scope=${scope}` : ''}`} className="p-3 text-gray-300 hover:text-blue-600 bg-gray-50 hover:bg-blue-50 rounded-2xl transition-all border border-gray-100">
-                          <ChevronRightIcon className="w-5 h-5" strokeWidth={3} />
-                        </Link>
-                      </div>
-                    </div>
-
                     {/* CONTENT AREA */}
                     <div className="flex-1 space-y-6">
                       <div className="flex flex-wrap items-center gap-3">
@@ -495,6 +473,31 @@ export default function Sorular({ scope }) {
                           )}
                         </div>
                       )}
+                    </div>
+
+                    {/* ACTIONS - NOW ON RIGHT */}
+                    <div className="flex lg:flex-col items-center justify-between lg:justify-start gap-4 lg:w-16">
+                      <div
+                        onClick={() => {
+                          if (isSelected) setSelectedQuestions(selectedQuestions.filter(id => id !== soru.id));
+                          else setSelectedQuestions([...selectedQuestions, soru.id]);
+                        }}
+                        className={`w-14 h-14 rounded-2xl flex items-center justify-center cursor-pointer transition-all shadow-md active:scale-95 ${isSelected ? 'bg-blue-600 text-white shadow-blue-300' : 'bg-white border-2 border-blue-100 text-blue-400 hover:border-blue-600 hover:text-blue-600'
+                          }`}
+                        title="Seç"
+                      >
+                        {isSelected ? <CheckCircleIcon className="w-8 h-8" strokeWidth={2.5} /> : <div className="text-sm font-black uppercase tracking-tighter">SEC</div>}
+                      </div>
+
+                      <div className="flex flex-row lg:flex-col gap-3">
+                        <button onClick={() => handleSil(soru.id)} className="p-4 bg-white border-2 border-rose-100 text-rose-400 hover:bg-rose-500 hover:text-white hover:border-rose-500 rounded-2xl transition-all shadow-sm active:scale-95" title="Sil">
+                          <TrashIcon className="w-6 h-6" strokeWidth={2.5} />
+                        </button>
+
+                        <Link to={`/sorular/${soru.id}${scope ? `?scope=${scope}` : ''}`} className="p-4 bg-blue-600 text-white rounded-2xl transition-all shadow-xl shadow-blue-200 hover:scale-105 hover:bg-blue-700 active:scale-95 flex items-center justify-center" title="Detay">
+                          <ChevronRightIcon className="w-8 h-8" strokeWidth={3} />
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </div>
