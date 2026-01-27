@@ -146,7 +146,6 @@ export default function Denemeler() {
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-3">
-                                        <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg text-[10px] font-black uppercase tracking-widest">#{deneme.id}</span>
                                         <h3 className="text-xl font-black text-gray-900">{deneme.ad}</h3>
                                     </div>
                                     <p className="text-sm text-gray-500">{deneme.aciklama}</p>

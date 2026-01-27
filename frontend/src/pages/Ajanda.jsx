@@ -77,7 +77,6 @@ export default function Ajanda() {
                                 <div className="p-8 border-b border-gray-50 bg-gray-50/30 flex flex-col md:flex-row md:items-center justify-between gap-6">
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-3">
-                                            <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">DENEME #{deneme.id}</span>
                                             {isPast && <span className="bg-gray-100 text-gray-500 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">TAMAMLANDI</span>}
                                         </div>
                                         <h2 className="text-2xl font-black text-gray-900 tracking-tight">{deneme.ad}</h2>
