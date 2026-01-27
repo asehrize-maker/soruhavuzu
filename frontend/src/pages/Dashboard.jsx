@@ -250,6 +250,23 @@ export default function Dashboard() {
     return Object.values(groups).sort((a, b) => b.total.soru - a.total.soru);
   }, [detayliStats]);
 
+  const [reindexing, setReindexing] = useState(false);
+
+  const handleReindex = async () => {
+    if (!window.confirm("Tüm soru numaraları sıfırdan başlanarak ardışık olarak yeniden düzenlenecek. Bu işlem geri alınamaz. Devam etmek istiyor musunuz?")) return;
+
+    setReindexing(true);
+    try {
+      const response = await soruAPI.adminCleanup({ action: 'reindex' });
+      alert(response.data.message || "İşlem başarılı.");
+      fetchData(); // İstatistikleri yenile
+    } catch (err) {
+      alert("Hata: " + (err.response?.data?.error || err.message));
+    } finally {
+      setReindexing(false);
+    }
+  };
+
   // 2. CONDITIONAL RENDERING (After all hooks)
   if (loading) {
     return (
@@ -413,6 +430,38 @@ export default function Dashboard() {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          {/* SİSTEM ARAÇLARI */}
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-1">
+              <h3 className="text-xl font-black text-gray-900 tracking-tight">Sistem Araçları</h3>
+              <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">VERİTABANI VE ID YÖNETİMİ</p>
+            </div>
+
+            <div className="flex flex-wrap gap-4">
+              <button
+                onClick={handleReindex}
+                disabled={reindexing}
+                className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 ${reindexing
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100'
+                  }`}
+              >
+                {reindexing ? (
+                  <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ArrowPathIcon className="w-4 h-4" />
+                )}
+                NUMARALARI YENİDEN DÜZENLE
+              </button>
+
+              <div className="px-4 py-3 bg-blue-50 rounded-xl border border-blue-100 max-w-xs">
+                <p className="text-[9px] text-blue-700 font-bold leading-tight">
+                  💡 Bu işlem silinen soruların oluşturduğu boşlukları doldurur ve tüm soru ID'lerini 1'den başlayarak sıralar.
+                </p>
+              </div>
             </div>
           </div>
         </div>

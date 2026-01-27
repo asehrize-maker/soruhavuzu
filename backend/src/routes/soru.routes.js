@@ -1504,9 +1504,12 @@ router.delete('/:id(\\d+)', authenticate, async (req, res, next) => {
 
     await pool.query('DELETE FROM sorular WHERE id = $1', [id]);
 
+    // Auto-reset sequence to MAX(id) to avoid jumping IDs for future inserts
+    await pool.query("SELECT setval('sorular_id_seq', COALESCE((SELECT MAX(id) FROM sorular), 0))");
+
     res.json({
       success: true,
-      message: 'Soru silindi'
+      message: 'Soru silindi ve ID sırası güncellendi'
     });
   } catch (error) {
     next(error);
@@ -1962,12 +1965,56 @@ router.post('/admin-cleanup', authenticate, authorize(['admin']), async (req, re
 
     if (action === 'clear_all') {
       const result = await pool.query('DELETE FROM sorular RETURNING id');
+      // Reset sequence after clearing all
+      await pool.query("SELECT setval('sorular_id_seq', 0, false)");
       console.log(`⚠️ ADMIN CLEANUP: ${result.rows.length} soru silindi.`);
       return res.json({
         success: true,
         count: result.rows.length,
         message: 'Tüm soru kayıtları ve ilgili geçmişler temizlendi.'
       });
+    }
+
+    if (action === 'reindex') {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+
+        // 1. Mevcut ID'leri 1'den başlayıp sıralı olacak şekilde eşleştir
+        await client.query('CREATE TEMP TABLE id_mapping AS SELECT id as old_id, row_number() OVER (ORDER BY id) as new_id FROM sorular');
+
+        // 2. Tüm ilişkili tablolardaki soru_id referanslarını güncelle
+        const relatedTables = [
+          { name: 'mesajlar', col: 'soru_id' },
+          { name: 'soru_goruntulenme', col: 'soru_id' },
+          { name: 'dizgi_gecmisi', col: 'soru_id' },
+          { name: 'soru_versiyonlari', col: 'soru_id' },
+          { name: 'soru_yorumlari', col: 'soru_id' },
+          { name: 'soru_revize_notlari', col: 'soru_id' },
+          { name: 'aktivite_loglari', col: 'soru_id' }
+        ];
+
+        for (const t of relatedTables) {
+          await client.query(`UPDATE ${t.name} tbl SET ${t.col} = m.new_id FROM id_mapping m WHERE tbl.${t.col} = m.old_id`);
+        }
+
+        // 3. Ana tablo ID'lerini PK hatası almamak için önce negatif yap sonra pozitife çek
+        // (Çakışmaları önlemek için geçici olarak)
+        await client.query('UPDATE sorular s SET id = -m.new_id FROM id_mapping m WHERE s.id = m.old_id');
+        await client.query('UPDATE sorular SET id = -id');
+
+        // 4. Diziyi sıfırla (Bir sonraki soru son sayının bir fazlası olsun)
+        await client.query("SELECT setval('sorular_id_seq', COALESCE((SELECT MAX(id) FROM sorular), 0))");
+
+        await client.query('COMMIT');
+        return res.json({ success: true, message: 'Tüm soru ID\'leri ardışık olarak yeniden düzenlendi.' });
+      } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('Reindex Error:', err);
+        throw err;
+      } finally {
+        client.release();
+      }
     }
 
     throw new AppError('Gecersiz işlem', 400);
