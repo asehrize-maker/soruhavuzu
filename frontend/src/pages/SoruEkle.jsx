@@ -258,7 +258,7 @@ export default function SoruEkle() {
             <div className="grid grid-cols-1 gap-3">
               <label className="group flex flex-col p-5 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-3xl cursor-pointer transition-all hover:shadow-xl hover:shadow-indigo-100 hover:-translate-y-1">
                 <div className="flex items-center gap-3 text-white font-black text-sm uppercase tracking-widest"><DocumentArrowUpIcon className="w-5 h-5" /> Soru PNG'si</div>
-                <span className="text-[10px] text-white/60 font-medium italic mt-1 font-sans">Hazır mizanpajlı resmi içe aktar</span>
+
                 <input type="file" className="hidden" accept="image/*" onChange={handleReadyQuestionUpload} />
               </label>
 
@@ -277,7 +277,7 @@ export default function SoruEkle() {
 
               <label className="flex flex-col p-5 bg-orange-50 hover:bg-orange-600 group rounded-3xl border border-orange-100 transition-all text-left cursor-pointer mt-2">
                 <div className="flex items-center gap-3 text-orange-700 group-hover:text-white font-black text-sm uppercase tracking-widest"><PhotoIcon className="w-5 h-5" /> Görsel Ekle</div>
-                <span className="text-[10px] text-orange-400 group-hover:text-white/60 font-medium italic mt-1 font-sans">Grafik, harita veya fotoğraf</span>
+
                 <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
               </label>
             </div>
@@ -344,12 +344,7 @@ export default function SoruEkle() {
                   </div>
                 ))}
 
-                {components.length === 0 && (
-                  <div className="flex flex-col items-center justify-center pt-32 text-center text-gray-200 pointer-events-none">
-                    <ArrowRightIcon className="w-20 h-20 rotate-180 opacity-10 mb-4" />
-                    <p className="font-black text-xs uppercase tracking-[0.3em] opacity-30">LÜTFEN SOL PANELİ KULLANARAK<br />SORU İÇERİĞİ OLUŞTURUN</p>
-                  </div>
-                )}
+
                 <div style={{ clear: 'both' }}></div>
               </div>
             </div>

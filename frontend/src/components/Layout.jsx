@@ -193,7 +193,7 @@ export default function Layout() {
               <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-900 text-blue-100 border border-blue-700 w-fit">
                 {(() => {
                   const r = effectiveRole;
-                  if (r === 'admin') return 'Yönetici';
+                  if (r === 'admin') return 'Admin';
                   if (r === 'koordinator') return 'Koordinatör';
                   if (r === 'soru_yazici') return 'Branş Öğretmeni';
                   if (r === 'dizgici') return 'Dizgici';

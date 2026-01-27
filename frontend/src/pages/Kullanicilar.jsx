@@ -128,6 +128,11 @@ export default function Kullanicilar() {
   };
 
   const handleDelete = async (id) => {
+    const kullanici = kullanicilar.find(u => u.id === id);
+    if (kullanici?.email === 'servetgenc@windowslive.com') {
+      alert('Bu ana yönetici hesabı silinemez!');
+      return;
+    }
     if (!confirm('Bu kullanıcıyı silmek istediğinizden emin misiniz?')) return;
     try {
       await userAPI.delete(id);
@@ -141,7 +146,7 @@ export default function Kullanicilar() {
     let label = '';
     let color = '';
     switch (kullanici.rol) {
-      case 'admin': label = 'Süper Admin'; color = 'bg-purple-100 text-purple-700 border-purple-200'; break;
+      case 'admin': label = 'Admin'; color = 'bg-purple-100 text-purple-700 border-purple-200'; break;
       case 'soru_yazici': label = 'Branş Yazarı'; color = 'bg-blue-50 text-blue-700 border-blue-100'; break;
       case 'koordinator': label = 'Koordinatör'; color = 'bg-rose-50 text-rose-700 border-rose-100'; break;
       case 'dizgici': label = 'Dizgi Ekibi'; color = 'bg-emerald-50 text-emerald-700 border-emerald-100'; break;
@@ -356,15 +361,16 @@ export default function Kullanicilar() {
                 <div className="col-span-1">
                   <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Sistem Rolü</label>
                   <select
-                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold text-gray-700 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                    className={`w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold text-gray-700 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all ${formData.email === 'servetgenc@windowslive.com' ? 'opacity-50 cursor-not-allowed' : ''}`}
                     value={formData.rol}
                     onChange={e => setFormData({ ...formData, rol: e.target.value })}
+                    disabled={formData.email === 'servetgenc@windowslive.com'}
                   >
                     <option value="soru_yazici">Branş Yazarı</option>
                     <option value="dizgici">Dizgici</option>
                     <option value="incelemeci">İncelemeci</option>
                     <option value="koordinator">Koordinatör</option>
-                    <option value="admin">Süper Admin</option>
+                    <option value="admin">Admin</option>
                   </select>
                 </div>
               </div>
