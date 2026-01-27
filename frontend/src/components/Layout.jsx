@@ -176,7 +176,7 @@ export default function Layout() {
       <aside className="w-64 bg-[#1e293b] text-white flex flex-col flex-shrink-0 shadow-xl relative z-20">
         <div className="p-6 flex flex-col items-center border-b border-gray-700 bg-[#0f172a]">
           <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-3 shadow-lg">SH</div>
-          <h1 className="text-xl font-bold tracking-wider">SORU HAVUZU</h1>
+          <h1 className="text-xl font-bold tracking-wider">SORU SİSTEMİ</h1>
         </div>
         <div className="px-6 py-6 bg-[#1e293b] border-b border-gray-700">
           <div className="text-left">

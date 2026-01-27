@@ -201,7 +201,7 @@ export default function Sorular({ scope }) {
       <div className="max-w-7xl mx-auto py-12 space-y-10 animate-fade-in-up">
         <div className="text-center space-y-4">
           <Squares2X2Icon className="w-16 h-16 text-blue-600 mx-auto" strokeWidth={2.5} />
-          <h1 className="text-5xl font-black text-gray-900 tracking-tight">Merkezi Soru Havuzu</h1>
+          <h1 className="text-xl font-black text-gray-900 tracking-tight">Merkezi Soru Birimi</h1>
           <p className="text-gray-500 font-medium max-w-2xl mx-auto">İşlem yapmak istediğiniz branş birimini seçerek devam edin. Tüm sorulardan bağımsız branş bazlı yönetim paneline erişeceksiniz.</p>
         </div>
 
