@@ -75,7 +75,7 @@ export default function Raporlar() {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     doc.setFontSize(20);
-    doc.text('Soru Havuzu Analiz Raporu', pageWidth / 2, 15, { align: 'center' });
+    doc.text('Soru Sistemi Analiz Raporu', pageWidth / 2, 15, { align: 'center' });
     doc.setFontSize(12);
     doc.text(`Rapor Dönemi: ${formatDate(raporData.donem.baslangic)} - ${formatDate(raporData.donem.bitis)}`, 14, 25);
     doc.save(`rapor_${raporData.donem.baslangic}_${raporData.donem.bitis}.pdf`);

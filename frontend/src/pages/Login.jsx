@@ -53,7 +53,7 @@ export default function Login() {
             <span className="text-white text-3xl font-black italic">SH</span>
           </div>
           <h2 className="text-center text-4xl font-black text-gray-900 tracking-tight">
-            {config?.site_basligi || 'Soru Havuzu'}
+            {config?.site_basligi || 'Soru Sistemi'}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-500 font-medium">
             Profesyonel Soru Yönetim Platformu

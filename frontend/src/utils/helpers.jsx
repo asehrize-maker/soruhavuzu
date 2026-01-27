@@ -26,7 +26,7 @@ export const getDurumBadge = (durum) => {
     alan_onaylandi: 'Alan Onaylı (Branşta)',
     dil_incelemede: 'Dil İncelemede',
     dil_onaylandi: 'Dil Onaylı (Branşta)',
-    tamamlandi: 'Ortak Havuzda',
+    tamamlandi: 'Tamamlandı',
     revize_gerekli: 'Revize Gerekli',
     revize_istendi: 'Revize İstendi',
     inceleme_bekliyor: 'İnceleme Bekliyor',
@@ -41,7 +41,7 @@ export const generateExportHtml = (selectedData) => {
   let htmlContent = `
     <html>
     <head>
-      <title>Soru Havuzu Dışa Aktarım</title>
+      <title>Soru Sistemi Dışa Aktarım</title>
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
       <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
       <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>

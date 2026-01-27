@@ -344,7 +344,7 @@ export default function Sorular({ scope }) {
       {loading ? (
         <div className="py-40 text-center">
           <ArrowPathIcon className="w-12 h-12 text-blue-100 animate-spin mx-auto mb-4" strokeWidth={3} />
-          <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em]">Havuza Bağlanılıyor...</p>
+          <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em]">Sisteme Bağlanılıyor...</p>
         </div>
       ) : sorular.length === 0 ? (
         <div className="bg-white rounded-[3.5rem] p-32 text-center border border-gray-50 shadow-sm space-y-4">
