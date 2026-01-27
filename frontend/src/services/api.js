@@ -158,4 +158,5 @@ export const denemeAPI = {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
   getAgenda: () => api.get('/denemeler/ajanda'),
+  deletePlan: (id) => api.delete(`/denemeler/plan/${id}`),
 };

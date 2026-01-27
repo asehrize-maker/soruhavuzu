@@ -8,7 +8,8 @@ import {
     CalendarIcon,
     CheckCircleIcon,
     ClockIcon,
-    EyeIcon
+    EyeIcon,
+    TrashIcon
 } from '@heroicons/react/24/outline'; // ArrowDownTrayIcon removed as unused
 
 export default function Denemeler() {
@@ -61,6 +62,18 @@ export default function Denemeler() {
             alert(`HATA: Plan oluşturulamadı!\nDetay: ${msg}\nStatus: ${error.response?.status}`);
         } finally {
             setCreateLoading(false);
+        }
+    };
+
+    const handlePlanDelete = async (id, ad) => {
+        if (!confirm(`"${ad}" deneme planını silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve bu plana ait tüm yüklemeler silinir.`)) return;
+        try {
+            await denemeAPI.deletePlan(id);
+            alert('Deneme planı silindi.');
+            fetchDenemeler();
+        } catch (error) {
+            console.error('Plan silinemedi:', error);
+            alert('Silme işlemi başarısız: ' + (error.response?.data?.message || error.message));
         }
     };
 
@@ -141,6 +154,17 @@ export default function Denemeler() {
                                         <span className="flex items-center gap-1"><CloudArrowUpIcon className="w-4 h-4" /> {deneme.toplam_yukleme} Branş Yükledi</span>
                                         <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
                                         <span className="flex items-center gap-1"><ClockIcon className="w-4 h-4" /> {new Date(deneme.olusturma_tarihi).toLocaleDateString()} oluşturuldu</span>
+                                        {canCreatePlan && (
+                                            <>
+                                                <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                                <button
+                                                    onClick={() => handlePlanDelete(deneme.id, deneme.ad)}
+                                                    className="flex items-center gap-1 text-rose-500 hover:text-rose-600 transition-colors uppercase tracking-widest text-[9px] font-black"
+                                                >
+                                                    <TrashIcon className="w-3.5 h-3.5" /> PLANI SİL
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </div>

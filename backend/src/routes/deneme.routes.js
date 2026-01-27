@@ -267,4 +267,24 @@ router.get('/ajanda', authenticate, async (req, res, next) => {
     }
 });
 
+// 5. Deneme Planını Sil (SADECE ADMIN)
+router.delete('/plan/:id', authenticate, authorize('admin'), async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        // Önce plana ait yüklemeler silinmeli (veya CASCADE varsa otomatik silinir ama biz garantiye alalım)
+        // Cloudinary tarafında dosya silme işlemi de eklenebilir ancak şu an DB temizliğini ana alalım
+
+        const result = await pool.query('DELETE FROM deneme_takvimi WHERE id = $1 RETURNING *', [id]);
+
+        if (result.rowCount === 0) {
+            throw new AppError('Plan bulunamadı', 404);
+        }
+
+        res.json({ success: true, message: 'Deneme planı başarıyla silindi.' });
+    } catch (error) {
+        next(error);
+    }
+});
+
 export default router;
