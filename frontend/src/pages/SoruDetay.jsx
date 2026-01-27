@@ -243,8 +243,9 @@ export default function SoruDetay() {
     }
     element.innerHTML = html;
 
-    // GÖRSEL SETUP: SADECE ZOOM VE RESPONSIVE KORUMA
-    // (Boyutlandırma mantığını kaldırdık, çünkü container genişliği ile yöneteceğiz)
+    // GÖRSEL DUZELTME: ESKİ/HATALI STİLLERİ EZ VE TAM GENİŞLİK YAP
+    // Container zaten 185mm (Belge boyutu) ile sınırlı.
+    // Bu yüzden görselleri %100 yaparak tam belge genişliğinde (okunaklı) gösteriyoruz.
     const images = element.querySelectorAll('img');
     images.forEach(img => {
       // Zoom
@@ -252,13 +253,14 @@ export default function SoruDetay() {
       img.onclick = () => window.open(img.src, '_blank');
       img.title = "Büyütmek için tıklayın";
 
-      // Sadece taşmayı önle, kullanıcının ayarını (width: 50% vs) bozma
+      // KRİTİK: Veritabanından gelen inline width (örn: %40) değerini EZİYORUZ.
+      // Çünkü eski kayıtlarda bu değer görseli çok küçültüyor olabilir.
+      img.style.width = '100%';
       img.style.maxWidth = '100%';
       img.style.height = 'auto';
       img.style.display = 'block';
-
-      // Eğer kullanıcı ortala demişse (margin auto) veya dememişse biz hafif margin verelim
-      if (!img.style.margin) img.style.margin = '16px auto';
+      img.style.margin = '20px auto';
+      img.style.objectFit = 'contain';
     });
   };
 
