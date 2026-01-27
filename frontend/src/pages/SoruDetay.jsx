@@ -243,44 +243,50 @@ export default function SoruDetay() {
     }
     element.innerHTML = html;
 
-    // GÜÇLENDİRİLMİŞ GÖRSEL BOYUTLANDIRMA
+    // GÜÇLENDİRİLMİŞ GÖRSEL BOYUTLANDIRMA - OKUNABİLİRLİK ODAKLI
     const images = element.querySelectorAll('img');
     images.forEach(img => {
+      // Tıklanınca büyüme özelliği ekle
+      img.style.cursor = 'zoom-in';
+      img.onclick = () => window.open(img.src, '_blank');
+      img.title = "Orijinal boyutta görmek için tıklayın";
+
       const adjustSize = () => {
-        // Mevcut stilleri temizle ve sıfırla ki hesaplama doğru yapılsın
+        // Mevcut stilleri temizle
         img.style.width = '';
         img.style.height = '';
         img.style.maxWidth = '';
+        img.style.maxHeight = '';
         img.style.margin = '';
         img.style.display = '';
 
         const isPortrait = img.naturalHeight > img.naturalWidth;
         const isVeryTall = img.naturalHeight > img.naturalWidth * 1.5;
 
-        // Base styles - !important flag'ini style.setProperty ile veriyoruz
+        // Base styles
         img.style.setProperty('display', 'block', 'important');
-        img.style.setProperty('margin', '12px auto', 'important');
+        img.style.setProperty('margin', '16px auto', 'important');
         img.style.setProperty('height', 'auto', 'important');
-        img.style.setProperty('max-height', '60vh', 'important'); // Ekrana sığması için
 
-        if (isVeryTall) {
-          img.style.setProperty('width', 'auto', 'important');
-          img.style.setProperty('max-width', '40%', 'important');
-        } else if (isPortrait) {
-          img.style.setProperty('width', 'auto', 'important');
-          img.style.setProperty('max-width', '50%', 'important');
+        // Yükseklik sınırı KALDIRILDI. Okunabilirlik için genişlik baz alınacak.
+        img.style.removeProperty('max-height');
+
+        if (isPortrait) {
+          // Dikey görseller (A4 gibi) için ideal okuma genişliği
+          // Ekranı kaplamasın (kocaman olmasın) ama küçücük de kalmasın
+          img.style.setProperty('width', '60%', 'important');
+          img.style.setProperty('max-width', '650px', 'important'); // Standart belge genişliği
+          img.style.setProperty('min-width', '350px', 'important'); // Mobilde çok küçülmesin
         } else {
-          // Yatay resimler de çok geniş olmasın
-          img.style.setProperty('max-width', '80%', 'important');
-          // Eğer parent container darsa %100 olsun
-          img.style.width = '100%';
+          // Yatay görseller
+          img.style.setProperty('width', '80%', 'important');
+          img.style.setProperty('max-width', '900px', 'important');
         }
       };
 
       if (img.complete && img.naturalHeight > 0) adjustSize();
       else {
         img.onload = adjustSize;
-        // Hızlı cache yüklemeleri için bir de timeout ile tetikle
         setTimeout(adjustSize, 100);
       }
     });
