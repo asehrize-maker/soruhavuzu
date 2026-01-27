@@ -58,7 +58,7 @@ export default function Sorular({ scope }) {
   }, [isTakipModu, scope, urlDurum]);
 
   const [selectedQuestions, setSelectedQuestions] = useState([]);
-  const [activeTab, setActiveTab] = useState(queryParams.get('tab') || 'taslaklar');
+  // const [activeTab, setActiveTab] = useState(queryParams.get('tab') || 'taslaklar'); // Removed tab logic
 
   useEffect(() => {
     if (!user) return;
@@ -89,12 +89,13 @@ export default function Sorular({ scope }) {
       let data = response.data.data || [];
 
       if (scope === 'brans') {
-        if (activeTab === 'taslaklar') {
-          data = data.filter(s =>
-            ['beklemede', 'inceleme_bekliyor', 'incelemede', 'alan_incelemede', 'dil_incelemede', 'revize_istendi', 'revize_gerekli', 'dizgi_bekliyor', 'dizgide'].includes(s.durum)
-          );
-        } else {
-          data = data.filter(s => ['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam'].includes(s.durum));
+        // Show all incomplete questions for branch scope
+        // If filter is explicitly set to 'tamamlandi', let it show completed ones? 
+        // But usually scope='brans' implies "Incomplete" via Dashboard link.
+        // However, user can select 'TAMAMLANDI' from filter dropdown.
+        // If 'durum' filter is empty, default behavior:
+        if (!filters.durum) {
+          data = data.filter(s => s.durum !== 'tamamlandi');
         }
       }
 
@@ -111,7 +112,7 @@ export default function Sorular({ scope }) {
 
   useEffect(() => {
     loadSorular();
-  }, [user?.id, effectiveRole, filters, scope, activeTab]);
+  }, [user?.id, effectiveRole, filters, scope]);
 
   const handleSil = async (id) => {
     if (window.confirm('Bu soruyu kalıcı olarak silmek istediğinize emin misiniz?')) {
@@ -272,23 +273,6 @@ export default function Sorular({ scope }) {
             </div>
           </div>
         </div>
-
-        {scope === 'brans' && (
-          <div className="flex bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shadow-inner">
-            <button
-              onClick={() => { setActiveTab('taslaklar'); setFilters(f => ({ ...f, durum: '' })); setSelectedQuestions([]); }}
-              className={`px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === 'taslaklar' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-            >
-              ✍️ SÜREÇTEKİ SORULARIM
-            </button>
-            <button
-              onClick={() => { setActiveTab('dizgi_sonrasi'); setFilters(f => ({ ...f, durum: '' })); setSelectedQuestions([]); }}
-              className={`px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === 'dizgi_sonrasi' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-            >
-              🏁 ONAY BEKLEYENLER
-            </button>
-          </div>
-        )}
       </div>
 
       {/* FILTER & TOOLS */}
@@ -361,7 +345,18 @@ export default function Sorular({ scope }) {
         <div className="flex flex-wrap items-center gap-3">
           {selectedQuestions.length > 0 && (
             <div className="flex items-center gap-2">
-              {activeTab === 'taslaklar' && (
+              {/* Removed tab specific logic, show actions generally or based on status of selected items if needed.  
+                  RocketLaunchIcon action was for 'taslaklar' tab. Now we show it if applicable?
+                  The original code condition: activeTab === 'taslaklar'.
+                  Since we removed tabs, maybe we should show it if selected questions are in draft/revision status?
+                  For simplicity/safety, let's keep it visible if scope === 'brans', or rely on status check inside handler or user discretion.
+                  Actually, lines 516 in original code (Context Actions) check statuses.
+                  Here (Bulk Actions), we might want to be safer.
+                  Original was: {activeTab === 'taslaklar' && ... }
+                  Now we always show it if scope!=brans? No.
+                  I will show it if scope === 'brans'.
+              */}
+              {scope === 'brans' && (
                 <button onClick={() => handleDizgiyeGonder(selectedQuestions)} className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-purple-100 transition-all flex items-center gap-2 active:scale-95">
                   <RocketLaunchIcon className="w-4 h-4" strokeWidth={2.5} /> DİZGİYE GÖNDER
                 </button>
