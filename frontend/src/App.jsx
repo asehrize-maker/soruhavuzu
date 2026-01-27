@@ -16,6 +16,7 @@ import Raporlar from './pages/Raporlar';
 import Duyurular from './pages/Duyurular';
 import Logs from './pages/Logs';
 import Ajanda from './pages/Ajanda';
+import Settings from './pages/Settings';
 import TestBuilder from './pages/TestBuilder';
 import Layout from './components/Layout';
 
