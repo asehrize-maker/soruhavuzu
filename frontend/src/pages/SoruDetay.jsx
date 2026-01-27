@@ -174,8 +174,8 @@ export default function SoruDetay() {
   const [revizeNotlari, setRevizeNotlari] = useState([]);
 
   // Annotation State
-  const [selectedAnnotation, setSelectedAnnotation] = useState(null); // { type: 'point'|'box'|'line'|'draw', ...data }
-  const [drawTool, setDrawTool] = useState('cursor'); // 'cursor', 'box', 'line', 'pencil'
+  const [selectedAnnotation, setSelectedAnnotation] = useState(null); // { type: 'box'|'line', ...data }
+  const [drawTool, setDrawTool] = useState('box'); // 'box', 'line'
   const [drawingShape, setDrawingShape] = useState(null); // { type, ...data }
 
   const [viewMode, setViewMode] = useState('auto'); // 'auto', 'text', 'image'
@@ -357,26 +357,15 @@ export default function SoruDetay() {
 
   const handleImageMouseDown = (e) => {
     if (!canReview) return;
-    // Prevent default to avoid dragging the image itself
     e.preventDefault();
 
-    // Use currentTarget to ensure we get the container's rect
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
 
-    if (drawTool === 'cursor') {
-      setSelectedAnnotation({ type: 'point', x, y });
-      setSelectedText(''); // Clear text selection if any
-    } else if (drawTool === 'pencil') {
-      setDrawingShape({ type: 'pencil', points: [{ x, y }] });
-      setSelectedAnnotation(null);
-      setSelectedText('');
-    } else {
-      setDrawingShape({ type: drawTool, startX: x, startY: y, currentX: x, currentY: y });
-      setSelectedAnnotation(null);
-      setSelectedText('');
-    }
+    setDrawingShape({ type: drawTool, startX: x, startY: y, currentX: x, currentY: y });
+    setSelectedAnnotation(null);
+    setSelectedText('');
   };
 
   const handleImageMouseMove = (e) => {
@@ -385,43 +374,28 @@ export default function SoruDetay() {
     const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
     const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
 
-    if (drawingShape.type === 'pencil') {
-      // Throttle points? For now just add if distance > 0.5%
-      const lastPoint = drawingShape.points[drawingShape.points.length - 1];
-      const dist = Math.sqrt(Math.pow(x - lastPoint.x, 2) + Math.pow(y - lastPoint.y, 2));
-      if (dist > 0.2) {
-        setDrawingShape(prev => ({ ...prev, points: [...prev.points, { x, y }] }));
-      }
-    } else {
-      setDrawingShape(prev => ({ ...prev, currentX: x, currentY: y }));
-    }
+    setDrawingShape(prev => ({ ...prev, currentX: x, currentY: y }));
   };
 
   const handleImageMouseUp = () => {
     if (!drawingShape) return;
 
-    if (drawingShape.type === 'pencil') {
-      if (drawingShape.points.length > 2) {
-        setSelectedAnnotation({ type: 'draw', points: drawingShape.points });
-      }
-    } else {
-      const { type, startX, startY, currentX, currentY } = drawingShape;
+    const { type, startX, startY, currentX, currentY } = drawingShape;
 
-      // Minimal movement check to avoid accidental tiny shapes
-      if (Math.abs(currentX - startX) < 1 && Math.abs(currentY - startY) < 1) {
-        setDrawingShape(null);
-        return;
-      }
+    // Minimal movement check to avoid accidental tiny shapes
+    if (Math.abs(currentX - startX) < 1 && Math.abs(currentY - startY) < 1) {
+      setDrawingShape(null);
+      return;
+    }
 
-      if (type === 'box') {
-        const x = Math.min(startX, currentX);
-        const y = Math.min(startY, currentY);
-        const w = Math.abs(currentX - startX);
-        const h = Math.abs(currentY - startY);
-        setSelectedAnnotation({ type: 'box', x, y, w, h });
-      } else if (type === 'line') {
-        setSelectedAnnotation({ type: 'line', x1: startX, y1: startY, x2: currentX, y2: currentY });
-      }
+    if (type === 'box') {
+      const x = Math.min(startX, currentX);
+      const y = Math.min(startY, currentY);
+      const w = Math.abs(currentX - startX);
+      const h = Math.abs(currentY - startY);
+      setSelectedAnnotation({ type: 'box', x, y, w, h });
+    } else if (type === 'line') {
+      setSelectedAnnotation({ type: 'line', x1: startX, y1: startY, x2: currentX, y2: currentY });
     }
     setDrawingShape(null);
   };
@@ -848,10 +822,8 @@ export default function SoruDetay() {
             {!editMode && soru.final_png_url && (
               <div className="absolute top-6 right-6 z-50 flex bg-white/90 backdrop-blur p-1 rounded-2xl border border-gray-100 shadow-xl">
                 <div className="flex bg-gray-100 rounded-xl p-0.5 mr-2">
-                  <button onClick={() => setDrawTool('cursor')} title="Nokta İşaretleyici" className={`p-2 rounded-lg transition-all ${drawTool === 'cursor' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}><CursorArrowRaysIcon className="w-4 h-4" /></button>
                   <button onClick={() => setDrawTool('box')} title="Kutu Çiz" className={`p-2 rounded-lg transition-all ${drawTool === 'box' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}><StopIcon className="w-4 h-4" /></button>
                   <button onClick={() => setDrawTool('line')} title="Çizgi Çiz" className={`p-2 rounded-lg transition-all ${drawTool === 'line' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}><MinusIcon className="w-4 h-4" /></button>
-                  <button onClick={() => setDrawTool('pencil')} title="Serbest Kalem" className={`p-2 rounded-lg transition-all ${drawTool === 'pencil' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}><PencilIcon className="w-4 h-4" /></button>
                 </div>
                 <button onClick={() => setViewMode('image')} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'image' || viewMode === 'auto' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-blue-500'}`}>
                   DİZGİ ÇIKTISI
@@ -1288,17 +1260,13 @@ export default function SoruDetay() {
                 <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100 text-indigo-500">
                   {selectedAnnotation?.type === 'box' ? <StopIcon className="w-6 h-6" /> :
                     selectedAnnotation?.type === 'line' ? <MinusIcon className="w-6 h-6" /> :
-                      selectedAnnotation?.type === 'draw' ? <PencilIcon className="w-6 h-6" /> :
-                        selectedText ? <DocumentTextIcon className="w-6 h-6" /> : <CursorArrowRaysIcon className="w-6 h-6" />}
+                      selectedText ? <DocumentTextIcon className="w-6 h-6" /> : <XMarkIcon className="w-6 h-6" />}
                 </div>
                 <div>
                   <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">SEÇİLEN {selectedAnnotation ? 'ALAN' : 'KESİT'}</span>
                   {selectedAnnotation ? (
                     <p className="text-sm font-bold text-gray-800">
-                      {selectedAnnotation.type === 'box' ? 'Kutu Alanı' :
-                        selectedAnnotation.type === 'line' ? 'Çizgi İşareti' :
-                          selectedAnnotation.type === 'draw' ? 'Serbest Çizim' :
-                            'Nokta İşareti'}
+                      {selectedAnnotation.type === 'box' ? 'Kutu Alanı' : 'Çizgi İşareti'}
                     </p>
                   ) : (
                     <p className="text-sm font-bold text-gray-800 line-clamp-3 italic">"{selectedText}"</p>
