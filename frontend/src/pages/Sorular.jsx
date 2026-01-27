@@ -47,6 +47,7 @@ export default function Sorular({ scope }) {
     brans_id: '',
     zorluk_seviyesi: '',
     search: '',
+    kategori: '',
   });
 
   useEffect(() => {
@@ -81,6 +82,7 @@ export default function Sorular({ scope }) {
         brans_id: filters.brans_id || undefined,
         zorluk_seviyesi: filters.zorluk_seviyesi || undefined,
         search: filters.search || undefined,
+        kategori: filters.kategori || undefined,
         scope: scope || undefined
       };
       const response = await soruAPI.getAll(params);
@@ -340,6 +342,20 @@ export default function Sorular({ scope }) {
               <option value="5">🔥🔥🔥 ÇOK ZOR (5)</option>
             </select>
           </div>
+
+          <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
+            <ArchiveBoxArrowDownIcon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
+            <select
+              value={filters.kategori}
+              onChange={(e) => setFilters({ ...filters, kategori: e.target.value })}
+              className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
+            >
+              <option value="">TÜM KATEGORİLER</option>
+              <option value="deneme">DENEME</option>
+              <option value="fasikul">FASİKÜL</option>
+              <option value="yaprak_test">YAPRAK TEST</option>
+            </select>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -419,6 +435,11 @@ export default function Sorular({ scope }) {
                           {getDurumBadge(soru.durum)}
                           <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 uppercase tracking-widest">{soru.brans_adi}</span>
                         </div>
+                        {soru.kategori && (
+                          <span className="text-[10px] font-black text-purple-600 bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-100 uppercase tracking-widest">
+                            {soru.kategori.replace('_', ' ')}
+                          </span>
+                        )}
                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic flex items-center gap-1">
                           <SparklesIcon className="w-3 h-3" /> VERSIYON {soru.versiyon || 1}
                         </span>

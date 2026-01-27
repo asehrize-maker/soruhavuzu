@@ -27,6 +27,7 @@ import { addLastSeenField } from './migrations/027_add_last_seen.js';
 import { addAktiviteLoglari } from './migrations/028_add_aktivite_loglari.js';
 import { addGirisLoglari } from './migrations/029_add_giris_loglari.js';
 import { addSystemSettings } from './migrations/030_add_system_settings.js';
+import { addKategoriColumn } from './migrations/031_add_kategori_column.js';
 
 // En güncel durum listesi (workflow v2 + dizgi tamam)
 const ALLOWED_DURUMLAR = [
@@ -249,6 +250,7 @@ const createTables = async () => {
     await addAktiviteLoglari();
     await addGirisLoglari();
     await addSystemSettings();
+    await addKategoriColumn();
 
   } catch (error) {
     await client.query('ROLLBACK');

@@ -31,7 +31,7 @@ export default function SoruEkle() {
   const [kazanims, setKazanims] = useState([]);
   const [kazanimLoading, setKazanimLoading] = useState(false);
 
-  const [metadata, setMetadata] = useState({ brans_id: '', dogruCevap: '', kazanim: '', zorluk: '3', kazanim_is_custom: false });
+  const [metadata, setMetadata] = useState({ brans_id: '', dogruCevap: '', kazanim: '', zorluk: '3', kazanim_is_custom: false, kategori: 'deneme' });
   const [components, setComponents] = useState([]);
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
   const [widthMode, setWidthMode] = useState('dar'); // dar (82mm) | genis (169mm)
@@ -41,7 +41,7 @@ export default function SoruEkle() {
       try {
         const res = await bransAPI.getAll();
         setBranslar(res.data.data || []);
-        if (user?.brans_id) setMetadata(prev => ({ ...prev, brans_id: user.brans_id }));
+        if (user?.brans_id) setMetadata(prev => ({ ...prev, brans_id: user.brans_id, kategori: 'deneme' }));
       } catch (err) { }
     };
     loadBranslar();
@@ -166,6 +166,7 @@ export default function SoruEkle() {
       formData.append('brans_id', metadata.brans_id);
       formData.append('kazanim', metadata.kazanim || 'Genel');
       formData.append('zorluk_seviyesi', normalizeZorluk(metadata.zorluk));
+      formData.append('kategori', metadata.kategori || 'deneme');
       formData.append('durum', 'beklemede');
 
       let htmlContent = components.map(c => {

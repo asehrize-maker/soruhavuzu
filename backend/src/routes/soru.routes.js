@@ -231,6 +231,11 @@ router.get('/', authenticate, async (req, res, next) => {
       params.push(zorluk_seviyesi);
     }
 
+    if (req.query.kategori) {
+      query += ` AND s.kategori = $${paramCount++}`;
+      params.push(req.query.kategori);
+    }
+
     if (search) {
       query += ` AND (s.soru_metni ILIKE $${paramCount} OR s.kazanim ILIKE $${paramCount} OR b.brans_adi ILIKE $${paramCount})`;
       params.push(`%${search}%`);
@@ -337,7 +342,7 @@ router.post('/', [
     const {
       soru_metni, zorluk_seviyesi, brans_id, latex_kodu, kazanim,
       secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap,
-      fotograf_konumu, durum
+      fotograf_konumu, durum, kategori
     } = req.body;
 
     const normalizedZorluk = normalizeZorlukSeviyesi(zorluk_seviyesi);
@@ -442,15 +447,15 @@ router.post('/', [
         latex_kodu, kazanim, olusturan_kullanici_id, 
         dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
         secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap, fotograf_konumu,
-        durum
+        durum, kategori
       ) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21) RETURNING *`,
       [
         soru_metni, fotograf_url, fotograf_public_id, normalizedZorluk, brans_id,
         latex_kodu || null, kazanim || null, req.user.id,
         dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
         secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust',
-        durum || 'beklemede'
+        durum || 'beklemede', kategori || 'deneme'
       ]
     );
 
@@ -524,7 +529,7 @@ router.put('/:id(\\d+)', [
     const {
       soru_metni, zorluk_seviyesi,
       secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap,
-      fotograf_konumu
+      fotograf_konumu, kategori
     } = req.body;
 
     const normalizedZorluk = normalizeZorlukSeviyesi(zorluk_seviyesi);
@@ -617,14 +622,14 @@ router.put('/:id(\\d+)', [
        SET soru_metni = $1, fotograf_url = $2, fotograf_public_id = $3, 
            zorluk_seviyesi = $4, kazanim = $5, durum = $6, 
            secenek_a = $7, secenek_b = $8, secenek_c = $9, secenek_d = $10, secenek_e = $11, 
-           dogru_cevap = $12, fotograf_konumu = $13,
+           dogru_cevap = $12, fotograf_konumu = $13, kategori = $14,
            guncellenme_tarihi = CURRENT_TIMESTAMP,
            versiyon = COALESCE(versiyon, 1) + 1
-       WHERE id = $14 RETURNING *`,
+       WHERE id = $15 RETURNING *`,
       [
         soru_metni, fotograf_url, fotograf_public_id, zorluk_seviyesi, req.body.kazanim || null, yeniDurum,
         secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null,
-        dogru_cevap || null, fotograf_konumu || 'ust',
+        dogru_cevap || null, fotograf_konumu || 'ust', kategori || 'deneme',
         id
       ]
     );

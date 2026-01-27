@@ -30,7 +30,7 @@ const MetadataForm = ({
     }
 
     return (
-        <div className={`bg-white border rounded shadow-sm p-4 grid grid-cols-1 md:grid-cols-4 gap-4 ${className}`}>
+        <div className={`bg-white border rounded shadow-sm p-4 grid grid-cols-1 md:grid-cols-5 gap-4 ${className}`}>
             <div className="flex flex-col">
                 <label className="text-[10px] font-bold text-gray-400 uppercase mb-1">Branş</label>
                 <select
@@ -125,6 +125,20 @@ const MetadataForm = ({
                     <option value="3">3 (Orta)</option>
                     <option value="4">4 (Zor)</option>
                     <option value="5">5 (Çok Zor)</option>
+                </select>
+            </div>
+
+            <div className="flex flex-col">
+                <label className="text-[10px] font-bold text-gray-400 uppercase mb-1">Kategori</label>
+                <select
+                    className="w-full border p-2 rounded text-xs bg-gray-50 focus:bg-white transition"
+                    value={values.kategori || 'deneme'}
+                    onChange={e => handleChange('kategori', e.target.value)}
+                    disabled={disabled}
+                >
+                    <option value="deneme">Deneme</option>
+                    <option value="fasikul">Fasikül</option>
+                    <option value="yaprak_test">Yaprak Test</option>
                 </select>
             </div>
         </div>
