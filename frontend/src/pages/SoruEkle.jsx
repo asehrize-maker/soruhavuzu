@@ -80,20 +80,30 @@ export default function SoruEkle() {
   const addGovde = () => setComponents(prev => [...prev, { id: generateId(), type: 'text', subtype: 'govde', content: '', placeholder: '', label: 'Gövde' }]);
 
   const addSecenekler = (mode = 'list') => {
-    const baseId = generateId();
-    const opts = ['A', 'B', 'C', 'D'];
-    const newComps = opts.map((opt, idx) => {
-      let styleProps = { width: 100, float: 'none' };
-      if (mode === 'grid') { styleProps = { width: 48, float: 'left' }; }
-      return {
+    const existingSecenekler = components.filter(c => c.subtype === 'secenek');
+
+    let styleProps = { width: 100, float: 'none' };
+    if (mode === 'grid') { styleProps = { width: 48, float: 'left' }; }
+    else if (mode === 'yanyana') { styleProps = { width: 23, float: 'left' }; }
+
+    if (existingSecenekler.length > 0) {
+      // Mevcut şıkları güncelle
+      setComponents(prev => prev.map(c =>
+        c.subtype === 'secenek' ? { ...c, ...styleProps } : c
+      ));
+    } else {
+      // Yeni şıklar ekle
+      const baseId = generateId();
+      const opts = ['A', 'B', 'C', 'D'];
+      const newComps = opts.map((opt, idx) => ({
         id: baseId + idx,
         type: 'text', subtype: 'secenek', content: `<b>${opt})</b> `,
         placeholder: ``,
         label: `Seçenek ${opt}`,
         ...styleProps
-      };
-    });
-    setComponents(prev => [...prev, ...newComps]);
+      }));
+      setComponents(prev => [...prev, ...newComps]);
+    }
   };
 
   const handleImageUpload = (e) => {
@@ -255,7 +265,7 @@ export default function SoruEkle() {
 
               <div className="grid grid-cols-2 gap-3">
                 <button onClick={addKoku} className="flex flex-col p-5 bg-gray-50 hover:bg-blue-600 group rounded-3xl border border-gray-100 transition-all hover:shadow-lg hover:shadow-blue-100 text-left">
-                  <BoldIcon className="w-5 h-5 text-gray-400 group-hover:text-white mb-2" />
+                  <Bars4Icon className="w-5 h-5 text-gray-400 group-hover:text-white mb-2" />
                   <span className="text-[10px] font-black text-gray-600 group-hover:text-white uppercase tracking-widest">Soru Kökü</span>
                 </button>
                 <button onClick={addGovde} className="flex flex-col p-5 bg-gray-50 hover:bg-blue-600 group rounded-3xl border border-gray-100 transition-all hover:shadow-lg hover:shadow-blue-100 text-left">
@@ -378,14 +388,23 @@ export default function SoruEkle() {
         <div className="lg:col-span-2 space-y-6">
           <div className="sticky top-32">
             <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 text-center">ŞIK EKLE</h4>
-            <div className="flex flex-col gap-4">
-              <button onClick={() => addSecenekler('list')} className="w-full py-6 flex flex-col items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-3xl shadow-xl shadow-emerald-200 transition-all hover:scale-105 active:scale-95 group">
-                <QueueListIcon className="w-8 h-8" strokeWidth={2} />
-                <span className="text-xs font-black uppercase tracking-widest">LİSTE</span>
+            <div className="flex flex-col gap-3">
+              <button onClick={() => addSecenekler('list')} className="w-full py-4 flex flex-col items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-3xl shadow-lg shadow-emerald-200 transition-all hover:scale-[1.02] active:scale-95 group">
+                <QueueListIcon className="w-6 h-6" strokeWidth={2} />
+                <span className="text-[10px] font-black uppercase tracking-widest">LİSTE</span>
               </button>
-              <button onClick={() => addSecenekler('grid')} className="w-full py-6 flex flex-col items-center justify-center gap-3 bg-teal-600 hover:bg-teal-500 text-white rounded-3xl shadow-xl shadow-teal-200 transition-all hover:scale-105 active:scale-95 group">
-                <Squares2X2Icon className="w-8 h-8" strokeWidth={2} />
-                <span className="text-xs font-black uppercase tracking-widest">IZGARA</span>
+              <button onClick={() => addSecenekler('grid')} className="w-full py-4 flex flex-col items-center justify-center gap-2 bg-teal-600 hover:bg-teal-500 text-white rounded-3xl shadow-lg shadow-teal-200 transition-all hover:scale-[1.02] active:scale-95 group">
+                <Squares2X2Icon className="w-6 h-6" strokeWidth={2} />
+                <span className="text-[10px] font-black uppercase tracking-widest">IZGARA</span>
+              </button>
+              <button onClick={() => addSecenekler('yanyana')} className="w-full py-4 flex flex-col items-center justify-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-3xl shadow-lg shadow-cyan-200 transition-all hover:scale-[1.02] active:scale-95 group">
+                <div className="flex gap-0.5">
+                  <div className="w-2 h-4 border border-white/50 rounded-sm"></div>
+                  <div className="w-2 h-4 border border-white/50 rounded-sm"></div>
+                  <div className="w-2 h-4 border border-white/50 rounded-sm"></div>
+                  <div className="w-2 h-4 border border-white/50 rounded-sm"></div>
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest">YAN YANA</span>
               </button>
             </div>
 
