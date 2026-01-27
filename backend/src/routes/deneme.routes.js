@@ -2,9 +2,25 @@ import express from 'express';
 import pool from '../config/database.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
-import uploadLogger from '../middleware/uploadLogger.js';
+import multer from 'multer';
+import cloudinary from '../config/cloudinary.js';
 
 const router = express.Router();
+
+// Multer Config
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 50 * 1024 * 1024 // 50MB Limit for PDFs
+    },
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype === 'application/pdf') {
+            cb(null, true);
+        } else {
+            cb(new Error('Sadece PDF dosyaları yüklenebilir.'), false);
+        }
+    }
+});
 
 // 1. Yeni Deneme Planı Oluştur (Sadece Admin)
 router.post('/plan', authenticate, authorize('admin', 'koordinator'), async (req, res, next) => {
@@ -27,7 +43,6 @@ router.post('/plan', authenticate, authorize('admin', 'koordinator'), async (req
 });
 
 // 2. Deneme Planlarını Listele (Tüm yetkili kullanıcılar)
-// Her deneme için kullanıcının branşının yükleme yapıp yapmadığı bilgisini de dönebiliriz.
 router.get('/', authenticate, async (req, res, next) => {
     try {
         const { brans_id } = req.query; // Opsiyonel filtre
@@ -48,26 +63,56 @@ router.get('/', authenticate, async (req, res, next) => {
 });
 
 // 3. Denemeye Dosya Yükle (Branş Kullanıcıları)
-router.post('/:id/upload', authenticate, uploadLogger.single('pdf_dosya'), async (req, res, next) => {
+router.post('/:id/upload', authenticate, upload.single('pdf_dosya'), async (req, res, next) => {
     try {
         const { id } = req.params;
         const { brans_id } = req.body; // Kullanıcı seçebilir veya token'dan gelebilir
 
-        // Kullanıcının branşını doğrula veya body'den al
-        const targetBransId = brans_id || req.user.brans_id;
-
-        if (!targetBransId) {
-            throw new AppError('Branş bilgisi bulunamadı.', 400);
-        }
         if (!req.file) {
             throw new AppError('Lütfen bir PDF dosyası yükleyin.', 400);
         }
 
-        // Dosya URL'i (Cloudinary veya local, uploadLogger middleware'ine bağlı)
-        const dosyaUrl = req.file.path || req.file.url;
+        // Kullanıcının branşını doğrula veya kullanıcı properties'den al
+        // Not: req.user.brans_id bazen null olabilir (admin vs). Ama yükleyen rolü 'soru_yazici' ise vardır.
+        let targetBransId = brans_id ? parseInt(brans_id) : req.user.brans_id;
 
-        // Önceki yüklemeyi kontrol et? Yoksa direkt ekle mi?
-        // Ajanda mantığı için son yüklemeyi baz alacağız, o yüzden insert yapalım.
+        // Eğer admin yüklüyorsa ve brans_id göndermediyse hata veya opsiyonel handle?
+        // Kullanıcı arayüzünde admin için branş seçtirmiyoruz şu an, o yüzden admin yüklerse null gidebilir, 
+        // veya admin yüklemesi "genel" sayılabilir mi?
+        // Senaryo: Branş öğretmeni yüklüyor.
+        if (!targetBransId && req.user.rol !== 'admin') {
+            throw new AppError('Branş bilgisi bulunamadı. Lütfen yöneticinizle iletişime geçin.', 400);
+        }
+
+        // Cloudinary Yükleme
+        const timestamp = Date.now();
+        const sanitizedFilename = req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const publicId = `soru-havuzu/denemeler/${timestamp}_${sanitizedFilename}`;
+
+        const uploadPromise = new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+                {
+                    public_id: publicId,
+                    resource_type: 'raw', // PDF için raw kullanımı daha güvenli olabilir, 'auto' da olur
+                    type: 'upload',
+                    folder: 'soru-havuzu/denemeler'
+                },
+                (error, result) => {
+                    if (error) {
+                        console.error('Cloudinary upload hatası:', error);
+                        reject(error);
+                    } else {
+                        resolve(result);
+                    }
+                }
+            );
+            uploadStream.end(req.file.buffer);
+        });
+
+        const uploadResult = await uploadPromise;
+        const dosyaUrl = uploadResult.secure_url;
+
+        // DB Insert
         const result = await pool.query(
             `INSERT INTO deneme_yuklemeleri (deneme_id, brans_id, dosya_url, yukleyen_id) 
        VALUES ($1, $2, $3, $4) RETURNING *`,
@@ -82,7 +127,6 @@ router.post('/:id/upload', authenticate, uploadLogger.single('pdf_dosya'), async
 });
 
 // 4. Ajanda Verisi Getir
-// Mantık: Her deneme + Her branş kombinasyonu için durum kontrolü
 router.get('/ajanda', authenticate, async (req, res, next) => {
     try {
         // 1. Tüm aktif denemeleri çek
@@ -99,7 +143,14 @@ router.get('/ajanda', authenticate, async (req, res, next) => {
 
         // Her deneme için
         for (const d of denemeler.rows) {
-            const plannedDate = new Date(d.planlanan_tarih).toDateString(); // "Tue Jan 27 2026"
+            // Tarih karşılaştırması için string formatı (YYYY-MM-DD gibi veya locale string)
+            // new Date(string) -> browser/server timezone farkına dikkat.
+            // Veritabanı "planlanan_tarih" DATE tipinde, "2026-06-25" gelir.
+            // JS'de new Date('2026-06-25') UTC olarak algılayabilir.
+            // Biz sadece gün/ay/yıl eşitliğine bakacağız.
+
+            const planDateObj = new Date(d.planlanan_tarih);
+            const planDateStr = planDateObj.toISOString().split('T')[0]; // "2026-01-27"
 
             // Her branş için durumu kontrol et
             const row = {
@@ -111,16 +162,16 @@ router.get('/ajanda', authenticate, async (req, res, next) => {
                 // Bu branş bu denemeye dosya yüklemiş mi?
                 const uploads = yuklemeler.rows.filter(y => y.deneme_id === d.id && y.brans_id === b.id);
 
-                // Yükleme var mı ve tarihi tutuyor mu?
                 let completed = false;
                 let uploadInfo = null;
 
                 if (uploads.length > 0) {
                     // En son yüklemeyi al
                     const lastUpload = uploads.sort((a, b) => new Date(b.yukleme_tarihi) - new Date(a.yukleme_tarihi))[0];
-                    const uploadDate = new Date(lastUpload.yukleme_tarihi).toDateString();
+                    const uploadDateObj = new Date(lastUpload.yukleme_tarihi); // Timestamp from DB
+                    const uploadDateStr = uploadDateObj.toISOString().split('T')[0];
 
-                    if (uploadDate === plannedDate) {
+                    if (uploadDateStr === planDateStr) {
                         completed = true;
                     }
                     uploadInfo = lastUpload;
