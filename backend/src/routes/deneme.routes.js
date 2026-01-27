@@ -22,8 +22,8 @@ const upload = multer({
     }
 });
 
-// 1. Yeni Deneme Planı Oluştur (Sadece Admin)
-router.post('/plan', authenticate, authorize('admin', 'koordinator'), async (req, res, next) => {
+// 1. Yeni Deneme Planı Oluştur (SADECE ADMIN)
+router.post('/plan', authenticate, authorize('admin'), async (req, res, next) => {
     try {
         const { ad, planlanan_tarih, aciklama } = req.body;
         if (!ad || !planlanan_tarih) {
@@ -62,24 +62,19 @@ router.get('/', authenticate, async (req, res, next) => {
     }
 });
 
-// 3. Denemeye Dosya Yükle (Branş Kullanıcıları)
+// 3. Denemeye Dosya Yükle (Branş Kullanıcıları + Admin)
 router.post('/:id/upload', authenticate, upload.single('pdf_dosya'), async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { brans_id } = req.body; // Kullanıcı seçebilir veya token'dan gelebilir
+        const { brans_id } = req.body;
 
         if (!req.file) {
             throw new AppError('Lütfen bir PDF dosyası yükleyin.', 400);
         }
 
-        // Kullanıcının branşını doğrula veya kullanıcı properties'den al
-        // Not: req.user.brans_id bazen null olabilir (admin vs). Ama yükleyen rolü 'soru_yazici' ise vardır.
+        // Kullanıcının branşını doğrula veya body'den al (Admin için)
         let targetBransId = brans_id ? parseInt(brans_id) : req.user.brans_id;
 
-        // Eğer admin yüklüyorsa ve brans_id göndermediyse hata veya opsiyonel handle?
-        // Kullanıcı arayüzünde admin için branş seçtirmiyoruz şu an, o yüzden admin yüklerse null gidebilir, 
-        // veya admin yüklemesi "genel" sayılabilir mi?
-        // Senaryo: Branş öğretmeni yüklüyor.
         if (!targetBransId && req.user.rol !== 'admin') {
             throw new AppError('Branş bilgisi bulunamadı. Lütfen yöneticinizle iletişime geçin.', 400);
         }
@@ -93,7 +88,7 @@ router.post('/:id/upload', authenticate, upload.single('pdf_dosya'), async (req,
             const uploadStream = cloudinary.uploader.upload_stream(
                 {
                     public_id: publicId,
-                    resource_type: 'raw', // PDF için raw kullanımı daha güvenli olabilir, 'auto' da olur
+                    resource_type: 'raw',
                     type: 'upload',
                     folder: 'soru-havuzu/denemeler'
                 },
@@ -141,18 +136,26 @@ router.get('/ajanda', authenticate, async (req, res, next) => {
         // 4. Matris oluştur
         const agenda = [];
 
+        // Tarih Formatlayıcı (Türkiye Saati ile Gün Bazlı Eşleştirme)
+        const getTrDateString = (dateInput) => {
+            if (!dateInput) return '';
+            try {
+                return new Date(dateInput).toLocaleDateString('tr-TR', {
+                    timeZone: 'Europe/Istanbul',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+            } catch (e) {
+                return '';
+            }
+        };
+
         // Her deneme için
         for (const d of denemeler.rows) {
-            // Tarih karşılaştırması için string formatı (YYYY-MM-DD gibi veya locale string)
-            // new Date(string) -> browser/server timezone farkına dikkat.
-            // Veritabanı "planlanan_tarih" DATE tipinde, "2026-06-25" gelir.
-            // JS'de new Date('2026-06-25') UTC olarak algılayabilir.
-            // Biz sadece gün/ay/yıl eşitliğine bakacağız.
 
-            const planDateObj = new Date(d.planlanan_tarih);
-            const planDateStr = planDateObj.toISOString().split('T')[0]; // "2026-01-27"
+            const planDateStr = getTrDateString(d.planlanan_tarih);
 
-            // Her branş için durumu kontrol et
             const row = {
                 deneme: d,
                 details: []
@@ -168,8 +171,7 @@ router.get('/ajanda', authenticate, async (req, res, next) => {
                 if (uploads.length > 0) {
                     // En son yüklemeyi al
                     const lastUpload = uploads.sort((a, b) => new Date(b.yukleme_tarihi) - new Date(a.yukleme_tarihi))[0];
-                    const uploadDateObj = new Date(lastUpload.yukleme_tarihi); // Timestamp from DB
-                    const uploadDateStr = uploadDateObj.toISOString().split('T')[0];
+                    const uploadDateStr = getTrDateString(lastUpload.yukleme_tarihi);
 
                     if (uploadDateStr === planDateStr) {
                         completed = true;

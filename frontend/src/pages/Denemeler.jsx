@@ -14,7 +14,7 @@ import {
 export default function Denemeler() {
     const { user: authUser, viewRole } = useAuthStore();
     const effectiveRole = viewRole || authUser?.rol;
-    const canCreatePlan = effectiveRole === 'admin' || effectiveRole === 'koordinator';
+    const canCreatePlan = effectiveRole === 'admin';
 
     const [denemeler, setDenemeler] = useState([]);
     const [loading, setLoading] = useState(true);
