@@ -257,6 +257,11 @@ export default function SoruDetay() {
     // Bu yüzden görselleri %100 yaparak tam belge genişliğinde (okunaklı) gösteriyoruz.
     const images = element.querySelectorAll('img');
     images.forEach(img => {
+      // BLOB URL DÜZELTME: Eğer resim kaynağı blob ise ve veritabanında kayıtlı URL varsa onu kullan
+      if ((img.src.startsWith('blob:') || img.src.includes('createObjectURL')) && soru?.fotograf_url) {
+        img.src = soru.fotograf_url;
+      }
+
       // Zoom
       img.style.cursor = 'zoom-in';
       img.onclick = () => window.open(img.src, '_blank');
@@ -1091,6 +1096,18 @@ export default function SoruDetay() {
                   ) : (
                     <div className="prose max-w-[185mm] mx-auto w-full" style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}>
                       <div ref={soruMetniRef} className="text-gray-900 katex-left-align q-preview-container select-text" onMouseUp={handleTextSelection} />
+
+                      {/* FALLBACK GÖRSEL: HTML içinde görsel yoksa ama URL varsa göster */}
+                      {soru.fotograf_url && !soru.soru_metni?.includes('<img') && (
+                        <div className="mt-8 flex justify-center p-4 border rounded-xl bg-gray-50 border-gray-100">
+                          <img
+                            src={soru.fotograf_url}
+                            className="max-w-full rounded-lg shadow-sm cursor-zoom-in"
+                            onClick={(e) => window.open(e.target.src, '_blank')}
+                            alt="Soru Görseli"
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
                   <div style={{ clear: 'both' }}></div>
