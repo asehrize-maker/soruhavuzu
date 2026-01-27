@@ -7,9 +7,8 @@ import {
     PlusIcon,
     CalendarIcon,
     CheckCircleIcon,
-    ClockIcon,
-    ArrowDownTrayIcon
-} from '@heroicons/react/24/outline';
+    ClockIcon
+} from '@heroicons/react/24/outline'; // ArrowDownTrayIcon removed as unused
 
 export default function Denemeler() {
     const { user: authUser, viewRole } = useAuthStore();
@@ -18,6 +17,7 @@ export default function Denemeler() {
 
     const [denemeler, setDenemeler] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [createLoading, setCreateLoading] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
 
     // Create Form
@@ -47,14 +47,19 @@ export default function Denemeler() {
 
     const handleCreate = async (e) => {
         e.preventDefault();
+        setCreateLoading(true);
         try {
             await denemeAPI.createPlan(newPlan);
             setShowCreateModal(false);
             setNewPlan({ ad: '', planlanan_tarih: '', aciklama: '' });
+            alert('Deneme planı başarıyla oluşturuldu.');
             fetchDenemeler();
         } catch (error) {
             console.error('Plan oluşturulamadı:', error);
-            alert('Plan oluşturulamadı: ' + error.response?.data?.message || error.message);
+            const msg = error.response?.data?.message || error.message || 'Bilinmeyen Hata';
+            alert(`HATA: Plan oluşturulamadı!\nDetay: ${msg}\nStatus: ${error.response?.status}`);
+        } finally {
+            setCreateLoading(false);
         }
     };
 
@@ -72,6 +77,8 @@ export default function Denemeler() {
         setUploadingId(denemeId);
         const formData = new FormData();
         formData.append('pdf_dosya', file);
+        // Admin yüklüyorsa branş seçimi eklenebilir ama şu an default user.brans_id kullanılıyor veya hata veriyor
+        // Admin için branş ID opsiyonel olabilir veya bir selectbox açılabilir.
 
         try {
             await denemeAPI.upload(denemeId, formData);
@@ -88,7 +95,7 @@ export default function Denemeler() {
 
     return (
         <div className="max-w-7xl mx-auto space-y-10 animate-fade-in pb-20">
-            {/* HERDER */}
+            {/* HEADER */}
             <div className="flex flex-col md:flex-row items-end justify-between gap-6">
                 <div>
                     <h1 className="text-4xl font-black text-gray-900 tracking-tight flex items-center gap-3">
@@ -185,7 +192,9 @@ export default function Denemeler() {
                                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Açıklama</label>
                                 <textarea value={newPlan.aciklama} onChange={e => setNewPlan({ ...newPlan, aciklama: e.target.value })} className="w-full bg-gray-50 border border-gray-100 p-4 rounded-xl font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none" rows="3" placeholder="Opsiyonel açıklama..."></textarea>
                             </div>
-                            <button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-200 transition-all">OLUŞTUR</button>
+                            <button disabled={createLoading} type="submit" className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-200 transition-all flex justify-center">
+                                {createLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'OLUŞTUR'}
+                            </button>
                         </form>
                     </div>
                 </div>

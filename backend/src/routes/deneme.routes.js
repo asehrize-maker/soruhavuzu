@@ -7,6 +7,36 @@ import cloudinary from '../config/cloudinary.js';
 
 const router = express.Router();
 
+// Auto-Ensure Tables Exist (FAILSAFE for migration issues)
+const ensureTables = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS deneme_takvimi (
+                id SERIAL PRIMARY KEY,
+                ad VARCHAR(255) NOT NULL,
+                planlanan_tarih DATE NOT NULL,
+                aciklama TEXT,
+                aktif BOOLEAN DEFAULT true,
+                olusturan_id INTEGER REFERENCES kullanicilar(id),
+                olusturma_tarihi TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS deneme_yuklemeleri (
+                 id SERIAL PRIMARY KEY,
+                 deneme_id INTEGER REFERENCES deneme_takvimi(id) ON DELETE CASCADE,
+                 brans_id INTEGER REFERENCES branslar(id) ON DELETE CASCADE,
+                 dosya_url TEXT NOT NULL,
+                 yukleyen_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+                 yukleme_tarihi TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        console.log('DEBUG: Deneme tables verified/created via failsafe.');
+    } catch (err) {
+        console.error('DEBUG: ensureTables failed:', err);
+    }
+};
+
 // Multer Config
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -25,6 +55,12 @@ const upload = multer({
 // 1. Yeni Deneme Planı Oluştur (SADECE ADMIN)
 router.post('/plan', authenticate, authorize('admin'), async (req, res, next) => {
     try {
+        // Failsafe execution
+        await ensureTables();
+
+        console.log('Deneme Plan Create Request:', req.body);
+        console.log('User:', req.user);
+
         const { ad, planlanan_tarih, aciklama } = req.body;
         if (!ad || !planlanan_tarih) {
             throw new AppError('Deneme adı ve tarihi zorunludur', 400);
@@ -36,8 +72,11 @@ router.post('/plan', authenticate, authorize('admin'), async (req, res, next) =>
             [ad, planlanan_tarih, aciklama, req.user.id]
         );
 
+        console.log('Deneme Plan Created:', result.rows[0]);
+
         res.status(201).json({ success: true, data: result.rows[0] });
     } catch (error) {
+        console.error('Deneme Plan Create Error:', error);
         next(error);
     }
 });
@@ -46,6 +85,9 @@ router.post('/plan', authenticate, authorize('admin'), async (req, res, next) =>
 router.get('/', authenticate, async (req, res, next) => {
     try {
         const { brans_id } = req.query; // Opsiyonel filtre
+
+        // Ensure logic if table doesn't exist yet (first run)
+        await ensureTables();
 
         let query = `
       SELECT d.*, 
@@ -65,6 +107,8 @@ router.get('/', authenticate, async (req, res, next) => {
 // 3. Denemeye Dosya Yükle (Branş Kullanıcıları + Admin)
 router.post('/:id/upload', authenticate, upload.single('pdf_dosya'), async (req, res, next) => {
     try {
+        await ensureTables();
+
         const { id } = req.params;
         const { brans_id } = req.body;
 
@@ -124,6 +168,8 @@ router.post('/:id/upload', authenticate, upload.single('pdf_dosya'), async (req,
 // 4. Ajanda Verisi Getir
 router.get('/ajanda', authenticate, async (req, res, next) => {
     try {
+        await ensureTables();
+
         // 1. Tüm aktif denemeleri çek
         const denemeler = await pool.query('SELECT * FROM deneme_takvimi WHERE aktif = true ORDER BY planlanan_tarih DESC');
 
