@@ -157,9 +157,11 @@ router.post('/:id/upload', authenticate, upload.single('pdf_dosya'), async (req,
         const uploadPromise = new Promise((resolve, reject) => {
             const uploadStream = cloudinary.uploader.upload_stream(
                 {
-                    public_id: publicId,
-                    resource_type: 'raw', // PDF için 'raw' kullanarak dosya bütünlüğünü koruyoruz
-                    folder: 'soru-havuzu/denemeler'
+                    resource_type: 'auto', // Cloudinary'nin kendisinin karar vermesine izin ver
+                    folder: 'soru-havuzu/denemeler',
+                    flags: 'attachment', // Tarayıcıyı dosyayı düzgün indirmeye/göstermeye zorlayabilir
+                    use_filename: true,
+                    unique_filename: true
                 },
                 (error, result) => {
                     if (error) {
