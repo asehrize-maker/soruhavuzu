@@ -95,6 +95,18 @@ export default function Branslar() {
     }
   };
 
+  const downloadTemplate = () => {
+    const csvContent = "\uFEFFkod;aciklama\nKZN.01;Birinci kazanım açıklaması buraya gelecek\nKZN.02;İkinci kazanım bilgisi örneği";
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "kazanim_sablonu.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleBranchClick = async (branchName) => {
     const foundBranch = branslar.find(b =>
       b.brans_adi.toLowerCase() === branchName.toLowerCase() ||
@@ -294,9 +306,19 @@ export default function Branslar() {
 
         {/* EXCEL IMPORT */}
         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex-1 space-y-6">
-          <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-            <FolderArrowDownIcon className="w-6 h-6 text-green-500" /> Kazanım İçe Aktar (Excel)
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+              <FolderArrowDownIcon className="w-6 h-6 text-green-500" /> Kazanım İçe Aktar (Excel)
+            </h3>
+            <button
+              onClick={downloadTemplate}
+              className="group flex items-center gap-2 px-4 py-2 bg-gray-50 hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 rounded-xl border border-gray-100 transition-all active:scale-95"
+              title="Örnek Excel şablonunu indir"
+            >
+              <ArrowPathIcon className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Örnek Şablon</span>
+            </button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Hedef Branş</label>
