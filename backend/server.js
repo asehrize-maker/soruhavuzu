@@ -14,6 +14,7 @@ import soruRoutes from './src/routes/soru.routes.js';
 import bildirimRoutes from './src/routes/bildirim.routes.js';
 import mesajRoutes from './src/routes/mesaj.routes.js';
 import kullaniciMesajRoutes from './src/routes/kullanici-mesaj.routes.js';
+import denemeRoutes from './src/routes/deneme.routes.js';
 
 // Middleware
 import { errorHandler } from './src/middleware/errorHandler.js';
@@ -50,6 +51,7 @@ app.use('/api/sorular', soruRoutes);
 app.use('/api/bildirimler', bildirimRoutes);
 app.use('/api/mesajlar', mesajRoutes);
 app.use('/api/kullanici-mesajlar', kullaniciMesajRoutes);
+app.use('/api/denemeler', denemeRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

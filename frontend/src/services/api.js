@@ -149,3 +149,13 @@ export const kullaniciMesajAPI = {
   delete: (id) => api.delete(`/kullanici-mesajlar/${id}`),
   getOkunmamisSayisi: () => api.get('/kullanici-mesajlar/okunmamis-sayisi'),
 };
+
+// Deneme API
+export const denemeAPI = {
+  createPlan: (data) => api.post('/denemeler/plan', data),
+  getAll: (params) => api.get('/denemeler', { params }),
+  upload: (id, formData) => api.post(`/denemeler/${id}/upload`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  getAgenda: () => api.get('/denemeler/ajanda'),
+};
