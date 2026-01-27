@@ -34,7 +34,6 @@ import {
   ArrowPathIcon,
   DevicePhoneMobileIcon,
   DeviceTabletIcon,
-  DeviceTabletIcon,
   Squares2X2Icon,
   CursorArrowRaysIcon,
   StopIcon,
