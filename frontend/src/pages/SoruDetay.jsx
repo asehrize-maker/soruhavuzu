@@ -779,12 +779,14 @@ export default function SoruDetay() {
                         className="absolute w-12 h-12 -ml-6 -mt-6 flex items-center justify-center group/marker z-10 hover:z-30 transition-all"
                         style={{ left: `${x}%`, top: `${y}%` }}
                       >
-                        {/* Ripple/Highlighter effect */}
-                        <div className={`absolute inset-0 rounded-full animate-ping opacity-20 bg-${colorClass}-500`} style={{ animationDuration: '3s' }}></div>
-                        <div className={`absolute w-full h-full rounded-full opacity-10 bg-${colorClass}-500 border-2 border-${colorClass}-400`}></div>
+                        {/* Highlighter Pen Effect (Multiply Blend) */}
+                        <div className={`absolute inset-0 rounded-full bg-${colorClass}-400/30 mix-blend-multiply border border-${colorClass}-400/20 shadow-[0_0_10px_rgba(0,0,0,0.1)] transition-all group-hover/marker:bg-${colorClass}-400/50`}></div>
 
-                        {/* Center Dot/Number */}
-                        <div className={`relative w-7 h-7 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-[10px] font-black text-white transition-all group-hover/marker:scale-125 z-10 ${not.inceleme_turu === 'alanci' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
+                        {/* Ripple for Attention */}
+                        <div className={`absolute inset-0 rounded-full animate-ping opacity-20 bg-${colorClass}-400`} style={{ animationDuration: '3s' }}></div>
+
+                        {/* Number Badge - Positioned Top-Right (Off-Center) */}
+                        <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-full border border-white bg-${colorClass}-600 text-white shadow-md flex items-center justify-center text-[9px] font-black z-20 scale-90 group-hover/marker:scale-110 transition-transform`}>
                           {i + 1}
                         </div>
 
