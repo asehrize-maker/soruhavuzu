@@ -820,26 +820,36 @@ export default function SoruDetay() {
             )}
 
             {!editMode && soru.final_png_url && (
-              <div className="absolute top-6 right-6 z-50 flex items-center bg-white/95 backdrop-blur-xl p-2 rounded-[2rem] border border-gray-200 shadow-2xl">
-                <div className="flex bg-gray-100/80 rounded-2xl p-1 mr-3 gap-1">
-                  <button
-                    onClick={() => setDrawTool('box')}
-                    title="Kutu Çiz"
-                    className={`p-3.5 rounded-xl transition-all ${drawTool === 'box' ? 'bg-white shadow-lg text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
-                  >
-                    <StopIcon className="w-7 h-7" strokeWidth={2.5} />
-                  </button>
-                  <button
-                    onClick={() => setDrawTool('line')}
-                    title="Çizgi Çiz"
-                    className={`p-3.5 rounded-xl transition-all ${drawTool === 'line' ? 'bg-white shadow-lg text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
-                  >
-                    <MinusIcon className="w-7 h-7" strokeWidth={2.5} />
-                  </button>
+              <div className="bg-gray-50/80 border-b border-gray-100 p-6 flex flex-col xl:flex-row items-center justify-between px-10 gap-6">
+                <div className="flex items-center gap-5 flex-1">
+                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-50 shrink-0">
+                    <InformationCircleIcon className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h4 className="text-[10px] font-black text-indigo-900 uppercase tracking-[0.2em] mb-1">İnceleme Araçları</h4>
+                    <p className="text-sm font-bold text-gray-500 max-w-2xl leading-relaxed">
+                      Lütfen dizgi üzerindeki hataları <span className="text-indigo-600 font-extrabold px-1.5 py-0.5 bg-indigo-50 rounded-lg">KUTU</span> veya <span className="text-indigo-600 font-extrabold px-1.5 py-0.5 bg-indigo-50 rounded-lg">ÇİZGİ</span> araçlarıyla işaretleyip notunuzu ekleyiniz.
+                    </p>
+                  </div>
                 </div>
-                <div className="h-10 w-px bg-gray-200 mr-3"></div>
-                <div className="px-6 py-3 bg-indigo-50 text-indigo-600 rounded-2xl font-black text-xs uppercase tracking-widest border border-indigo-100 shadow-sm">
-                  DİZGİ ÇIKTISI
+
+                <div className="flex items-center gap-4 bg-white p-2 rounded-3xl border border-gray-200 shadow-xl">
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => setDrawTool('box')}
+                      className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl transition-all ${drawTool === 'box' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'}`}
+                    >
+                      <StopIcon className="w-6 h-6" strokeWidth={2.5} />
+                      <span className="text-xs font-black uppercase tracking-widest pt-0.5">KUTU</span>
+                    </button>
+                    <button
+                      onClick={() => setDrawTool('line')}
+                      className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl transition-all ${drawTool === 'line' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'}`}
+                    >
+                      <MinusIcon className="w-6 h-6" strokeWidth={2.5} />
+                      <span className="text-xs font-black uppercase tracking-widest pt-0.5">ÇİZGİ</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
