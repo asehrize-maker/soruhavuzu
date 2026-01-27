@@ -103,6 +103,24 @@ router.get('/', authenticate, async (req, res, next) => {
             query += `, NULL as my_upload_url`;
         }
 
+        // Admin için tüm branşların yüklemelerini de getir
+        if (req.user.rol === 'admin') {
+            query += `, (
+                SELECT json_agg(up) FROM (
+                    SELECT DISTINCT ON (dy.brans_id)
+                        COALESCE(b.brans_adi, 'Genel') as brans_adi,
+                        dy.dosya_url,
+                        dy.yukleme_tarihi
+                    FROM deneme_yuklemeleri dy
+                    LEFT JOIN branslar b ON dy.brans_id = b.id
+                    WHERE dy.deneme_id = d.id
+                    ORDER BY dy.brans_id, dy.yukleme_tarihi DESC
+                ) as up
+            ) as all_uploads`;
+        } else {
+            query += `, NULL as all_uploads`;
+        }
+
         query += ` FROM deneme_takvimi d WHERE d.aktif = true ORDER BY d.planlanan_tarih DESC`;
 
         const result = await pool.query(query, params);
@@ -133,16 +151,14 @@ router.post('/:id/upload', authenticate, upload.single('pdf_dosya'), async (req,
 
         // Cloudinary Yükleme
         const timestamp = Date.now();
-        const sanitizedFilename = req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-        // folder parametresi zaten aşağıda verildiği için public_id içinde tekrar etmiyoruz
+        const sanitizedFilename = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
         const publicId = `${timestamp}_${sanitizedFilename}`;
 
         const uploadPromise = new Promise((resolve, reject) => {
             const uploadStream = cloudinary.uploader.upload_stream(
                 {
                     public_id: publicId,
-                    resource_type: 'auto', // 'raw' yerine 'auto' kullanarak PDF olarak tanınmasını sağlıyoruz
-                    type: 'upload',
+                    resource_type: 'raw', // PDF için 'raw' kullanarak dosya bütünlüğünü koruyoruz
                     folder: 'soru-havuzu/denemeler'
                 },
                 (error, result) => {

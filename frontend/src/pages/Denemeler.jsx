@@ -145,17 +145,37 @@ export default function Denemeler() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-4 w-full md:w-auto">
-                                {deneme.my_upload_url && (
-                                    <a
-                                        href={deneme.my_upload_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="py-4 px-6 bg-green-50 text-green-600 rounded-2xl font-black text-xs uppercase tracking-widest border border-green-100 hover:bg-green-100 transition-all flex items-center gap-2"
-                                    >
-                                        <EyeIcon className="w-5 h-5" /> DOSYAYI GÖR
-                                    </a>
-                                )}
+                            <div className="flex flex-col items-end gap-4 w-full md:w-auto">
+                                <div className="flex flex-wrap justify-end gap-3 w-full">
+                                    {deneme.my_upload_url && (
+                                        <a
+                                            href={deneme.my_upload_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="py-4 px-6 bg-green-50 text-green-600 rounded-2xl font-black text-xs uppercase tracking-widest border border-green-100 hover:bg-green-100 transition-all flex items-center gap-2"
+                                        >
+                                            <EyeIcon className="w-5 h-5" /> DOSYAYI GÖR
+                                        </a>
+                                    )}
+
+                                    {effectiveRole === 'admin' && deneme.all_uploads && deneme.all_uploads.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 justify-end w-full mt-2">
+                                            {deneme.all_uploads.map((up, idx) => (
+                                                <a
+                                                    key={idx}
+                                                    href={up.dosya_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="px-3 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black border border-indigo-100 hover:bg-indigo-100 transition-all flex items-center gap-1"
+                                                    title={`${up.brans_adi} yüklemesi`}
+                                                >
+                                                    <EyeIcon className="w-3 h-3" /> {up.brans_adi}
+                                                </a>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
                                 <input
                                     type="file"
                                     ref={el => fileInputRefs.current[deneme.id] = el}
@@ -166,7 +186,7 @@ export default function Denemeler() {
                                 <button
                                     onClick={() => fileInputRefs.current[deneme.id]?.click()}
                                     disabled={uploadingId === deneme.id}
-                                    className={`flex-1 md:flex-none py-4 px-8 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-3 border shadow-sm ${uploadingId === deneme.id
+                                    className={`w-full md:w-auto py-4 px-8 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-3 border shadow-sm ${uploadingId === deneme.id
                                         ? 'bg-gray-100 text-gray-400 animate-pulse'
                                         : (deneme.my_upload_url ? 'bg-white hover:bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200')}`}
                                 >

@@ -7,7 +7,8 @@ import {
     XCircleIcon,
     DocumentTextIcon,
     ClockIcon,
-    InformationCircleIcon
+    InformationCircleIcon,
+    EyeIcon
 } from '@heroicons/react/24/outline';
 
 export default function Ajanda() {
@@ -117,14 +118,27 @@ export default function Ajanda() {
                                                         }
                                                     </p>
                                                 </div>
-                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${det.completed
-                                                    ? 'bg-emerald-100 text-emerald-600'
-                                                    : (isPast ? 'bg-rose-100 text-rose-600' : 'bg-gray-200 text-gray-400')
-                                                    }`}>
-                                                    {det.completed
-                                                        ? <CheckCircleIcon className="w-5 h-5" />
-                                                        : (isPast ? <XCircleIcon className="w-5 h-5" /> : <ClockIcon className="w-5 h-5" />)
-                                                    }
+                                                <div className="flex items-center gap-3">
+                                                    {det.completed && det.upload?.dosya_url && (
+                                                        <a
+                                                            href={det.upload.dosya_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors"
+                                                            title="Dosyayı Gör"
+                                                        >
+                                                            <EyeIcon className="w-4 h-4" />
+                                                        </a>
+                                                    )}
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${det.completed
+                                                        ? 'bg-emerald-100 text-emerald-600'
+                                                        : (isPast ? 'bg-rose-100 text-rose-600' : 'bg-gray-200 text-gray-400')
+                                                        }`}>
+                                                        {det.completed
+                                                            ? <CheckCircleIcon className="w-5 h-5" />
+                                                            : (isPast ? <XCircleIcon className="w-5 h-5" /> : <ClockIcon className="w-5 h-5" />)
+                                                        }
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
