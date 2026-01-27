@@ -99,7 +99,6 @@ export default function Logs() {
                                     {activeTab === 'login' ? (
                                         <tr>
                                             <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Kullanıcı</th>
-                                            <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Ağ Adresi (IP)</th>
                                             <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Zaman Damgası</th>
                                             <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Cihaz Bilgisi</th>
                                         </tr>
@@ -128,11 +127,6 @@ export default function Logs() {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-5 whitespace-nowrap">
-                                                    <span className="text-[11px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-xl">
-                                                        {log.ip_adresi || 'N/A'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-5 whitespace-nowrap">
                                                     <div className="flex items-center gap-2 text-sm font-bold text-gray-600">
                                                         <ClockIcon className="w-4 h-4 text-gray-300" />
                                                         {new Date(log.tarih).toLocaleDateString('tr-TR')} <span className="text-gray-300 font-medium">|</span> {new Date(log.tarih).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
@@ -143,7 +137,7 @@ export default function Logs() {
                                                 </td>
                                             </tr>
                                         )) : (
-                                            <tr><td colSpan="4" className="p-20 text-center text-gray-300 font-bold uppercase tracking-widest text-xs italic">Kayıt Bulunamadı.</td></tr>
+                                            <tr><td colSpan="3" className="p-20 text-center text-gray-300 font-bold uppercase tracking-widest text-xs italic">Kayıt Bulunamadı.</td></tr>
                                         )
                                     ) : (
                                         paginatedLogs.length > 0 ? paginatedLogs.map((log) => (
@@ -161,8 +155,8 @@ export default function Logs() {
                                                 </td>
                                                 <td className="px-6 py-5 whitespace-nowrap">
                                                     <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm border ${log.islem_turu.includes('silme') ? 'bg-red-50 text-red-600 border-red-100' :
-                                                            log.islem_turu.includes('ekleme') || log.islem_turu.includes('create') ? 'bg-green-50 text-green-600 border-green-100' :
-                                                                'bg-indigo-50 text-indigo-600 border-indigo-100'
+                                                        log.islem_turu.includes('ekleme') || log.islem_turu.includes('create') ? 'bg-green-50 text-green-600 border-green-100' :
+                                                            'bg-indigo-50 text-indigo-600 border-indigo-100'
                                                         }`}>
                                                         {log.islem_turu.replace(/_/g, ' ')}
                                                     </span>
