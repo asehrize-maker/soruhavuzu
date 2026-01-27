@@ -405,7 +405,8 @@ export default function Sorular({ scope }) {
                             <img src={soru.final_png_url} className="max-h-56 object-contain drop-shadow-2xl rounded-xl group-hover:scale-[1.03] transition-transform duration-500" alt="Final Out" />
                           </div>
                         ) : (
-                          <div className="text-gray-800 text-sm font-semibold line-clamp-3 leading-relaxed tracking-tight group-hover:text-black transition-colors" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
+                          // Liste görünümünde görselleri kısıtla: Max yükseklik 200px, genişlik auto, float yok
+                          <div className="text-gray-800 text-sm font-semibold leading-relaxed tracking-tight group-hover:text-black transition-colors [&_img]:!max-h-[200px] [&_img]:!w-auto [&_img]:!max-w-full [&_img]:!object-contain [&_img]:!float-none [&_img]:!mx-0 [&_img]:!my-2 [&_img]:rounded-lg [&_div]:!float-none [&_div]:!w-auto" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
                         )}
                       </div>
 
