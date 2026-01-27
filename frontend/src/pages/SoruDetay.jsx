@@ -243,34 +243,46 @@ export default function SoruDetay() {
     }
     element.innerHTML = html;
 
-    // OTOMATİK GÖRSEL BOYUTLANDIRMA (Backend stili silerse veya stil yoksa)
+    // GÜÇLENDİRİLMİŞ GÖRSEL BOYUTLANDIRMA
     const images = element.querySelectorAll('img');
     images.forEach(img => {
       const adjustSize = () => {
-        // Eğer görselin parent'ında (div.q-img) bir genişlik kısıtlaması yoksa
-        const parentWidth = img.parentElement?.style?.width;
-        const hasParentConstraint = parentWidth && parentWidth !== '100%';
+        // Mevcut stilleri temizle ve sıfırla ki hesaplama doğru yapılsın
+        img.style.width = '';
+        img.style.height = '';
+        img.style.maxWidth = '';
+        img.style.margin = '';
+        img.style.display = '';
 
-        if (!hasParentConstraint) {
-          // Dikey görselleri sınırla
-          if (img.naturalHeight > img.naturalWidth * 1.2) {
-            img.style.width = 'auto'; // Width'i serbest bırak
-            img.style.maxWidth = '40%'; // Max genişlik ver
-            img.style.height = 'auto';
-            img.style.display = 'block';
-            img.style.margin = '12px auto';
-          }
-          // Aşırı yatay değilse ama yine de büyükse (karemsi)
-          else if (img.naturalHeight > img.naturalWidth * 0.8) {
-            img.style.maxWidth = '60%';
-            img.style.display = 'block';
-            img.style.margin = '12px auto';
-          }
+        const isPortrait = img.naturalHeight > img.naturalWidth;
+        const isVeryTall = img.naturalHeight > img.naturalWidth * 1.5;
+
+        // Base styles - !important flag'ini style.setProperty ile veriyoruz
+        img.style.setProperty('display', 'block', 'important');
+        img.style.setProperty('margin', '12px auto', 'important');
+        img.style.setProperty('height', 'auto', 'important');
+        img.style.setProperty('max-height', '60vh', 'important'); // Ekrana sığması için
+
+        if (isVeryTall) {
+          img.style.setProperty('width', 'auto', 'important');
+          img.style.setProperty('max-width', '40%', 'important');
+        } else if (isPortrait) {
+          img.style.setProperty('width', 'auto', 'important');
+          img.style.setProperty('max-width', '50%', 'important');
+        } else {
+          // Yatay resimler de çok geniş olmasın
+          img.style.setProperty('max-width', '80%', 'important');
+          // Eğer parent container darsa %100 olsun
+          img.style.width = '100%';
         }
       };
 
-      if (img.complete) adjustSize();
-      else img.onload = adjustSize;
+      if (img.complete && img.naturalHeight > 0) adjustSize();
+      else {
+        img.onload = adjustSize;
+        // Hızlı cache yüklemeleri için bir de timeout ile tetikle
+        setTimeout(adjustSize, 100);
+      }
     });
   };
 
