@@ -114,8 +114,18 @@ export default function SoruEkle() {
   const handleReadyQuestionUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
+      const img = new Image();
       const objectUrl = URL.createObjectURL(file);
-      setComponents(prev => [...prev, { id: generateId(), type: 'image', content: objectUrl, file: file, width: 100, height: 'auto', align: 'center' }]);
+      img.src = objectUrl;
+      img.onload = () => {
+        let w = 100;
+        // Akıllı ölçeklendirme: Dikey görselleri tam genişlik yapma
+        if (img.naturalHeight > img.naturalWidth * 1.5) w = 40; // Çok uzun/dikey
+        else if (img.naturalHeight > img.naturalWidth) w = 60;  // Dikey
+        else if (Math.abs(img.naturalHeight - img.naturalWidth) < 100) w = 70; // Kareye yakın
+
+        setComponents(prev => [...prev, { id: generateId(), type: 'image', content: objectUrl, file: file, width: w, height: 'auto', align: 'center' }]);
+      };
     }
   };
 
