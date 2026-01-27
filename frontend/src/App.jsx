@@ -16,7 +16,7 @@ import Raporlar from './pages/Raporlar';
 import Duyurular from './pages/Duyurular';
 import Logs from './pages/Logs';
 import Ajanda from './pages/Ajanda';
-import Settings from './pages/Settings';
+import TestBuilder from './pages/TestBuilder';
 import Layout from './components/Layout';
 
 function PrivateRoute({ children }) {
@@ -45,6 +45,7 @@ function App() {
         <Route path="brans-havuzu" element={<BransHavuzu />} />
         <Route path="sorular/yeni" element={<SoruEkle />} />
         <Route path="sorular/:id" element={<SoruDetay />} />
+        <Route path="test-builder" element={<TestBuilder />} />
         <Route path="mesajlar" element={<Mesajlar />} />
         <Route path="dizgi-yonetimi" element={<DizgiYonetimi />} />
 

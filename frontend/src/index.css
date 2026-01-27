@@ -78,4 +78,24 @@
   .q-preview-container mark {
     @apply cursor-pointer transition-colors border-dashed;
   }
+
+  @media print {
+    @page {
+      size: A4;
+      margin: 0;
+    }
+    body {
+      background: white !important;
+      margin: 0;
+      padding: 0;
+    }
+    .print-hide {
+      display: none !important;
+    }
+    /* Sayfa kesilmelerini önle */
+    .break-inside-avoid {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+  }
 }

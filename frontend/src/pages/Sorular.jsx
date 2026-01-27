@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { soruAPI, bransAPI } from '../services/api';
 import { getDurumBadge, generateExportHtml } from '../utils/helpers';
@@ -29,9 +29,15 @@ export default function Sorular({ scope }) {
   const user = authUser ? { ...authUser, rol: effectiveRole } : authUser;
 
   const location = useLocation();
+  const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const isTakipModu = queryParams.get('takip') === '1';
   const urlDurum = queryParams.get('durum');
+
+  const handleTestBuilder = () => {
+    const selectedSoruObjects = sorular.filter(s => selectedQuestions.includes(s.id));
+    navigate('/test-builder', { state: { selectedQuestions: selectedSoruObjects } });
+  };
 
   const [sorular, setSorular] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -344,6 +350,9 @@ export default function Sorular({ scope }) {
                   <RocketLaunchIcon className="w-4 h-4" strokeWidth={2.5} /> DİZGİYE GÖNDER
                 </button>
               )}
+              <button onClick={handleTestBuilder} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-100 transition-all flex items-center gap-2 active:scale-95">
+                <SparklesIcon className="w-4 h-4" strokeWidth={2.5} /> SAYFA TASARLA
+              </button>
               <button onClick={handleExport} className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-100 px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-sm transition-all flex items-center gap-2 active:scale-95">
                 <PrinterIcon className="w-4 h-4" strokeWidth={2.5} /> YAZDIR / WORD
               </button>
