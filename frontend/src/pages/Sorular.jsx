@@ -286,22 +286,24 @@ export default function Sorular({ scope }) {
       {/* FILTER & TOOLS */}
       <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex flex-col md:flex-row items-center gap-6 w-full md:w-auto">
-          <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
-            <FunnelIcon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
-            <select
-              value={filters.durum}
-              onChange={(e) => setFilters({ ...filters, durum: e.target.value })}
-              className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
-            >
-              <option value="">TÜM DURUMLAR</option>
-              <option value="beklemede">BEKLEMEDE</option>
-              <option value="dizgi_bekliyor">DİZGİ BEKLİYOR</option>
-              <option value="dizgide">DİZGİDE</option>
-              <option value="tamamlandi">TAMAMLANDI</option>
-              <option value="revize_gerekli">REVİZE GEREKLİ</option>
-              <option value="revize_istendi">REVİZE İSTENDİ</option>
-            </select>
-          </div>
+          {(scope === 'brans' || isTakipModu) && (
+            <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
+              <FunnelIcon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
+              <select
+                value={filters.durum}
+                onChange={(e) => setFilters({ ...filters, durum: e.target.value })}
+                className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
+              >
+                <option value="">TÜM DURUMLAR</option>
+                <option value="beklemede">BEKLEMEDE</option>
+                <option value="dizgi_bekliyor">DİZGİ BEKLİYOR</option>
+                <option value="dizgide">DİZGİDE</option>
+                <option value="tamamlandi">TAMAMLANDI</option>
+                <option value="revize_gerekli">REVİZE GEREKLİ</option>
+                <option value="revize_istendi">REVİZE İSTENDİ</option>
+              </select>
+            </div>
+          )}
 
           <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
             <Squares2X2Icon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
