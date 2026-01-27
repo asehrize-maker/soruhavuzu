@@ -134,13 +134,14 @@ router.post('/:id/upload', authenticate, upload.single('pdf_dosya'), async (req,
         // Cloudinary Yükleme
         const timestamp = Date.now();
         const sanitizedFilename = req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const publicId = `soru-havuzu/denemeler/${timestamp}_${sanitizedFilename}`;
+        // folder parametresi zaten aşağıda verildiği için public_id içinde tekrar etmiyoruz
+        const publicId = `${timestamp}_${sanitizedFilename}`;
 
         const uploadPromise = new Promise((resolve, reject) => {
             const uploadStream = cloudinary.uploader.upload_stream(
                 {
                     public_id: publicId,
-                    resource_type: 'raw',
+                    resource_type: 'auto', // 'raw' yerine 'auto' kullanarak PDF olarak tanınmasını sağlıyoruz
                     type: 'upload',
                     folder: 'soru-havuzu/denemeler'
                 },
