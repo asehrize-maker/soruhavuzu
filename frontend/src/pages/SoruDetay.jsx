@@ -37,7 +37,8 @@ import {
   Squares2X2Icon,
   CursorArrowRaysIcon,
   StopIcon,
-  MinusIcon
+  MinusIcon,
+  PencilIcon
 } from '@heroicons/react/24/outline';
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
@@ -173,9 +174,9 @@ export default function SoruDetay() {
   const [revizeNotlari, setRevizeNotlari] = useState([]);
 
   // Annotation State
-  const [selectedAnnotation, setSelectedAnnotation] = useState(null); // { type: 'point'|'box'|'line', ...coords }
-  const [drawTool, setDrawTool] = useState('cursor'); // 'cursor', 'box', 'line'
-  const [drawingShape, setDrawingShape] = useState(null); // { type, startX, startY, currentX, currentY }
+  const [selectedAnnotation, setSelectedAnnotation] = useState(null); // { type: 'point'|'box'|'line'|'draw', ...data }
+  const [drawTool, setDrawTool] = useState('cursor'); // 'cursor', 'box', 'line', 'pencil'
+  const [drawingShape, setDrawingShape] = useState(null); // { type, ...data }
 
   const [viewMode, setViewMode] = useState('auto'); // 'auto', 'text', 'image'
 
@@ -367,6 +368,10 @@ export default function SoruDetay() {
     if (drawTool === 'cursor') {
       setSelectedAnnotation({ type: 'point', x, y });
       setSelectedText(''); // Clear text selection if any
+    } else if (drawTool === 'pencil') {
+      setDrawingShape({ type: 'pencil', points: [{ x, y }] });
+      setSelectedAnnotation(null);
+      setSelectedText('');
     } else {
       setDrawingShape({ type: drawTool, startX: x, startY: y, currentX: x, currentY: y });
       setSelectedAnnotation(null);
@@ -379,27 +384,44 @@ export default function SoruDetay() {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
     const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
-    setDrawingShape(prev => ({ ...prev, currentX: x, currentY: y }));
+
+    if (drawingShape.type === 'pencil') {
+      // Throttle points? For now just add if distance > 0.5%
+      const lastPoint = drawingShape.points[drawingShape.points.length - 1];
+      const dist = Math.sqrt(Math.pow(x - lastPoint.x, 2) + Math.pow(y - lastPoint.y, 2));
+      if (dist > 0.2) {
+        setDrawingShape(prev => ({ ...prev, points: [...prev.points, { x, y }] }));
+      }
+    } else {
+      setDrawingShape(prev => ({ ...prev, currentX: x, currentY: y }));
+    }
   };
 
   const handleImageMouseUp = () => {
     if (!drawingShape) return;
-    const { type, startX, startY, currentX, currentY } = drawingShape;
 
-    // Minimal movement check to avoid accidental tiny shapes
-    if (Math.abs(currentX - startX) < 1 && Math.abs(currentY - startY) < 1) {
-      setDrawingShape(null);
-      return;
-    }
+    if (drawingShape.type === 'pencil') {
+      if (drawingShape.points.length > 2) {
+        setSelectedAnnotation({ type: 'draw', points: drawingShape.points });
+      }
+    } else {
+      const { type, startX, startY, currentX, currentY } = drawingShape;
 
-    if (type === 'box') {
-      const x = Math.min(startX, currentX);
-      const y = Math.min(startY, currentY);
-      const w = Math.abs(currentX - startX);
-      const h = Math.abs(currentY - startY);
-      setSelectedAnnotation({ type: 'box', x, y, w, h });
-    } else if (type === 'line') {
-      setSelectedAnnotation({ type: 'line', x1: startX, y1: startY, x2: currentX, y2: currentY });
+      // Minimal movement check to avoid accidental tiny shapes
+      if (Math.abs(currentX - startX) < 1 && Math.abs(currentY - startY) < 1) {
+        setDrawingShape(null);
+        return;
+      }
+
+      if (type === 'box') {
+        const x = Math.min(startX, currentX);
+        const y = Math.min(startY, currentY);
+        const w = Math.abs(currentX - startX);
+        const h = Math.abs(currentY - startY);
+        setSelectedAnnotation({ type: 'box', x, y, w, h });
+      } else if (type === 'line') {
+        setSelectedAnnotation({ type: 'line', x1: startX, y1: startY, x2: currentX, y2: currentY });
+      }
     }
     setDrawingShape(null);
   };
@@ -415,6 +437,9 @@ export default function SoruDetay() {
           secilen_metin = `IMG##BOX:${selectedAnnotation.x.toFixed(2)},${selectedAnnotation.y.toFixed(2)},${selectedAnnotation.w.toFixed(2)},${selectedAnnotation.h.toFixed(2)}`;
         } else if (selectedAnnotation.type === 'line') {
           secilen_metin = `IMG##LINE:${selectedAnnotation.x1.toFixed(2)},${selectedAnnotation.y1.toFixed(2)},${selectedAnnotation.x2.toFixed(2)},${selectedAnnotation.y2.toFixed(2)}`;
+        } else if (selectedAnnotation.type === 'draw') {
+          const pointsStr = selectedAnnotation.points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(';');
+          secilen_metin = `IMG##DRAW:${pointsStr}`;
         } else {
           // Default to point
           secilen_metin = `IMG##${selectedAnnotation.x.toFixed(2)},${selectedAnnotation.y.toFixed(2)}`;
@@ -809,8 +834,8 @@ export default function SoruDetay() {
               <div className="bg-gray-900 text-white p-4 flex justify-between items-center z-[70]">
                 <div className="flex items-center gap-4">
                   <div className="flex bg-black/40 p-1 rounded-2xl border border-white/5">
-                    <button onClick={() => setWidthMode('dar')} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${widthMode === 'dar' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400'}`}>82mm</button>
-                    <button onClick={() => setWidthMode('genis')} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${widthMode === 'genis' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400'}`}>169mm</button>
+                    <button onClick={() => setWidthMode('dar')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${widthMode === 'dar' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400'}`}>82mm</button>
+                    <button onClick={() => setWidthMode('genis')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${widthMode === 'genis' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400'}`}>169mm</button>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -826,6 +851,7 @@ export default function SoruDetay() {
                   <button onClick={() => setDrawTool('cursor')} title="Nokta İşaretleyici" className={`p-2 rounded-lg transition-all ${drawTool === 'cursor' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}><CursorArrowRaysIcon className="w-4 h-4" /></button>
                   <button onClick={() => setDrawTool('box')} title="Kutu Çiz" className={`p-2 rounded-lg transition-all ${drawTool === 'box' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}><StopIcon className="w-4 h-4" /></button>
                   <button onClick={() => setDrawTool('line')} title="Çizgi Çiz" className={`p-2 rounded-lg transition-all ${drawTool === 'line' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}><MinusIcon className="w-4 h-4" /></button>
+                  <button onClick={() => setDrawTool('pencil')} title="Serbest Kalem" className={`p-2 rounded-lg transition-all ${drawTool === 'pencil' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}><PencilIcon className="w-4 h-4" /></button>
                 </div>
                 <button onClick={() => setViewMode('image')} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'image' || viewMode === 'auto' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-blue-500'}`}>
                   DİZGİ ÇIKTISI
@@ -866,6 +892,10 @@ export default function SoruDetay() {
                     } else if (meta.startsWith('LINE:')) {
                       const [x1, y1, x2, y2] = meta.replace('LINE:', '').split(',').map(Number);
                       shape = { type: 'line', x1, y1, x2, y2 };
+                    } else if (meta.startsWith('DRAW:')) {
+                      const sets = meta.replace('DRAW:', '').split(';');
+                      const points = sets.map(s => { const [px, py] = s.split(',').map(Number); return { x: px, y: py }; });
+                      if (points.length > 0) shape = { type: 'draw', points };
                     } else {
                       const [x, y] = meta.split(',').map(Number);
                       shape = { type: 'point', x, y };
@@ -874,6 +904,24 @@ export default function SoruDetay() {
                     return (
                       <div key={not.id} className="absolute inset-0 pointer-events-none">
                         {/* RENDER SHAPE */}
+                        {shape.type === 'draw' && shape.points && shape.points.length > 1 && (
+                          <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
+                            <polyline
+                              points={shape.points.map(p => `${p.x},${p.y}`).join(' ')}
+                              fill="none"
+                              stroke={colorHex}
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="drop-shadow-sm"
+                              vectorEffect="non-scaling-stroke"
+                            />
+                            {/* Label at last point */}
+                            <foreignObject x={`${shape.points[shape.points.length - 1].x}%`} y={`${shape.points[shape.points.length - 1].y}%`} width="30" height="30" style={{ overflow: 'visible' }}>
+                              <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
+                            </foreignObject>
+                          </svg>
+                        )}
                         {shape.type === 'box' && (
                           <div
                             className={`absolute border-2 border-${colorClass}-500 bg-${colorClass}-500/10 hover:bg-${colorClass}-500/20 transition-colors z-10 pointer-events-auto`}
@@ -927,6 +975,16 @@ export default function SoruDetay() {
                   {/* Drawing Shape Preview */}
                   {drawingShape && (
                     <div className="absolute inset-0 pointer-events-none z-20">
+                      {drawingShape.type === 'pencil' && drawingShape.points.length > 1 && (
+                        <svg className="absolute inset-0 w-full h-full">
+                          <polyline
+                            points={drawingShape.points.map(p => `${p.x},${p.y}`).join(' ')}
+                            fill="none"
+                            stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                            vectorEffect="non-scaling-stroke"
+                          />
+                        </svg>
+                      )}
                       {drawingShape.type === 'box' && (
                         <div className="absolute border-2 border-indigo-500 bg-indigo-500/20"
                           style={{
@@ -968,6 +1026,17 @@ export default function SoruDetay() {
                             stroke="#f43f5e" strokeWidth="3" className="animate-pulse"
                           />
                           <circle cx={`${selectedAnnotation.x2}%`} cy={`${selectedAnnotation.y2}%`} r="4" fill="#f43f5e" />
+                        </svg>
+                      )}
+                      {selectedAnnotation.type === 'draw' && (
+                        <svg className="absolute inset-0 w-full h-full">
+                          <polyline
+                            points={selectedAnnotation.points.map(p => `${p.x},${p.y}`).join(' ')}
+                            fill="none"
+                            stroke="#f43f5e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                            className="animate-pulse"
+                            vectorEffect="non-scaling-stroke"
+                          />
                         </svg>
                       )}
                     </div>
@@ -1222,7 +1291,8 @@ export default function SoruDetay() {
                   <p className="text-xs font-bold text-gray-700">
                     {selectedAnnotation.type === 'box' ? 'Görsel üzerinde işaretlenen alan (Kutu)' :
                       selectedAnnotation.type === 'line' ? 'Görsel üzerinde işaretlenen çizgi' :
-                        'Görsel üzerinde işaretlenen nokta'}
+                        selectedAnnotation.type === 'draw' ? 'Görsel üzerinde serbest çizim' :
+                          'Görsel üzerinde işaretlenen nokta'}
                   </p>
                 </div>
               ) : (
