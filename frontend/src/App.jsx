@@ -18,6 +18,7 @@ import Logs from './pages/Logs';
 import Ajanda from './pages/Ajanda';
 import Settings from './pages/Settings';
 import TestBuilder from './pages/TestBuilder';
+import Denemeler from './pages/Denemeler';
 import Layout from './components/Layout';
 
 function PrivateRoute({ children }) {
@@ -49,6 +50,7 @@ function App() {
         <Route path="test-builder" element={<TestBuilder />} />
         <Route path="mesajlar" element={<Mesajlar />} />
         <Route path="dizgi-yonetimi" element={<DizgiYonetimi />} />
+        <Route path="denemeler" element={<Denemeler />} />
 
         <Route path="ekipler" element={
           <AdminRoute>
