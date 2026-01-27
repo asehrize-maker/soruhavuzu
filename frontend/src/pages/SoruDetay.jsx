@@ -820,17 +820,27 @@ export default function SoruDetay() {
             )}
 
             {!editMode && soru.final_png_url && (
-              <div className="absolute top-6 right-6 z-50 flex bg-white/90 backdrop-blur p-1 rounded-2xl border border-gray-100 shadow-xl">
-                <div className="flex bg-gray-100 rounded-xl p-0.5 mr-2">
-                  <button onClick={() => setDrawTool('box')} title="Kutu Çiz" className={`p-2 rounded-lg transition-all ${drawTool === 'box' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}><StopIcon className="w-4 h-4" /></button>
-                  <button onClick={() => setDrawTool('line')} title="Çizgi Çiz" className={`p-2 rounded-lg transition-all ${drawTool === 'line' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}><MinusIcon className="w-4 h-4" /></button>
+              <div className="absolute top-6 right-6 z-50 flex items-center bg-white/95 backdrop-blur-xl p-2 rounded-[2rem] border border-gray-200 shadow-2xl">
+                <div className="flex bg-gray-100/80 rounded-2xl p-1 mr-3 gap-1">
+                  <button
+                    onClick={() => setDrawTool('box')}
+                    title="Kutu Çiz"
+                    className={`p-3.5 rounded-xl transition-all ${drawTool === 'box' ? 'bg-white shadow-lg text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+                  >
+                    <StopIcon className="w-7 h-7" strokeWidth={2.5} />
+                  </button>
+                  <button
+                    onClick={() => setDrawTool('line')}
+                    title="Çizgi Çiz"
+                    className={`p-3.5 rounded-xl transition-all ${drawTool === 'line' ? 'bg-white shadow-lg text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+                  >
+                    <MinusIcon className="w-7 h-7" strokeWidth={2.5} />
+                  </button>
                 </div>
-                <button onClick={() => setViewMode('image')} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'image' || viewMode === 'auto' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-blue-500'}`}>
+                <div className="h-10 w-px bg-gray-200 mr-3"></div>
+                <div className="px-6 py-3 bg-indigo-50 text-indigo-600 rounded-2xl font-black text-xs uppercase tracking-widest border border-indigo-100 shadow-sm">
                   DİZGİ ÇIKTISI
-                </button>
-                <button onClick={() => setViewMode('text')} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'text' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-blue-500'}`}>
-                  TASLAK METİN
-                </button>
+                </div>
               </div>
             )}
 
