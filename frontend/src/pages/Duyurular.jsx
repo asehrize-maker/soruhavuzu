@@ -10,7 +10,8 @@ import {
   ExclamationTriangleIcon,
   XCircleIcon,
   ArrowPathIcon,
-  CloudArrowUpIcon
+  CloudArrowUpIcon,
+  InformationCircleIcon
 } from '@heroicons/react/24/outline';
 
 export default function Duyurular() {

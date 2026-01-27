@@ -140,7 +140,11 @@ export default function SoruDetay() {
     return null;
   }, [incelemeTuru, effectiveRole, authUser, rawRole]);
 
-  const canReview = (effectiveRole === 'admin' || (effectiveRole === 'incelemeci' && !!effectiveIncelemeTuru)) && soru?.durum !== 'tamamlandi';
+  const isAdmin = effectiveRole === 'admin';
+  const isOwner = soru?.olusturan_kullanici_id == user?.id;
+  const isBranchTeacher = user?.rol === 'soru_yazici' && user?.brans_id === soru?.brans_id;
+  const hasFullAccess = isAdmin || isOwner || isBranchTeacher;
+  const canReview = (isAdmin || (effectiveRole === 'incelemeci' && !!effectiveIncelemeTuru)) && soru?.durum !== 'tamamlandi';
 
   const [soru, setSoru] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -245,7 +249,7 @@ export default function SoruDetay() {
       visibleNotes.forEach((not, index) => {
         if (!not.secilen_metin) return;
         const colorClass = not.inceleme_turu === 'dilci' ? 'green' : 'blue';
-        const mark = `<mark class="bg-${colorClass}-100 border-b-2 border-${colorClass}-400 px-1 relative group cursor-help transition-colors hover:bg-${colorClass}-200">${not.secilen_metin}<sup class="text-${colorClass}-700 font-bold ml-0.5 select-none">[${revizeNotlari.indexOf(not) + 1}]</sup><span class="absolute bottom-full left-1/2 -translate-x-1/2 hidden group-hover:block bg-gray-900 text-white text-[10px] p-2 rounded w-48 z-[100] shadow-xl mb-2 font-sans font-medium"><strong>${not.inceleme_turu.toUpperCase()}:</strong> ${not.not_metni}</span></mark>`;
+        const mark = `<mark class="bg-${colorClass}-100 border-b-2 border-${colorClass}-400 px-1 relative group cursor-help transition-colors hover:bg-${colorClass}-200">${not.secilen_metin}<sup class="text-${colorClass}-700 font-bold ml-0.5 select-none">[${revizeNotlari.indexOf(not) + 1}]</sup><span class="absolute bottom-full left-1/2 -translate-x-1/2 hidden group-hover:block bg-gray-900 text-white text-[10px] p-2 rounded w-48 z-[100] shadow-xl mb-2 font-sans font-medium"><strong>${(not.inceleme_turu || '').toUpperCase()}:</strong> ${not.not_metni}</span></mark>`;
         html = html.split(not.secilen_metin).join(mark);
       });
     }
@@ -585,10 +589,6 @@ export default function SoruDetay() {
   if (loading) return <div className="py-40 text-center"><ArrowPathIcon className="w-12 h-12 text-blue-100 animate-spin mx-auto mb-4" strokeWidth={3} /><p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em]">Soru Verileri Getiriliyor...</p></div>;
   if (!soru) return null;
 
-  const isOwner = soru.olusturan_kullanici_id == user?.id;
-  const isBranchTeacher = user?.rol === 'soru_yazici' && user?.brans_id === soru.brans_id;
-  const isAdmin = effectiveRole === 'admin';
-  const hasFullAccess = isAdmin || isOwner || isBranchTeacher;
   const availableStatusesForEdit = ['beklemede', 'revize_gerekli', 'revize_istendi', 'dizgi_bekliyor', 'dizgide', 'dizgi_tamam', 'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi'];
   const canEdit = isAdmin || ((isOwner || isBranchTeacher) && availableStatusesForEdit.includes(soru.durum));
 
