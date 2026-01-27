@@ -159,11 +159,22 @@ router.put('/:id', authenticate, async (req, res, next) => {
     try {
       await client.query('BEGIN');
 
-      const currentUserRes = await client.query('SELECT rol FROM kullanicilar WHERE id = $1', [id]);
+      const currentUserRes = await client.query('SELECT rol, email FROM kullanicilar WHERE id = $1', [id]);
       if (currentUserRes.rows.length === 0) {
         throw new AppError('Kullanıcı bulunamadı', 404);
       }
       const currentRole = currentUserRes.rows[0].rol;
+      const currentEmail = currentUserRes.rows[0].email;
+
+      // Super Admin Koruması
+      if (currentEmail === 'servetgenc@windowslive.com') {
+        if (req.body.rol && req.body.rol !== 'admin') {
+          throw new AppError('Bu kullanıcının yetkisi değiştirilemez (Süper Admin)', 403);
+        }
+        if (aktif === false) {
+          throw new AppError('Bu kullanıcı pasife alınamaz (Süper Admin)', 403);
+        }
+      }
 
       const updates = [];
       const values = [];
@@ -282,6 +293,13 @@ router.put('/:id', authenticate, async (req, res, next) => {
 router.delete('/:id', authenticate, authorize('admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    // Silme koruması
+    const checkUser = await pool.query('SELECT email FROM kullanicilar WHERE id = $1', [id]);
+    if (checkUser.rows.length > 0 && checkUser.rows[0].email === 'servetgenc@windowslive.com') {
+      throw new AppError('Bu kullanıcı silinemez (Süper Admin)', 403);
+    }
+
     const result = await pool.query('DELETE FROM kullanicilar WHERE id = $1 RETURNING *', [id]);
     if (result.rows.length === 0) {
       throw new AppError('Kullanıcı bulunamadı', 404);
