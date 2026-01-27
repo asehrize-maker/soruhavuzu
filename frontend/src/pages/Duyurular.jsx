@@ -8,7 +8,6 @@ import {
   ComputerDesktopIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
-  InformationCircleIcon,
   XCircleIcon,
   ArrowPathIcon,
   CloudArrowUpIcon
@@ -227,9 +226,9 @@ export default function Duyurular() {
             <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Canlı Önizleme</h4>
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-start gap-4">
               <div className={`p-3 rounded-2xl flex-shrink-0 ${notificationData.tip === 'duyuru' ? 'bg-blue-100 text-blue-600' :
-                  notificationData.tip === 'success' ? 'bg-green-100 text-green-600' :
-                    notificationData.tip === 'warning' ? 'bg-yellow-100 text-yellow-600' :
-                      'bg-red-100 text-red-600'
+                notificationData.tip === 'success' ? 'bg-green-100 text-green-600' :
+                  notificationData.tip === 'warning' ? 'bg-yellow-100 text-yellow-600' :
+                    'bg-red-100 text-red-600'
                 }`}>
                 {notificationData.tip === 'duyuru' && <MegaphoneIcon className="w-6 h-6" />}
                 {notificationData.tip === 'success' && <CheckCircleIcon className="w-6 h-6" />}
@@ -243,11 +242,7 @@ export default function Duyurular() {
               </div>
             </div>
 
-            <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 space-y-2">
-              <InformationCircleIcon className="w-6 h-6 text-blue-600" />
-              <h6 className="font-black text-blue-800 uppercase tracking-widest text-[10px]">Bilgi</h6>
-              <p className="text-xs text-blue-700 leading-relaxed font-medium">Bu duyuru, sistemdeki tüm kullanıcılara sağ üstteki <b>zil ikonu</b> aracılığıyla bir bildirim olarak iletilecektir.</p>
-            </div>
+
           </div>
         </div>
       ) : (
@@ -336,9 +331,9 @@ export default function Duyurular() {
             <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Panel Önizlemesi</h4>
             <div className="bg-white p-6 rounded-3xl border-2 border-dashed border-gray-200 opacity-80">
               <div className={`p-5 rounded-2xl border ${getPopupValue('panel_duyuru_tip') === 'info' ? 'bg-blue-50 border-blue-100 text-blue-800' :
-                  getPopupValue('panel_duyuru_tip') === 'success' ? 'bg-green-50 border-green-100 text-green-800' :
-                    getPopupValue('panel_duyuru_tip') === 'warning' ? 'bg-orange-50 border-orange-100 text-orange-800' :
-                      'bg-red-50 border-red-100 text-red-800'
+                getPopupValue('panel_duyuru_tip') === 'success' ? 'bg-green-50 border-green-100 text-green-800' :
+                  getPopupValue('panel_duyuru_tip') === 'warning' ? 'bg-orange-50 border-orange-100 text-orange-800' :
+                    'bg-red-50 border-red-100 text-red-800'
                 }`}>
                 <h5 className="font-black flex items-center gap-2">
                   <InformationCircleIcon className="w-5 h-5" />
@@ -349,11 +344,7 @@ export default function Duyurular() {
                 </p>
               </div>
             </div>
-            <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100 space-y-2">
-              <InformationCircleIcon className="w-6 h-6 text-orange-600" />
-              <h6 className="font-black text-orange-800 uppercase tracking-widest text-[10px]">Bilgi</h6>
-              <p className="text-xs text-orange-700 leading-relaxed font-medium">Panel içi duyurular, kullanıcılar giriş yaptıktan sonra <b>Dashboard</b> sayfasında en tepede sabit olarak görünecektir.</p>
-            </div>
+
           </div>
         </div>
       )}

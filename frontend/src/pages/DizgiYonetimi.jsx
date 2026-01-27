@@ -18,8 +18,7 @@ import {
   PhotoIcon,
   DocumentArrowUpIcon,
   BeakerIcon,
-  SparklesIcon,
-  InformationCircleIcon
+  SparklesIcon
 } from '@heroicons/react/24/outline';
 
 export default function DizgiYonetimi() {
@@ -453,14 +452,7 @@ export default function DizgiYonetimi() {
         </div>
       )}
 
-      {/* INFO FOOTER */}
-      <div className="mx-4 bg-purple-50 p-8 rounded-[3rem] border border-purple-100 flex items-start gap-5">
-        <InformationCircleIcon className="w-8 h-8 text-purple-600 mt-1 flex-shrink-0" />
-        <div className="space-y-1">
-          <h6 className="text-[11px] font-black text-purple-900 uppercase tracking-[0.2em]">Dizgi Personeli Rehberi</h6>
-          <p className="text-sm text-purple-700 font-medium leading-relaxed italic pr-10">Soruları PNG formatına dönüştürürken 150-300 DPI aralığında ve şeffaf arka plan olmadan (tercihen beyaz) çıktı almanız önerilir. LaTeX formülleri içeren sorularda sembollerin okunabilirliğini manuel olarak kontrol ediniz.</p>
-        </div>
-      </div>
+
     </div>
   );
 }

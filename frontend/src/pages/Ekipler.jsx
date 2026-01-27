@@ -12,7 +12,6 @@ import {
   ArrowPathIcon,
   ChevronRightIcon,
   UserPlusIcon,
-  InformationCircleIcon,
   CloudArrowUpIcon
 } from '@heroicons/react/24/outline';
 
@@ -369,10 +368,7 @@ export default function Ekipler() {
                     </option>
                   ))}
                 </select>
-                <div className="mt-4 p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3 italic">
-                  <InformationCircleIcon className="w-5 h-5 text-amber-500 flex-shrink-0" />
-                  <p className="text-[10px] text-amber-700 font-bold uppercase leading-relaxed">Başka bir ekibe kayıtlı olan kullanıcıyı buraya eklerseniz, eski ekip kaydı silinip buraya transfer edilecektir.</p>
-                </div>
+
               </div>
               <div className="flex gap-4">
                 <button type="button" onClick={() => setShowAddMemberModal(false)} className="flex-1 px-4 py-4 bg-gray-100 text-gray-500 rounded-2xl text-[10px] font-black uppercase tracking-widest">İptal</button>

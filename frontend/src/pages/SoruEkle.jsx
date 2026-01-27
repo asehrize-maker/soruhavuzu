@@ -15,7 +15,6 @@ import {
   DevicePhoneMobileIcon,
   CheckBadgeIcon,
   ArrowRightIcon,
-  InformationCircleIcon,
   ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import EditableBlock from '../components/EditableBlock';
@@ -284,11 +283,7 @@ export default function SoruEkle() {
             </div>
           </div>
 
-          <div className="bg-blue-50 p-8 rounded-[3rem] border border-blue-100 space-y-3">
-            <InformationCircleIcon className="w-8 h-8 text-blue-600" />
-            <h5 className="text-xs font-black text-blue-900 uppercase tracking-widest">Dizgi Kuralı</h5>
-            <p className="text-sm text-blue-700 font-medium italic leading-relaxed">Sistem MEB standartlarına göre otomatik sola yaslı ve tirelemesiz (hyphens: none) çıktı üretir.</p>
-          </div>
+
         </div>
 
         {/* CENTER EDITOR */}
@@ -367,7 +362,7 @@ export default function SoruEkle() {
                 <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3">
                   <SparklesIcon className="w-6 h-6 text-amber-500" /> Soru Künyesi ve Ayarlar
                 </h3>
-                <div className="px-5 py-2 bg-gray-50 rounded-2xl text-[10px] font-black text-gray-400 uppercase tracking-widest">Metadata</div>
+
               </div>
               <div className="p-4">
                 <MetadataForm

@@ -5,7 +5,6 @@ import {
     CircleStackIcon,
     ComputerDesktopIcon,
     ClockIcon,
-    InformationCircleIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
     MagnifyingGlassIcon
@@ -217,13 +216,7 @@ export default function Logs() {
                 )}
             </div>
 
-            <div className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100 flex items-start gap-4">
-                <InformationCircleIcon className="w-6 h-6 text-blue-600 mt-1 flex-shrink-0" />
-                <div className="space-y-1">
-                    <h6 className="text-xs font-black text-blue-900 uppercase tracking-widest">Veri Politikası</h6>
-                    <p className="text-sm text-blue-700 font-medium leading-relaxed italic">Sistemdeki tüm hareketler 6698 sayılı KVKK kapsamında denetim amacıyla kayıt altına alınmaktadır. Silme işlemleri fiziksel olarak yapılamaz, sadece pasife alınabilir.</p>
-                </div>
-            </div>
+
         </div>
     );
 }

@@ -7,7 +7,6 @@ import {
     XCircleIcon,
     DocumentTextIcon,
     ClockIcon,
-    InformationCircleIcon,
     EyeIcon
 } from '@heroicons/react/24/outline';
 
@@ -149,12 +148,7 @@ export default function Ajanda() {
                 )}
             </div>
 
-            <div className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100 flex items-center gap-4 mx-4">
-                <InformationCircleIcon className="w-6 h-6 text-blue-600" />
-                <p className="text-xs text-blue-800 font-medium">
-                    <span className="font-black">BİLGİ:</span> Yeşil işaretli branşlar, deneme sınavını tam olarak planlanan tarihte sisteme yüklemiştir. Kırmızı işaretli olanlar, tarihi geçirmiş veya yükleme yapmamıştır.
-                </p>
-            </div>
+
         </div>
     );
 }

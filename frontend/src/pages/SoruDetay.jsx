@@ -25,7 +25,6 @@ import {
   FlagIcon,
   PaintBrushIcon,
   MagnifyingGlassPlusIcon,
-  InformationCircleIcon,
   XMarkIcon,
   PlusIcon,
   ChatBubbleLeftRightIcon,
@@ -734,7 +733,7 @@ export default function SoruDetay() {
                   <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3">
                     <SparklesIcon className="w-6 h-6 text-amber-500" /> Soru Künyesi ve Ayarlar
                   </h3>
-                  <div className="px-5 py-2 bg-gray-50 rounded-2xl text-[10px] font-black text-gray-400 uppercase tracking-widest">Metadata</div>
+
                 </div>
                 <div className="p-4">
                   <MetadataForm
@@ -826,40 +825,7 @@ export default function SoruDetay() {
               </div>
             )}
 
-            {!editMode && soru.final_png_url && canReview && (
-              <div className="bg-gray-50/80 border-b border-gray-100 p-6 flex flex-col xl:flex-row items-center justify-between px-10 gap-6">
-                <div className="flex items-center gap-5 flex-1">
-                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-50 shrink-0">
-                    <InformationCircleIcon className="w-7 h-7" />
-                  </div>
-                  <div>
-                    <h4 className="text-[10px] font-black text-indigo-900 uppercase tracking-[0.2em] mb-1">İnceleme Araçları</h4>
-                    <p className="text-sm font-bold text-gray-500 max-w-2xl leading-relaxed">
-                      Lütfen dizgi üzerindeki hataları <span className="text-indigo-600 font-extrabold px-1.5 py-0.5 bg-indigo-50 rounded-lg">KUTU</span> veya <span className="text-indigo-600 font-extrabold px-1.5 py-0.5 bg-indigo-50 rounded-lg">ÇİZGİ</span> araçlarıyla işaretleyip notunuzu ekleyiniz.
-                    </p>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-4 bg-white p-2 rounded-3xl border border-gray-200 shadow-xl">
-                  <div className="flex gap-1.5">
-                    <button
-                      onClick={() => setDrawTool('box')}
-                      className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl transition-all ${drawTool === 'box' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'}`}
-                    >
-                      <StopIcon className="w-6 h-6" strokeWidth={2.5} />
-                      <span className="text-xs font-black uppercase tracking-widest pt-0.5">KUTU</span>
-                    </button>
-                    <button
-                      onClick={() => setDrawTool('line')}
-                      className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl transition-all ${drawTool === 'line' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'}`}
-                    >
-                      <MinusIcon className="w-6 h-6" strokeWidth={2.5} />
-                      <span className="text-xs font-black uppercase tracking-widest pt-0.5">ÇİZGİ</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
 
             <div className="p-12 xl:p-16 flex justify-center bg-gray-50/20 min-h-[600px]">
               {(viewMode === 'image' || (viewMode === 'auto' && soru.final_png_url && !editMode)) ? (

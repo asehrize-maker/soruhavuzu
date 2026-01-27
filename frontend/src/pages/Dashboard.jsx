@@ -12,6 +12,7 @@ import {
   BookOpenIcon,
   PencilSquareIcon,
   InformationCircleIcon,
+  XMarkIcon,
   MegaphoneIcon
 } from '@heroicons/react/24/outline';
 
@@ -304,7 +305,7 @@ export default function Dashboard() {
             onClick={() => setPanelConfig(prev => ({ ...prev, panel_duyuru_aktif: 'false' }))}
             className="p-2 hover:bg-black/5 rounded-xl transition-colors"
           >
-            <InformationCircleIcon className="w-5 h-5 opacity-40" />
+            <XMarkIcon className="w-5 h-5 opacity-40" />
           </button>
         </div>
       )}
