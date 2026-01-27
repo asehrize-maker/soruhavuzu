@@ -242,6 +242,36 @@ export default function SoruDetay() {
       });
     }
     element.innerHTML = html;
+
+    // OTOMATİK GÖRSEL BOYUTLANDIRMA (Backend stili silerse veya stil yoksa)
+    const images = element.querySelectorAll('img');
+    images.forEach(img => {
+      const adjustSize = () => {
+        // Eğer görselin parent'ında (div.q-img) bir genişlik kısıtlaması yoksa
+        const parentWidth = img.parentElement?.style?.width;
+        const hasParentConstraint = parentWidth && parentWidth !== '100%';
+
+        if (!hasParentConstraint) {
+          // Dikey görselleri sınırla
+          if (img.naturalHeight > img.naturalWidth * 1.2) {
+            img.style.width = 'auto'; // Width'i serbest bırak
+            img.style.maxWidth = '40%'; // Max genişlik ver
+            img.style.height = 'auto';
+            img.style.display = 'block';
+            img.style.margin = '12px auto';
+          }
+          // Aşırı yatay değilse ama yine de büyükse (karemsi)
+          else if (img.naturalHeight > img.naturalWidth * 0.8) {
+            img.style.maxWidth = '60%';
+            img.style.display = 'block';
+            img.style.margin = '12px auto';
+          }
+        }
+      };
+
+      if (img.complete) adjustSize();
+      else img.onload = adjustSize;
+    });
   };
 
   const loadSoru = async () => {
