@@ -140,14 +140,14 @@ export default function SoruDetay() {
     return null;
   }, [incelemeTuru, effectiveRole, authUser, rawRole]);
 
+  const [soru, setSoru] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   const isAdmin = effectiveRole === 'admin';
   const isOwner = soru?.olusturan_kullanici_id == user?.id;
   const isBranchTeacher = user?.rol === 'soru_yazici' && user?.brans_id === soru?.brans_id;
   const hasFullAccess = isAdmin || isOwner || isBranchTeacher;
   const canReview = (isAdmin || (effectiveRole === 'incelemeci' && !!effectiveIncelemeTuru)) && soru?.durum !== 'tamamlandi';
-
-  const [soru, setSoru] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [dizgiNotu, setDizgiNotu] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
