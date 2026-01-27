@@ -445,7 +445,7 @@ export default function DizgiYonetimi() {
               <div className="flex gap-4">
                 <button onClick={() => setShowCompleteModal(false)} className="flex-1 py-5 rounded-3xl text-[11px] font-black text-gray-400 uppercase tracking-widest hover:bg-gray-50 transition-colors">İPTAL</button>
                 <button onClick={handleDizgiTamamla} className="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white rounded-3xl py-5 font-black text-sm uppercase tracking-[0.1em] transition-all shadow-xl shadow-emerald-100 active:scale-95 flex items-center justify-center gap-2">
-                  GÖREVİ HAVUZA GÖNDER
+                  GÖREVİ SİSTEME GÖNDER
                 </button>
               </div>
             </div>

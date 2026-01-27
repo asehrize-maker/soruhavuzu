@@ -147,7 +147,7 @@ export default function Login() {
 
         <div className="text-center">
           <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">
-            {config?.footer_metni || '© 2026 SORU HAVUZU SİSTEMİ'}
+            {config?.footer_metni || '© 2026 SORU SİSTEMİ'}
           </p>
         </div>
       </div>

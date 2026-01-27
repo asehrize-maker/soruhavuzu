@@ -784,7 +784,7 @@ export default function SoruDetay() {
                   {['beklemede', 'revize_istendi', 'revize_gerekli', 'inceleme_bekliyor', 'incelemede', 'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi'].includes(soru.durum) && <button onClick={() => handleUpdateStatus('dizgi_bekliyor', 'Dizgiye gönderilsin mi?')} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-purple-100 transition-all">🚀 DİZGİYE GÖNDER</button>}
                   {(soru.durum === 'dizgi_tamam' || (soru.durum === 'dil_onaylandi' && !soru.onay_alanci)) && <button onClick={() => handleUpdateStatus('alan_incelemede')} className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">🔍 ALAN İNCELEME</button>}
                   {(soru.durum === 'alan_onaylandi' || (soru.durum === 'dizgi_tamam' && soru.onay_alanci && !soru.onay_dilci)) && <button onClick={() => handleUpdateStatus('dil_incelemede')} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">🔤 DİL İNCELEME</button>}
-                  {(soru.durum === 'dizgi_tamam' || (soru.durum === 'dil_onaylandi' && soru.onay_alanci)) && <button onClick={() => handleUpdateStatus('tamamlandi', 'Ortak Havuza aktarılsın mı?')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-100 transition-all">✅ HAVUZA AKTAR</button>}
+                  {(soru.durum === 'dizgi_tamam' || (soru.durum === 'dil_onaylandi' && soru.onay_alanci)) && <button onClick={() => handleUpdateStatus('tamamlandi', 'Soruyu tamamlanan sorulara aktarmak istediğinize emin misiniz?')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-100 transition-all">✅ TAMAMLANANLARA AKTAR</button>}
                 </div>
               )}
               {effectiveRole === 'dizgici' && (soru.durum === 'dizgi_bekliyor' || soru.durum === 'revize_istendi') && <button onClick={handleDizgiAl} className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">🚀 DİZGİYE BAŞLA</button>}
@@ -1219,7 +1219,7 @@ export default function SoruDetay() {
                 <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${soru.durum === 'tamamlandi' ? 'bg-emerald-500 ring-emerald-100' : 'bg-gray-300 ring-gray-100'}`}></div>
                 <div className="space-y-0.5">
                   <p className={`text-[10px] font-black uppercase tracking-widest ${soru.durum === 'tamamlandi' ? 'text-emerald-600' : 'text-gray-400'}`}>
-                    {soru.durum === 'tamamlandi' ? 'ORTAK HAVUZDA ✓' : 'ORTAK HAVUZ'}
+                    {soru.durum === 'tamamlandi' ? 'TAMAMLANDI ✓' : 'İŞLEMDE'}
                   </p>
                   <p className="text-[11px] font-bold text-gray-500">{soru.durum === 'tamamlandi' ? 'Tüm süreçler tamamlandı' : 'Son aşama'}</p>
                 </div>

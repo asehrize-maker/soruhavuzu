@@ -226,7 +226,7 @@ export default function Sorular({ scope }) {
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2">{brans.ekip_adi}</p>
 
                 <div className="mt-8 flex items-center gap-2 text-blue-600 font-black text-[10px] uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 group-hover:translate-y-0 translate-y-2 transition-all">
-                  HAVUZA GİRİŞ YAP <ChevronRightIcon className="w-4 h-4" strokeWidth={3} />
+                  BİRİME GİRİŞ YAP <ChevronRightIcon className="w-4 h-4" strokeWidth={3} />
                 </div>
               </button>
             ))}

@@ -231,7 +231,7 @@ export default function SoruEkle() {
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/sorular')} className="px-6 py-2.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">İPTAL VE ÇIKIŞ</button>
           <button onClick={handleSave} className="flex items-center gap-2 px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-500/20 transition-all active:scale-95">
-            <CheckBadgeIcon className="w-5 h-5" /> HAVUZA KAYDET
+            <CheckBadgeIcon className="w-5 h-5" /> SİSTEME KAYDET
           </button>
         </div>
       </div>
