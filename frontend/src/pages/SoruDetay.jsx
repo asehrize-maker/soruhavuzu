@@ -243,40 +243,40 @@ export default function SoruDetay() {
     }
     element.innerHTML = html;
 
-    // GÖRSEL SETUP VE KORUMALI BOYUTLANDIRMA
+    // GÖRSEL OPTİMİZASYONU - KESİN OKUNABİLİRLİK MODU
     const images = element.querySelectorAll('img');
     images.forEach(img => {
-      // 1. Tıklama özelliği (Zoom)
+      // 1. Zoom özelliği
       img.style.cursor = 'zoom-in';
       img.onclick = () => window.open(img.src, '_blank');
-      img.title = "Orijinal boyutta görmek için tıklayın";
+      img.title = "Büyütmek için tıklayın";
 
-      // 2. Responsive Koruması: Asla taşmasın
-      // Mevcut width değerini (varsa) KORU. Eczemek yerine max-width ile sınırla.
-      img.style.maxWidth = '100%';
-      img.style.height = 'auto';
+      // 2. Temel Responsive Ayarları
       img.style.display = 'block';
-      img.style.margin = '16px auto';
+      img.style.margin = '20px auto';
+      img.style.height = 'auto';
+      img.style.maxWidth = '100%'; // Mobilde taşmayı önle
 
-      // 3. Eğer inline width YOKSA, akıllı bir varsayılan ata
-      // (Kullanıcı Soru Ekle'de boyut ayarladıysa o geçerli olsun)
-      const hasInlineWidth = img.style.width && img.style.width !== '' && img.style.width !== 'auto';
+      const optimizeReadability = () => {
+        if (img.naturalWidth === 0) return;
+        const isPortrait = img.naturalHeight > img.naturalWidth;
 
-      if (!hasInlineWidth) {
-        const optimizeSize = () => {
-          if (img.naturalWidth === 0) return;
-          const isPortrait = img.naturalHeight > img.naturalWidth;
+        // 3. Okunabilirlik için SABİT GENİŞLİK zorlaması
+        // Veritabanından gelen %40, %50 gibi değerleri yoksayıyoruz.
+        // Amacımız kullanıcının metni rahatça okuyabilmesi.
 
-          if (isPortrait) {
-            img.style.width = '50%'; // Varsayılan dikey genişlik
-          } else {
-            img.style.width = '85%'; // Varsayılan yatay genişlik
-          }
-        };
+        if (isPortrait) {
+          // Dikey görseller (A4) için ideal okuma genişliği: ~660px
+          // Bu genişlik, ortalama bir laptop/tablet ekranında belgeyi tam boy gösterir.
+          img.style.width = '660px';
+        } else {
+          // Yatay görseller (Harita, tablo) için daha geniş alan: ~900px
+          img.style.width = '900px';
+        }
+      };
 
-        if (img.complete) optimizeSize();
-        else img.onload = optimizeSize;
-      }
+      if (img.complete) optimizeReadability();
+      else img.onload = optimizeReadability;
     });
   };
 
