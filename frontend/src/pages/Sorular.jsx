@@ -114,7 +114,7 @@ export default function Sorular({ scope }) {
   };
 
   const handleOrtakHavuzaGonder = async (id) => {
-    if (!window.confirm('Bu soruyu ortak havuza aktarmak istediğinize emin misiniz?')) return;
+    if (!window.confirm('Bu soruyu tamamlanan sorulara aktarmak istediğinize emin misiniz?')) return;
     try {
       setLoading(true);
       await soruAPI.updateDurum(id, { yeni_durum: 'tamamlandi' });
@@ -124,7 +124,7 @@ export default function Sorular({ scope }) {
         durum: filters.durum || undefined
       });
       setSorular(response.data.data || []);
-      alert('Soru başarıyla ortak havuza aktarıldı.');
+      alert('Soru başarıyla tamamlanan sorulara aktarılmışır.');
     } catch (error) {
       alert('Hata: ' + (error.response?.data?.error || error.message));
     } finally {
@@ -250,7 +250,7 @@ export default function Sorular({ scope }) {
             <div className="flex flex-col">
               <h1 className="text-4xl font-black text-gray-900 tracking-tight flex items-center gap-3">
                 {isTakipModu ? <ArrowPathIcon className="w-10 h-10 text-amber-500" /> : <InboxIcon className="w-10 h-10 text-blue-600" />}
-                {isTakipModu ? 'Bekleyen İş Takibi' : (scope === 'brans' ? 'Branş Havuzu' : 'Ortak Soru Havuzu')}
+                {isTakipModu ? 'Bekleyen İş Takibi' : (scope === 'brans' ? 'Tamamlanmayan Sorular' : 'Tamamlanan Sorular')}
               </h1>
               {user?.rol === 'admin' && filters.brans_id && (
                 <p className="text-indigo-600 font-black text-xs uppercase tracking-[0.2em] mt-1 flex items-center gap-2">
@@ -469,7 +469,7 @@ export default function Sorular({ scope }) {
                           )}
                           {soru.durum === 'dil_onaylandi' && (
                             <button onClick={() => handleOrtakHavuzaGonder(soru.id)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-emerald-100 flex items-center gap-2 active:scale-95">
-                              <ArchiveBoxArrowDownIcon className="w-4 h-4" strokeWidth={2.5} /> ORTAK HAVUZA AKTAR
+                              <ArchiveBoxArrowDownIcon className="w-4 h-4" strokeWidth={2.5} /> TAMAMLANANLARA AKTAR
                             </button>
                           )}
                         </div>

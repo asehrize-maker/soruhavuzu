@@ -341,7 +341,7 @@ export default function Dashboard() {
                 <p className="text-2xl font-black text-orange-700">{(parseInt(detayliStats?.genel?.dizgi_bekliyor) || 0) + (parseInt(detayliStats?.genel?.dizgide) || 0)}</p>
               </Link>
               <Link to="/sorular?durum=tamamlandi" className="p-4 bg-green-50 rounded-xl border border-green-200 hover:border-green-400 transition group">
-                <p className="text-xs font-bold text-green-600">ORTAK HAVUZ</p>
+                <p className="text-xs font-bold text-green-600">TAMAMLANAN</p>
                 <p className="text-2xl font-black text-green-700">{detayliStats?.genel?.tamamlandi || 0}</p>
               </Link>
             </div>
@@ -527,7 +527,7 @@ export default function Dashboard() {
                   <BookOpenIcon className="w-8 h-8" />
                 </div>
                 <div className="text-center">
-                  <div className="text-xl">Branş Soru Havuzu</div>
+                  <div className="text-xl">Tamamlanmayan Sorular</div>
                   <p className="text-indigo-200 font-normal text-sm mt-1">Branşınızdaki tüm soruları yönetin</p>
                 </div>
               </Link>
