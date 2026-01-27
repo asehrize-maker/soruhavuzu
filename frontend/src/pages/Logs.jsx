@@ -100,7 +100,6 @@ export default function Logs() {
                                         <tr>
                                             <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Kullanıcı</th>
                                             <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Zaman Damgası</th>
-                                            <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Cihaz Bilgisi</th>
                                         </tr>
                                     ) : (
                                         <tr>
@@ -132,12 +131,9 @@ export default function Logs() {
                                                         {new Date(log.tarih).toLocaleDateString('tr-TR')} <span className="text-gray-300 font-medium">|</span> {new Date(log.tarih).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                                                     </div>
                                                 </td>
-                                                <td className="px-8 py-5 whitespace-nowrap text-[10px] font-bold text-gray-400 italic max-w-xs truncate">
-                                                    {log.user_agent}
-                                                </td>
                                             </tr>
                                         )) : (
-                                            <tr><td colSpan="3" className="p-20 text-center text-gray-300 font-bold uppercase tracking-widest text-xs italic">Kayıt Bulunamadı.</td></tr>
+                                            <tr><td colSpan="2" className="p-20 text-center text-gray-300 font-bold uppercase tracking-widest text-xs italic">Kayıt Bulunamadı.</td></tr>
                                         )
                                     ) : (
                                         paginatedLogs.length > 0 ? paginatedLogs.map((log) => (
