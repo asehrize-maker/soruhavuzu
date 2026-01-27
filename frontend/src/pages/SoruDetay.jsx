@@ -141,7 +141,7 @@ export default function SoruDetay() {
     return null;
   }, [incelemeTuru, effectiveRole, authUser, rawRole]);
 
-  const canReview = effectiveRole === 'admin' || (effectiveRole === 'incelemeci' && !!effectiveIncelemeTuru);
+  const canReview = (effectiveRole === 'admin' || (effectiveRole === 'incelemeci' && !!effectiveIncelemeTuru)) && soru?.durum !== 'tamamlandi';
 
   const [soru, setSoru] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -826,7 +826,7 @@ export default function SoruDetay() {
               </div>
             )}
 
-            {!editMode && soru.final_png_url && (
+            {!editMode && soru.final_png_url && canReview && (
               <div className="bg-gray-50/80 border-b border-gray-100 p-6 flex flex-col xl:flex-row items-center justify-between px-10 gap-6">
                 <div className="flex items-center gap-5 flex-1">
                   <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-50 shrink-0">
