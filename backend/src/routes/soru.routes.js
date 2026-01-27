@@ -138,7 +138,7 @@ router.get('/', authenticate, async (req, res, next) => {
     console.log('--- GET /sorular DEBUG ---');
     console.log('Query Params:', req.query);
     console.log('Auth User ID:', req.user?.id, 'Role:', req.user?.rol);
-    const { durum, brans_id, ekip_id, olusturan_id, scope } = req.query;
+    const { durum, brans_id, ekip_id, olusturan_id, scope, zorluk_seviyesi, search } = req.query;
 
     let query = `
       SELECT s.*, 
@@ -224,6 +224,17 @@ router.get('/', authenticate, async (req, res, next) => {
     if (olusturan_id) {
       query += ` AND s.olusturan_kullanici_id = $${paramCount++}`;
       params.push(olusturan_id);
+    }
+
+    if (zorluk_seviyesi) {
+      query += ` AND s.zorluk_seviyesi = $${paramCount++}`;
+      params.push(zorluk_seviyesi);
+    }
+
+    if (search) {
+      query += ` AND (s.soru_metni ILIKE $${paramCount} OR s.kazanim ILIKE $${paramCount} OR b.brans_adi ILIKE $${paramCount})`;
+      params.push(`%${search}%`);
+      paramCount++;
     }
 
     query += ' ORDER BY s.olusturulma_tarihi DESC';

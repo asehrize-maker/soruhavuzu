@@ -39,6 +39,8 @@ export default function Sorular({ scope }) {
   const [filters, setFilters] = useState({
     durum: urlDurum || ((user?.rol === 'admin' && !isTakipModu) ? '' : (isTakipModu ? '' : (scope === 'brans' ? '' : 'tamamlandi'))),
     brans_id: '',
+    zorluk_seviyesi: '',
+    search: '',
   });
 
   useEffect(() => {
@@ -54,7 +56,6 @@ export default function Sorular({ scope }) {
   useEffect(() => {
     if (!user) return;
     const loadBranslar = async () => {
-      if (user.rol !== 'admin') return;
       try {
         const response = await bransAPI.getAll();
         setBranslar(response.data.data || []);
@@ -63,7 +64,7 @@ export default function Sorular({ scope }) {
       }
     };
     loadBranslar();
-  }, [user?.id, user?.rol]);
+  }, [user?.id]);
 
   const loadSorular = async () => {
     if (!user) return;
@@ -72,6 +73,8 @@ export default function Sorular({ scope }) {
       const params = {
         durum: filters.durum || undefined,
         brans_id: filters.brans_id || undefined,
+        zorluk_seviyesi: filters.zorluk_seviyesi || undefined,
+        search: filters.search || undefined,
         scope: scope || undefined
       };
       const response = await soruAPI.getAll(params);
@@ -100,7 +103,7 @@ export default function Sorular({ scope }) {
 
   useEffect(() => {
     loadSorular();
-  }, [user?.id, effectiveRole, filters.durum, filters.brans_id, scope, activeTab]);
+  }, [user?.id, effectiveRole, filters, scope, activeTab]);
 
   const handleSil = async (id) => {
     if (window.confirm('Bu soruyu kalıcı olarak silmek istediğinize emin misiniz?')) {
@@ -300,21 +303,35 @@ export default function Sorular({ scope }) {
             </select>
           </div>
 
-          {user?.rol === 'admin' && (
-            <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
-              <Squares2X2Icon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
-              <select
-                value={filters.brans_id}
-                onChange={(e) => setFilters({ ...filters, brans_id: e.target.value })}
-                className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
-              >
-                <option value="">TÜM BRANŞLAR</option>
-                {branslar.map((brans) => (
-                  <option key={brans.id} value={brans.id}>{brans.brans_adi}</option>
-                ))}
-              </select>
-            </div>
-          )}
+          <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
+            <Squares2X2Icon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
+            <select
+              value={filters.brans_id}
+              onChange={(e) => setFilters({ ...filters, brans_id: e.target.value })}
+              className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
+            >
+              <option value="">TÜM BRANŞLAR</option>
+              {branslar.map((brans) => (
+                <option key={brans.id} value={brans.id}>{brans.brans_adi}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
+            <SparklesIcon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
+            <select
+              value={filters.zorluk_seviyesi}
+              onChange={(e) => setFilters({ ...filters, zorluk_seviyesi: e.target.value })}
+              className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
+            >
+              <option value="">TÜM ZORLUKLAR</option>
+              <option value="1">⭐ ÇOK KOLAY (1)</option>
+              <option value="2">⭐⭐ KOLAY (2)</option>
+              <option value="3">⭐⭐⭐ ORTA (3)</option>
+              <option value="4">⭐⭐⭐⭐ ZOR (4)</option>
+              <option value="5">🔥🔥🔥 ÇOK ZOR (5)</option>
+            </select>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -335,7 +352,12 @@ export default function Sorular({ scope }) {
           )}
           <div className="relative">
             <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" strokeWidth={3} />
-            <input placeholder="SORU ARA..." className="bg-gray-50 border-none rounded-2xl pl-12 pr-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] outline-none focus:ring-4 focus:ring-blue-500/10 transition-all w-[180px]" />
+            <input
+              placeholder="SORU ARA..."
+              value={filters.search}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              className="bg-gray-50 border-none rounded-2xl pl-12 pr-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] outline-none focus:ring-4 focus:ring-blue-500/10 transition-all w-[180px]"
+            />
           </div>
         </div>
       </div>
