@@ -408,10 +408,6 @@ export default function SoruEkle() {
               </button>
             </div>
 
-            <div className="mt-8 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 text-center">
-              <InformationCircleIcon className="w-6 h-6 text-blue-400 mx-auto mb-2" />
-              <p className="text-[10px] text-blue-800 font-bold leading-tight">Şıklar otomatik olarak A, B, C, D şeklinde sıralanır.</p>
-            </div>
           </div>
         </div>
       </div>
