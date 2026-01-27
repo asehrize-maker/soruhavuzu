@@ -96,7 +96,7 @@ export default function Branslar() {
   };
 
   const downloadTemplate = () => {
-    const csvContent = "\uFEFFkod;aciklama\nKZN.01;Birinci kazanım açıklaması buraya gelecek\nKZN.02;İkinci kazanım bilgisi örneği";
+    const csvContent = "\uFEFFkazanim\nKZN.01 Birinci kazanım açıklaması buraya gelecek\nKZN.02 İkinci kazanım bilgisi örneği";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
