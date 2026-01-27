@@ -243,40 +243,22 @@ export default function SoruDetay() {
     }
     element.innerHTML = html;
 
-    // GÖRSEL OPTİMİZASYONU - KESİN OKUNABİLİRLİK MODU
+    // GÖRSEL SETUP: SADECE ZOOM VE RESPONSIVE KORUMA
+    // (Boyutlandırma mantığını kaldırdık, çünkü container genişliği ile yöneteceğiz)
     const images = element.querySelectorAll('img');
     images.forEach(img => {
-      // 1. Zoom özelliği
+      // Zoom
       img.style.cursor = 'zoom-in';
       img.onclick = () => window.open(img.src, '_blank');
       img.title = "Büyütmek için tıklayın";
 
-      // 2. Temel Responsive Ayarları
-      img.style.display = 'block';
-      img.style.margin = '20px auto';
+      // Sadece taşmayı önle, kullanıcının ayarını (width: 50% vs) bozma
+      img.style.maxWidth = '100%';
       img.style.height = 'auto';
-      img.style.maxWidth = '100%'; // Mobilde taşmayı önle
+      img.style.display = 'block';
 
-      const optimizeReadability = () => {
-        if (img.naturalWidth === 0) return;
-        const isPortrait = img.naturalHeight > img.naturalWidth;
-
-        // 3. Okunabilirlik için SABİT GENİŞLİK zorlaması
-        // Veritabanından gelen %40, %50 gibi değerleri yoksayıyoruz.
-        // Amacımız kullanıcının metni rahatça okuyabilmesi.
-
-        if (isPortrait) {
-          // Dikey görseller (A4) için ideal okuma genişliği: ~660px
-          // Bu genişlik, ortalama bir laptop/tablet ekranında belgeyi tam boy gösterir.
-          img.style.width = '660px';
-        } else {
-          // Yatay görseller (Harita, tablo) için daha geniş alan: ~900px
-          img.style.width = '900px';
-        }
-      };
-
-      if (img.complete) optimizeReadability();
-      else img.onload = optimizeReadability;
+      // Eğer kullanıcı ortala demişse (margin auto) veya dememişse biz hafif margin verelim
+      if (!img.style.margin) img.style.margin = '16px auto';
     });
   };
 
@@ -902,7 +884,7 @@ export default function SoruDetay() {
                       ))}
                     </div>
                   ) : (
-                    <div className="prose max-w-none" style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}>
+                    <div className="prose max-w-[185mm] mx-auto w-full" style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}>
                       <div ref={soruMetniRef} className="text-gray-900 katex-left-align q-preview-container select-text" onMouseUp={handleTextSelection} />
                     </div>
                   )}
