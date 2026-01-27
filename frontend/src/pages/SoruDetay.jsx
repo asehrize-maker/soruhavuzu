@@ -34,7 +34,11 @@ import {
   ArrowPathIcon,
   DevicePhoneMobileIcon,
   DeviceTabletIcon,
-  Squares2X2Icon
+  DeviceTabletIcon,
+  Squares2X2Icon,
+  CursorArrowRaysIcon,
+  StopIcon,
+  MinusIcon
 } from '@heroicons/react/24/outline';
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
@@ -168,7 +172,12 @@ export default function SoruDetay() {
   const [selectedText, setSelectedText] = useState('');
   const [revizeNotuInput, setRevizeNotuInput] = useState('');
   const [revizeNotlari, setRevizeNotlari] = useState([]);
-  const [selectedImagePoint, setSelectedImagePoint] = useState(null); // {x, y} percentage
+
+  // Annotation State
+  const [selectedAnnotation, setSelectedAnnotation] = useState(null); // { type: 'point'|'box'|'line', ...coords }
+  const [drawTool, setDrawTool] = useState('cursor'); // 'cursor', 'box', 'line'
+  const [drawingShape, setDrawingShape] = useState(null); // { type, startX, startY, currentX, currentY }
+
   const [viewMode, setViewMode] = useState('auto'); // 'auto', 'text', 'image'
 
   useEffect(() => {
@@ -319,7 +328,7 @@ export default function SoruDetay() {
     const text = selection.toString().trim();
     if (text) {
       setSelectedText(text);
-      setSelectedImagePoint(null);
+      setSelectedAnnotation(null);
     }
   };
 
@@ -346,13 +355,54 @@ export default function SoruDetay() {
     }
   };
 
-  const handleImageClick = (e) => {
+  const handleImageMouseDown = (e) => {
     if (!canReview) return;
+    // Prevent default to avoid dragging the image itself
+    e.preventDefault();
+
+    // Use currentTarget to ensure we get the container's rect
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    setSelectedImagePoint({ x, y });
-    setSelectedText(''); // Clear text selection if any
+
+    if (drawTool === 'cursor') {
+      setSelectedAnnotation({ type: 'point', x, y });
+      setSelectedText(''); // Clear text selection if any
+    } else {
+      setDrawingShape({ type: drawTool, startX: x, startY: y, currentX: x, currentY: y });
+      setSelectedAnnotation(null);
+      setSelectedText('');
+    }
+  };
+
+  const handleImageMouseMove = (e) => {
+    if (!drawingShape) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    setDrawingShape(prev => ({ ...prev, currentX: x, currentY: y }));
+  };
+
+  const handleImageMouseUp = () => {
+    if (!drawingShape) return;
+    const { type, startX, startY, currentX, currentY } = drawingShape;
+
+    // Minimal movement check to avoid accidental tiny shapes
+    if (Math.abs(currentX - startX) < 1 && Math.abs(currentY - startY) < 1) {
+      setDrawingShape(null);
+      return;
+    }
+
+    if (type === 'box') {
+      const x = Math.min(startX, currentX);
+      const y = Math.min(startY, currentY);
+      const w = Math.abs(currentX - startX);
+      const h = Math.abs(currentY - startY);
+      setSelectedAnnotation({ type: 'box', x, y, w, h });
+    } else if (type === 'line') {
+      setSelectedAnnotation({ type: 'line', x1: startX, y1: startY, x2: currentX, y2: currentY });
+    }
+    setDrawingShape(null);
   };
 
   const handleAddRevizeNot = async () => {
@@ -361,8 +411,15 @@ export default function SoruDetay() {
       const type = incelemeTuru || (effectiveRole === 'incelemeci' ? effectiveIncelemeTuru : 'admin');
 
       let secilen_metin = selectedText;
-      if (selectedImagePoint) {
-        secilen_metin = `IMG##${selectedImagePoint.x.toFixed(2)},${selectedImagePoint.y.toFixed(2)}`;
+      if (selectedAnnotation) {
+        if (selectedAnnotation.type === 'box') {
+          secilen_metin = `IMG##BOX:${selectedAnnotation.x.toFixed(2)},${selectedAnnotation.y.toFixed(2)},${selectedAnnotation.w.toFixed(2)},${selectedAnnotation.h.toFixed(2)}`;
+        } else if (selectedAnnotation.type === 'line') {
+          secilen_metin = `IMG##LINE:${selectedAnnotation.x1.toFixed(2)},${selectedAnnotation.y1.toFixed(2)},${selectedAnnotation.x2.toFixed(2)},${selectedAnnotation.y2.toFixed(2)}`;
+        } else {
+          // Default to point
+          secilen_metin = `IMG##${selectedAnnotation.x.toFixed(2)},${selectedAnnotation.y.toFixed(2)}`;
+        }
       }
 
       await soruAPI.addRevizeNot(id, {
@@ -372,7 +429,7 @@ export default function SoruDetay() {
       });
       setRevizeNotuInput('');
       setSelectedText('');
-      setSelectedImagePoint(null);
+      setSelectedAnnotation(null);
       loadRevizeNotlari();
     } catch (e) { alert('Not eklenemedi'); }
   };
@@ -766,6 +823,11 @@ export default function SoruDetay() {
 
             {!editMode && soru.final_png_url && (
               <div className="absolute top-6 right-6 z-50 flex bg-white/90 backdrop-blur p-1 rounded-2xl border border-gray-100 shadow-xl">
+                <div className="flex bg-gray-100 rounded-xl p-0.5 mr-2">
+                  <button onClick={() => setDrawTool('cursor')} title="Nokta İşaretleyici" className={`p-2 rounded-lg transition-all ${drawTool === 'cursor' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}><CursorArrowRaysIcon className="w-4 h-4" /></button>
+                  <button onClick={() => setDrawTool('box')} title="Kutu Çiz" className={`p-2 rounded-lg transition-all ${drawTool === 'box' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}><StopIcon className="w-4 h-4" /></button>
+                  <button onClick={() => setDrawTool('line')} title="Çizgi Çiz" className={`p-2 rounded-lg transition-all ${drawTool === 'line' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}><MinusIcon className="w-4 h-4" /></button>
+                </div>
                 <button onClick={() => setViewMode('image')} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'image' || viewMode === 'auto' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-blue-500'}`}>
                   DİZGİ ÇIKTISI
                 </button>
@@ -777,58 +839,139 @@ export default function SoruDetay() {
 
             <div className="p-12 xl:p-16 flex justify-center bg-gray-50/20 min-h-[600px]">
               {(viewMode === 'image' || (viewMode === 'auto' && soru.final_png_url && !editMode)) ? (
-                <div className="relative inline-block shadow-2xl rounded-sm overflow-hidden group/img">
+                <div
+                  className="relative inline-block shadow-2xl rounded-sm overflow-hidden group/img select-none"
+                  onMouseDown={handleImageMouseDown}
+                  onMouseMove={handleImageMouseMove}
+                  onMouseUp={handleImageMouseUp}
+                  onMouseLeave={handleImageMouseUp}
+                >
                   <img
                     src={soru.final_png_url}
                     alt="Final Dizgi"
-                    onClick={handleImageClick}
-                    className={`max-w-full max-h-[80vh] object-contain ${canReview ? 'cursor-crosshair' : ''}`}
+                    className={`max-w-full max-h-[80vh] object-contain ${canReview ? (drawTool === 'cursor' ? 'cursor-crosshair' : 'cursor-cell') : ''}`}
+                    draggable={false}
                   />
                   {/* Markers */}
                   {revizeNotlari.map((not, i) => {
                     if (!not.secilen_metin?.startsWith('IMG##')) return null;
-                    const [x, y] = not.secilen_metin.replace('IMG##', '').split(',').map(Number);
-                    if (isNaN(x) || isNaN(y)) return null;
-
+                    const meta = not.secilen_metin.replace('IMG##', '');
                     const colorClass = not.inceleme_turu === 'alanci' ? 'blue' : 'emerald';
                     const colorHex = not.inceleme_turu === 'alanci' ? '#2563eb' : '#059669';
 
+                    // Parse Shape
+                    let shape = { type: 'point', x: 0, y: 0 };
+                    if (meta.startsWith('BOX:')) {
+                      const [x, y, w, h] = meta.replace('BOX:', '').split(',').map(Number);
+                      shape = { type: 'box', x, y, w, h };
+                    } else if (meta.startsWith('LINE:')) {
+                      const [x1, y1, x2, y2] = meta.replace('LINE:', '').split(',').map(Number);
+                      shape = { type: 'line', x1, y1, x2, y2 };
+                    } else {
+                      const [x, y] = meta.split(',').map(Number);
+                      shape = { type: 'point', x, y };
+                    }
+
                     return (
-                      <div
-                        key={not.id}
-                        className="absolute w-12 h-12 -ml-6 -mt-6 flex items-center justify-center group/marker z-10 hover:z-30 transition-all"
-                        style={{ left: `${x}%`, top: `${y}%` }}
-                      >
-                        {/* Highlighter Pen Effect (Multiply Blend) */}
-                        <div className={`absolute inset-0 rounded-full bg-${colorClass}-400/30 mix-blend-multiply border border-${colorClass}-400/20 shadow-[0_0_10px_rgba(0,0,0,0.1)] transition-all group-hover/marker:bg-${colorClass}-400/50`}></div>
-
-                        {/* Ripple for Attention */}
-                        <div className={`absolute inset-0 rounded-full animate-ping opacity-20 bg-${colorClass}-400`} style={{ animationDuration: '3s' }}></div>
-
-                        {/* Number Badge - Positioned Top-Right (Off-Center) */}
-                        <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-full border border-white bg-${colorClass}-600 text-white shadow-md flex items-center justify-center text-[9px] font-black z-20 scale-90 group-hover/marker:scale-110 transition-transform`}>
-                          {i + 1}
-                        </div>
-
-                        {/* Tooltip */}
-                        <div className="opacity-0 group-hover/marker:opacity-100 absolute bottom-full mb-3 bg-gray-900/95 backdrop-blur-md text-white text-xs p-3 rounded-2xl whitespace-nowrap shadow-2xl transition-all translate-y-2 group-hover/marker:translate-y-0 pointer-events-none z-[100] border border-white/10">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className={`w-2 h-2 rounded-full bg-${colorClass}-400`}></span>
-                            <span className="font-black opacity-60 text-[9px] uppercase tracking-widest">{not.inceleme_turu} UZMANI</span>
+                      <div key={not.id} className="absolute inset-0 pointer-events-none">
+                        {/* RENDER SHAPE */}
+                        {shape.type === 'box' && (
+                          <div
+                            className={`absolute border-2 border-${colorClass}-500 bg-${colorClass}-500/10 hover:bg-${colorClass}-500/20 transition-colors z-10 pointer-events-auto`}
+                            style={{ left: `${shape.x}%`, top: `${shape.y}%`, width: `${shape.w}%`, height: `${shape.h}%` }}
+                          >
+                            <div className={`absolute -top-3 -right-3 w-6 h-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[10px] font-black shadow-sm`}>{i + 1}</div>
                           </div>
-                          <p className="font-bold leading-relaxed">{not.not_metni}</p>
-                          {/* Arrow */}
-                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900/95"></div>
-                        </div>
+                        )}
+                        {shape.type === 'line' && (
+                          <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
+                            <line
+                              x1={`${shape.x1}%`} y1={`${shape.y1}%`}
+                              x2={`${shape.x2}%`} y2={`${shape.y2}%`}
+                              stroke={colorHex}
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              className="drop-shadow-sm"
+                            />
+                            <circle cx={`${shape.x2}%`} cy={`${shape.y2}%`} r="3" fill={colorHex} />
+                            {/* Label at the end */}
+                            <foreignObject x={`${shape.x2}%`} y={`${shape.y2}%`} width="30" height="30" style={{ overflow: 'visible' }}>
+                              <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
+                            </foreignObject>
+                          </svg>
+                        )}
+                        {shape.type === 'point' && (
+                          <div
+                            className="absolute w-12 h-12 -ml-6 -mt-6 flex items-center justify-center group/marker z-10 hover:z-30 transition-all pointer-events-auto"
+                            style={{ left: `${shape.x}%`, top: `${shape.y}%` }}
+                          >
+                            <div className={`absolute inset-0 rounded-full bg-${colorClass}-400/30 mix-blend-multiply border border-${colorClass}-400/20 shadow-[0_0_10px_rgba(0,0,0,0.1)] transition-all group-hover/marker:bg-${colorClass}-400/50`}></div>
+                            <div className={`absolute inset-0 rounded-full animate-ping opacity-20 bg-${colorClass}-400`} style={{ animationDuration: '3s' }}></div>
+                            <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-full border border-white bg-${colorClass}-600 text-white shadow-md flex items-center justify-center text-[9px] font-black z-20 scale-90 group-hover/marker:scale-110 transition-transform`}>
+                              {i + 1}
+                            </div>
+                            {/* Tooltip */}
+                            <div className="opacity-0 group-hover/marker:opacity-100 absolute bottom-full mb-3 bg-gray-900/95 backdrop-blur-md text-white text-xs p-3 rounded-2xl whitespace-nowrap shadow-2xl transition-all translate-y-2 group-hover/marker:translate-y-0 pointer-events-none z-[100] border border-white/10">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={`w-2 h-2 rounded-full bg-${colorClass}-400`}></span>
+                                <span className="font-black opacity-60 text-[9px] uppercase tracking-widest">{not.inceleme_turu} UZMANI</span>
+                              </div>
+                              <p className="font-bold leading-relaxed">{not.not_metni}</p>
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900/95"></div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
-                  {/* Active Selection Point */}
-                  {selectedImagePoint && (
-                    <div
-                      className="absolute w-6 h-6 -ml-3 -mt-3 rounded-full border-2 border-white bg-rose-500 shadow-lg animate-pulse pointer-events-none z-20"
-                      style={{ left: `${selectedImagePoint.x}%`, top: `${selectedImagePoint.y}%` }}
-                    ></div>
+
+                  {/* Drawing Shape Preview */}
+                  {drawingShape && (
+                    <div className="absolute inset-0 pointer-events-none z-20">
+                      {drawingShape.type === 'box' && (
+                        <div className="absolute border-2 border-indigo-500 bg-indigo-500/20"
+                          style={{
+                            left: `${Math.min(drawingShape.startX, drawingShape.currentX)}%`,
+                            top: `${Math.min(drawingShape.startY, drawingShape.currentY)}%`,
+                            width: `${Math.abs(drawingShape.currentX - drawingShape.startX)}%`,
+                            height: `${Math.abs(drawingShape.currentY - drawingShape.startY)}%`
+                          }}
+                        ></div>
+                      )}
+                      {drawingShape.type === 'line' && (
+                        <svg className="absolute inset-0 w-full h-full">
+                          <line
+                            x1={`${drawingShape.startX}%`} y1={`${drawingShape.startY}%`}
+                            x2={`${drawingShape.currentX}%`} y2={`${drawingShape.currentY}%`}
+                            stroke="#6366f1" strokeWidth="3" strokeDasharray="5,5"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Active Selection */}
+                  {selectedAnnotation && (
+                    <div className="absolute inset-0 pointer-events-none z-20">
+                      {selectedAnnotation.type === 'point' && (
+                        <div className="absolute w-6 h-6 -ml-3 -mt-3 rounded-full border-2 border-white bg-rose-500 shadow-lg animate-pulse" style={{ left: `${selectedAnnotation.x}%`, top: `${selectedAnnotation.y}%` }}></div>
+                      )}
+                      {selectedAnnotation.type === 'box' && (
+                        <div className="absolute border-2 border-rose-500 bg-rose-500/20 animate-pulse"
+                          style={{ left: `${selectedAnnotation.x}%`, top: `${selectedAnnotation.y}%`, width: `${selectedAnnotation.w}%`, height: `${selectedAnnotation.h}%` }}>
+                        </div>
+                      )}
+                      {selectedAnnotation.type === 'line' && (
+                        <svg className="absolute inset-0 w-full h-full">
+                          <line
+                            x1={`${selectedAnnotation.x1}%`} y1={`${selectedAnnotation.y1}%`}
+                            x2={`${selectedAnnotation.x2}%`} y2={`${selectedAnnotation.y2}%`}
+                            stroke="#f43f5e" strokeWidth="3" className="animate-pulse"
+                          />
+                          <circle cx={`${selectedAnnotation.x2}%`} cy={`${selectedAnnotation.y2}%`} r="4" fill="#f43f5e" />
+                        </svg>
+                      )}
+                    </div>
                   )}
                 </div>
               ) : (
@@ -1065,19 +1208,23 @@ export default function SoruDetay() {
       </div>
 
       {/* FLOATING ANNOTATION UI */}
-      {(selectedText || selectedImagePoint) && canReview && (
+      {(selectedText || selectedAnnotation) && canReview && (
         <div className="fixed bottom-12 right-12 z-[100] w-[400px] bg-white rounded-[2.5rem] shadow-[0_30px_60px_-12px_rgba(0,0,0,0.25)] border border-gray-50 overflow-hidden animate-scale-up">
           <div className="p-6 bg-gray-900 text-white flex justify-between items-center px-8">
             <h5 className="font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-2"><PlusIcon className="w-4 h-4 text-rose-500" /> Yeni Revize Notu</h5>
-            <button onClick={() => { setSelectedText(''); setSelectedImagePoint(null); setRevizeNotuInput(''); }} className="hover:bg-white/10 p-2 rounded-xl transition-all"><XMarkIcon className="w-6 h-6" /></button>
+            <button onClick={() => { setSelectedText(''); setSelectedAnnotation(null); setRevizeNotuInput(''); }} className="hover:bg-white/10 p-2 rounded-xl transition-all"><XMarkIcon className="w-6 h-6" /></button>
           </div>
           <div className="p-8 space-y-6">
             <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-              <span className="text-[9px] font-black text-gray-400 uppercase block mb-1">SEÇİLEN {selectedImagePoint ? 'KONUM' : 'KESİT'}</span>
-              {selectedImagePoint ? (
+              <span className="text-[9px] font-black text-gray-400 uppercase block mb-1">SEÇİLEN {selectedAnnotation ? 'ALAN' : 'KESİT'}</span>
+              {selectedAnnotation ? (
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-rose-500 rounded-full animate-pulse"></div>
-                  <p className="text-xs font-bold text-gray-700">Görsel üzerinde işaretlenen nokta</p>
+                  <p className="text-xs font-bold text-gray-700">
+                    {selectedAnnotation.type === 'box' ? 'Görsel üzerinde işaretlenen alan (Kutu)' :
+                      selectedAnnotation.type === 'line' ? 'Görsel üzerinde işaretlenen çizgi' :
+                        'Görsel üzerinde işaretlenen nokta'}
+                  </p>
                 </div>
               ) : (
                 <p className="text-xs font-bold text-gray-700 line-clamp-2 italic">"{selectedText}"</p>
