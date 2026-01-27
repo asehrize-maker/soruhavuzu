@@ -92,12 +92,20 @@ router.get('/', authenticate, async (req, res, next) => {
         let query = `
       SELECT d.*, 
         (SELECT COUNT(*) FROM deneme_yuklemeleri dy WHERE dy.deneme_id = d.id) as toplam_yukleme
-      FROM deneme_takvimi d
-      WHERE d.aktif = true
-      ORDER BY d.planlanan_tarih DESC
     `;
 
-        const result = await pool.query(query);
+        const params = [];
+        // Eğer kullanıcının branşı varsa, o branşa ait son yüklemeyi de getir
+        if (req.user.brans_id) {
+            query += `, (SELECT dosya_url FROM deneme_yuklemeleri dy WHERE dy.deneme_id = d.id AND dy.brans_id = $1 ORDER BY dy.yukleme_tarihi DESC LIMIT 1) as my_upload_url`;
+            params.push(req.user.brans_id);
+        } else {
+            query += `, NULL as my_upload_url`;
+        }
+
+        query += ` FROM deneme_takvimi d WHERE d.aktif = true ORDER BY d.planlanan_tarih DESC`;
+
+        const result = await pool.query(query, params);
         res.json({ success: true, data: result.rows });
     } catch (error) {
         next(error);
