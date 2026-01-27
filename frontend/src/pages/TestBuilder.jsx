@@ -170,9 +170,7 @@ export default function TestBuilder() {
                                 </div>
 
                                 <div className="flex items-start gap-4">
-                                    <div className="flex flex-col items-center gap-1 shrink-0">
-                                        <span className="font-black text-lg bg-black text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg shadow-gray-200">{index + 1}</span>
-                                    </div>
+
 
                                     <div className="flex-1 space-y-5 overflow-hidden">
                                         {/* QUESTION TEXT - Proper HTML rendering */}

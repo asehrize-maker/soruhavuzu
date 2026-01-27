@@ -758,7 +758,7 @@ export default function SoruDetay() {
           </button>
           <div className="space-y-1">
             <div className="flex items-center gap-3">
-              <h1 className="text-4xl font-black text-gray-900 tracking-tight">{editMode ? 'Düzenleme Modu' : `Soru #${soru.id}`}</h1>
+              <h1 className="text-4xl font-black text-gray-900 tracking-tight">{editMode ? 'Düzenleme Modu' : 'Soru Detayı'}</h1>
               {getDurumBadge(soru.durum)}
             </div>
             <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px] flex items-center gap-2">

@@ -93,7 +93,6 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
                         }`}>
                         {['ÇOK KOLAY', 'KOLAY', 'ORTA', 'ZOR', 'ÇOK ZOR'][(zorluk || 0) - 1] || 'BELİRSİZ'}
                       </span>
-                      <span className="text-xs text-gray-400 font-mono">#{soru.id}</span>
                     </div>
                     <div className="text-gray-900 font-medium line-clamp-2 text-sm" dangerouslySetInnerHTML={{ __html: soru.soru_metni?.substring(0, 150) }} />
                   </div>

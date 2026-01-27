@@ -158,7 +158,7 @@ export default function DizgiYonetimi() {
       <div className="flex justify-between items-start relative z-10">
         <div className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest ${selectedSoru?.id === soru.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'
           }`}>
-          Soru #{soru.id}
+          SORU
         </div>
         <div className={`text-[10px] font-black uppercase tracking-tighter ${selectedSoru?.id === soru.id ? 'text-blue-100' : 'text-blue-600'
           }`}>
@@ -281,7 +281,7 @@ export default function DizgiYonetimi() {
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 border-b border-gray-50 pb-8">
                     <div>
                       <div className="flex items-center gap-3 mb-2">
-                        <h2 className="text-3xl font-black text-gray-900 tracking-tight">Soru #{selectedSoru.id}</h2>
+                        <h2 className="text-3xl font-black text-gray-900 tracking-tight">Soru Detayı</h2>
                         <div className={`px-4 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border ${selectedSoru.durum.includes('bekliyor') ? 'bg-amber-50 text-amber-600 border-amber-100' :
                           selectedSoru.durum.includes('dizgide') ? 'bg-blue-50 text-blue-600 border-blue-100' :
                             'bg-emerald-50 text-emerald-600 border-emerald-100'
@@ -400,7 +400,7 @@ export default function DizgiYonetimi() {
                 <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
                   <CheckCircleIcon className="w-8 h-8 text-emerald-500" /> Görevi Sonlandır
                 </h2>
-                <p className="text-gray-400 font-bold text-xs uppercase tracking-widest mt-1">Soru #{selectedSoru.id} Final Çıktısı</p>
+                <p className="text-gray-400 font-bold text-xs uppercase tracking-widest mt-1">Soru Final Çıktısı</p>
               </div>
               <button onClick={() => setShowCompleteModal(false)} className="p-3 hover:bg-gray-100 rounded-2xl transition">
                 <XMarkIcon className="w-7 h-7 text-gray-300" />

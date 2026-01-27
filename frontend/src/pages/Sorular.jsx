@@ -180,7 +180,7 @@ export default function Sorular({ scope }) {
       if (failed.length > 0) {
         const errorDetails = failed.map((f, i) => {
           const errMsg = f.reason?.response?.data?.error || f.reason?.message || 'Bilinmeyen hata';
-          return `Soru #${idList[results.indexOf(f)]}: ${errMsg}`;
+          return `Soru (ID: ${idList[results.indexOf(f)]}): ${errMsg}`;
         }).join('\n');
         alert(`${failed.length} hata oluştu:\n\n${errorDetails}`);
       }
