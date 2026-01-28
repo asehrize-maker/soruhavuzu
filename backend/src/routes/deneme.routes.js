@@ -50,7 +50,9 @@ router.get('/view/:uploadId', async (req, res, next) => {
         }
 
         const publicIdWithExt = publicIdParts.join('/');
-        const publicId = publicIdWithExt.replace(/\.[^/.]+$/, ""); // Uzantıyı sil
+        // Raw dosyalar için uzantı public_id'nin bir parçasıdır, silinmemelidir.
+        // Image dosyalar için ise uzantı silinmelidir.
+        const publicId = resourceType === 'raw' ? publicIdWithExt : publicIdWithExt.replace(/\.[^/.]+$/, "");
 
         console.log(`DEBUG: Final Extraction -> PublicId: ${publicId}, Version: ${version}, Type: ${resourceType}, Delivery: ${deliveryType}`);
 
@@ -156,7 +158,8 @@ router.get('/download/:uploadId', async (req, res, next) => {
         }
 
         const publicIdWithExt = publicIdParts.join('/');
-        const publicId = publicIdWithExt.replace(/\.[^/.]+$/, "");
+        // Raw dosyalar için uzantı public_id'nin bir parçasıdır, silinmemelidir.
+        const publicId = resourceType === 'raw' ? publicIdWithExt : publicIdWithExt.replace(/\.[^/.]+$/, "");
 
         // Sunucu tarafında URL oluştur
         const urlOptions = {
