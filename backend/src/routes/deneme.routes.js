@@ -16,11 +16,17 @@ const ensureTables = async () => {
                 ad VARCHAR(255) NOT NULL,
                 planlanan_tarih DATE NOT NULL,
                 aciklama TEXT,
+                gorev_tipi VARCHAR(50) DEFAULT 'deneme',
                 aktif BOOLEAN DEFAULT true,
                 olusturan_id INTEGER REFERENCES kullanicilar(id),
                 olusturma_tarihi TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
+        // We might also want to add the column if it doesn't exist, though migration handles it
+        try {
+            await pool.query(`ALTER TABLE deneme_takvimi ADD COLUMN IF NOT EXISTS gorev_tipi VARCHAR(50) DEFAULT 'deneme'`);
+        } catch (colErr) { }
+
         await pool.query(`
             CREATE TABLE IF NOT EXISTS deneme_yuklemeleri (
                  id SERIAL PRIMARY KEY,
@@ -61,15 +67,15 @@ router.post('/plan', authenticate, authorize('admin'), async (req, res, next) =>
         console.log('Deneme Plan Create Request:', req.body);
         console.log('User:', req.user);
 
-        const { ad, planlanan_tarih, aciklama } = req.body;
+        const { ad, planlanan_tarih, aciklama, gorev_tipi } = req.body;
         if (!ad || !planlanan_tarih) {
             throw new AppError('Deneme adı ve tarihi zorunludur', 400);
         }
 
         const result = await pool.query(
-            `INSERT INTO deneme_takvimi (ad, planlanan_tarih, aciklama, olusturan_id) 
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-            [ad, planlanan_tarih, aciklama, req.user.id]
+            `INSERT INTO deneme_takvimi (ad, planlanan_tarih, aciklama, olusturan_id, gorev_tipi) 
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+            [ad, planlanan_tarih, aciklama, req.user.id, gorev_tipi || 'deneme']
         );
 
         console.log('Deneme Plan Created:', result.rows[0]);

@@ -23,7 +23,7 @@ export default function Denemeler() {
     const [showCreateModal, setShowCreateModal] = useState(false);
 
     // Create Form
-    const [newPlan, setNewPlan] = useState({ ad: '', planlanan_tarih: '', aciklama: '' });
+    const [newPlan, setNewPlan] = useState({ ad: '', planlanan_tarih: '', aciklama: '', gorev_tipi: 'deneme' });
 
     // Upload State
     const [uploadingId, setUploadingId] = useState(null);
@@ -37,7 +37,7 @@ export default function Denemeler() {
                 setDenemeler(res.data.data || []);
             }
         } catch (error) {
-            console.error('Denemeler yüklenemedi:', error);
+            console.error('Görevler yüklenemedi:', error);
         } finally {
             setLoading(false);
         }
@@ -53,8 +53,8 @@ export default function Denemeler() {
         try {
             await denemeAPI.createPlan(newPlan);
             setShowCreateModal(false);
-            setNewPlan({ ad: '', planlanan_tarih: '', aciklama: '' });
-            alert('Deneme planı başarıyla oluşturuldu.');
+            setNewPlan({ ad: '', planlanan_tarih: '', aciklama: '', gorev_tipi: 'deneme' });
+            alert('Görev planı başarıyla oluşturuldu.');
             fetchDenemeler();
         } catch (error) {
             console.error('Plan oluşturulamadı:', error);
@@ -66,10 +66,10 @@ export default function Denemeler() {
     };
 
     const handlePlanDelete = async (id, ad) => {
-        if (!confirm(`"${ad}" deneme planını silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve bu plana ait tüm yüklemeler silinir.`)) return;
+        if (!confirm(`"${ad}" görev planını silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve bu plana ait tüm yüklemeler silinir.`)) return;
         try {
             await denemeAPI.deletePlan(id);
-            alert('Deneme planı silindi.');
+            alert('Görev planı silindi.');
             fetchDenemeler();
         } catch (error) {
             console.error('Plan silinemedi:', error);
@@ -91,8 +91,6 @@ export default function Denemeler() {
         setUploadingId(denemeId);
         const formData = new FormData();
         formData.append('pdf_dosya', file);
-        // Admin yüklüyorsa branş seçimi eklenebilir ama şu an default user.brans_id kullanılıyor veya hata veriyor
-        // Admin için branş ID opsiyonel olabilir veya bir selectbox açılabilir.
 
         try {
             await denemeAPI.upload(denemeId, formData);
@@ -107,6 +105,24 @@ export default function Denemeler() {
         }
     };
 
+    const getGorevTipiLabel = (tip) => {
+        switch (tip) {
+            case 'yaprak_test': return 'Yaprak Test';
+            case 'fasikul': return 'Fasikül';
+            case 'deneme': return 'Deneme';
+            default: return 'Genel Görev';
+        }
+    };
+
+    const getGorevTipiColor = (tip) => {
+        switch (tip) {
+            case 'yaprak_test': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+            case 'fasikul': return 'bg-amber-100 text-amber-700 border-amber-200';
+            case 'deneme': return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+            default: return 'bg-gray-100 text-gray-700 border-gray-200';
+        }
+    };
+
     return (
         <div className="max-w-7xl mx-auto space-y-10 animate-fade-in pb-20">
             {/* HEADER */}
@@ -114,16 +130,16 @@ export default function Denemeler() {
                 <div>
                     <h1 className="text-4xl font-black text-gray-900 tracking-tight flex items-center gap-3">
                         <DocumentTextIcon className="w-10 h-10 text-indigo-600" />
-                        Deneme Yönetimi
+                        Görev Yönetimi
                     </h1>
-                    <p className="text-gray-500 font-medium mt-2">Deneme sınavlarını planlayın ve branş kitapçıklarını yükleyin.</p>
+                    <p className="text-gray-500 font-medium mt-2">Deneme, fasikül ve yaprak test görevlerini planlayın ve takibini yapın.</p>
                 </div>
                 {canCreatePlan && (
                     <button
                         onClick={() => setShowCreateModal(true)}
                         className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 transition-all active:scale-95 flex items-center gap-2"
                     >
-                        <PlusIcon className="w-5 h-5" /> YENİ DENEME PLANLA
+                        <PlusIcon className="w-5 h-5" /> YENİ GÖREV PLANLA
                     </button>
                 )}
             </div>
@@ -134,7 +150,7 @@ export default function Denemeler() {
                     <div className="text-center py-20 text-gray-400 font-bold">Yükleniyor...</div>
                 ) : denemeler.length === 0 ? (
                     <div className="text-center py-20 bg-white rounded-[2rem] border border-gray-100 shadow-sm text-gray-400 font-bold">
-                        Henüz planlanmış deneme yok.
+                        Henüz planlanmış görev yok.
                     </div>
                 ) : (
                     denemeler.map(deneme => (
@@ -147,6 +163,9 @@ export default function Denemeler() {
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-3">
                                         <h3 className="text-xl font-black text-gray-900">{deneme.ad}</h3>
+                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${getGorevTipiColor(deneme.gorev_tipi)}`}>
+                                            {getGorevTipiLabel(deneme.gorev_tipi)}
+                                        </span>
                                     </div>
                                     <p className="text-sm text-gray-500">{deneme.aciklama}</p>
                                     <div className="flex items-center gap-4 text-xs font-bold text-gray-400">
@@ -230,13 +249,25 @@ export default function Denemeler() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
                     <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-lg shadow-2xl animate-scale-up">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Yeni Deneme Planla</h3>
+                            <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Yeni Görev Planla</h3>
                             <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-gray-100 rounded-full"><PlusIcon className="w-6 h-6 rotate-45" /></button>
                         </div>
                         <form onSubmit={handleCreate} className="space-y-6">
                             <div className="space-y-2">
-                                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Deneme Adı</label>
-                                <input required type="text" value={newPlan.ad} onChange={e => setNewPlan({ ...newPlan, ad: e.target.value })} className="w-full bg-gray-50 border border-gray-100 p-4 rounded-xl font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Örn: 2025-2026 LGS Deneme 1" />
+                                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Görev Tipi</label>
+                                <select
+                                    value={newPlan.gorev_tipi}
+                                    onChange={e => setNewPlan({ ...newPlan, gorev_tipi: e.target.value })}
+                                    className="w-full bg-gray-50 border border-gray-100 p-4 rounded-xl font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
+                                >
+                                    <option value="deneme">Deneme Sınavı</option>
+                                    <option value="fasikul">Fasikül Yüklemesi</option>
+                                    <option value="yaprak_test">Yaprak Test Yüklemesi</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Görev Adı</label>
+                                <input required type="text" value={newPlan.ad} onChange={e => setNewPlan({ ...newPlan, ad: e.target.value })} className="w-full bg-gray-50 border border-gray-100 p-4 rounded-xl font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Örn: 2025 LGS Deneme 1" />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Planlanan Tarih</label>
@@ -247,7 +278,7 @@ export default function Denemeler() {
                                 <textarea value={newPlan.aciklama} onChange={e => setNewPlan({ ...newPlan, aciklama: e.target.value })} className="w-full bg-gray-50 border border-gray-100 p-4 rounded-xl font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none" rows="3" placeholder="Opsiyonel açıklama..."></textarea>
                             </div>
                             <button disabled={createLoading} type="submit" className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-200 transition-all flex justify-center">
-                                {createLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'OLUŞTUR'}
+                                {createLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'GÖREVİ OLUŞTUR'}
                             </button>
                         </form>
                     </div>
@@ -256,3 +287,4 @@ export default function Denemeler() {
         </div>
     );
 }
+
