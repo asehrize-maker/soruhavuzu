@@ -136,6 +136,23 @@ export default function Denemeler() {
         }
     };
 
+    const getCloudinaryUrl = (url, forceDownload = false) => {
+        if (!url) return '';
+
+        // Eğer URL bir "raw" dosyasıysa (Cloudinary'de genellikle ham dosyalar bu kategoriye girer)
+        // Raw dosyalarda transformation (fl_attachment gibi) yapılamaz, yapılması hata (400) döndürür.
+        if (url.includes('/raw/upload/')) {
+            return url; // Olduğu gibi dön, tarayıcı zaten indirecektir veya açacaktır.
+        }
+
+        // Eğer URL bir "image" veya "video" ise, fl_attachment transformation'ını ekleyebiliriz.
+        if (forceDownload && (url.includes('/image/upload/') || url.includes('/video/upload/'))) {
+            return url.replace('/upload/', '/upload/fl_attachment/');
+        }
+
+        return url;
+    };
+
     return (
         <div className="max-w-7xl mx-auto space-y-10 animate-fade-in pb-20">
             {/* HEADER */}
@@ -205,16 +222,16 @@ export default function Denemeler() {
                                     {deneme.my_upload_url && (
                                         <div className="flex items-center gap-2">
                                             <a
-                                                href={deneme.my_upload_url}
+                                                href={getCloudinaryUrl(deneme.my_upload_url)}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="py-3 px-4 bg-green-50 text-green-600 rounded-xl font-black text-[9px] uppercase tracking-widest border border-green-100 hover:bg-green-100 transition-all flex items-center gap-1.5"
-                                                title="Tarayıcıda Aç"
+                                                title="Tarayıcıda Aç / Görüntüle"
                                             >
                                                 <EyeIcon className="w-4 h-4" /> GÖR
                                             </a>
                                             <a
-                                                href={deneme.my_upload_url.replace('/upload/', '/upload/fl_attachment/')}
+                                                href={getCloudinaryUrl(deneme.my_upload_url, true)}
                                                 download={deneme.ad + ".pdf"}
                                                 className="py-3 px-4 bg-amber-50 text-amber-600 rounded-xl font-black text-[9px] uppercase tracking-widest border border-amber-100 hover:bg-amber-100 transition-all flex items-center gap-1.5"
                                                 title="Bilgisayara İndir"
@@ -236,7 +253,7 @@ export default function Denemeler() {
                                             {deneme.all_uploads.map((up, idx) => (
                                                 <div key={idx} className="flex items-center bg-indigo-50 rounded-xl border border-indigo-100 overflow-hidden">
                                                     <a
-                                                        href={up.dosya_url}
+                                                        href={getCloudinaryUrl(up.dosya_url)}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="px-2 py-2 text-indigo-600 text-[9px] font-black hover:bg-indigo-100 transition-all flex items-center gap-1"
@@ -245,7 +262,7 @@ export default function Denemeler() {
                                                         <EyeIcon className="w-3 h-3" /> {up.brans_adi}
                                                     </a>
                                                     <a
-                                                        href={up.dosya_url.replace('/upload/', '/upload/fl_attachment/')}
+                                                        href={getCloudinaryUrl(up.dosya_url, true)}
                                                         download={`${up.brans_adi}_${deneme.ad}.pdf`}
                                                         className="px-2 py-2 text-amber-600 text-[9px] font-black hover:bg-amber-100 border-l border-indigo-100 transition-all flex items-center gap-1"
                                                         title="İndir"
