@@ -139,18 +139,20 @@ export default function Denemeler() {
     const getCloudinaryUrl = (url, forceDownload = false) => {
         if (!url) return '';
 
-        // Eğer URL bir "raw" dosyasıysa (Cloudinary'de genellikle ham dosyalar bu kategoriye girer)
-        // Raw dosyalarda transformation (fl_attachment gibi) yapılamaz, yapılması hata (400) döndürür.
+        // Önbellek sorunlarını aşmak için timestamp ekle
+        const cacheBuster = `?v=${new Date().getTime()}`;
+
+        // Eğer URL bir "raw" dosyasıysa
         if (url.includes('/raw/upload/')) {
-            return url; // Olduğu gibi dön, tarayıcı zaten indirecektir veya açacaktır.
+            return url + cacheBuster;
         }
 
-        // Eğer URL bir "image" veya "video" ise, fl_attachment transformation'ını ekleyebiliriz.
+        // Eğer URL bir "image" veya "video" ise
         if (forceDownload && (url.includes('/image/upload/') || url.includes('/video/upload/'))) {
-            return url.replace('/upload/', '/upload/fl_attachment/');
+            return url.replace('/upload/', '/upload/fl_attachment/') + cacheBuster;
         }
 
-        return url;
+        return url + cacheBuster;
     };
 
     return (
