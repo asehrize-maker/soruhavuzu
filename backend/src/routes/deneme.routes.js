@@ -33,29 +33,36 @@ router.get('/view/:uploadId', async (req, res, next) => {
         if (upload.rowCount === 0) throw new AppError('Dosya bulunamadı', 404);
 
         const targetUrl = upload.rows[0].dosya_url;
-        console.log(`DEBUG: Proxying PDF view. Target: ${targetUrl}`);
+        console.log(`DEBUG: Target URL from DB: ${targetUrl}`);
 
-        const response = await fetch(targetUrl, {
-            headers: { 'User-Agent': 'SoruHavuzu-Proxy/1.0' }
+        // Cloudinary URL'sinden public_id ve resource_type ayıklama
+        // Örnek: .../image/upload/v123/folder/name.pdf -> public_id: folder/name
+        const urlParts = targetUrl.split('/');
+        const uploadIndex = urlParts.indexOf('upload');
+        const resourceType = urlParts[uploadIndex - 1] || 'image';
+
+        // Versiyon (v123...) kısmını atlayıp public_id'yi alıyoruz
+        const publicIdWithExt = urlParts.slice(uploadIndex + 2).join('/');
+        const publicId = publicIdWithExt.split('.')[0];
+
+        // İmzalı URL oluştur (401 hatasını aşmak için en kesin yol)
+        const signedUrl = cloudinary.url(publicId, {
+            resource_type: resourceType,
+            secure: true,
+            sign_url: true,
+            type: 'upload',
+            attachment: false // View modunda false olmalı
         });
-        if (!response.ok) {
-            console.error(`❌ Cloudinary access failed. Status: ${response.status}, URL: ${targetUrl}`);
-            throw new Error(`Cloudinary dosyasına erişilemedi (Status: ${response.status})`);
-        }
 
-        console.log(`DEBUG: Proxying PDF view for upload ${uploadId}`);
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'inline');
-
-        const webStream = response.body;
-        const nodeStream = Readable.fromWeb(webStream);
-        nodeStream.pipe(res);
+        console.log(`DEBUG: Generated Signed URL for View: ${signedUrl}`);
+        res.redirect(signedUrl);
     } catch (error) {
+        console.error('DEBUG: View Proxy Error:', error);
         next(error);
     }
 });
 
-// Görev Dosyasını İndir (Proxy üzerinden)
+// Görev Dosyasını İndir (Proxy üzerinden - İmzalı Link ile)
 router.get('/download/:uploadId', async (req, res, next) => {
     try {
         const { uploadId } = req.params;
@@ -70,34 +77,27 @@ router.get('/download/:uploadId', async (req, res, next) => {
             throw new AppError('Yetkisiz erişim. Lütfen giriş yapın.', 401);
         }
 
-        const upload = await pool.query(
-            `SELECT dy.dosya_url, d.ad 
-             FROM deneme_yuklemeleri dy 
-             JOIN deneme_takvimi d ON d.id = dy.deneme_id 
-             WHERE dy.id = $1`,
-            [uploadId]
-        );
-
+        const upload = await pool.query('SELECT dosya_url FROM deneme_yuklemeleri WHERE id = $1', [uploadId]);
         if (upload.rowCount === 0) throw new AppError('Dosya bulunamadı', 404);
 
         const targetUrl = upload.rows[0].dosya_url;
-        console.log(`DEBUG: Proxying PDF download. Target: ${targetUrl}`);
+        const urlParts = targetUrl.split('/');
+        const uploadIndex = urlParts.indexOf('upload');
+        const resourceType = urlParts[uploadIndex - 1] || 'image';
+        const publicIdWithExt = urlParts.slice(uploadIndex + 2).join('/');
+        const publicId = publicIdWithExt.split('.')[0];
 
-        const response = await fetch(targetUrl, {
-            headers: { 'User-Agent': 'SoruHavuzu-Proxy/1.0' }
+        // İmzalı İndirme Linki Oluştur
+        const signedDownloadUrl = cloudinary.url(publicId, {
+            resource_type: resourceType,
+            secure: true,
+            sign_url: true,
+            type: 'upload',
+            flags: 'attachment' // İndirmeyi zorla
         });
 
-        if (!response.ok) {
-            console.error(`❌ Cloudinary access failed (Download). Status: ${response.status}, URL: ${targetUrl}`);
-            throw new Error(`Cloudinary dosyasına erişilemedi (Status: ${response.status})`);
-        }
-
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(upload.rows[0].ad)}.pdf"`);
-
-        const webStream = response.body;
-        const nodeStream = Readable.fromWeb(webStream);
-        nodeStream.pipe(res);
+        console.log(`DEBUG: Generated Signed URL for Download: ${signedDownloadUrl}`);
+        res.redirect(signedDownloadUrl);
     } catch (error) {
         next(error);
     }
