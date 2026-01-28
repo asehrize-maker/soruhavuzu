@@ -215,6 +215,7 @@ export default function Denemeler() {
                                             </a>
                                             <a
                                                 href={deneme.my_upload_url.replace('/upload/', '/upload/fl_attachment/')}
+                                                download={deneme.ad + ".pdf"}
                                                 className="py-3 px-4 bg-amber-50 text-amber-600 rounded-xl font-black text-[9px] uppercase tracking-widest border border-amber-100 hover:bg-amber-100 transition-all flex items-center gap-1.5"
                                                 title="Bilgisayara İndir"
                                             >
@@ -245,6 +246,7 @@ export default function Denemeler() {
                                                     </a>
                                                     <a
                                                         href={up.dosya_url.replace('/upload/', '/upload/fl_attachment/')}
+                                                        download={`${up.brans_adi}_${deneme.ad}.pdf`}
                                                         className="px-2 py-2 text-amber-600 text-[9px] font-black hover:bg-amber-100 border-l border-indigo-100 transition-all flex items-center gap-1"
                                                         title="İndir"
                                                     >
