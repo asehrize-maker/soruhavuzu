@@ -63,8 +63,9 @@ router.get('/view/:uploadId', async (req, res, next) => {
 
         const response = await fetch(authenticatedUrl);
         if (!response.ok) {
-            console.error(`❌ Cloudinary access failed. Status: ${response.status}, URL: ${authenticatedUrl}`);
-            throw new Error(`Dosya sunucudan çekilemedi (Hata: ${response.status})`);
+            const errorBody = await response.text().catch(() => 'No body');
+            console.error(`❌ Cloudinary access failed. Status: ${response.status}, Body: ${errorBody}`);
+            throw new AppError(`Dosya sunucudan çekilemedi (Bulut Hatası: ${response.status})`, response.status === 401 ? 401 : 500);
         }
 
         res.setHeader('Content-Type', 'application/pdf');
@@ -135,7 +136,9 @@ router.get('/download/:uploadId', async (req, res, next) => {
 
         const response = await fetch(authenticatedUrl);
         if (!response.ok) {
-            throw new Error(`Dosya sunucudan çekilemedi (Hata: ${response.status})`);
+            const errorBody = await response.text().catch(() => 'No body');
+            console.error(`❌ Cloudinary access failed (Download). Status: ${response.status}, Body: ${errorBody}`);
+            throw new AppError(`Dosya sunucudan çekilemedi (Bulut Hatası: ${response.status})`, response.status === 401 ? 401 : 500);
         }
 
         res.setHeader('Content-Type', 'application/pdf');

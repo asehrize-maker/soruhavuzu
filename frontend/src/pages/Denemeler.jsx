@@ -138,7 +138,7 @@ export default function Denemeler() {
 
     const getProxyUrl = (uploadId, mode = 'view') => {
         if (!uploadId) return '#';
-        const baseUrl = import.meta.env.VITE_API_URL || '';
+        const baseUrl = import.meta.env.VITE_API_URL || '/api';
         const token = localStorage.getItem('token');
         return `${baseUrl}/denemeler/${mode}/${uploadId}?token=${token}`;
     };
