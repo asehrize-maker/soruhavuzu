@@ -29,22 +29,33 @@ router.get('/view/:uploadId', async (req, res, next) => {
 
         const targetUrl = upload.rows[0].dosya_url;
 
-        // URL'den public_id ve resource_type ayıklama (İmzalama için gerekli)
+        // URL'den public_id, version ve resource_type ayıklama (İmzalama için gerekli)
         const urlParts = targetUrl.split('/');
         const uploadIndex = urlParts.indexOf('upload');
         const resourceType = urlParts[uploadIndex - 1] || 'image';
-        const publicIdWithExt = urlParts.slice(uploadIndex + 2).join('/');
+
+        let version = '';
+        let publicIdStartIndex = uploadIndex + 1;
+
+        // Versiyon kısmını kontrol et (v ile başlar)
+        if (urlParts[uploadIndex + 1] && urlParts[uploadIndex + 1].startsWith('v')) {
+            version = urlParts[uploadIndex + 1].substring(1);
+            publicIdStartIndex = uploadIndex + 2;
+        }
+
+        const publicIdWithExt = urlParts.slice(publicIdStartIndex).join('/');
         const publicId = publicIdWithExt.replace(/\.[^/.]+$/, "");
 
-        // Sunucu tarafında İMZALI bir URL oluşturuyoruz (401'i aşmak için)
+        // Sunucu tarafında İMZALI ve VERSİYONLU bir URL oluşturuyoruz (401'i aşmak için)
         const authenticatedUrl = cloudinary.url(publicId, {
             resource_type: resourceType,
+            version: version,
             sign_url: true,
             secure: true,
             type: 'upload'
         });
 
-        console.log(`DEBUG: Authenticated Streaming View. Target: ${authenticatedUrl}`);
+        console.log(`DEBUG: Authenticated Streaming View. Version: ${version}, Target: ${authenticatedUrl}`);
 
         const response = await fetch(authenticatedUrl);
         if (!response.ok) {
@@ -91,14 +102,24 @@ router.get('/download/:uploadId', async (req, res, next) => {
         const urlParts = targetUrl.split('/');
         const uploadIndex = urlParts.indexOf('upload');
         const resourceType = urlParts[uploadIndex - 1] || 'image';
-        const publicIdWithExt = urlParts.slice(uploadIndex + 2).join('/');
+
+        let version = '';
+        let publicIdStartIndex = uploadIndex + 1;
+        if (urlParts[uploadIndex + 1] && urlParts[uploadIndex + 1].startsWith('v')) {
+            version = urlParts[uploadIndex + 1].substring(1);
+            publicIdStartIndex = uploadIndex + 2;
+        }
+
+        const publicIdWithExt = urlParts.slice(publicIdStartIndex).join('/');
         const publicId = publicIdWithExt.replace(/\.[^/.]+$/, "");
 
         const authenticatedUrl = cloudinary.url(publicId, {
             resource_type: resourceType,
+            version: version,
             sign_url: true,
             secure: true,
-            type: 'upload'
+            type: 'upload',
+            flags: 'attachment'
         });
 
         const response = await fetch(authenticatedUrl);
