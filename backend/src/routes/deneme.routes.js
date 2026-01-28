@@ -9,13 +9,12 @@ import { Readable } from 'stream';
 
 const router = express.Router();
 
-// Görev Dosyasını Görüntüle (AUTHENTICATED STREAMING)
+// Görev Dosyasını Görüntüle (AUTHENTICATED STREAMING - ROBUST FIX)
 router.get('/view/:uploadId', async (req, res, next) => {
     try {
         const { uploadId } = req.params;
         const { token } = req.query;
 
-        // Auth kontrolü (Header veya Query Param)
         try {
             const authToken = token || req.headers.authorization?.split(' ')[1];
             if (!authToken) throw new Error('No token');
@@ -29,33 +28,38 @@ router.get('/view/:uploadId', async (req, res, next) => {
 
         const targetUrl = upload.rows[0].dosya_url;
 
-        // URL'den public_id, version ve resource_type ayıklama (İmzalama için gerekli)
+        // --- GELİŞMİŞ CLOUDINARY URL PARÇALAMA ---
         const urlParts = targetUrl.split('/');
-        const uploadIndex = urlParts.indexOf('upload');
-        const resourceType = urlParts[uploadIndex - 1] || 'image';
+        const typeIndex = urlParts.findIndex(p => ['upload', 'private', 'authenticated'].includes(p));
+        const resourceType = urlParts[typeIndex - 1] || 'image';
+        const deliveryType = urlParts[typeIndex] || 'upload';
 
         let version = '';
-        let publicIdStartIndex = uploadIndex + 1;
+        let publicIdParts = [];
 
-        // Versiyon kısmını kontrol et (v ile başlar)
-        if (urlParts[uploadIndex + 1] && urlParts[uploadIndex + 1].startsWith('v')) {
-            version = urlParts[uploadIndex + 1].substring(1);
-            publicIdStartIndex = uploadIndex + 2;
+        for (let i = typeIndex + 1; i < urlParts.length; i++) {
+            const part = urlParts[i];
+            if (part.startsWith('s--')) continue; // Güvenlik imzalarını atla
+            if (part.startsWith('v') && /v\d+/.test(part)) {
+                version = part.substring(1); // Versiyon numarasını al
+                continue;
+            }
+            publicIdParts.push(part);
         }
 
-        const publicIdWithExt = urlParts.slice(publicIdStartIndex).join('/');
-        const publicId = publicIdWithExt.replace(/\.[^/.]+$/, "");
+        const publicIdWithExt = publicIdParts.join('/');
+        const publicId = publicIdWithExt.replace(/\.[^/.]+$/, ""); // Uzantıyı sil
 
-        // Sunucu tarafında İMZALI ve VERSİYONLU bir URL oluşturuyoruz (401'i aşmak için)
+        console.log(`DEBUG: Final Extraction -> PublicId: ${publicId}, Version: ${version}, Type: ${resourceType}, Delivery: ${deliveryType}`);
+
+        // Sunucu tarafında EN YÜKSEK YETKİYLE İmzalı URL oluştur
         const authenticatedUrl = cloudinary.url(publicId, {
             resource_type: resourceType,
             version: version,
             sign_url: true,
             secure: true,
-            type: 'upload'
+            type: deliveryType
         });
-
-        console.log(`DEBUG: Authenticated Streaming View. Version: ${version}, Target: ${authenticatedUrl}`);
 
         const response = await fetch(authenticatedUrl);
         if (!response.ok) {
@@ -74,7 +78,7 @@ router.get('/view/:uploadId', async (req, res, next) => {
     }
 });
 
-// Görev Dosyasını İndir (AUTHENTICATED STREAMING)
+// Görev Dosyasını İndir (AUTHENTICATED STREAMING - ROBUST FIX)
 router.get('/download/:uploadId', async (req, res, next) => {
     try {
         const { uploadId } = req.params;
@@ -100,17 +104,24 @@ router.get('/download/:uploadId', async (req, res, next) => {
 
         const targetUrl = upload.rows[0].dosya_url;
         const urlParts = targetUrl.split('/');
-        const uploadIndex = urlParts.indexOf('upload');
-        const resourceType = urlParts[uploadIndex - 1] || 'image';
+        const typeIndex = urlParts.findIndex(p => ['upload', 'private', 'authenticated'].includes(p));
+        const resourceType = urlParts[typeIndex - 1] || 'image';
+        const deliveryType = urlParts[typeIndex] || 'upload';
 
         let version = '';
-        let publicIdStartIndex = uploadIndex + 1;
-        if (urlParts[uploadIndex + 1] && urlParts[uploadIndex + 1].startsWith('v')) {
-            version = urlParts[uploadIndex + 1].substring(1);
-            publicIdStartIndex = uploadIndex + 2;
+        let publicIdParts = [];
+
+        for (let i = typeIndex + 1; i < urlParts.length; i++) {
+            const part = urlParts[i];
+            if (part.startsWith('s--')) continue;
+            if (part.startsWith('v') && /v\d+/.test(part)) {
+                version = part.substring(1);
+                continue;
+            }
+            publicIdParts.push(part);
         }
 
-        const publicIdWithExt = urlParts.slice(publicIdStartIndex).join('/');
+        const publicIdWithExt = publicIdParts.join('/');
         const publicId = publicIdWithExt.replace(/\.[^/.]+$/, "");
 
         const authenticatedUrl = cloudinary.url(publicId, {
@@ -118,7 +129,7 @@ router.get('/download/:uploadId', async (req, res, next) => {
             version: version,
             sign_url: true,
             secure: true,
-            type: 'upload',
+            type: deliveryType,
             flags: 'attachment'
         });
 
