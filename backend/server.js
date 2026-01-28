@@ -64,7 +64,7 @@ app.use(errorHandler);
 // --- START SERVER LOGIC ---
 const startServer = async () => {
   try {
-    console.log('--- SUNUCU BAŞLATILIYOR (V3 - PARANOID MODE) ---');
+    console.log('--- SUNUCU BAŞLATILIYOR (V4 - PROXY PDF MODE) ---');
 
     // 1. Sunucuyu Hemen Dinlemeye Al (Render Timeout'u Engellemek İçin)
     const server = app.listen(PORT, '0.0.0.0', () => {

@@ -4,8 +4,87 @@ import { authenticate, authorize } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import multer from 'multer';
 import cloudinary from '../config/cloudinary.js';
+import jwt from 'jsonwebtoken';
+import { Readable } from 'stream';
 
 const router = express.Router();
+
+// Görev Dosyasını Görüntüle (Proxy üzerinden)
+// NOT: Yeni tabda açıldığı için token'ı query parametresi olarak da kabul ediyoruz.
+router.get('/view/:uploadId', async (req, res, next) => {
+    try {
+        const { uploadId } = req.params;
+        const { token } = req.query;
+
+        // Auth kontrolü (Header veya Query Param)
+        let user;
+        try {
+            const authToken = token || req.headers.authorization?.split(' ')[1];
+            if (!authToken) throw new Error('No token');
+            const decoded = jwt.verify(authToken, process.env.JWT_SECRET);
+            const result = await pool.query('SELECT id, rol FROM kullanicilar WHERE id = $1', [decoded.id]);
+            if (result.rows.length === 0) throw new Error('User not found');
+            user = result.rows[0];
+        } catch (authErr) {
+            throw new AppError('Yetkisiz erişim. Lütfen giriş yapın.', 401);
+        }
+
+        const upload = await pool.query('SELECT dosya_url FROM deneme_yuklemeleri WHERE id = $1', [uploadId]);
+        if (upload.rowCount === 0) throw new AppError('Dosya bulunamadı', 404);
+
+        const response = await fetch(upload.rows[0].dosya_url);
+        if (!response.ok) throw new Error('Cloudinary dosyasına erişilemedi');
+
+        console.log(`DEBUG: Proxying PDF view for upload ${uploadId}`);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline');
+
+        const webStream = response.body;
+        const nodeStream = Readable.fromWeb(webStream);
+        nodeStream.pipe(res);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Görev Dosyasını İndir (Proxy üzerinden)
+router.get('/download/:uploadId', async (req, res, next) => {
+    try {
+        const { uploadId } = req.params;
+        const { token } = req.query;
+
+        // Auth kontrolü
+        try {
+            const authToken = token || req.headers.authorization?.split(' ')[1];
+            if (!authToken) throw new Error('No token');
+            jwt.verify(authToken, process.env.JWT_SECRET);
+        } catch (authErr) {
+            throw new AppError('Yetkisiz erişim. Lütfen giriş yapın.', 401);
+        }
+
+        const upload = await pool.query(
+            `SELECT dy.dosya_url, d.ad 
+             FROM deneme_yuklemeleri dy 
+             JOIN deneme_takvimi d ON d.id = dy.deneme_id 
+             WHERE dy.id = $1`,
+            [uploadId]
+        );
+
+        if (upload.rowCount === 0) throw new AppError('Dosya bulunamadı', 404);
+
+        const response = await fetch(upload.rows[0].dosya_url);
+        if (!response.ok) throw new Error('Cloudinary dosyasına erişilemedi');
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(upload.rows[0].ad)}.pdf"`);
+
+        const webStream = response.body;
+        const nodeStream = Readable.fromWeb(webStream);
+        nodeStream.pipe(res);
+    } catch (error) {
+        next(error);
+    }
+});
 
 // Auto-Ensure Tables Exist (FAILSAFE for migration issues)
 const ensureTables = async () => {
@@ -318,69 +397,6 @@ router.delete('/upload/:id', authenticate, async (req, res, next) => {
         await pool.query('DELETE FROM deneme_yuklemeleri WHERE id = $1', [id]);
 
         res.json({ success: true, message: 'Yükleme başarıyla silindi.' });
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Görev Dosyasını Görüntüle (Proxy üzerinden)
-router.get('/view/:uploadId', authenticate, async (req, res, next) => {
-    try {
-        const { uploadId } = req.params;
-        const upload = await pool.query('SELECT dosya_url FROM deneme_yuklemeleri WHERE id = $1', [uploadId]);
-
-        if (upload.rowCount === 0) {
-            throw new AppError('Dosya bulunamadı', 404);
-        }
-
-        const response = await fetch(upload.rows[0].dosya_url);
-        if (!response.ok) throw new Error('Cloudinary dosyasına erişilemedi');
-
-        const contentType = response.headers.get('content-type') || 'application/pdf';
-        res.setHeader('Content-Type', 'application/pdf'); // Zorla PDF yapıyoruz
-        res.setHeader('Content-Disposition', 'inline');
-
-        const reader = response.body.getReader();
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            res.write(value);
-        }
-        res.end();
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Görev Dosyasını İndir (Proxy üzerinden)
-router.get('/download/:uploadId', authenticate, async (req, res, next) => {
-    try {
-        const { uploadId } = req.params;
-        const upload = await pool.query(
-            `SELECT dy.dosya_url, d.ad 
-             FROM deneme_yuklemeleri dy 
-             JOIN deneme_takvimi d ON d.id = dy.deneme_id 
-             WHERE dy.id = $1`,
-            [uploadId]
-        );
-
-        if (upload.rowCount === 0) {
-            throw new AppError('Dosya bulunamadı', 404);
-        }
-
-        const response = await fetch(upload.rows[0].dosya_url);
-        if (!response.ok) throw new Error('Cloudinary dosyasına erişilemedi');
-
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(upload.rows[0].ad)}.pdf"`);
-
-        const reader = response.body.getReader();
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            res.write(value);
-        }
-        res.end();
     } catch (error) {
         next(error);
     }
