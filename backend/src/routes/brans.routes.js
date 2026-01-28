@@ -144,7 +144,7 @@ router.get('/:id/kazanimlar', authenticate, async (req, res, next) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
-      'SELECT id, kod, aciklama, created_at FROM brans_kazanimlar WHERE brans_id = $1 ORDER BY created_at DESC',
+      'SELECT id, kod, aciklama, created_at FROM brans_kazanimlar WHERE brans_id = $1 ORDER BY kod ASC',
       [id]
     );
     res.json({ success: true, data: result.rows });
