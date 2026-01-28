@@ -43,7 +43,7 @@ router.get('/view/:uploadId', async (req, res, next) => {
 
         // Versiyon (v123...) kısmını atlayıp public_id'yi alıyoruz
         const publicIdWithExt = urlParts.slice(uploadIndex + 2).join('/');
-        const publicId = publicIdWithExt.split('.')[0];
+        const publicId = publicIdWithExt.replace(/\.[^/.]+$/, ""); // Sadece sondaki uzantıyı sil
 
         // İmzalı URL oluştur (401 hatasını aşmak için en kesin yol)
         const signedUrl = cloudinary.url(publicId, {
@@ -85,7 +85,7 @@ router.get('/download/:uploadId', async (req, res, next) => {
         const uploadIndex = urlParts.indexOf('upload');
         const resourceType = urlParts[uploadIndex - 1] || 'image';
         const publicIdWithExt = urlParts.slice(uploadIndex + 2).join('/');
-        const publicId = publicIdWithExt.split('.')[0];
+        const publicId = publicIdWithExt.replace(/\.[^/.]+$/, "");
 
         // İmzalı İndirme Linki Oluştur
         const signedDownloadUrl = cloudinary.url(publicId, {
