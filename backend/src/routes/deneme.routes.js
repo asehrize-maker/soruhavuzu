@@ -9,78 +9,13 @@ import { Readable } from 'stream';
 
 const router = express.Router();
 
-// Görev Dosyasını Görüntüle (Proxy üzerinden)
-// NOT: Yeni tabda açıldığı için token'ı query parametresi olarak da kabul ediyoruz.
+// Görev Dosyasını Görüntüle (DIRECT STREAMING - KESİN ÇÖZÜM)
 router.get('/view/:uploadId', async (req, res, next) => {
     try {
         const { uploadId } = req.params;
         const { token } = req.query;
 
         // Auth kontrolü (Header veya Query Param)
-        let user;
-        try {
-            const authToken = token || req.headers.authorization?.split(' ')[1];
-            if (!authToken) throw new Error('No token');
-            const decoded = jwt.verify(authToken, process.env.JWT_SECRET);
-            const result = await pool.query('SELECT id, rol FROM kullanicilar WHERE id = $1', [decoded.id]);
-            if (result.rows.length === 0) throw new Error('User not found');
-            user = result.rows[0];
-        } catch (authErr) {
-            throw new AppError('Yetkisiz erişim. Lütfen giriş yapın.', 401);
-        }
-
-        const upload = await pool.query('SELECT dosya_url FROM deneme_yuklemeleri WHERE id = $1', [uploadId]);
-        if (upload.rowCount === 0) throw new AppError('Dosya bulunamadı', 404);
-
-        const targetUrl = upload.rows[0].dosya_url;
-        console.log(`DEBUG: Target URL from DB: ${targetUrl}`);
-
-        // Cloudinary URL'sinden public_id, version ve resource_type ayıklama
-        // Örnek 1: .../image/upload/v12345/folder/name.pdf
-        // Örnek 2: .../image/upload/folder/name.pdf
-        const urlParts = targetUrl.split('/');
-        const uploadIndex = urlParts.indexOf('upload');
-        const resourceType = urlParts[uploadIndex - 1] || 'image';
-
-        let version = '';
-        let publicIdStartIndex = uploadIndex + 1;
-
-        // Eğer bir sonraki parça 'v' ile başlıyorsa bu bir versiyondur
-        if (urlParts[uploadIndex + 1] && urlParts[uploadIndex + 1].startsWith('v') && /v\d+/.test(urlParts[uploadIndex + 1])) {
-            version = urlParts[uploadIndex + 1].substring(1);
-            publicIdStartIndex = uploadIndex + 2;
-        }
-
-        const publicIdWithExt = urlParts.slice(publicIdStartIndex).join('/');
-        const publicId = publicIdWithExt.replace(/\.[^/.]+$/, ""); // Uzantıyı sil
-
-        console.log(`DEBUG: Extracted -> PublicId: ${publicId}, Version: ${version}, Type: ${resourceType}`);
-
-        // İmzalı URL oluştur
-        const signedUrl = cloudinary.url(publicId, {
-            resource_type: resourceType,
-            version: version,
-            format: 'pdf',
-            secure: true,
-            sign_url: true,
-            type: 'upload',
-            attachment: false
-        });
-
-        res.redirect(signedUrl);
-    } catch (error) {
-        console.error('DEBUG: View Proxy Error:', error);
-        next(error);
-    }
-});
-
-// Görev Dosyasını İndir (Proxy üzerinden - İmzalı Link ile)
-router.get('/download/:uploadId', async (req, res, next) => {
-    try {
-        const { uploadId } = req.params;
-        const { token } = req.query;
-
-        // Auth kontrolü
         try {
             const authToken = token || req.headers.authorization?.split(' ')[1];
             if (!authToken) throw new Error('No token');
@@ -93,34 +28,60 @@ router.get('/download/:uploadId', async (req, res, next) => {
         if (upload.rowCount === 0) throw new AppError('Dosya bulunamadı', 404);
 
         const targetUrl = upload.rows[0].dosya_url;
-        const urlParts = targetUrl.split('/');
-        const uploadIndex = urlParts.indexOf('upload');
-        const resourceType = urlParts[uploadIndex - 1] || 'image';
+        console.log(`DEBUG: Direct Streaming View. Target: ${targetUrl}`);
 
-        let version = '';
-        let publicIdStartIndex = uploadIndex + 1;
-
-        if (urlParts[uploadIndex + 1] && urlParts[uploadIndex + 1].startsWith('v') && /v\d+/.test(urlParts[uploadIndex + 1])) {
-            version = urlParts[uploadIndex + 1].substring(1);
-            publicIdStartIndex = uploadIndex + 2;
+        const response = await fetch(targetUrl);
+        if (!response.ok) {
+            console.error(`❌ Fetch failed. Status: ${response.status}, URL: ${targetUrl}`);
+            throw new Error(`Dosya sunucudan çekilemedi (Hata: ${response.status})`);
         }
 
-        const publicIdWithExt = urlParts.slice(publicIdStartIndex).join('/');
-        const publicId = publicIdWithExt.replace(/\.[^/.]+$/, "");
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline');
 
-        // İmzalı İndirme Linki Oluştur
-        const signedDownloadUrl = cloudinary.url(publicId, {
-            resource_type: resourceType,
-            version: version,
-            format: 'pdf',
-            secure: true,
-            sign_url: true,
-            type: 'upload',
-            flags: 'attachment'
-        });
+        const nodeStream = Readable.fromWeb(response.body);
+        nodeStream.pipe(res);
+    } catch (error) {
+        console.error('DEBUG: View Stream Error:', error);
+        next(error);
+    }
+});
 
-        console.log(`DEBUG: Generated Signed URL (Download) - Version: ${version}, PublicId: ${publicId}`);
-        res.redirect(signedDownloadUrl);
+// Görev Dosyasını İndir (DIRECT STREAMING)
+router.get('/download/:uploadId', async (req, res, next) => {
+    try {
+        const { uploadId } = req.params;
+        const { token } = req.query;
+
+        try {
+            const authToken = token || req.headers.authorization?.split(' ')[1];
+            if (!authToken) throw new Error('No token');
+            jwt.verify(authToken, process.env.JWT_SECRET);
+        } catch (authErr) {
+            throw new AppError('Yetkisiz erişim. Lütfen giriş yapın.', 401);
+        }
+
+        const upload = await pool.query(
+            `SELECT dy.dosya_url, d.ad 
+             FROM deneme_yuklemeleri dy 
+             JOIN deneme_takvimi d ON d.id = dy.deneme_id 
+             WHERE dy.id = $1`,
+            [uploadId]
+        );
+
+        if (upload.rowCount === 0) throw new AppError('Dosya bulunamadı', 404);
+
+        const targetUrl = upload.rows[0].dosya_url;
+        const response = await fetch(targetUrl);
+        if (!response.ok) {
+            throw new Error(`Dosya sunucudan çekilemedi (Hata: ${response.status})`);
+        }
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(upload.rows[0].ad)}.pdf"`);
+
+        const nodeStream = Readable.fromWeb(response.body);
+        nodeStream.pipe(res);
     } catch (error) {
         next(error);
     }
