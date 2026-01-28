@@ -351,8 +351,9 @@ router.post('/:id/upload', authenticate, upload.single('pdf_dosya'), async (req,
 
         // Kullanıcının branşını doğrula veya body'den al (Admin için)
         let targetBransId = brans_id ? parseInt(brans_id) : req.user.brans_id;
+        const userRole = (req.user.rol || '').toLowerCase();
 
-        if (!targetBransId && req.user.rol !== 'admin') {
+        if (!targetBransId && userRole !== 'admin') {
             throw new AppError('Branş bilgisi bulunamadı. Lütfen yöneticinizle iletişime geçin.', 400);
         }
 
