@@ -39,9 +39,11 @@ router.get('/view/:uploadId', async (req, res, next) => {
 
         for (let i = typeIndex + 1; i < urlParts.length; i++) {
             const part = urlParts[i];
+            if (!part) continue;
             if (part.startsWith('s--')) continue; // Güvenlik imzalarını atla
-            if (part.startsWith('v') && /v\d+/.test(part)) {
-                version = part.substring(1); // Versiyon numarasını al
+            // Versiyon segmenti tam olarak v+sayılar olmalı (örn: v12345678)
+            if (/^v\d+$/.test(part)) {
+                version = part.substring(1);
                 continue;
             }
             publicIdParts.push(part);
@@ -52,14 +54,16 @@ router.get('/view/:uploadId', async (req, res, next) => {
 
         console.log(`DEBUG: Final Extraction -> PublicId: ${publicId}, Version: ${version}, Type: ${resourceType}, Delivery: ${deliveryType}`);
 
-        // Sunucu tarafında EN YÜKSEK YETKİYLE İmzalı URL oluştur
         const authenticatedUrl = cloudinary.url(publicId, {
             resource_type: resourceType,
             version: version,
             sign_url: true,
             secure: true,
-            type: deliveryType
+            type: deliveryType,
+            format: 'pdf' // PDF formatını garanti et
         });
+
+        console.log(`DEBUG: View URL -> ${authenticatedUrl}`);
 
         const response = await fetch(authenticatedUrl);
         if (!response.ok) {
@@ -71,7 +75,15 @@ router.get('/view/:uploadId', async (req, res, next) => {
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'inline');
 
+        if (!response.body) {
+            throw new AppError('Sunucudan boş dosya döndü', 500);
+        }
+
         const nodeStream = Readable.fromWeb(response.body);
+        nodeStream.on('error', (err) => {
+            console.error('DEBUG: View Stream Error:', err);
+            if (!res.headersSent) res.status(500).send('Dosya akışı sırasında hata.');
+        });
         nodeStream.pipe(res);
     } catch (error) {
         console.error('DEBUG: View Stream Error:', error);
@@ -114,8 +126,9 @@ router.get('/download/:uploadId', async (req, res, next) => {
 
         for (let i = typeIndex + 1; i < urlParts.length; i++) {
             const part = urlParts[i];
+            if (!part) continue;
             if (part.startsWith('s--')) continue;
-            if (part.startsWith('v') && /v\d+/.test(part)) {
+            if (/^v\d+$/.test(part)) {
                 version = part.substring(1);
                 continue;
             }
@@ -131,8 +144,11 @@ router.get('/download/:uploadId', async (req, res, next) => {
             sign_url: true,
             secure: true,
             type: deliveryType,
+            format: 'pdf',
             flags: 'attachment'
         });
+
+        console.log(`DEBUG: Download URL -> ${authenticatedUrl}`);
 
         const response = await fetch(authenticatedUrl);
         if (!response.ok) {
@@ -142,9 +158,17 @@ router.get('/download/:uploadId', async (req, res, next) => {
         }
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(upload.rows[0].ad)}.pdf"`);
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(upload.rows[0].ad || 'dosya')}.pdf"`);
+
+        if (!response.body) {
+            throw new AppError('Sunucudan boş dosya döndü', 500);
+        }
 
         const nodeStream = Readable.fromWeb(response.body);
+        nodeStream.on('error', (err) => {
+            console.error('DEBUG: Download Stream Error:', err);
+            if (!res.headersSent) res.status(500).send('İndirme sırasında hata oluştu.');
+        });
         nodeStream.pipe(res);
     } catch (error) {
         next(error);
