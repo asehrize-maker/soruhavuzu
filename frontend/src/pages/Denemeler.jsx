@@ -9,7 +9,8 @@ import {
     CheckCircleIcon,
     ClockIcon,
     EyeIcon,
-    TrashIcon
+    TrashIcon,
+    ArrowDownTrayIcon
 } from '@heroicons/react/24/outline'; // ArrowDownTrayIcon removed as unused
 
 export default function Denemeler() {
@@ -207,9 +208,17 @@ export default function Denemeler() {
                                                 href={deneme.my_upload_url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="py-3 px-5 bg-green-50 text-green-600 rounded-xl font-black text-[10px] uppercase tracking-widest border border-green-100 hover:bg-green-100 transition-all flex items-center gap-2"
+                                                className="py-3 px-4 bg-green-50 text-green-600 rounded-xl font-black text-[9px] uppercase tracking-widest border border-green-100 hover:bg-green-100 transition-all flex items-center gap-1.5"
+                                                title="Tarayıcıda Aç"
                                             >
                                                 <EyeIcon className="w-4 h-4" /> GÖR
+                                            </a>
+                                            <a
+                                                href={deneme.my_upload_url.replace('/upload/', '/upload/fl_attachment/')}
+                                                className="py-3 px-4 bg-amber-50 text-amber-600 rounded-xl font-black text-[9px] uppercase tracking-widest border border-amber-100 hover:bg-amber-100 transition-all flex items-center gap-1.5"
+                                                title="Bilgisayara İndir"
+                                            >
+                                                <ArrowDownTrayIcon className="w-4 h-4" /> İNDİR
                                             </a>
                                             <button
                                                 onClick={() => handleDeleteUpload(deneme.my_upload_id)}
@@ -229,10 +238,17 @@ export default function Denemeler() {
                                                         href={up.dosya_url}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="px-3 py-2 text-indigo-600 text-[10px] font-black hover:bg-indigo-100 transition-all flex items-center gap-1"
-                                                        title={`${up.brans_adi} yüklemesi`}
+                                                        className="px-2 py-2 text-indigo-600 text-[9px] font-black hover:bg-indigo-100 transition-all flex items-center gap-1"
+                                                        title={`${up.brans_adi} yüklemesi - Gör`}
                                                     >
                                                         <EyeIcon className="w-3 h-3" /> {up.brans_adi}
+                                                    </a>
+                                                    <a
+                                                        href={up.dosya_url.replace('/upload/', '/upload/fl_attachment/')}
+                                                        className="px-2 py-2 text-amber-600 text-[9px] font-black hover:bg-amber-100 border-l border-indigo-100 transition-all flex items-center gap-1"
+                                                        title="İndir"
+                                                    >
+                                                        <ArrowDownTrayIcon className="w-3 h-3" />
                                                     </a>
                                                     <button
                                                         onClick={() => handleDeleteUpload(up.id)}

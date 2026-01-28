@@ -161,22 +161,20 @@ router.post('/:id/upload', authenticate, upload.single('pdf_dosya'), async (req,
         const timestamp = Date.now();
         const sanitizedFilename = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
         const publicId = `${timestamp}_${sanitizedFilename}`;
-
         const uploadPromise = new Promise((resolve, reject) => {
             const uploadStream = cloudinary.uploader.upload_stream(
                 {
                     resource_type: 'auto',
                     folder: 'soru-havuzu/denemeler',
-                    public_id: `${timestamp}_${sanitizedFilename}`,
                     use_filename: true,
-                    unique_filename: false, // public_id already has timestamp
-                    access_mode: 'public'
+                    unique_filename: true
                 },
                 (error, result) => {
                     if (error) {
                         console.error('Cloudinary upload hatası:', error);
                         reject(error);
                     } else {
+                        console.log('Cloudinary Upload Success:', result.secure_url);
                         resolve(result);
                     }
                 }
