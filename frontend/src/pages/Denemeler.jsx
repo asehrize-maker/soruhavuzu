@@ -123,6 +123,18 @@ export default function Denemeler() {
         }
     };
 
+    const handleDeleteUpload = async (uploadId) => {
+        if (!confirm('Bu dosyayı silmek istediğinize emin misiniz?')) return;
+        try {
+            await denemeAPI.deleteUpload(uploadId);
+            alert('Dosya silindi.');
+            fetchDenemeler();
+        } catch (error) {
+            console.error('Dosya silinemedi:', error);
+            alert('Silme işlemi başarısız: ' + (error.response?.data?.message || error.message));
+        }
+    };
+
     return (
         <div className="max-w-7xl mx-auto space-y-10 animate-fade-in pb-20">
             {/* HEADER */}
@@ -190,29 +202,46 @@ export default function Denemeler() {
                             <div className="flex flex-col items-end gap-4 w-full md:w-auto">
                                 <div className="flex flex-wrap justify-end gap-3 w-full">
                                     {deneme.my_upload_url && (
-                                        <a
-                                            href={deneme.my_upload_url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="py-4 px-6 bg-green-50 text-green-600 rounded-2xl font-black text-xs uppercase tracking-widest border border-green-100 hover:bg-green-100 transition-all flex items-center gap-2"
-                                        >
-                                            <EyeIcon className="w-5 h-5" /> DOSYAYI GÖR
-                                        </a>
+                                        <div className="flex items-center gap-2">
+                                            <a
+                                                href={deneme.my_upload_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="py-3 px-5 bg-green-50 text-green-600 rounded-xl font-black text-[10px] uppercase tracking-widest border border-green-100 hover:bg-green-100 transition-all flex items-center gap-2"
+                                            >
+                                                <EyeIcon className="w-4 h-4" /> GÖR
+                                            </a>
+                                            <button
+                                                onClick={() => handleDeleteUpload(deneme.my_upload_id)}
+                                                className="p-3 bg-rose-50 text-rose-600 rounded-xl border border-rose-100 hover:bg-rose-100 transition-all"
+                                                title="Yüklemeyi Sil"
+                                            >
+                                                <TrashIcon className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     )}
 
                                     {effectiveRole === 'admin' && deneme.all_uploads && deneme.all_uploads.length > 0 && (
                                         <div className="flex flex-wrap gap-2 justify-end w-full mt-2">
                                             {deneme.all_uploads.map((up, idx) => (
-                                                <a
-                                                    key={idx}
-                                                    href={up.dosya_url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="px-3 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black border border-indigo-100 hover:bg-indigo-100 transition-all flex items-center gap-1"
-                                                    title={`${up.brans_adi} yüklemesi`}
-                                                >
-                                                    <EyeIcon className="w-3 h-3" /> {up.brans_adi}
-                                                </a>
+                                                <div key={idx} className="flex items-center bg-indigo-50 rounded-xl border border-indigo-100 overflow-hidden">
+                                                    <a
+                                                        href={up.dosya_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="px-3 py-2 text-indigo-600 text-[10px] font-black hover:bg-indigo-100 transition-all flex items-center gap-1"
+                                                        title={`${up.brans_adi} yüklemesi`}
+                                                    >
+                                                        <EyeIcon className="w-3 h-3" /> {up.brans_adi}
+                                                    </a>
+                                                    <button
+                                                        onClick={() => handleDeleteUpload(up.id)}
+                                                        className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-all border-l border-indigo-100"
+                                                        title="Bu Yüklemeyi Sil"
+                                                    >
+                                                        <TrashIcon className="w-3 h-3" />
+                                                    </button>
+                                                </div>
                                             ))}
                                         </div>
                                     )}

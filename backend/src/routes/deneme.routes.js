@@ -103,10 +103,11 @@ router.get('/', authenticate, async (req, res, next) => {
         const params = [];
         // Eğer kullanıcının branşı varsa, o branşa ait son yüklemeyi de getir
         if (req.user.brans_id) {
+            query += `, (SELECT id FROM deneme_yuklemeleri dy WHERE dy.deneme_id = d.id AND dy.brans_id = $1 ORDER BY dy.yukleme_tarihi DESC LIMIT 1) as my_upload_id`;
             query += `, (SELECT dosya_url FROM deneme_yuklemeleri dy WHERE dy.deneme_id = d.id AND dy.brans_id = $1 ORDER BY dy.yukleme_tarihi DESC LIMIT 1) as my_upload_url`;
             params.push(req.user.brans_id);
         } else {
-            query += `, NULL as my_upload_url`;
+            query += `, NULL as my_upload_id, NULL as my_upload_url`;
         }
 
         // Admin için tüm branşların yüklemelerini de getir
@@ -114,6 +115,7 @@ router.get('/', authenticate, async (req, res, next) => {
             query += `, (
                 SELECT json_agg(up) FROM (
                     SELECT DISTINCT ON (dy.brans_id)
+                        dy.id,
                         COALESCE(b.brans_adi, 'Genel') as brans_adi,
                         dy.dosya_url,
                         dy.yukleme_tarihi
@@ -288,6 +290,31 @@ router.delete('/plan/:id', authenticate, authorize('admin'), async (req, res, ne
         }
 
         res.json({ success: true, message: 'Deneme planı başarıyla silindi.' });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// 6. Münferit Yüklemeyi Sil (Yükleyen veya Admin)
+router.delete('/upload/:id', authenticate, async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        // Yüklemeyi bul
+        const upload = await pool.query('SELECT * FROM deneme_yuklemeleri WHERE id = $1', [id]);
+        if (upload.rowCount === 0) {
+            throw new AppError('Yükleme bulunamadı', 404);
+        }
+
+        // Yetki kontrolü: Ya admin olmalı ya da yükleyen kişi olmalı
+        if (req.user.rol !== 'admin' && upload.rows[0].yukleyen_id !== req.user.id) {
+            throw new AppError('Bu işlemi yapmaya yetkiniz yok.', 403);
+        }
+
+        // DB'den sil (Cloudinary silme işlemi opsiyonel olarak eklenebilir)
+        await pool.query('DELETE FROM deneme_yuklemeleri WHERE id = $1', [id]);
+
+        res.json({ success: true, message: 'Yükleme başarıyla silindi.' });
     } catch (error) {
         next(error);
     }

@@ -159,4 +159,5 @@ export const denemeAPI = {
   }),
   getAgenda: () => api.get('/denemeler/ajanda'),
   deletePlan: (id) => api.delete(`/denemeler/plan/${id}`),
+  deleteUpload: (id) => api.delete(`/denemeler/upload/${id}`),
 };
