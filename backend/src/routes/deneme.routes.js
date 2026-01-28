@@ -54,18 +54,34 @@ router.get('/view/:uploadId', async (req, res, next) => {
 
         console.log(`DEBUG: Final Extraction -> PublicId: ${publicId}, Version: ${version}, Type: ${resourceType}, Delivery: ${deliveryType}`);
 
-        const authenticatedUrl = cloudinary.url(publicId, {
+        // Sunucu tarafında URL oluştur
+        const urlOptions = {
             resource_type: resourceType,
-            version: version,
-            sign_url: true,
             secure: true,
             type: deliveryType,
-            format: 'pdf' // PDF formatını garanti et
-        });
+            format: 'pdf'
+        };
 
-        console.log(`DEBUG: View URL -> ${authenticatedUrl}`);
+        // Sadece private veya authenticated ise imza ekle, upload tipinde imza bazen 401'e yol açar
+        if (deliveryType !== 'upload') {
+            urlOptions.sign_url = true;
+        }
 
-        const response = await fetch(authenticatedUrl);
+        if (version) {
+            urlOptions.version = version;
+        }
+
+        let authenticatedUrl = cloudinary.url(publicId, urlOptions);
+        console.log(`DEBUG: Final Proxy URL -> ${authenticatedUrl}`);
+
+        let response = await fetch(authenticatedUrl);
+
+        // --- FALLBACK MEKANİZMASI ---
+        if (!response.ok && response.status === 401) {
+            console.warn(`⚠️ Proxy URL 401 verdi, orijinal URL deneniyor: ${targetUrl}`);
+            response = await fetch(targetUrl);
+        }
+
         if (!response.ok) {
             const errorBody = await response.text().catch(() => 'No body');
             console.error(`❌ Cloudinary access failed. Status: ${response.status}, Body: ${errorBody}`);
@@ -138,19 +154,34 @@ router.get('/download/:uploadId', async (req, res, next) => {
         const publicIdWithExt = publicIdParts.join('/');
         const publicId = publicIdWithExt.replace(/\.[^/.]+$/, "");
 
-        const authenticatedUrl = cloudinary.url(publicId, {
+        // Sunucu tarafında URL oluştur
+        const urlOptions = {
             resource_type: resourceType,
-            version: version,
-            sign_url: true,
             secure: true,
             type: deliveryType,
             format: 'pdf',
             flags: 'attachment'
-        });
+        };
 
-        console.log(`DEBUG: Download URL -> ${authenticatedUrl}`);
+        if (deliveryType !== 'upload') {
+            urlOptions.sign_url = true;
+        }
 
-        const response = await fetch(authenticatedUrl);
+        if (version) {
+            urlOptions.version = version;
+        }
+
+        let authenticatedUrl = cloudinary.url(publicId, urlOptions);
+        console.log(`DEBUG: Download Proxy URL -> ${authenticatedUrl}`);
+
+        let response = await fetch(authenticatedUrl);
+
+        // Fallback
+        if (!response.ok && response.status === 401) {
+            console.warn(`⚠️ Download Proxy 401 verdi, orijinal URL deneniyor: ${targetUrl}`);
+            response = await fetch(targetUrl);
+        }
+
         if (!response.ok) {
             const errorBody = await response.text().catch(() => 'No body');
             console.error(`❌ Cloudinary access failed (Download). Status: ${response.status}, Body: ${errorBody}`);
