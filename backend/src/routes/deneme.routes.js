@@ -32,8 +32,16 @@ router.get('/view/:uploadId', async (req, res, next) => {
         const upload = await pool.query('SELECT dosya_url FROM deneme_yuklemeleri WHERE id = $1', [uploadId]);
         if (upload.rowCount === 0) throw new AppError('Dosya bulunamadı', 404);
 
-        const response = await fetch(upload.rows[0].dosya_url);
-        if (!response.ok) throw new Error('Cloudinary dosyasına erişilemedi');
+        const targetUrl = upload.rows[0].dosya_url;
+        console.log(`DEBUG: Proxying PDF view. Target: ${targetUrl}`);
+
+        const response = await fetch(targetUrl, {
+            headers: { 'User-Agent': 'SoruHavuzu-Proxy/1.0' }
+        });
+        if (!response.ok) {
+            console.error(`❌ Cloudinary access failed. Status: ${response.status}, URL: ${targetUrl}`);
+            throw new Error(`Cloudinary dosyasına erişilemedi (Status: ${response.status})`);
+        }
 
         console.log(`DEBUG: Proxying PDF view for upload ${uploadId}`);
         res.setHeader('Content-Type', 'application/pdf');
@@ -72,8 +80,17 @@ router.get('/download/:uploadId', async (req, res, next) => {
 
         if (upload.rowCount === 0) throw new AppError('Dosya bulunamadı', 404);
 
-        const response = await fetch(upload.rows[0].dosya_url);
-        if (!response.ok) throw new Error('Cloudinary dosyasına erişilemedi');
+        const targetUrl = upload.rows[0].dosya_url;
+        console.log(`DEBUG: Proxying PDF download. Target: ${targetUrl}`);
+
+        const response = await fetch(targetUrl, {
+            headers: { 'User-Agent': 'SoruHavuzu-Proxy/1.0' }
+        });
+
+        if (!response.ok) {
+            console.error(`❌ Cloudinary access failed (Download). Status: ${response.status}, URL: ${targetUrl}`);
+            throw new Error(`Cloudinary dosyasına erişilemedi (Status: ${response.status})`);
+        }
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(upload.rows[0].ad)}.pdf"`);
