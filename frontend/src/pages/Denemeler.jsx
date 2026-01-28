@@ -139,20 +139,25 @@ export default function Denemeler() {
     const getCloudinaryUrl = (url, forceDownload = false) => {
         if (!url) return '';
 
-        // Önbellek sorunlarını aşmak için timestamp ekle
+        let finalUrl = url;
         const cacheBuster = `?v=${new Date().getTime()}`;
 
+        // Cloudinary'de PDF'lerin düzgün açılması için URL'nin .pdf ile bitmesi zorunludur.
+        if (finalUrl.includes('/image/upload/') && !finalUrl.toLowerCase().endsWith('.pdf')) {
+            finalUrl += '.pdf';
+        }
+
         // Eğer URL bir "raw" dosyasıysa
-        if (url.includes('/raw/upload/')) {
-            return url + cacheBuster;
+        if (finalUrl.includes('/raw/upload/')) {
+            return finalUrl + cacheBuster;
         }
 
-        // Eğer URL bir "image" veya "video" ise
-        if (forceDownload && (url.includes('/image/upload/') || url.includes('/video/upload/'))) {
-            return url.replace('/upload/', '/upload/fl_attachment/') + cacheBuster;
+        // Zorunlu İndirme (fl_attachment)
+        if (forceDownload) {
+            finalUrl = finalUrl.replace('/upload/', '/upload/fl_attachment/');
         }
 
-        return url + cacheBuster;
+        return finalUrl + cacheBuster;
     };
 
     return (
