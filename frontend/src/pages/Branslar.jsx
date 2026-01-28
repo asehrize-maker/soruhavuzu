@@ -337,10 +337,10 @@ export default function Branslar() {
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Excel Seçin (.xlsx)</label>
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Dosya Seçin (.xlsx, .csv)</label>
               <input
                 type="file"
-                accept=".xlsx,.xls"
+                accept=".xlsx,.xls,.csv"
                 className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-700 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                 onChange={(e) => setImportFile(e.target.files?.[0] || null)}
               />
