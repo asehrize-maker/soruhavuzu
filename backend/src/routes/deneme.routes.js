@@ -9,7 +9,7 @@ import { Readable } from 'stream';
 
 const router = express.Router();
 
-// Görev Dosyasını Görüntüle (DIRECT STREAMING - KESİN ÇÖZÜM)
+// Görev Dosyasını Görüntüle (AUTHENTICATED STREAMING)
 router.get('/view/:uploadId', async (req, res, next) => {
     try {
         const { uploadId } = req.params;
@@ -28,11 +28,27 @@ router.get('/view/:uploadId', async (req, res, next) => {
         if (upload.rowCount === 0) throw new AppError('Dosya bulunamadı', 404);
 
         const targetUrl = upload.rows[0].dosya_url;
-        console.log(`DEBUG: Direct Streaming View. Target: ${targetUrl}`);
 
-        const response = await fetch(targetUrl);
+        // URL'den public_id ve resource_type ayıklama (İmzalama için gerekli)
+        const urlParts = targetUrl.split('/');
+        const uploadIndex = urlParts.indexOf('upload');
+        const resourceType = urlParts[uploadIndex - 1] || 'image';
+        const publicIdWithExt = urlParts.slice(uploadIndex + 2).join('/');
+        const publicId = publicIdWithExt.replace(/\.[^/.]+$/, "");
+
+        // Sunucu tarafında İMZALI bir URL oluşturuyoruz (401'i aşmak için)
+        const authenticatedUrl = cloudinary.url(publicId, {
+            resource_type: resourceType,
+            sign_url: true,
+            secure: true,
+            type: 'upload'
+        });
+
+        console.log(`DEBUG: Authenticated Streaming View. Target: ${authenticatedUrl}`);
+
+        const response = await fetch(authenticatedUrl);
         if (!response.ok) {
-            console.error(`❌ Fetch failed. Status: ${response.status}, URL: ${targetUrl}`);
+            console.error(`❌ Cloudinary access failed. Status: ${response.status}, URL: ${authenticatedUrl}`);
             throw new Error(`Dosya sunucudan çekilemedi (Hata: ${response.status})`);
         }
 
@@ -47,7 +63,7 @@ router.get('/view/:uploadId', async (req, res, next) => {
     }
 });
 
-// Görev Dosyasını İndir (DIRECT STREAMING)
+// Görev Dosyasını İndir (AUTHENTICATED STREAMING)
 router.get('/download/:uploadId', async (req, res, next) => {
     try {
         const { uploadId } = req.params;
@@ -72,7 +88,20 @@ router.get('/download/:uploadId', async (req, res, next) => {
         if (upload.rowCount === 0) throw new AppError('Dosya bulunamadı', 404);
 
         const targetUrl = upload.rows[0].dosya_url;
-        const response = await fetch(targetUrl);
+        const urlParts = targetUrl.split('/');
+        const uploadIndex = urlParts.indexOf('upload');
+        const resourceType = urlParts[uploadIndex - 1] || 'image';
+        const publicIdWithExt = urlParts.slice(uploadIndex + 2).join('/');
+        const publicId = publicIdWithExt.replace(/\.[^/.]+$/, "");
+
+        const authenticatedUrl = cloudinary.url(publicId, {
+            resource_type: resourceType,
+            sign_url: true,
+            secure: true,
+            type: 'upload'
+        });
+
+        const response = await fetch(authenticatedUrl);
         if (!response.ok) {
             throw new Error(`Dosya sunucudan çekilemedi (Hata: ${response.status})`);
         }
@@ -250,7 +279,9 @@ router.post('/:id/upload', authenticate, upload.single('pdf_dosya'), async (req,
                     folder: 'soru-havuzu/denemeler',
                     public_id: `${timestamp}_${cleanFileName}`,
                     use_filename: false,
-                    unique_filename: false
+                    unique_filename: false,
+                    access_mode: 'public',
+                    type: 'upload'
                 },
                 (error, result) => {
                     if (error) {
