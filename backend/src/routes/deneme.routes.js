@@ -36,22 +36,27 @@ router.get('/view/:uploadId', async (req, res, next) => {
         console.log(`DEBUG: Target URL from DB: ${targetUrl}`);
 
         // Cloudinary URL'sinden public_id, version ve resource_type ayıklama
-        // Örnek: .../image/upload/v12345/folder/name.pdf -> version: 12345, public_id: folder/name
+        // Örnek 1: .../image/upload/v12345/folder/name.pdf
+        // Örnek 2: .../image/upload/folder/name.pdf
         const urlParts = targetUrl.split('/');
         const uploadIndex = urlParts.indexOf('upload');
         const resourceType = urlParts[uploadIndex - 1] || 'image';
 
-        // Versiyon kısmını bul (v ile başlar)
         let version = '';
-        const versionPart = urlParts[uploadIndex + 1];
-        if (versionPart && versionPart.startsWith('v')) {
-            version = versionPart.substring(1);
+        let publicIdStartIndex = uploadIndex + 1;
+
+        // Eğer bir sonraki parça 'v' ile başlıyorsa bu bir versiyondur
+        if (urlParts[uploadIndex + 1] && urlParts[uploadIndex + 1].startsWith('v') && /v\d+/.test(urlParts[uploadIndex + 1])) {
+            version = urlParts[uploadIndex + 1].substring(1);
+            publicIdStartIndex = uploadIndex + 2;
         }
 
-        const publicIdWithExt = urlParts.slice(uploadIndex + 2).join('/');
-        const publicId = publicIdWithExt.replace(/\.[^/.]+$/, ""); // Sadece sondaki uzantıyı sil
+        const publicIdWithExt = urlParts.slice(publicIdStartIndex).join('/');
+        const publicId = publicIdWithExt.replace(/\.[^/.]+$/, ""); // Uzantıyı sil
 
-        // İmzalı URL oluştur (401 hatasını aşmak için en kesin yol)
+        console.log(`DEBUG: Extracted -> PublicId: ${publicId}, Version: ${version}, Type: ${resourceType}`);
+
+        // İmzalı URL oluştur
         const signedUrl = cloudinary.url(publicId, {
             resource_type: resourceType,
             version: version,
@@ -62,7 +67,6 @@ router.get('/view/:uploadId', async (req, res, next) => {
             attachment: false
         });
 
-        console.log(`DEBUG: Generated Signed URL (View) - Version: ${version}, PublicId: ${publicId}`);
         res.redirect(signedUrl);
     } catch (error) {
         console.error('DEBUG: View Proxy Error:', error);
@@ -94,12 +98,14 @@ router.get('/download/:uploadId', async (req, res, next) => {
         const resourceType = urlParts[uploadIndex - 1] || 'image';
 
         let version = '';
-        const versionPart = urlParts[uploadIndex + 1];
-        if (versionPart && versionPart.startsWith('v')) {
-            version = versionPart.substring(1);
+        let publicIdStartIndex = uploadIndex + 1;
+
+        if (urlParts[uploadIndex + 1] && urlParts[uploadIndex + 1].startsWith('v') && /v\d+/.test(urlParts[uploadIndex + 1])) {
+            version = urlParts[uploadIndex + 1].substring(1);
+            publicIdStartIndex = uploadIndex + 2;
         }
 
-        const publicIdWithExt = urlParts.slice(uploadIndex + 2).join('/');
+        const publicIdWithExt = urlParts.slice(publicIdStartIndex).join('/');
         const publicId = publicIdWithExt.replace(/\.[^/.]+$/, "");
 
         // İmzalı İndirme Linki Oluştur
