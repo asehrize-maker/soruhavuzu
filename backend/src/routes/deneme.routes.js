@@ -58,9 +58,13 @@ router.get('/view/:uploadId', async (req, res, next) => {
         const urlOptions = {
             resource_type: resourceType,
             secure: true,
-            type: deliveryType,
-            format: 'pdf'
+            type: deliveryType
         };
+
+        // Raw dosyalar için format belirtilmez, extension public_id içindedir
+        if (resourceType !== 'raw') {
+            urlOptions.format = 'pdf';
+        }
 
         // Sadece private veya authenticated ise imza ekle, upload tipinde imza bazen 401'e yol açar
         if (deliveryType !== 'upload') {
@@ -159,9 +163,12 @@ router.get('/download/:uploadId', async (req, res, next) => {
             resource_type: resourceType,
             secure: true,
             type: deliveryType,
-            format: 'pdf',
             flags: 'attachment'
         };
+
+        if (resourceType !== 'raw') {
+            urlOptions.format = 'pdf';
+        }
 
         if (deliveryType !== 'upload') {
             urlOptions.sign_url = true;
@@ -362,14 +369,12 @@ router.post('/:id/upload', authenticate, upload.single('pdf_dosya'), async (req,
         const sanitizedFilename = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
         const publicId = `${timestamp}_${sanitizedFilename}`;
         const uploadPromise = new Promise((resolve, reject) => {
-            const cleanFileName = sanitizedFilename.split('.').slice(0, -1).join('.') || 'dosya';
             const uploadStream = cloudinary.uploader.upload_stream(
                 {
-                    resource_type: 'image',
-                    format: 'pdf',
+                    resource_type: 'raw', // PDF'i dosya olarak sakla (resim çevrimi yok)
                     folder: 'soru-havuzu/denemeler',
-                    public_id: `${timestamp}_${cleanFileName}`,
-                    use_filename: false,
+                    public_id: `${timestamp}_${sanitizedFilename}`, // Extension dahil tam isim
+                    use_filename: true,
                     unique_filename: false,
                     access_mode: 'public',
                     type: 'upload'
