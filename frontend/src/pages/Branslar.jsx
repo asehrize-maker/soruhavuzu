@@ -95,7 +95,10 @@ export default function Branslar() {
   };
 
   const downloadTemplate = () => {
-    const csvContent = "\uFEFFkazanim\nKZN.01 Birinci kazanım açıklaması buraya gelecek\nKZN.02 İkinci kazanım bilgisi örneği";
+    const csvContent = "\uFEFF" +
+      "F.8.4.1.1. Asit ve bazların genel özelliklerini ifade eder.\n" +
+      "F.8.4.1.2. Asit ve bazlara günlük yaşamdan örnekler verir.\n" +
+      "F.8.4.1.3. Günlük hayatta ulaşılabilecek malzemeleri asit-baz ayracı olarak kullanır.";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");

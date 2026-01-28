@@ -164,21 +164,57 @@ router.post('/:id/kazanim-import', authenticate, authorize('admin'), upload.sing
 
     const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = xlsx.utils.sheet_to_json(sheet, { defval: '' });
-    if (!rows.length) throw new AppError('Excel sayfası boş', 400);
+
+    // Get raw rows including headers to detect format
+    const rawRows = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    if (!rawRows.length) throw new AppError('Excel sayfası boş', 400);
 
     const client = await pool.connect();
     let inserted = 0;
     let skipped = 0;
     try {
       await client.query('BEGIN');
-      for (const row of rows) {
-        const kod = String(row.kod || row.Kod || row.KOD || '').trim();
-        const aciklama = String(row.aciklama || row.Açıklama || row.aciklama || row.ACIKLAMA || '').trim();
+
+      for (const row of rawRows) {
+        let kod = '';
+        let aciklama = '';
+
+        if (Array.isArray(row)) {
+          // If it's an array (from header: 1)
+          if (row.length === 1 || (row.length > 1 && !row[1])) {
+            // Single column format: "F.8.4.1. Aciklama"
+            const text = String(row[0] || '').trim();
+            if (!text) { skipped++; continue; }
+
+            // Regex to find the code part (e.g., F.8.4.1. or 8.4.1)
+            const match = text.match(/^([A-ZŞĞÜİÖÇ\d\.]+)\s+(.+)$/i);
+            if (match) {
+              kod = match[1].replace(/\.$/, ''); // Remove trailing dot if exists
+              aciklama = match[2];
+            } else {
+              aciklama = text;
+            }
+          } else {
+            // Two or more columns
+            kod = String(row[0] || '').trim();
+            aciklama = String(row[1] || '').trim();
+          }
+        } else if (typeof row === 'object') {
+          // Regular object format (if we didn't use header: 1)
+          kod = String(row.kod || row.Kod || row.KOD || '').trim();
+          aciklama = String(row.aciklama || row.Açıklama || row.ACIKLAMA || '').trim();
+        }
+
+        // Skip headers if they look like "kod", "açıklama" etc.
+        if (kod.toLowerCase() === 'kod' || aciklama.toLowerCase() === 'açıklama' || aciklama.toLowerCase() === 'aciklama') {
+          continue;
+        }
+
         if (!kod && !aciklama) {
           skipped++;
           continue;
         }
+
         await client.query(
           `INSERT INTO brans_kazanimlar (brans_id, kod, aciklama) 
            VALUES ($1, $2, $3) ON CONFLICT (brans_id, kod) DO UPDATE SET aciklama = EXCLUDED.aciklama`,
