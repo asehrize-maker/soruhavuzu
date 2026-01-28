@@ -139,20 +139,24 @@ export default function Denemeler() {
     const getCloudinaryUrl = (url, forceDownload = false) => {
         if (!url) return '';
 
+        let finalUrl = url;
         const cacheBuster = `v=${new Date().getTime()}`;
-        const separator = url.includes('?') ? '&' : '?';
-        const finalUrl = url + separator + cacheBuster;
 
-        if (forceDownload) {
-            // Eğer image tipiyse fl_attachment ekleyebiliriz (eski kayıtlar için)
-            if (url.includes('/image/upload/')) {
-                return url.replace('/upload/', '/upload/fl_attachment/') + separator + cacheBuster;
-            }
-            return finalUrl; // Raw dosyalar zaten otomatik iner
+        // 1. Cloudinary'de PDF'in "görüntülenebilir" olması için URL'nin .pdf ile bitmesi zorunludur.
+        if (!finalUrl.toLowerCase().includes('.pdf')) {
+            finalUrl += '.pdf';
         }
 
-        // VIEW MODU: Google Docs Viewer üzerinden aç (Harita gibi ağır dosyalar için en kesin çözüm)
-        return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+        // 2. Eğer İndirme isteniyorsa
+        if (forceDownload) {
+            // fl_attachment sadece /image/upload/ yollarında çalışır.
+            if (finalUrl.includes('/image/upload/')) {
+                finalUrl = finalUrl.replace('/upload/', '/upload/fl_attachment/');
+            }
+        }
+
+        const separator = finalUrl.includes('?') ? '&' : '?';
+        return finalUrl + separator + cacheBuster;
     };
 
     return (

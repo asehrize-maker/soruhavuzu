@@ -162,19 +162,22 @@ router.post('/:id/upload', authenticate, upload.single('pdf_dosya'), async (req,
         const sanitizedFilename = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
         const publicId = `${timestamp}_${sanitizedFilename}`;
         const uploadPromise = new Promise((resolve, reject) => {
-            const cleanFileName = sanitizedFilename.split('.').slice(0, -1).join('.') || 'goreg-dosyasi';
+            const cleanFileName = sanitizedFilename.split('.').slice(0, -1).join('.') || 'dosya';
             const uploadStream = cloudinary.uploader.upload_stream(
                 {
-                    resource_type: 'auto',
+                    resource_type: 'image',
+                    format: 'pdf',
                     folder: 'soru-havuzu/denemeler',
-                    use_filename: true,
-                    unique_filename: true
+                    public_id: `${timestamp}_${cleanFileName}`,
+                    use_filename: false,
+                    unique_filename: false
                 },
                 (error, result) => {
                     if (error) {
                         console.error('DEBUG: Cloudinary upload error:', error);
                         reject(error);
                     } else {
+                        // Cloudinary result.secure_url format: .../image/upload/v123/folder/name.pdf
                         console.log('DEBUG: Cloudinary upload success:', result.secure_url);
                         resolve(result);
                     }
