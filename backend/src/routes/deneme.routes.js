@@ -48,10 +48,11 @@ router.get('/view/:uploadId', async (req, res, next) => {
         // İmzalı URL oluştur (401 hatasını aşmak için en kesin yol)
         const signedUrl = cloudinary.url(publicId, {
             resource_type: resourceType,
+            format: 'pdf', // Uzantıyı garanti etmek için format ekliyoruz
             secure: true,
             sign_url: true,
             type: 'upload',
-            attachment: false // View modunda false olmalı
+            attachment: false
         });
 
         console.log(`DEBUG: Generated Signed URL for View: ${signedUrl}`);
@@ -90,10 +91,11 @@ router.get('/download/:uploadId', async (req, res, next) => {
         // İmzalı İndirme Linki Oluştur
         const signedDownloadUrl = cloudinary.url(publicId, {
             resource_type: resourceType,
+            format: 'pdf', // Uzantıyı garanti etmek için format ekliyoruz
             secure: true,
             sign_url: true,
             type: 'upload',
-            flags: 'attachment' // İndirmeyi zorla
+            flags: 'attachment'
         });
 
         console.log(`DEBUG: Generated Signed URL for Download: ${signedDownloadUrl}`);
