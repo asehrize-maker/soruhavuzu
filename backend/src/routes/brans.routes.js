@@ -167,6 +167,8 @@ router.post('/:id/kazanim-import', authenticate, authorize('admin'), upload.sing
 
     // Get raw rows including headers to detect format
     const rawRows = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    console.log(`DEBUG: Kazanım Import - Raw Rows Count: ${rawRows.length}`);
+
     if (!rawRows.length) throw new AppError('Excel sayfası boş', 400);
 
     const client = await pool.connect();
@@ -179,35 +181,41 @@ router.post('/:id/kazanim-import', authenticate, authorize('admin'), upload.sing
         let kod = '';
         let aciklama = '';
 
-        if (Array.isArray(row)) {
-          // If it's an array (from header: 1)
-          if (row.length === 1 || (row.length > 1 && !row[1])) {
-            // Single column format: "F.8.4.1. Aciklama"
-            const text = String(row[0] || '').trim();
-            if (!text) { skipped++; continue; }
+        if (Array.isArray(row) && row.length > 0) {
+          // İlk kolonu temizle
+          const col1 = String(row[0] || '').trim();
+          const col2 = row.length > 1 ? String(row[1] || '').trim() : '';
 
-            // Regex to find the code part (e.g., F.8.4.1. or 8.4.1)
-            const match = text.match(/^([A-ZŞĞÜİÖÇ\d\.]+)\s+(.+)$/i);
+          if (!col1 && !col2) {
+            skipped++;
+            continue;
+          }
+
+          // Başlık satırlarını atla
+          if (col1.toLowerCase() === 'kod' || col1.toLowerCase() === 'kazanım kodu' || col2.toLowerCase() === 'aciklama' || col2.toLowerCase() === 'açıklama') {
+            continue;
+          }
+
+          if (col1 && !col2) {
+            // Tek kolon formatı: "F.8.4.1. Asitler" veya "1. Giriş"
+            // Regex: Kod (Harf/Rakam/Nokta) + Opsiyonel Nokta + Boşluk + Açıklama
+            const match = col1.match(/^([A-ZŞĞÜİÖÇ\d\.]+)\.?\s+(.+)$/i);
             if (match) {
-              kod = match[1].replace(/\.$/, ''); // Remove trailing dot if exists
+              kod = match[1];
               aciklama = match[2];
             } else {
-              aciklama = text;
+              aciklama = col1;
             }
-          } else {
-            // Two or more columns
-            kod = String(row[0] || '').trim();
-            aciklama = String(row[1] || '').trim();
+          } else if (col1 && col2) {
+            // İki kolon formatı
+            kod = col1;
+            aciklama = col2;
+          } else if (!col1 && col2) {
+            aciklama = col2;
           }
-        } else if (typeof row === 'object') {
-          // Regular object format (if we didn't use header: 1)
+        } else if (typeof row === 'object' && row !== null) {
           kod = String(row.kod || row.Kod || row.KOD || '').trim();
           aciklama = String(row.aciklama || row.Açıklama || row.ACIKLAMA || '').trim();
-        }
-
-        // Skip headers if they look like "kod", "açıklama" etc.
-        if (kod.toLowerCase() === 'kod' || aciklama.toLowerCase() === 'açıklama' || aciklama.toLowerCase() === 'aciklama') {
-          continue;
         }
 
         if (!kod && !aciklama) {
@@ -215,16 +223,20 @@ router.post('/:id/kazanim-import', authenticate, authorize('admin'), upload.sing
           continue;
         }
 
+        // Sadece açıklama varsa kodsuz ekle
         await client.query(
           `INSERT INTO brans_kazanimlar (brans_id, kod, aciklama) 
-           VALUES ($1, $2, $3) ON CONFLICT (brans_id, kod) DO UPDATE SET aciklama = EXCLUDED.aciklama`,
-          [id, kod || null, aciklama || null]
+                     VALUES ($1, $2, $3) 
+                     ON CONFLICT (brans_id, kod) WHERE kod IS NOT NULL 
+                     DO UPDATE SET aciklama = EXCLUDED.aciklama`,
+          [id, kod || null, aciklama]
         );
         inserted++;
       }
       await client.query('COMMIT');
     } catch (err) {
       await client.query('ROLLBACK');
+      console.error('DEBUG: Kazanim Import Error:', err);
       throw err;
     } finally {
       client.release();
@@ -232,7 +244,7 @@ router.post('/:id/kazanim-import', authenticate, authorize('admin'), upload.sing
 
     res.json({
       success: true,
-      data: { inserted, skipped, total: rows.length },
+      data: { inserted, skipped, total: rawRows.length },
       message: `Kazanım import tamamlandı. Eklenen/Güncellenen: ${inserted}, atlanan: ${skipped}`
     });
   } catch (error) {
