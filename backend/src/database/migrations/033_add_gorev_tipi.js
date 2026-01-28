@@ -1,10 +1,5 @@
-import pool from '../../config/database.js';
-
-export const addGorevTipiToDenemeler = async () => {
-    const client = await pool.connect();
+export const addGorevTipiToDenemeler = async (client) => {
     try {
-        await client.query('BEGIN');
-
         // Check if column exists first
         const checkColumn = await client.query(`
       SELECT column_name 
@@ -19,13 +14,8 @@ export const addGorevTipiToDenemeler = async () => {
       `);
             console.log('Migration 033: gorev_tipi column added to deneme_takvimi');
         }
-
-        await client.query('COMMIT');
     } catch (err) {
-        await client.query('ROLLBACK');
         console.error('Migration 033 failed:', err);
         throw err;
-    } finally {
-        client.release();
     }
 };
