@@ -323,4 +323,67 @@ router.delete('/upload/:id', authenticate, async (req, res, next) => {
     }
 });
 
+// Görev Dosyasını Görüntüle (Proxy üzerinden)
+router.get('/view/:uploadId', authenticate, async (req, res, next) => {
+    try {
+        const { uploadId } = req.params;
+        const upload = await pool.query('SELECT dosya_url FROM deneme_yuklemeleri WHERE id = $1', [uploadId]);
+
+        if (upload.rowCount === 0) {
+            throw new AppError('Dosya bulunamadı', 404);
+        }
+
+        const response = await fetch(upload.rows[0].dosya_url);
+        if (!response.ok) throw new Error('Cloudinary dosyasına erişilemedi');
+
+        const contentType = response.headers.get('content-type') || 'application/pdf';
+        res.setHeader('Content-Type', 'application/pdf'); // Zorla PDF yapıyoruz
+        res.setHeader('Content-Disposition', 'inline');
+
+        const reader = response.body.getReader();
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            res.write(value);
+        }
+        res.end();
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Görev Dosyasını İndir (Proxy üzerinden)
+router.get('/download/:uploadId', authenticate, async (req, res, next) => {
+    try {
+        const { uploadId } = req.params;
+        const upload = await pool.query(
+            `SELECT dy.dosya_url, d.ad 
+             FROM deneme_yuklemeleri dy 
+             JOIN deneme_takvimi d ON d.id = dy.deneme_id 
+             WHERE dy.id = $1`,
+            [uploadId]
+        );
+
+        if (upload.rowCount === 0) {
+            throw new AppError('Dosya bulunamadı', 404);
+        }
+
+        const response = await fetch(upload.rows[0].dosya_url);
+        if (!response.ok) throw new Error('Cloudinary dosyasına erişilemedi');
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(upload.rows[0].ad)}.pdf"`);
+
+        const reader = response.body.getReader();
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            res.write(value);
+        }
+        res.end();
+    } catch (error) {
+        next(error);
+    }
+});
+
 export default router;

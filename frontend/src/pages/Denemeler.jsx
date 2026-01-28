@@ -136,27 +136,10 @@ export default function Denemeler() {
         }
     };
 
-    const getCloudinaryUrl = (url, forceDownload = false) => {
-        if (!url) return '';
-
-        let finalUrl = url;
-        const cacheBuster = `v=${new Date().getTime()}`;
-
-        // 1. Cloudinary'de PDF'in "görüntülenebilir" olması için URL'nin .pdf ile bitmesi zorunludur.
-        if (!finalUrl.toLowerCase().includes('.pdf')) {
-            finalUrl += '.pdf';
-        }
-
-        // 2. Eğer İndirme isteniyorsa
-        if (forceDownload) {
-            // fl_attachment sadece /image/upload/ yollarında çalışır.
-            if (finalUrl.includes('/image/upload/')) {
-                finalUrl = finalUrl.replace('/upload/', '/upload/fl_attachment/');
-            }
-        }
-
-        const separator = finalUrl.includes('?') ? '&' : '?';
-        return finalUrl + separator + cacheBuster;
+    const getProxyUrl = (uploadId, mode = 'view') => {
+        if (!uploadId) return '#';
+        const baseUrl = import.meta.env.VITE_API_URL || '';
+        return `${baseUrl}/denemeler/${mode}/${uploadId}`;
     };
 
     return (
@@ -228,7 +211,7 @@ export default function Denemeler() {
                                     {deneme.my_upload_url && (
                                         <div className="flex items-center gap-2">
                                             <a
-                                                href={getCloudinaryUrl(deneme.my_upload_url)}
+                                                href={getProxyUrl(deneme.my_upload_id, 'view')}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="py-3 px-4 bg-green-50 text-green-600 rounded-xl font-black text-[9px] uppercase tracking-widest border border-green-100 hover:bg-green-100 transition-all flex items-center gap-1.5"
@@ -237,8 +220,7 @@ export default function Denemeler() {
                                                 <EyeIcon className="w-4 h-4" /> GÖR
                                             </a>
                                             <a
-                                                href={getCloudinaryUrl(deneme.my_upload_url, true)}
-                                                download={deneme.ad + ".pdf"}
+                                                href={getProxyUrl(deneme.my_upload_id, 'download')}
                                                 className="py-3 px-4 bg-amber-50 text-amber-600 rounded-xl font-black text-[9px] uppercase tracking-widest border border-amber-100 hover:bg-amber-100 transition-all flex items-center gap-1.5"
                                                 title="Bilgisayara İndir"
                                             >
@@ -259,7 +241,7 @@ export default function Denemeler() {
                                             {deneme.all_uploads.map((up, idx) => (
                                                 <div key={idx} className="flex items-center bg-indigo-50 rounded-xl border border-indigo-100 overflow-hidden">
                                                     <a
-                                                        href={getCloudinaryUrl(up.dosya_url)}
+                                                        href={getProxyUrl(up.id, 'view')}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="px-2 py-2 text-indigo-600 text-[9px] font-black hover:bg-indigo-100 transition-all flex items-center gap-1"
@@ -268,8 +250,7 @@ export default function Denemeler() {
                                                         <EyeIcon className="w-3 h-3" /> {up.brans_adi}
                                                     </a>
                                                     <a
-                                                        href={getCloudinaryUrl(up.dosya_url, true)}
-                                                        download={`${up.brans_adi}_${deneme.ad}.pdf`}
+                                                        href={getProxyUrl(up.id, 'download')}
                                                         className="px-2 py-2 text-amber-600 text-[9px] font-black hover:bg-amber-100 border-l border-indigo-100 transition-all flex items-center gap-1"
                                                         title="İndir"
                                                     >
