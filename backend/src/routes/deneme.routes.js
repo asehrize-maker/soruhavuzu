@@ -165,11 +165,10 @@ router.post('/:id/upload', authenticate, upload.single('pdf_dosya'), async (req,
         const uploadPromise = new Promise((resolve, reject) => {
             const uploadStream = cloudinary.uploader.upload_stream(
                 {
-                    resource_type: 'auto',
+                    resource_type: 'raw',
                     folder: 'soru-havuzu/denemeler',
-                    public_id: sanitizedFilename.split('.')[0] + '_' + timestamp,
-                    use_filename: true,
-                    unique_filename: true
+                    public_id: `${timestamp}_${sanitizedFilename}`,
+                    content_disposition: 'inline'
                 },
                 (error, result) => {
                     if (error) {
