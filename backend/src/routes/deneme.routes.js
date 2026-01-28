@@ -35,27 +35,34 @@ router.get('/view/:uploadId', async (req, res, next) => {
         const targetUrl = upload.rows[0].dosya_url;
         console.log(`DEBUG: Target URL from DB: ${targetUrl}`);
 
-        // Cloudinary URL'sinden public_id ve resource_type ayıklama
-        // Örnek: .../image/upload/v123/folder/name.pdf -> public_id: folder/name
+        // Cloudinary URL'sinden public_id, version ve resource_type ayıklama
+        // Örnek: .../image/upload/v12345/folder/name.pdf -> version: 12345, public_id: folder/name
         const urlParts = targetUrl.split('/');
         const uploadIndex = urlParts.indexOf('upload');
         const resourceType = urlParts[uploadIndex - 1] || 'image';
 
-        // Versiyon (v123...) kısmını atlayıp public_id'yi alıyoruz
+        // Versiyon kısmını bul (v ile başlar)
+        let version = '';
+        const versionPart = urlParts[uploadIndex + 1];
+        if (versionPart && versionPart.startsWith('v')) {
+            version = versionPart.substring(1);
+        }
+
         const publicIdWithExt = urlParts.slice(uploadIndex + 2).join('/');
         const publicId = publicIdWithExt.replace(/\.[^/.]+$/, ""); // Sadece sondaki uzantıyı sil
 
         // İmzalı URL oluştur (401 hatasını aşmak için en kesin yol)
         const signedUrl = cloudinary.url(publicId, {
             resource_type: resourceType,
-            format: 'pdf', // Uzantıyı garanti etmek için format ekliyoruz
+            version: version,
+            format: 'pdf',
             secure: true,
             sign_url: true,
             type: 'upload',
             attachment: false
         });
 
-        console.log(`DEBUG: Generated Signed URL for View: ${signedUrl}`);
+        console.log(`DEBUG: Generated Signed URL (View) - Version: ${version}, PublicId: ${publicId}`);
         res.redirect(signedUrl);
     } catch (error) {
         console.error('DEBUG: View Proxy Error:', error);
@@ -85,20 +92,28 @@ router.get('/download/:uploadId', async (req, res, next) => {
         const urlParts = targetUrl.split('/');
         const uploadIndex = urlParts.indexOf('upload');
         const resourceType = urlParts[uploadIndex - 1] || 'image';
+
+        let version = '';
+        const versionPart = urlParts[uploadIndex + 1];
+        if (versionPart && versionPart.startsWith('v')) {
+            version = versionPart.substring(1);
+        }
+
         const publicIdWithExt = urlParts.slice(uploadIndex + 2).join('/');
         const publicId = publicIdWithExt.replace(/\.[^/.]+$/, "");
 
         // İmzalı İndirme Linki Oluştur
         const signedDownloadUrl = cloudinary.url(publicId, {
             resource_type: resourceType,
-            format: 'pdf', // Uzantıyı garanti etmek için format ekliyoruz
+            version: version,
+            format: 'pdf',
             secure: true,
             sign_url: true,
             type: 'upload',
             flags: 'attachment'
         });
 
-        console.log(`DEBUG: Generated Signed URL for Download: ${signedDownloadUrl}`);
+        console.log(`DEBUG: Generated Signed URL (Download) - Version: ${version}, PublicId: ${publicId}`);
         res.redirect(signedDownloadUrl);
     } catch (error) {
         next(error);
