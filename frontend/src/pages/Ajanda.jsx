@@ -106,6 +106,11 @@ export default function Ajanda() {
 
     const selectedEvents = getEventsForDate(selectedDate);
 
+    const upcomingEvents = events
+        .filter(e => new Date(e.planlanan_tarih) >= new Date().setHours(0, 0, 0, 0))
+        .sort((a, b) => new Date(a.planlanan_tarih) - new Date(b.planlanan_tarih))
+        .slice(0, 5); // İlk 5 gelecek işi göster
+
     return (
         <div className="max-w-7xl mx-auto h-[calc(100vh-8rem)] flex flex-col md:flex-row gap-8 animate-fade-in overflow-hidden">
             {/* SIDEBAR - CALENDAR WIDGET */}
@@ -145,7 +150,7 @@ export default function Ajanda() {
                                         {date.getDate()}
                                     </span>
                                     {dayEvents.length > 0 && (
-                                        <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-indigo-500'} animate-pulse`} />
+                                        <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : (new Date(date) >= new Date().setHours(0, 0, 0, 0) ? 'bg-blue-500' : 'bg-gray-300')} animate-pulse`} />
                                     )}
                                     {isToday && !isSelected && (
                                         <div className="absolute top-1 right-1 w-1 h-1 bg-rose-500 rounded-full" />
@@ -183,6 +188,43 @@ export default function Ajanda() {
                             <span className="text-lg font-black">{events.filter(e => e.toplam_yukleme > 0).length}</span>
                         </div>
                     </div>
+                </div>
+
+                {/* YAKLAŞAN İŞLER LİSTESİ */}
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between px-4">
+                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Yaklaşan İşler</h3>
+                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-ping"></span>
+                    </div>
+                    {upcomingEvents.length === 0 ? (
+                        <div className="bg-white rounded-3xl p-6 text-center border border-gray-100">
+                            <p className="text-[10px] font-bold text-gray-300 uppercase">Planlanmış iş yok</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {upcomingEvents.map((event, idx) => (
+                                <button
+                                    key={event.id || idx}
+                                    onClick={() => {
+                                        setCurrentDate(new Date(event.planlanan_tarih));
+                                        setSelectedDate(new Date(event.planlanan_tarih));
+                                    }}
+                                    className="w-full bg-white hover:bg-gray-50 p-4 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4 group transition-all text-left"
+                                >
+                                    <div className="shrink-0 w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-black text-xs">
+                                        {new Date(event.planlanan_tarih).getDate()}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="text-[11px] font-black text-gray-900 uppercase truncate leading-tight">{event.ad}</h4>
+                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter mt-0.5">
+                                            {new Date(event.planlanan_tarih).toLocaleDateString('tr-TR', { month: 'long', weekday: 'short' })}
+                                        </p>
+                                    </div>
+                                    <ChevronRightIcon className="w-4 h-4 text-gray-200 group-hover:text-blue-500 transition-colors" />
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </aside>
 
