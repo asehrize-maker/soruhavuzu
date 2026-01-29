@@ -247,10 +247,7 @@ export default function Ajanda() {
                         <h2 className="text-4xl font-black text-gray-900 tracking-tight">
                             {selectedDate.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}
                         </h2>
-                        <p className="text-gray-400 font-bold uppercase tracking-widest text-xs mt-1">Günün Planlanan İşleri</p>
-                    </div>
-                    <div className="bg-white px-6 py-2 rounded-full border border-gray-100 text-indigo-600 font-black text-[10px] shadow-sm uppercase">
-                        {selectedEvents.length} Kayıt Bulundu
+                        <p className="text-gray-400 font-bold uppercase tracking-widest text-xs mt-1">Gününün Planlanan İşleri</p>
                     </div>
                 </div>
 
