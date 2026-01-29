@@ -5,7 +5,7 @@ import { soruAPI, bransAPI } from '../services/api';
 import { getDurumBadge } from '../utils/helpers';
 import EditableBlock from '../components/EditableBlock';
 import ResizableImage from '../components/ResizableImage';
-import IncelemeYorumlari from '../components/IncelemeYorumlari';
+
 import MetadataForm from '../components/MetadataForm';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
@@ -1132,18 +1132,7 @@ export default function SoruDetay() {
             )}
           </div>
 
-          {/* ANALYSES & FEEDBACK */}
-          {((!isBranchTeacher && effectiveRole !== 'dizgici') || ['revize_istendi', 'revize_gerekli'].includes(soru.durum)) && (
-            <div className="bg-white rounded-[3.5rem] p-10 shadow-xl shadow-gray-200/50 border border-gray-50 space-y-10">
-              <div className="flex items-center justify-between border-b border-gray-50 pb-8">
-                <h3 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                  <ChatBubbleLeftRightIcon className="w-8 h-8 text-blue-600" /> İnceleme Diyalogları
-                </h3>
-                <span className="bg-gray-50 px-5 py-2 rounded-2xl text-[10px] font-black text-gray-400 uppercase tracking-widest">HABERLEŞME MERKEZİ</span>
-              </div>
-              <IncelemeYorumlari soruId={id} />
-            </div>
-          )}
+
         </div>
 
         {/* SIDEBAR */}
