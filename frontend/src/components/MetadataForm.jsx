@@ -9,7 +9,8 @@ const MetadataForm = ({
     disabled = false,
     className = '',
     allowManualKazanim = false,
-    gridCols = 'grid-cols-1 md:grid-cols-5'
+    gridCols = 'grid-cols-1 md:grid-cols-5',
+    hideBrans = false
 }) => {
     const handleChange = (field, value) => {
         if (allowManualKazanim && field === 'kazanim') {
@@ -32,20 +33,27 @@ const MetadataForm = ({
 
     return (
         <div className={`bg-white border rounded shadow-sm p-4 grid gap-4 ${gridCols} ${className}`}>
-            <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-gray-400 uppercase mb-1">Branş</label>
-                <select
-                    className="w-full border p-2 rounded text-xs bg-gray-50 focus:bg-white transition"
-                    value={values.brans_id || ''}
-                    onChange={e => handleChange('brans_id', e.target.value)}
-                    disabled={disabled}
-                >
-                    <option value="">Seçiniz</option>
-                    {branslar.map(b => (
-                        <option key={b.id} value={b.id}>{b.brans_adi}</option>
-                    ))}
-                </select>
-            </div>
+            {!hideBrans ? (
+                <div className="flex flex-col">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase mb-1">Branş</label>
+                    <select
+                        className="w-full border p-2 rounded text-xs bg-gray-50 focus:bg-white transition"
+                        value={values.brans_id || ''}
+                        onChange={e => handleChange('brans_id', e.target.value)}
+                        disabled={disabled}
+                    >
+                        <option value="">Seçiniz</option>
+                        {branslar.map(b => (
+                            <option key={b.id} value={b.id}>{b.brans_adi}</option>
+                        ))}
+                    </select>
+                </div>
+            ) : values.brans_id ? (
+                <div className="flex flex-col bg-blue-50/50 p-3 rounded-2xl border border-blue-100/50">
+                    <label className="text-[10px] font-black text-blue-400 uppercase mb-1 tracking-widest">AKTİF BRANŞ</label>
+                    <span className="text-xs font-black text-blue-700">{branslar.find(b => String(b.id) === String(values.brans_id))?.brans_adi || 'Atanmış Branş'}</span>
+                </div>
+            ) : null}
 
             <div className="flex flex-col">
                 <label className="text-[10px] font-bold text-gray-400 uppercase mb-1">Doğru Cevap</label>

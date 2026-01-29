@@ -870,6 +870,7 @@ export default function SoruDetay() {
                   kazanimLoading={kazanimLoading}
                   allowManualKazanim={true}
                   gridCols="grid-cols-1"
+                  hideBrans={user?.rol !== 'admin'}
                   className="bg-transparent !p-0 !shadow-none gap-5"
                 />
               </div>
