@@ -787,7 +787,7 @@ export default function SoruDetay() {
                 <button onClick={handleFinishReview} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 transition-all active:scale-95">🚩 İNCELEMEYİ SONLANDIR</button>
               )}
               {canEdit && (
-                <button onClick={handleEditStart} className="flex items-center gap-2 bg-gray-900 border border-black hover:bg-black text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all active:scale-95"><PencilSquareIcon className="w-5 h-5" /> DÜZENLE</button>
+                <button onClick={handleEditStart} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 transition-all active:scale-95"><PencilIcon className="w-5 h-5" /> DÜZENLE</button>
               )}
               {hasFullAccess && (
                 <div className="flex gap-2">
