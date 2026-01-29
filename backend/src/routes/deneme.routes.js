@@ -235,10 +235,15 @@ const ensureTables = async () => {
         `);
         // We might also want to add the column if it doesn't exist, though migration handles it
         try {
-            await pool.query(`ALTER TABLE deneme_takvimi ADD COLUMN IF NOT EXISTS gorev_tipi VARCHAR(50) DEFAULT 'deneme'`);
-            await pool.query(`ALTER TABLE deneme_takvimi ADD COLUMN IF NOT EXISTS brans_id INTEGER REFERENCES branslar(id) ON DELETE CASCADE`);
-            await pool.query(`ALTER TABLE deneme_takvimi ADD COLUMN IF NOT EXISTS ekip_id INTEGER REFERENCES ekipler(id) ON DELETE CASCADE`);
-        } catch (colErr) { }
+            const cols = await pool.query(`SELECT column_name FROM information_schema.columns WHERE table_name = 'deneme_takvimi'`);
+            const colNames = cols.rows.map(r => r.column_name);
+
+            if (!colNames.includes('gorev_tipi')) await pool.query(`ALTER TABLE deneme_takvimi ADD COLUMN gorev_tipi VARCHAR(50) DEFAULT 'deneme'`);
+            if (!colNames.includes('brans_id')) await pool.query(`ALTER TABLE deneme_takvimi ADD COLUMN brans_id INTEGER REFERENCES branslar(id) ON DELETE CASCADE`);
+            if (!colNames.includes('ekip_id')) await pool.query(`ALTER TABLE deneme_takvimi ADD COLUMN ekip_id INTEGER REFERENCES ekipler(id) ON DELETE CASCADE`);
+        } catch (colErr) {
+            console.error('DEBUG: Column addition failed (maybe already exists):', colErr.message);
+        }
 
         await pool.query(`
             CREATE TABLE IF NOT EXISTS deneme_yuklemeleri (
@@ -285,10 +290,13 @@ router.post('/plan', authenticate, authorize('admin'), async (req, res, next) =>
             throw new AppError('Deneme adı ve tarihi zorunludur', 400);
         }
 
+        const p_brans_id = (brans_id && brans_id !== "" && brans_id !== "null") ? parseInt(brans_id) : null;
+        const p_ekip_id = (ekip_id && ekip_id !== "" && ekip_id !== "null") ? parseInt(ekip_id) : null;
+
         const result = await pool.query(
             `INSERT INTO deneme_takvimi (ad, planlanan_tarih, aciklama, olusturan_id, gorev_tipi, brans_id, ekip_id) 
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-            [ad, planlanan_tarih, aciklama, req.user.id, gorev_tipi || 'deneme', brans_id || null, ekip_id || null]
+            [ad, planlanan_tarih, aciklama, req.user.id, gorev_tipi || 'deneme', p_brans_id, p_ekip_id]
         );
 
         console.log('Deneme Plan Created:', result.rows[0]);
@@ -335,7 +343,7 @@ router.get('/', authenticate, async (req, res, next) => {
                         k.ad_soyad as yukleyen_ad
                     FROM deneme_yuklemeleri dy
                     LEFT JOIN branslar b ON dy.brans_id = b.id
-                    LEFT JOIN kullanicilar k ON dy.kullanici_id = k.id
+                    LEFT JOIN kullanicilar k ON dy.yukleyen_id = k.id
                     WHERE dy.deneme_id = d.id
                     ORDER BY dy.brans_id, dy.yukleme_tarihi DESC
                 ) as up
