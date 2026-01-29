@@ -170,30 +170,59 @@ export default function Sorular({ scope }) {
     }
   };
 
-  const handleDizgiyeGonder = async (ids) => {
-    const idList = Array.isArray(ids) ? ids : [ids];
-    if (idList.length === 0) return;
-    if (!window.confirm(`${idList.length} soruyu dizgiye göndermek istediğinize emin misiniz?`)) return;
+  const handleBulkUpdateStatus = async (targetStatus, buttonLabel) => {
+    if (selectedQuestions.length === 0) return;
+
+    // Filtreleme mantığı: Sadece bu duruma geçebilecek soruları seç
+    let eligibleQuestions = [];
+
+    if (targetStatus === 'dizgi_bekliyor') {
+      eligibleQuestions = selectedQuestions.filter(id => {
+        const s = sorular.find(q => q.id === id);
+        return ['beklemede', 'revize_istendi', 'revize_gerekli'].includes(s?.durum);
+      });
+    } else if (targetStatus === 'alan_incelemede') {
+      eligibleQuestions = selectedQuestions.filter(id => {
+        const s = sorular.find(q => q.id === id);
+        return ['dizgi_tamam', 'dil_onaylandi'].includes(s?.durum);
+      });
+    } else if (targetStatus === 'dil_incelemede') {
+      eligibleQuestions = selectedQuestions.filter(id => {
+        const s = sorular.find(q => q.id === id);
+        return ['alan_onaylandi'].includes(s?.durum);
+      });
+    } else if (targetStatus === 'tamamlandi') {
+      eligibleQuestions = selectedQuestions.filter(id => {
+        const s = sorular.find(q => q.id === id);
+        return ['dil_onaylandi'].includes(s?.durum);
+      });
+    } else {
+      eligibleQuestions = selectedQuestions;
+    }
+
+    if (eligibleQuestions.length === 0) {
+      alert(`Seçilen sorular arasında "${buttonLabel}" işlemine uygun soru bulunamadı.`);
+      return;
+    }
+
+    if (!window.confirm(`${eligibleQuestions.length} soru için "${buttonLabel}" işlemi yapılacak. Emin misiniz?`)) return;
+
     try {
       setLoading(true);
-      const results = await Promise.allSettled(idList.map(id => soruAPI.updateDurum(id, { yeni_durum: 'dizgi_bekliyor' })));
+      const results = await Promise.allSettled(eligibleQuestions.map(id => soruAPI.updateDurum(id, { yeni_durum: targetStatus })));
       const failed = results.filter(r => r.status === 'rejected');
       const succeeded = results.filter(r => r.status === 'fulfilled');
 
       if (failed.length > 0) {
-        const errorDetails = failed.map((f, i) => {
-          const errMsg = f.reason?.response?.data?.error || f.reason?.message || 'Bilinmeyen hata';
-          return `Soru (ID: ${idList[results.indexOf(f)]}): ${errMsg}`;
-        }).join('\n');
-        alert(`${failed.length} hata oluştu:\n\n${errorDetails}`);
+        alert(`${failed.length} işlem başarısız oldu. Lütfen tekrar deneyin.`);
       }
 
       if (succeeded.length > 0) {
         loadSorular();
+        setSelectedQuestions([]);
       }
-      setSelectedQuestions([]);
     } catch (error) {
-      alert('İşlem sırasında beklenmeyen bir hata oluştu: ' + (error.message || error));
+      alert('İşlem sırasında beklenmeyen bir hata oluştu.');
     } finally {
       setLoading(false);
     }
@@ -346,22 +375,22 @@ export default function Sorular({ scope }) {
 
         <div className="flex flex-wrap items-center gap-3">
           {selectedQuestions.length > 0 && (
-            <div className="flex items-center gap-2">
-              {/* Removed tab specific logic, show actions generally or based on status of selected items if needed.  
-                  RocketLaunchIcon action was for 'taslaklar' tab. Now we show it if applicable?
-                  The original code condition: activeTab === 'taslaklar'.
-                  Since we removed tabs, maybe we should show it if selected questions are in draft/revision status?
-                  For simplicity/safety, let's keep it visible if scope === 'brans', or rely on status check inside handler or user discretion.
-                  Actually, lines 516 in original code (Context Actions) check statuses.
-                  Here (Bulk Actions), we might want to be safer.
-                  Original was: {activeTab === 'taslaklar' && ... }
-                  Now we always show it if scope!=brans? No.
-                  I will show it if scope === 'brans'.
-              */}
+            <div className="flex flex-wrap items-center gap-2">
               {scope === 'brans' && (
-                <button onClick={() => handleDizgiyeGonder(selectedQuestions)} className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-purple-100 transition-all flex items-center gap-2 active:scale-95">
-                  <RocketLaunchIcon className="w-4 h-4" strokeWidth={2.5} /> DİZGİYE GÖNDER
-                </button>
+                <>
+                  <button onClick={() => handleBulkUpdateStatus('dizgi_bekliyor', 'Dizgiye Gönder')} className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-purple-100 transition-all flex items-center gap-2 active:scale-95">
+                    <RocketLaunchIcon className="w-4 h-4" strokeWidth={2.5} /> DİZGİYE GÖNDER
+                  </button>
+                  <button onClick={() => handleBulkUpdateStatus('alan_incelemede', 'Alan İncelemeye Gönder')} className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-100 transition-all flex items-center gap-2 active:scale-95">
+                    <MagnifyingGlassPlusIcon className="w-4 h-4" strokeWidth={2.5} /> ALAN İNCELEME
+                  </button>
+                  <button onClick={() => handleBulkUpdateStatus('dil_incelemede', 'Dil İncelemeye Gönder')} className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-100 transition-all flex items-center gap-2 active:scale-95">
+                    <MagnifyingGlassPlusIcon className="w-4 h-4" strokeWidth={2.5} /> DİL İNCELEME
+                  </button>
+                  <button onClick={() => handleBulkUpdateStatus('tamamlandi', 'Tamamlananlara Aktar')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-100 transition-all flex items-center gap-2 active:scale-95">
+                    <ArchiveBoxArrowDownIcon className="w-4 h-4" strokeWidth={2.5} /> TAMAMLA
+                  </button>
+                </>
               )}
               {scope !== 'brans' && (
                 <button onClick={handleTestBuilder} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-100 transition-all flex items-center gap-2 active:scale-95">
@@ -507,26 +536,7 @@ export default function Sorular({ scope }) {
                         </div>
                       )}
 
-                      {/* CONTEXT ACTIONS */}
-                      {user?.rol === 'soru_yazici' && (
-                        <div className="flex flex-wrap gap-2 pt-2">
-                          {['beklemede', 'revize_istendi', 'revize_gerekli'].includes(soru.durum) && (
-                            <button onClick={() => handleDizgiyeGonder(soru.id)} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-purple-100 flex items-center gap-2 active:scale-95">
-                              <RocketLaunchIcon className="w-4 h-4" strokeWidth={2.5} /> DİZGİYE GÖNDER
-                            </button>
-                          )}
-                          {soru.durum === 'dizgi_tamam' && (
-                            <button onClick={() => handleUpdateStatusIndividual(soru.id, 'alan_incelemede')} className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-orange-100 flex items-center gap-2 active:scale-95">
-                              <MagnifyingGlassPlusIcon className="w-4 h-4" strokeWidth={2.5} /> ALAN İNCELEMEYE GÖNDER
-                            </button>
-                          )}
-                          {soru.durum === 'dil_onaylandi' && (
-                            <button onClick={() => handleOrtakHavuzaGonder(soru.id)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-emerald-100 flex items-center gap-2 active:scale-95">
-                              <ArchiveBoxArrowDownIcon className="w-4 h-4" strokeWidth={2.5} /> TAMAMLANANLARA AKTAR
-                            </button>
-                          )}
-                        </div>
-                      )}
+
                     </div>
 
                     {/* ACTIONS - NOW ON RIGHT */}
