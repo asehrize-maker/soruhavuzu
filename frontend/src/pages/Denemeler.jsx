@@ -215,7 +215,7 @@ export default function Denemeler() {
                                                     onClick={() => handlePlanDelete(deneme.id, deneme.ad)}
                                                     className="flex items-center gap-1 text-rose-500 hover:text-rose-600 transition-colors uppercase tracking-widest text-[9px] font-black"
                                                 >
-                                                    <TrashIcon className="w-3.5 h-3.5" /> PLANI SİL
+                                                    <TrashIcon className="w-3.5 h-3.5" /> GÖREVİ KALDIR
                                                 </button>
                                             </>
                                         )}
@@ -246,7 +246,7 @@ export default function Denemeler() {
                                             <button
                                                 onClick={() => handleDeleteUpload(deneme.my_upload_id)}
                                                 className="p-3 bg-rose-50 text-rose-600 rounded-xl border border-rose-100 hover:bg-rose-100 transition-all"
-                                                title="Yüklemeyi Sil"
+                                                title="Dosyayı Sil"
                                             >
                                                 <TrashIcon className="w-4 h-4" />
                                             </button>
