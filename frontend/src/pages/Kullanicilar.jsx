@@ -166,7 +166,7 @@ export default function Kullanicilar() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h1 className="text-4xl font-black text-gray-900 tracking-tight">Kullanıcı Yönetimi</h1>
-          <p className="mt-2 text-gray-500 font-medium">Sistemdeki tüm personelleri, rollerini ve yetkilerini yönetin.</p>
+          <p className="mt-2 text-gray-500 font-medium">Sistemdeki tüm kullanıcıları, rollerini ve yetkilerini yönetin.</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="relative group">
@@ -184,7 +184,7 @@ export default function Kullanicilar() {
             className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-6 py-4 font-black text-sm uppercase tracking-widest transition-all shadow-lg hover:shadow-blue-200 active:scale-95 flex items-center gap-2"
           >
             <UserPlusIcon className="w-5 h-5" />
-            Yeni Personel
+            Yeni Kullanıcı
           </button>
         </div>
       </div>
@@ -292,7 +292,7 @@ export default function Kullanicilar() {
           <div className="bg-white rounded-[2.5rem] p-8 max-w-lg w-full shadow-2xl border border-gray-100 animate-scale-up max-h-[90vh] overflow-y-auto no-scrollbar">
             <div className="flex justify-between items-center mb-8">
               <div>
-                <h2 className="text-2xl font-black text-gray-900 tracking-tight">{editingUser ? 'Personel Düzenle' : 'Yeni Personel Kaydı'}</h2>
+                <h2 className="text-2xl font-black text-gray-900 tracking-tight">{editingUser ? 'Kullanıcı Düzenle' : 'Yeni Kullanıcı Kaydı'}</h2>
                 <p className="text-gray-400 text-sm font-medium mt-1">Sistem erişim yetkilerini belirleyin.</p>
               </div>
               <button onClick={() => setShowModal(false)} className="p-3 hover:bg-gray-100 rounded-2xl transition">
@@ -324,7 +324,7 @@ export default function Kullanicilar() {
                       required
                       type="email"
                       className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-12 pr-6 py-4 text-sm font-bold text-gray-700 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
-                      placeholder="personel@sistem.com"
+                      placeholder="kullanici@sistem.com"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     />
@@ -438,7 +438,7 @@ export default function Kullanicilar() {
                   type="submit"
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl hover:shadow-blue-200 active:scale-95"
                 >
-                  {editingUser ? 'Güncelle' : 'Personeli Kaydet'}
+                  {editingUser ? 'Güncelle' : 'Kullanıcıyı Kaydet'}
                 </button>
               </div>
             </form>
