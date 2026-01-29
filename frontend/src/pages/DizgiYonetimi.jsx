@@ -300,13 +300,12 @@ export default function DizgiYonetimi() {
                       <SparklesIcon className="w-4 h-4" />
                     </div>
                     <div className="p-10 bg-gray-50/50 rounded-[2.5rem] border border-gray-100 shadow-inner min-h-[15rem] relative" ref={questionRef}>
-                      <div className="text-gray-900 prose prose-xl max-w-none font-medium leading-relaxed" dangerouslySetInnerHTML={{ __html: selectedSoru.soru_metni }} />
+                      <div className="text-gray-900 prose prose-xl max-w-none font-medium leading-relaxed [&_img]:hidden" dangerouslySetInnerHTML={{ __html: selectedSoru.soru_metni }} />
                       {selectedSoru.fotograf_url && (
                         <div className="mt-10 p-4 bg-white rounded-3xl shadow-sm border border-gray-100 inline-block overflow-hidden max-w-full">
                           <img src={selectedSoru.fotograf_url} className="max-w-full rounded-2xl mx-auto block hover:scale-[1.02] transition-transform duration-500" alt="Soru Görseli" />
                         </div>
                       )}
-                      <div className="absolute bottom-6 right-8 text-[9px] font-black text-gray-300 uppercase tracking-[0.3em]">PROBİS PREVIEW ENGINE</div>
                     </div>
                   </div>
 
