@@ -384,12 +384,6 @@ export default function Sorular({ scope }) {
                   <button onClick={() => handleBulkUpdateStatus('alan_incelemede', 'Alan İncelemeye Gönder')} className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-100 transition-all flex items-center gap-2 active:scale-95">
                     <MagnifyingGlassPlusIcon className="w-4 h-4" strokeWidth={2.5} /> ALAN İNCELEME
                   </button>
-                  <button onClick={() => handleBulkUpdateStatus('dil_incelemede', 'Dil İncelemeye Gönder')} className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-100 transition-all flex items-center gap-2 active:scale-95">
-                    <MagnifyingGlassPlusIcon className="w-4 h-4" strokeWidth={2.5} /> DİL İNCELEME
-                  </button>
-                  <button onClick={() => handleBulkUpdateStatus('tamamlandi', 'Tamamlananlara Aktar')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-100 transition-all flex items-center gap-2 active:scale-95">
-                    <ArchiveBoxArrowDownIcon className="w-4 h-4" strokeWidth={2.5} /> TAMAMLA
-                  </button>
                 </>
               )}
               {scope !== 'brans' && (
