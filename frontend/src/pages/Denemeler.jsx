@@ -19,12 +19,13 @@ export default function Denemeler() {
     const canCreatePlan = effectiveRole === 'admin';
 
     const [denemeler, setDenemeler] = useState([]);
+    const [branslar, setBranslar] = useState([]);
     const [loading, setLoading] = useState(true);
     const [createLoading, setCreateLoading] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
 
     // Create Form
-    const [newPlan, setNewPlan] = useState({ ad: '', planlanan_tarih: '', aciklama: '', gorev_tipi: 'deneme' });
+    const [newPlan, setNewPlan] = useState({ ad: '', planlanan_tarih: '', aciklama: '', gorev_tipi: 'deneme', brans_id: '' });
 
     // Upload State
     const [uploadingId, setUploadingId] = useState(null);
@@ -46,6 +47,16 @@ export default function Denemeler() {
 
     useEffect(() => {
         fetchDenemeler();
+        const loadBranslar = async () => {
+            try {
+                const { bransAPI } = await import('../services/api');
+                const res = await bransAPI.getAll();
+                setBranslar(res.data.data || []);
+            } catch (error) {
+                console.error('Branşlar yüklenemedi:', error);
+            }
+        };
+        loadBranslar();
     }, []);
 
     const handleCreate = async (e) => {
@@ -54,7 +65,7 @@ export default function Denemeler() {
         try {
             await denemeAPI.createPlan(newPlan);
             setShowCreateModal(false);
-            setNewPlan({ ad: '', planlanan_tarih: '', aciklama: '', gorev_tipi: 'deneme' });
+            setNewPlan({ ad: '', planlanan_tarih: '', aciklama: '', gorev_tipi: 'deneme', brans_id: '' });
             alert('Görev planı başarıyla oluşturuldu.');
             fetchDenemeler();
         } catch (error) {
@@ -186,6 +197,11 @@ export default function Denemeler() {
                                         <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${getGorevTipiColor(deneme.gorev_tipi)}`}>
                                             {getGorevTipiLabel(deneme.gorev_tipi)}
                                         </span>
+                                        {deneme.brans_id && (
+                                            <span className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                                {branslar.find(b => b.id === deneme.brans_id)?.brans_adi || 'Özel Branş'}
+                                            </span>
+                                        )}
                                     </div>
                                     <p className="text-sm text-gray-500">{deneme.aciklama}</p>
                                     <div className="flex items-center gap-4 text-xs font-bold text-gray-400">
@@ -315,6 +331,19 @@ export default function Denemeler() {
                                     <option value="deneme">Deneme Sınavı</option>
                                     <option value="fasikul">Fasikül Yüklemesi</option>
                                     <option value="yaprak_test">Yaprak Test Yüklemesi</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Atanacak Branş (Opsiyonel)</label>
+                                <select
+                                    value={newPlan.brans_id}
+                                    onChange={e => setNewPlan({ ...newPlan, brans_id: e.target.value })}
+                                    className="w-full bg-gray-50 border border-gray-100 p-4 rounded-xl font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
+                                >
+                                    <option value="">TÜM BRANŞLAR</option>
+                                    {branslar.map(b => (
+                                        <option key={b.id} value={b.id}>{b.brans_adi}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="space-y-2">
