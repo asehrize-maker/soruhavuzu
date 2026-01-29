@@ -85,11 +85,11 @@ router.put('/hepsini-okundu-isaretle', authenticate, async (req, res, next) => {
   }
 });
 
-// Tüm kullanıcılara duyuru gönder (Admin)
+// Tüm kullanıcılara veya ekibe duyuru gönder
 router.post('/duyuru', authenticate, async (req, res, next) => {
   try {
-    // Admin kontrolü
-    if (req.user.rol !== 'admin') {
+    const isKoordinator = req.user.rol === 'koordinator';
+    if (req.user.rol !== 'admin' && !isKoordinator) {
       throw new AppError('Bu işlem için yetkiniz yok', 403);
     }
 
@@ -99,14 +99,19 @@ router.post('/duyuru', authenticate, async (req, res, next) => {
       throw new AppError('Başlık ve mesaj gerekli', 400);
     }
 
-    // Tüm kullanıcıları getir
-    const kullanicilarResult = await pool.query(
-      'SELECT id FROM kullanicilar WHERE id != $1',
-      [req.user.id] // Admin'i hariç tut
-    );
+    // Alıcıları belirle
+    let query = 'SELECT id FROM kullanicilar WHERE id != $1';
+    const params = [req.user.id];
+
+    if (isKoordinator) {
+      query += ' AND ekip_id = $2';
+      params.push(req.user.ekip_id);
+    }
+
+    const kullanicilarResult = await pool.query(query, params);
 
     // Her kullanıcıya bildirim oluştur
-    const insertPromises = kullanicilarResult.rows.map(user => 
+    const insertPromises = kullanicilarResult.rows.map(user =>
       pool.query(
         `INSERT INTO bildirimler (kullanici_id, baslik, mesaj, tip, link) 
          VALUES ($1, $2, $3, $4, $5)`,
@@ -118,10 +123,8 @@ router.post('/duyuru', authenticate, async (req, res, next) => {
 
     res.json({
       success: true,
-      message: `Duyuru ${kullanicilarResult.rows.length} kullanıcıya gönderildi`,
-      data: {
-        gonderilen_sayi: kullanicilarResult.rows.length
-      }
+      message: `${isKoordinator ? 'Ekibinize' : 'Tüm kullanıcılara'} duyuru gönderildi (${kullanicilarResult.rows.length} kişi)`,
+      count: kullanicilarResult.rows.length
     });
   } catch (error) {
     next(error);

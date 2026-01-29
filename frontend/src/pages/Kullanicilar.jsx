@@ -346,17 +346,19 @@ export default function Kullanicilar() {
                   </div>
                 )}
 
-                <div className="col-span-1">
-                  <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Bağlı Ekip</label>
-                  <select
-                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold text-gray-700 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                    value={formData.ekip_id}
-                    onChange={(e) => setFormData({ ...formData, ekip_id: e.target.value })}
-                  >
-                    <option value="">Ekip Seçin</option>
-                    {ekipler.map(e => <option key={e.id} value={e.id}>{e.ekip_adi}</option>)}
-                  </select>
-                </div>
+                {user?.rol === 'admin' && (
+                  <div className="col-span-1">
+                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Bağlı Ekip</label>
+                    <select
+                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold text-gray-700 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                      value={formData.ekip_id}
+                      onChange={(e) => setFormData({ ...formData, ekip_id: e.target.value })}
+                    >
+                      <option value="">Ekip Seçin</option>
+                      {ekipler.map(e => <option key={e.id} value={e.id}>{e.ekip_adi}</option>)}
+                    </select>
+                  </div>
+                )}
 
                 <div className="col-span-1">
                   <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Sistem Rolü</label>
