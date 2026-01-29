@@ -840,6 +840,12 @@ export default function SoruDetay() {
                   onMouseUp={handleImageMouseUp}
                   onMouseLeave={handleImageMouseUp}
                 >
+                  {canReview && (
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex gap-2 bg-white/90 backdrop-blur-sm p-1.5 rounded-full shadow-xl border border-blue-100/50" onMouseDown={(e) => e.stopPropagation()}>
+                      <button onClick={(e) => { e.stopPropagation(); setDrawTool('box'); }} className={`p-3 rounded-full transition-all ${drawTool === 'box' ? 'bg-blue-600 text-white shadow-lg scale-110' : 'bg-gray-100 text-gray-400 hover:bg-white hover:text-blue-500'}`} title="Kutu Seçimi"><StopIcon className="w-5 h-5" strokeWidth={2.5} /></button>
+                      <button onClick={(e) => { e.stopPropagation(); setDrawTool('draw'); }} className={`p-3 rounded-full transition-all ${drawTool === 'draw' ? 'bg-blue-600 text-white shadow-lg scale-110' : 'bg-gray-100 text-gray-400 hover:bg-white hover:text-blue-500'}`} title="Serbest Çizim"><PencilIcon className="w-5 h-5" strokeWidth={2.5} /></button>
+                    </div>
+                  )}
                   <img
                     src={soru.final_png_url}
                     alt="Final Dizgi"
