@@ -93,7 +93,8 @@ export default function SoruEkle() {
     } else {
       // Yeni şıklar ekle
       const baseId = generateId();
-      const opts = ['A', 'B', 'C', 'D'];
+      const hasE = existingSecenekler.some(c => c.content.includes('E)'));
+      const opts = hasE ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
       const newComps = opts.map((opt, idx) => ({
         id: baseId + idx,
         type: 'text', subtype: 'secenek', content: `<b>${opt})</b> `,
@@ -112,7 +113,9 @@ export default function SoruEkle() {
 
     let styleProps = { width: 100, float: 'none' };
     if (existingSecenekler.length > 0) {
-      styleProps = { width: existingSecenekler[0].width, float: existingSecenekler[0].float };
+      // Mevcut şıkların width ve float değerini al ki E de onlara benzesin
+      const first = existingSecenekler[0];
+      styleProps = { width: first.width, float: first.float };
     }
 
     const newComp = {

@@ -539,13 +539,20 @@ export default function SoruDetay() {
   const addKoku = () => setComponents(prev => [...prev, { id: generateId(), type: 'text', subtype: 'koku', content: '', placeholder: '', label: 'Soru Kökü' }]);
   const addGovde = () => setComponents(prev => [...prev, { id: generateId(), type: 'text', subtype: 'govde', content: '', placeholder: '', label: 'Gövde' }]);
   const addSecenekler = (mode = 'list') => {
+    const existingSecenekler = components.filter(c => c.subtype === 'secenek');
+    const hasE = existingSecenekler.some(c => c.content.includes('E)'));
     const baseId = generateId();
-    const opts = ['A', 'B', 'C', 'D'];
+    const opts = hasE ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
+
+    let styleProps = { width: 100, float: 'none' };
+    if (mode === 'grid') styleProps = { width: 48, float: 'left' };
+    else if (mode === 'yanyana') styleProps = { width: 23, float: 'left' };
+
     const newComps = opts.map((opt, idx) => ({
       id: baseId + idx, type: 'text', subtype: 'secenek', content: `<b>${opt})</b>`,
-      label: `Seçenek ${opt}`, width: mode === 'grid' ? 48 : 100, float: mode === 'grid' ? 'left' : 'none'
+      label: `Seçenek ${opt}`, ...styleProps
     }));
-    setComponents(prev => [...prev, ...newComps]);
+    setComponents(prev => [...prev.filter(c => c.subtype !== 'secenek'), ...newComps]);
   };
 
   const addOptionE = () => {
@@ -555,7 +562,8 @@ export default function SoruDetay() {
 
     let styleProps = { width: 100, float: 'none' };
     if (existingSecenekler.length > 0) {
-      styleProps = { width: existingSecenekler[0].width, float: existingSecenekler[0].float };
+      const first = existingSecenekler[0];
+      styleProps = { width: first.width, float: first.float };
     }
 
     const newComp = {
