@@ -1,0 +1,41 @@
+﻿*** Begin Patch
+*** Update File: backend/src/routes/brans.routes.js
+@@
+-      for (const row of rows) {
+-        const kod = String(row.kod || row.Kod || row.KOD || '').trim();
+-        const aciklama = String(row.aciklama || row.AÃ§Ä±klama || row.aciklama || row.ACIKLAMA || '').trim();
+-        if (!kod && !aciklama) {
+-          skipped++;
+-          continue;
+-        }
++      for (const row of rows) {
++        let kod = String(
++          row.kod || row.Kod || row.KOD || row.kazanim || row.Kazanim || row.KAZANIM || ''
++        ).trim();
++        let aciklama = String(
++          row.aciklama || row.AÃ§Ä±klama || row.aciklama || row.ACIKLAMA || row.aciklamalar || ''
++        ).trim();
++
++        // Tek sütun desteği: satırdaki ilk dolu hücreyi kod ve açıklama olarak kullan
++        if (!kod && !aciklama) {
++          const firstValue = Object.values(row)
++            .map(v => (v === undefined || v === null ? '' : String(v).trim()))
++            .find(Boolean) || '';
++          if (firstValue) {
++            kod = firstValue;
++            aciklama = firstValue;
++          }
++        } else {
++          // Kod veya açıklama eksikse diğerini kopyala
++          if (!kod && aciklama) kod = aciklama;
++          if (kod && !aciklama) aciklama = kod;
++        }
++
++        if (!kod) {
++          skipped++;
++          continue;
++        }
+         await client.query(
+           `INSERT INTO brans_kazanimlar (brans_id, kod, aciklama) 
+            VALUES ($1, $2, $3) ON CONFLICT (brans_id, kod) DO UPDATE SET aciklama = EXCLUDED.aciklama`,
+*** End Patch
