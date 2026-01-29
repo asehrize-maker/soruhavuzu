@@ -31,6 +31,11 @@ function AdminRoute({ children }) {
   return role === 'admin' ? children : <Navigate to="/" />;
 }
 
+function ManagementRoute({ children }) {
+  const role = useAuthStore((state) => state.viewRole || state.user?.rol);
+  return (role === 'admin' || role === 'koordinator') ? children : <Navigate to="/" />;
+}
+
 function App() {
   return (
     <Routes>
@@ -63,19 +68,19 @@ function App() {
           </AdminRoute>
         } />
         <Route path="kullanicilar" element={
-          <AdminRoute>
+          <ManagementRoute>
             <Kullanicilar />
-          </AdminRoute>
+          </ManagementRoute>
         } />
         <Route path="raporlar" element={
-          <AdminRoute>
+          <ManagementRoute>
             <Raporlar />
-          </AdminRoute>
+          </ManagementRoute>
         } />
         <Route path="duyurular" element={
-          <AdminRoute>
+          <ManagementRoute>
             <Duyurular />
-          </AdminRoute>
+          </ManagementRoute>
         } />
         <Route path="logs" element={
           <AdminRoute>
@@ -83,9 +88,9 @@ function App() {
           </AdminRoute>
         } />
         <Route path="ajanda" element={
-          <AdminRoute>
+          <ManagementRoute>
             <Ajanda />
-          </AdminRoute>
+          </ManagementRoute>
         } />
         <Route path="settings" element={
           <AdminRoute>

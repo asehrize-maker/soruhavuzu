@@ -191,6 +191,13 @@ router.get('/', authenticate, async (req, res, next) => {
         params.push(req.user.id);
         paramCount++;
       }
+    } else if (targetRole === 'koordinator') {
+      // Koordinatör: Ekip izolasyonu zaten yukarda 169. satırda uygulandı.
+      // Burada ekstra branş kısıtlaması yapmıyoruz ki ekibindeki TÜM branşları görsün.
+      // Sadece scope 'common' değilse her şeyi görsün (scope 'brans' veya boş ise)
+      if (scope === 'common') {
+        query += ` AND (s.durum = 'tamamlandi' OR s.durum = 'dizgi_tamam')`;
+      }
     } else if (targetRole !== 'admin' && !isAnyReviewer) {
       // Soru yazarları ve diğerleri için
       // Eğer scope 'brans' ise VEYA kullanıcı 'soru_yazici' ise ve scope 'common' değilse --> Kendi branşındaki TÜM durumu (beklemede dahil) görsün
@@ -281,7 +288,7 @@ router.get('/:id(\\d+)', authenticate, async (req, res, next) => {
 
     const soru = result.rows[0];
 
-    // Yetki kontrolü (Soru Yazıcı yetkili olduğu branşlardaki soruları görebilir)
+    // Yetki kontrolü
     if (req.user.rol === 'soru_yazici') {
       const authBransResult = await pool.query(`
         SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1 AND brans_id = $2
@@ -291,6 +298,11 @@ router.get('/:id(\\d+)', authenticate, async (req, res, next) => {
 
       if (authBransResult.rows.length === 0 && soru.olusturan_kullanici_id !== req.user.id && soru.durum !== 'tamamlandi') {
         throw new AppError('Bu branştaki soruları görme yetkiniz yok', 403);
+      }
+    } else if (req.user.rol === 'koordinator') {
+      // Koordinatör kendi ekibindeki branşları veya kendi oluşturduklarını görebilir
+      if (soru.ekip_id !== req.user.ekip_id && soru.olusturan_kullanici_id !== req.user.id) {
+        throw new AppError('Başka ekipten soruları görüntüleme yetkiniz yok', 403);
       }
     }
 
@@ -318,7 +330,7 @@ router.get('/:id(\\d+)', authenticate, async (req, res, next) => {
 // Yeni soru oluştur (Soru yazıcı ve Admin)
 router.post('/', [
   authenticate,
-  authorize('admin', 'soru_yazici'),
+  authorize(['admin', 'koordinator', 'soru_yazici']),
   uploadFields.fields([
     { name: 'fotograf', maxCount: 1 },
     { name: 'dosya', maxCount: 1 },
@@ -914,6 +926,17 @@ router.get('/stats/dizgi-brans', authenticate, async (req, res, next) => {
         GROUP BY b.id, b.brans_adi
         ORDER BY dizgi_bekliyor DESC
       `;
+    } else if (req.user.rol === 'koordinator') {
+      // Koordinatör kendi ekibindeki TÜM branşları görsün
+      query = `
+        SELECT b.id, b.brans_adi, COALESCE(COUNT(s.id) FILTER (WHERE s.durum IN ('dizgi_bekliyor', 'revize_istendi')), 0) as dizgi_bekliyor
+        FROM branslar b
+        LEFT JOIN sorular s ON b.id = s.brans_id
+        WHERE b.ekip_id = $1
+        GROUP BY b.id, b.brans_adi
+        ORDER BY dizgi_bekliyor DESC
+      `;
+      params = [req.user.id_ekip || req.user.ekip_id];
     } else {
       query = `
         SELECT b.id, b.brans_adi, COALESCE(COUNT(s.id) FILTER (WHERE s.durum IN ('dizgi_bekliyor', 'revize_istendi')), 0) as dizgi_bekliyor
@@ -971,8 +994,13 @@ router.put('/:id(\\d+)', [
       throw new AppError('İşlemdeki veya tamamlanmış sorular düzenlenemez.', 403);
     }
 
-    // Yetki kuralları: Admin veya Branş yetkilisi veya Sahibi düzenleyebilir
+    // Yetki kuralları: Admin veya Koordinatör (kendi ekibi) veya Branş yetkilisi veya Sahibi düzenleyebilir
     let hasPermission = req.user.rol === 'admin' || soru.olusturan_kullanici_id === req.user.id;
+
+    if (!hasPermission && req.user.rol === 'koordinator') {
+      if (soru.ekip_id === req.user.ekip_id) hasPermission = true;
+    }
+
     if (!hasPermission && req.user.rol === 'soru_yazici') {
       const authBrans = await pool.query(`
         SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1 AND brans_id = $2
@@ -1476,8 +1504,13 @@ router.delete('/:id(\\d+)', authenticate, async (req, res, next) => {
 
     const soru = checkResult.rows[0];
 
-    // Yetki kontrolü (Admin, Soru sahibi veya Branş öğretmeni)
+    // Yetki kontrolü (Admin, Koordinatör, Soru sahibi veya Branş öğretmeni)
     let hasDeletePermission = req.user.rol === 'admin' || soru.olusturan_kullanici_id === req.user.id;
+
+    if (!hasDeletePermission && req.user.rol === 'koordinator') {
+      if (soru.ekip_id === req.user.ekip_id) hasDeletePermission = true;
+    }
+
     if (!hasDeletePermission && req.user.rol === 'soru_yazici') {
       const authBrans = await pool.query(`
         SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1 AND brans_id = $2
@@ -1656,7 +1689,7 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
     }
 
     const ekipId = isKoordinator ? req.user.ekip_id : null;
-    const whereClause = ekipId ? 'WHERE s.brans_id IN (SELECT id FROM branslar WHERE ekip_id = $1)' : '';
+    const whereClause = ekipId ? 'WHERE (b.ekip_id = $1 OR k.ekip_id = $1)' : '';
     const params = ekipId ? [ekipId] : [];
 
     // Genel istatistikler
@@ -1682,6 +1715,8 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
         COUNT(CASE WHEN fotograf_url IS NOT NULL THEN 1 END) as fotografli,
         COUNT(CASE WHEN latex_kodu IS NOT NULL AND latex_kodu != '' THEN 1 END) as latexli
       FROM sorular s
+      LEFT JOIN branslar b ON s.brans_id = b.id
+      LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
       ${whereClause}
     `, params);
 
@@ -1690,7 +1725,8 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
       SELECT s.id, LEFT(s.soru_metni, 30) as metin, s.durum, k.ad_soyad as yazar
       FROM sorular s
       LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
-      ${whereClause ? whereClause.replace('s.', 's.') : ''}
+      LEFT JOIN branslar b ON s.brans_id = b.id
+      ${whereClause}
       ORDER BY s.olusturulma_tarihi DESC
       LIMIT 10
     `, params);
@@ -1753,6 +1789,8 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
         COUNT(*) as soru_sayisi,
         COUNT(CASE WHEN s.durum = 'tamamlandi' THEN 1 END) as tamamlanan
       FROM sorular s
+      LEFT JOIN branslar b ON s.brans_id = b.id
+      LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
       ${whereClause}
       ${whereClause ? 'AND' : 'WHERE'} s.olusturulma_tarihi >= CURRENT_DATE - INTERVAL '30 days'
       GROUP BY DATE(s.olusturulma_tarihi)

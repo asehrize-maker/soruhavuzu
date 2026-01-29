@@ -12,16 +12,22 @@ const router = express.Router();
 
 router.get('/', authenticate, async (req, res, next) => {
   try {
-    const query = `
+    let query = `
       SELECT b.*,
              COUNT(DISTINCT s.id) as soru_sayisi
       FROM branslar b
       LEFT JOIN sorular s ON b.id = s.brans_id
-      GROUP BY b.id
-      ORDER BY b.brans_adi ASC
     `;
 
-    const result = await pool.query(query);
+    const params = [];
+    if (req.user.rol !== 'admin') {
+      query += ` WHERE b.ekip_id = $1`;
+      params.push(req.user.ekip_id);
+    }
+
+    query += ` GROUP BY b.id ORDER BY b.brans_adi ASC`;
+
+    const result = await pool.query(query, params);
 
     res.json({
       success: true,
