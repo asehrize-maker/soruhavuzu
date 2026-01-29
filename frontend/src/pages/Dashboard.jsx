@@ -15,7 +15,8 @@ import {
   XMarkIcon,
   MegaphoneIcon,
   MagnifyingGlassPlusIcon,
-  SparklesIcon
+  SparklesIcon,
+  CursorArrowRaysIcon
 } from '@heroicons/react/24/outline';
 
 const normalizeZorlukToScale = (value) => {
@@ -35,73 +36,86 @@ const normalizeZorlukToScale = (value) => {
 function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
   const [sorular, setSorular] = useState([]);
   const [listLoading, setListLoading] = useState(true);
-  const [error, setError] = useState(null);
   const { user: authUser } = useAuthStore();
 
   useEffect(() => {
     const fetchSorular = async () => {
       if (!bransId) return;
       setListLoading(true);
-      setError(null);
       try {
         const response = await soruAPI.getAll();
         const allQuestions = response.data.data || [];
-
         const filtered = allQuestions.filter(s => {
           if (parseInt(s.brans_id) !== parseInt(bransId)) return false;
-
-          if (reviewMode === 'alanci') return ['alan_incelemede', 'inceleme_bekliyor', 'incelemede'].includes(s.durum);
-          if (reviewMode === 'dilci') return ['dil_incelemede', 'inceleme_bekliyor', 'incelemede'].includes(s.durum);
-
-          return ['alan_incelemede', 'dil_incelemede', 'inceleme_bekliyor', 'incelemede'].includes(s.durum);
+          if (reviewMode === 'alanci') return ['alan_incelemede', 'inceleme_bekliyor', 'incelemede', 'revize_istendi'].includes(s.durum);
+          if (reviewMode === 'dilci') return ['dil_incelemede', 'inceleme_bekliyor', 'incelemede', 'revize_istendi'].includes(s.durum);
+          return true;
         });
         setSorular(filtered);
-      } catch (err) {
-        setError("Sorular yüklenemedi: " + err.message);
-      } finally {
-        setListLoading(false);
-      }
+      } catch (err) { } finally { setListLoading(false); }
     };
     fetchSorular();
   }, [bransId, reviewMode, authUser]);
 
-  if (error) return <div className="p-4 bg-red-50 text-red-700 rounded-lg">{error}</div>;
-  if (listLoading) return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>;
+  if (listLoading) return <div className="flex justify-center p-20"><ArrowPathIcon className="w-10 h-10 text-blue-200 animate-spin" /></div>;
 
   return (
-    <div className="mt-8 animate-fade-in">
-      <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-        <DocumentTextIcon className="w-6 h-6 text-blue-600" />
-        {bransAdi} - İnceleme Bekleyen Sorular
-      </h3>
+    <div className="animate-fade-in space-y-6">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+          <DocumentTextIcon className="w-6 h-6 text-blue-600" /> {bransAdi} Soruları
+        </h3>
+        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{sorular.length} Soru Bulundu</span>
+      </div>
+
       {sorular.length === 0 ? (
-        <div className="p-8 bg-gray-50 rounded-xl text-center text-gray-500 border border-gray-200">
-          <BookOpenIcon className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-          <p>Bu branşta şu an incelenecek soru bulunmuyor.</p>
+        <div className="p-12 text-center bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-100">
+          <BookOpenIcon className="w-12 h-12 text-gray-200 mx-auto mb-2" />
+          <p className="text-gray-400 font-black text-[10px] uppercase tracking-widest">İncelenecek soru kalmadı!</p>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
           {sorular.map(soru => {
             const zorluk = normalizeZorlukToScale(soru.zorluk_seviyesi);
+            const isPng = soru.soru_metni?.includes('<img');
+
             return (
-              <div key={soru.id} className="card bg-white p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition flex justify-between items-start group">
-                <div className="flex gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <span className={`px-2 py-0.5 text-xs rounded-full font-bold uppercase tracking-wide ${zorluk === 1 ? 'bg-green-100 text-green-700' :
-                        zorluk === 2 ? 'bg-green-50 text-green-600' :
-                          zorluk === 3 ? 'bg-yellow-100 text-yellow-700' :
-                            zorluk === 4 ? 'bg-orange-100 text-orange-700' :
-                              zorluk === 5 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'
-                        }`}>
-                        {['ÇOK KOLAY', 'KOLAY', 'ORTA', 'ZOR', 'ÇOK ZOR'][(zorluk || 0) - 1] || 'BELİRSİZ'}
-                      </span>
+              <Link
+                key={soru.id}
+                to={`/sorular/${soru.id}?incelemeTuru=${reviewMode}`}
+                className="group flex flex-col md:flex-row gap-6 p-6 bg-white rounded-[2rem] border border-gray-100 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/5 transition-all relative overflow-hidden"
+              >
+                {/* Sol - Soru Bilgisi */}
+                <div className="flex-1 space-y-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-3 py-1 bg-gray-900 text-white text-[8px] font-black uppercase tracking-[0.2em] rounded-lg">#{soru.id}</span>
+                    <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[8px] font-black uppercase tracking-[0.2em] rounded-lg">{soru.kategori || 'GENEL'}</span>
+                    <span className={`px-3 py-1 text-[8px] font-black uppercase tracking-[0.2em] rounded-lg ${zorluk === 4 || zorluk === 5 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+                      }`}>
+                      {zorluk > 3 ? 'ZOR' : 'NORMAL'}
+                    </span>
+                  </div>
+
+                  <div
+                    className="text-gray-600 text-sm font-medium line-clamp-3 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: isPng ? "<i>🖼️ Görsel İçerikli Soru</i>" : soru.soru_metni?.substring(0, 200) }}
+                  />
+
+                  <div className="pt-4 border-t border-gray-50 flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-gray-400">Yazar: {soru.olusturan_ad || 'Bilinmiyor'}</span>
+                    <div className="flex items-center gap-1.5 text-blue-600 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                      Hemen İncele <ArrowPathIcon className="w-3 h-3" />
                     </div>
-                    <div className="text-gray-900 font-medium line-clamp-2 text-sm" dangerouslySetInnerHTML={{ __html: soru.soru_metni?.substring(0, 150) }} />
                   </div>
                 </div>
-                <Link to={`/sorular/${soru.id}?incelemeTuru=${reviewMode}`} className="btn btn-primary btn-sm">Gör & İncele</Link>
-              </div>
+
+                {/* Sağ - Varsa Önizleme */}
+                {soru.fotograf_url && (
+                  <div className="w-full md:w-32 h-32 rounded-2xl overflow-hidden bg-gray-50 border border-black/5 flex-shrink-0">
+                    <img src={soru.fotograf_url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="Soru" />
+                  </div>
+                )}
+              </Link>
             );
           })}
         </div>
@@ -474,15 +488,37 @@ export default function Dashboard() {
               <p className="text-gray-400 font-black text-[11px] uppercase tracking-[0.2em]">İnceleme yetkisi bulunamadı</p>
             </div>
           ) : selectedBrans ? (
-            <div className="bg-white rounded-[3rem] p-10 shadow-xl shadow-gray-200/50 border border-gray-50 relative overflow-hidden min-h-[500px]">
-              <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none"><DocumentTextIcon className="w-32 h-32" /></div>
-              <button
-                onClick={() => setSelectedBrans(null)}
-                className="mb-8 flex items-center gap-2 text-[10px] font-black text-gray-400 hover:text-blue-600 uppercase tracking-widest transition-all group"
-              >
-                <span className="group-hover:-translate-x-1 transition-transform">←</span> Branş Listesine Dön
-              </button>
-              <IncelemeListesi bransId={selectedBrans.id} bransAdi={selectedBrans.brans_adi} reviewMode={reviewMode} />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-[600px]">
+              {/* SOL PANEL - SORU LİSTESİ */}
+              <div className="lg:col-span-4 bg-gray-50/50 rounded-[3rem] p-8 border border-gray-100 shadow-inner overflow-y-auto max-h-[800px] custom-scrollbar">
+                <button
+                  onClick={() => setSelectedBrans(null)}
+                  className="mb-6 flex items-center gap-2 text-[10px] font-black text-gray-400 hover:text-blue-600 uppercase tracking-widest transition-all group"
+                >
+                  <span className="group-hover:-translate-x-1 transition-transform">←</span> Branşlara Dön
+                </button>
+                <div className="space-y-6">
+                  <div className="pb-4 border-b border-gray-200">
+                    <h2 className="text-xl font-black text-gray-900 leading-tight">{selectedBrans.brans_adi}</h2>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">İnceleme Akışı</p>
+                  </div>
+                  <IncelemeListesi bransId={selectedBrans.id} bransAdi={selectedBrans.brans_adi} reviewMode={reviewMode} />
+                </div>
+              </div>
+
+              {/* SAĞ PANEL - HOŞGELDİN / ÖNİZLEME ALANI */}
+              <div className="lg:col-span-8 bg-white rounded-[3rem] p-12 border border-black/5 shadow-xl shadow-gray-200/50 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-12 opacity-[0.02] pointer-events-none"><SparklesIcon className="w-64 h-64" /></div>
+                <div className="relative z-10 space-y-6 max-w-md">
+                  <div className="w-24 h-24 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto shadow-xl shadow-blue-500/10">
+                    <CursorArrowRaysIcon className="w-10 h-10" />
+                  </div>
+                  <h3 className="text-2xl font-black text-gray-900 tracking-tight">Soru Seçimi Bekleniyor</h3>
+                  <p className="text-gray-500 text-sm font-medium leading-relaxed">
+                    İnceleme yapmak veya detayları görmek için sol paneldeki listeden bir soruya tıklayın.
+                  </p>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
