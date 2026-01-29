@@ -20,12 +20,13 @@ export default function Denemeler() {
 
     const [denemeler, setDenemeler] = useState([]);
     const [branslar, setBranslar] = useState([]);
+    const [ekipler, setEkipler] = useState([]);
     const [loading, setLoading] = useState(true);
     const [createLoading, setCreateLoading] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
 
     // Create Form
-    const [newPlan, setNewPlan] = useState({ ad: '', planlanan_tarih: '', aciklama: '', gorev_tipi: 'deneme', brans_id: '' });
+    const [newPlan, setNewPlan] = useState({ ad: '', planlanan_tarih: '', aciklama: '', gorev_tipi: 'deneme', brans_id: '', ekip_id: '' });
 
     // Upload State
     const [uploadingId, setUploadingId] = useState(null);
@@ -47,16 +48,20 @@ export default function Denemeler() {
 
     useEffect(() => {
         fetchDenemeler();
-        const loadBranslar = async () => {
+        const loadInitialData = async () => {
             try {
-                const { bransAPI } = await import('../services/api');
-                const res = await bransAPI.getAll();
-                setBranslar(res.data.data || []);
+                const { bransAPI, ekipAPI } = await import('../services/api');
+                const [bransRes, ekipRes] = await Promise.all([
+                    bransAPI.getAll(),
+                    ekipAPI.getAll()
+                ]);
+                setBranslar(bransRes.data.data || []);
+                setEkipler(ekipRes.data.data || []);
             } catch (error) {
-                console.error('Branşlar yüklenemedi:', error);
+                console.error('Veriler yüklenemedi:', error);
             }
         };
-        loadBranslar();
+        loadInitialData();
     }, []);
 
     const handleCreate = async (e) => {
@@ -65,7 +70,7 @@ export default function Denemeler() {
         try {
             await denemeAPI.createPlan(newPlan);
             setShowCreateModal(false);
-            setNewPlan({ ad: '', planlanan_tarih: '', aciklama: '', gorev_tipi: 'deneme', brans_id: '' });
+            setNewPlan({ ad: '', planlanan_tarih: '', aciklama: '', gorev_tipi: 'deneme', brans_id: '', ekip_id: '' });
             alert('Görev planı başarıyla oluşturuldu.');
             fetchDenemeler();
         } catch (error) {
@@ -262,9 +267,9 @@ export default function Denemeler() {
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="px-2 py-2 text-indigo-600 text-[9px] font-black hover:bg-indigo-100 transition-all flex items-center gap-1"
-                                                        title={`${up.brans_adi} yüklemesi - Gör`}
+                                                        title={`${up.brans_adi} (${up.yukleyen_ad}) yüklemesi - Gör`}
                                                     >
-                                                        <EyeIcon className="w-3 h-3" /> {up.brans_adi}
+                                                        <EyeIcon className="w-3 h-3" /> {up.brans_adi} - {up.yukleyen_ad}
                                                     </a>
                                                     <a
                                                         href={getProxyUrl(up.id, 'download')}
@@ -343,6 +348,19 @@ export default function Denemeler() {
                                     <option value="">TÜM BRANŞLAR</option>
                                     {branslar.map(b => (
                                         <option key={b.id} value={b.id}>{b.brans_adi}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Atanacak Ekip (Opsiyonel)</label>
+                                <select
+                                    value={newPlan.ekip_id}
+                                    onChange={e => setNewPlan({ ...newPlan, ekip_id: e.target.value })}
+                                    className="w-full bg-gray-50 border border-gray-100 p-4 rounded-xl font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
+                                >
+                                    <option value="">TÜM EKİPLER</option>
+                                    {ekipler.map(e => (
+                                        <option key={e.id} value={e.id}>{e.ekip_adi}</option>
                                     ))}
                                 </select>
                             </div>
