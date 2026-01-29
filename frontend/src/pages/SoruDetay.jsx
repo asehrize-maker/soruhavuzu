@@ -84,10 +84,16 @@ const parseHtmlToComponents = (html, soru = null) => {
       if (style.includes('float: left')) align = 'left';
       else if (style.includes('float: right')) align = 'right';
 
+      let src = img.getAttribute('src') || '';
+      // Eğer resim kaynağı blob ise veya geçersizse ve sorunun ana fotoğrafı varsa onu kullan
+      if ((src.startsWith('blob:') || src.includes('createObjectURL') || !src.startsWith('http')) && soru?.fotograf_url) {
+        src = soru.fotograf_url;
+      }
+
       return {
         id: generateId() + idx,
         type: 'image',
-        content: img.src,
+        content: src,
         width: wMatch ? parseInt(wMatch[1]) : 50,
         height: hMatch ? parseInt(hMatch[1]) : 'auto',
         align: align
