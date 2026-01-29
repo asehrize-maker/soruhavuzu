@@ -1108,7 +1108,7 @@ export default function SoruDetay() {
           </div>
 
           {/* ANALYSES & FEEDBACK */}
-          {(!isBranchTeacher || ['revize_istendi', 'revize_gerekli'].includes(soru.durum)) && (
+          {((!isBranchTeacher && effectiveRole !== 'dizgici') || ['revize_istendi', 'revize_gerekli'].includes(soru.durum)) && (
             <div className="bg-white rounded-[3.5rem] p-10 shadow-xl shadow-gray-200/50 border border-gray-50 space-y-10">
               <div className="flex items-center justify-between border-b border-gray-50 pb-8">
                 <h3 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
