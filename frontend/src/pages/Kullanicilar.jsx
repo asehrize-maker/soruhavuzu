@@ -16,7 +16,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function Kullanicilar() {
-  const { user } = useAuthStore();
+  const user = useAuthStore(state => state.user);
   const [kullanicilar, setKullanicilar] = useState([]);
   const [ekipler, setEkipler] = useState([]);
   const [branslar, setBranslar] = useState([]);
@@ -61,9 +61,9 @@ export default function Kullanicilar() {
   };
 
   const filteredUsers = useMemo(() => {
-    return kullanicilar.filter(u =>
-      u.ad_soyad.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase())
+    return (kullanicilar || []).filter(u =>
+      (u.ad_soyad || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [kullanicilar, searchTerm]);
 
@@ -235,7 +235,7 @@ export default function Kullanicilar() {
                           {kullanici.rol === 'admin' ? <span className="text-purple-600">TÜM EKİPLER (ADMİN)</span> : (kullanici.ekip_adi || '-')}
                         </div>
                         <div className="flex flex-wrap gap-1">
-                          {kullanici.branslar?.map(b => (
+                          {Array.isArray(kullanici.branslar) && kullanici.branslar.map(b => (
                             <span key={b.id} className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-lg text-[10px] font-bold group-hover:bg-white transition-colors">{b.brans_adi}</span>
                           ))}
                         </div>
@@ -243,7 +243,7 @@ export default function Kullanicilar() {
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap text-center">
                       <div className="flex justify-center">
-                        {kullanici.aktif ? (
+                        {kullanici?.aktif ? (
                           <div className="flex flex-col items-center">
                             <CheckBadgeIcon className="w-6 h-6 text-green-500" />
                             <span className="text-[10px] font-black text-green-600 uppercase mt-1">AKTİF</span>
@@ -357,7 +357,7 @@ export default function Kullanicilar() {
                       onChange={(e) => setFormData({ ...formData, ekip_id: e.target.value })}
                     >
                       <option value="">Ekip Seçin</option>
-                      {ekipler.map(e => <option key={e.id} value={e.id}>{e.ekip_adi}</option>)}
+                      {Array.isArray(ekipler) && ekipler.map(e => <option key={e.id} value={e.id}>{e.ekip_adi}</option>)}
                     </select>
                   </div>
                 )}
@@ -385,19 +385,20 @@ export default function Kullanicilar() {
                   <span className="text-blue-500">{formData.brans_ids.length} seçili</span>
                 </label>
                 <div className="max-h-40 overflow-y-auto border border-gray-100 rounded-[1.5rem] p-4 grid grid-cols-2 gap-2 bg-gray-50/50">
-                  {branslar.map(b => (
-                    <label key={b.id} className={`flex items-center gap-3 cursor-pointer p-3 rounded-xl transition-all border ${formData.brans_ids.includes(b.id) ? 'bg-white border-blue-500 shadow-sm' : 'bg-transparent border-transparent'
+                  {Array.isArray(branslar) && branslar.map(b => (
+                    <label key={b.id} className={`flex items-center gap-3 cursor-pointer p-3 rounded-xl transition-all border ${(formData.brans_ids || []).includes(b.id) ? 'bg-white border-blue-500 shadow-sm' : 'bg-transparent border-transparent'
                       }`}>
                       <input
                         type="checkbox"
                         className="w-4 h-4 rounded-lg border-gray-300 text-blue-600 focus:ring-blue-500"
-                        checked={formData.brans_ids.includes(b.id)}
+                        checked={(formData.brans_ids || []).includes(b.id)}
                         onChange={e => {
-                          const newIds = e.target.checked ? [...formData.brans_ids, b.id] : formData.brans_ids.filter(id => id !== b.id);
+                          const currentIds = Array.isArray(formData.brans_ids) ? formData.brans_ids : [];
+                          const newIds = e.target.checked ? [...currentIds, b.id] : currentIds.filter(id => id !== b.id);
                           setFormData({ ...formData, brans_ids: newIds, brans_id: newIds[0] || '' });
                         }}
                       />
-                      <span className={`text-xs font-black uppercase tracking-tight ${formData.brans_ids.includes(b.id) ? 'text-blue-600' : 'text-gray-400'}`}>
+                      <span className={`text-xs font-black uppercase tracking-tight ${(formData.brans_ids || []).includes(b.id) ? 'text-blue-600' : 'text-gray-400'}`}>
                         {b.brans_adi}
                       </span>
                     </label>
