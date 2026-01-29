@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { userAPI, ekipAPI, bransAPI } from '../services/api';
+import useAuthStore from '../store/authStore';
 import {
   UserPlusIcon,
   UserIcon,
@@ -15,6 +16,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function Kullanicilar() {
+  const { user } = useAuthStore();
   const [kullanicilar, setKullanicilar] = useState([]);
   const [ekipler, setEkipler] = useState([]);
   const [branslar, setBranslar] = useState([]);
