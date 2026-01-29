@@ -198,7 +198,6 @@ export default function DizgiYonetimi() {
             <PaintBrushIcon className="w-12 h-12 text-purple-600" strokeWidth={2.5} />
             <h1 className="text-4xl font-black text-gray-900 tracking-tight">Dizgi Laboratuvarı</h1>
           </div>
-          <p className="text-gray-500 font-medium tracking-tight">Soruları kontrol edin, LaTeX tasarımlarını yapın ve final çıktılarını sisteme yükleyin.</p>
         </div>
         <div className="flex items-center gap-4">
           {bransCounts && bransCounts.filter(b => Number(b.dizgi_bekliyor) > 0).length > 0 && (
