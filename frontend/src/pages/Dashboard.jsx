@@ -164,7 +164,7 @@ export default function Dashboard() {
     if (!activeRole) return;
     setLoading(true);
     try {
-      if (activeRole === 'admin') {
+      if (activeRole === 'admin' || activeRole === 'koordinator') {
         const res = await soruAPI.getDetayliStats();
         if (res.data.success) setDetayliStats(res.data.data);
       } else {
@@ -340,10 +340,12 @@ export default function Dashboard() {
         </div>
       )}
 
-      {activeRole === 'admin' ? (
+      {(activeRole === 'admin' || activeRole === 'koordinator') ? (
         <div className="space-y-8 animate-fade-in">
           <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-gray-800">Yönetim Paneli</h1>
+            <h1 className="text-3xl font-bold text-gray-800">
+              {user?.rol === 'koordinator' ? 'Ekip Yönetim Paneli' : 'Sistem Yönetim Paneli'}
+            </h1>
             <span className="px-4 py-2 bg-gray-100 text-gray-600 rounded-full text-sm font-semibold">
               {new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </span>
@@ -355,17 +357,23 @@ export default function Dashboard() {
               <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.genel?.toplam_soru || 0}</h3>
             </div>
             <div className="card bg-emerald-600 text-white p-6 shadow-lg">
-              <p className="text-emerald-100 text-xs font-bold uppercase">KULLANICILAR</p>
+              <p className="text-emerald-100 text-xs font-bold uppercase">
+                {user?.rol === 'koordinator' ? 'EKİP PERSONELİ' : 'KULLANICILAR'}
+              </p>
               <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.sistem?.toplam_kullanici || 0}</h3>
             </div>
             <div className="card bg-purple-600 text-white p-6 shadow-lg">
-              <p className="text-purple-100 text-xs font-bold uppercase">BRANŞLAR</p>
-              <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.branslar?.length || 0}</h3>
+              <p className="text-purple-100 text-xs font-bold uppercase">
+                {user?.rol === 'koordinator' ? 'EKİP BRANŞLARI' : 'BRANŞLAR'}
+              </p>
+              <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.sistem?.toplam_brans || 0}</h3>
             </div>
-            <div className="card bg-orange-600 text-white p-6 shadow-lg">
-              <p className="text-orange-100 text-xs font-bold uppercase">EKİPLER</p>
-              <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.sistem?.toplam_ekip || 0}</h3>
-            </div>
+            {user?.rol === 'admin' && (
+              <div className="card bg-orange-600 text-white p-6 shadow-lg">
+                <p className="text-orange-100 text-xs font-bold uppercase">EKİPLER</p>
+                <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.sistem?.toplam_ekip || 0}</h3>
+              </div>
+            )}
           </div>
 
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">

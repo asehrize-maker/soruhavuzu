@@ -1759,6 +1759,40 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
       ORDER BY tarih DESC
     `, params);
 
+    // Sistem özet bilgileri
+    let sistemStats = {
+      toplam_kullanici: 0,
+      toplam_brans: 0,
+      toplam_ekip: 0
+    };
+
+    if (isKoordinator) {
+      const teamRes = await pool.query(`
+        SELECT 
+          (SELECT COUNT(*) FROM kullanicilar WHERE ekip_id = $1) as users,
+          (SELECT COUNT(*) FROM branslar WHERE ekip_id = $1) as branches
+      `, [ekipId]);
+      sistemStats = {
+        toplam_kullanici: teamRes.rows[0].users,
+        toplam_brans: teamRes.rows[0].branches,
+        toplam_ekip: 1,
+        is_ekip_view: true
+      };
+    } else {
+      const adminRes = await pool.query(`
+        SELECT 
+          (SELECT COUNT(*) FROM kullanicilar) as users,
+          (SELECT COUNT(*) FROM branslar) as branches,
+          (SELECT COUNT(*) FROM ekipler) as teams
+      `);
+      sistemStats = {
+        toplam_kullanici: adminRes.rows[0].users,
+        toplam_brans: adminRes.rows[0].branches,
+        toplam_ekip: adminRes.rows[0].teams,
+        is_ekip_view: false
+      };
+    }
+
     res.json({
       success: true,
       data: {
@@ -1768,9 +1802,7 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
         branslar: bransStats.rows,
         kullanicilar: kullaniciStats.rows,
         trend: trendStats.rows,
-        sistem: isKoordinator ? null : {
-          toplam_kullanici: 0 // Admin harici sistem bilgisi gizli
-        }
+        sistem: sistemStats
       }
     });
   } catch (error) {

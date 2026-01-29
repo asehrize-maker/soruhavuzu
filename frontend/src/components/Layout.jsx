@@ -221,11 +221,11 @@ export default function Layout() {
                   MÜFETTİŞ (TÜM EKİPLER)
                 </div>
               ) : user?.ekip_adi ? (
-                <div className="text-[10px] text-gray-400 font-bold uppercase flex items-center gap-1 mt-1">
+                <div className="text-[10px] text-blue-400 font-bold uppercase flex items-center gap-1 mt-1">
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
-                  {user.ekip_adi}
+                  {user.ekip_adi} EKİBİ
                 </div>
               ) : (actualRole !== 'admin' && (
                 <div className="text-[10px] text-red-400 font-bold uppercase flex items-center gap-1 mt-1">
@@ -256,7 +256,7 @@ export default function Layout() {
                 </select>
               </div>
             )}
-            {user?.brans_adi && <p className="text-xs text-gray-400 mt-1">{user.brans_adi}</p>}
+            {user?.brans_adi && (actualRole !== 'admin' && actualRole !== 'koordinator') && <p className="text-xs text-gray-400 mt-1">{user.brans_adi}</p>}
           </div>
         </div>
         <nav className="flex-1 overflow-y-auto py-4 space-y-1 px-3 custom-scrollbar">

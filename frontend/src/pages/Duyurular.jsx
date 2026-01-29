@@ -36,8 +36,8 @@ export default function Duyurular() {
   const [popupLoading, setPopupLoading] = useState(false);
   const [popupMessage, setPopupMessage] = useState(null);
 
-  // Admin değilse yönlendir
-  if (user?.rol !== 'admin') {
+  // Admin veya Koordinatör değilse yönlendir
+  if (user?.rol !== 'admin' && user?.rol !== 'koordinator') {
     navigate('/');
     return null;
   }
@@ -137,14 +137,16 @@ export default function Duyurular() {
             <BellIcon className="w-5 h-5" />
             Anlık Bildirim Gönder
           </button>
-          <button
-            onClick={() => setActiveTab('popup')}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'popup' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
-          >
-            <ComputerDesktopIcon className="w-5 h-5" />
-            Panel Giriş Duyurusu
-          </button>
+          {user?.rol === 'admin' && (
+            <button
+              onClick={() => setActiveTab('popup')}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'popup' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              <ComputerDesktopIcon className="w-5 h-5" />
+              Panel Giriş Duyurusu
+            </button>
+          )}
         </div>
       </div>
 

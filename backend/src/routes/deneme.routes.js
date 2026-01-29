@@ -276,14 +276,11 @@ const upload = multer({
     }
 });
 
-// 1. Yeni Deneme Planı Oluştur (SADECE ADMIN)
-router.post('/plan', authenticate, authorize('admin'), async (req, res, next) => {
+// 1. Yeni Deneme Planı Oluştur (Admin veya Koordinatör)
+router.post('/plan', authenticate, authorize(['admin', 'koordinator']), async (req, res, next) => {
     try {
-        // Failsafe execution
         await ensureTables();
-
-        console.log('Deneme Plan Create Request:', req.body);
-        console.log('User:', req.user);
+        const isKoordinator = req.user.rol === 'koordinator';
 
         const { ad, planlanan_tarih, aciklama, gorev_tipi, brans_id, ekip_id } = req.body;
         if (!ad || !planlanan_tarih) {
@@ -291,19 +288,17 @@ router.post('/plan', authenticate, authorize('admin'), async (req, res, next) =>
         }
 
         const p_brans_id = (brans_id && brans_id !== "" && brans_id !== "null") ? parseInt(brans_id) : null;
-        const p_ekip_id = (ekip_id && ekip_id !== "" && ekip_id !== "null") ? parseInt(ekip_id) : null;
+        // Koordinatör sadece kendi ekibine plan yapabilir
+        const p_ekip_id = isKoordinator ? req.user.ekip_id : ((ekip_id && ekip_id !== "" && ekip_id !== "null") ? parseInt(ekip_id) : null);
 
         const result = await pool.query(
             `INSERT INTO deneme_takvimi (ad, planlanan_tarih, aciklama, olusturan_id, gorev_tipi, brans_id, ekip_id) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
             [ad, planlanan_tarih, aciklama, req.user.id, gorev_tipi || 'deneme', p_brans_id, p_ekip_id]
         );
 
-        console.log('Deneme Plan Created:', result.rows[0]);
-
         res.status(201).json({ success: true, data: result.rows[0] });
     } catch (error) {
-        console.error('Deneme Plan Create Error:', error);
         next(error);
     }
 });
@@ -311,9 +306,9 @@ router.post('/plan', authenticate, authorize('admin'), async (req, res, next) =>
 // 2. Deneme Planlarını Listele (Tüm yetkili kullanıcılar)
 router.get('/', authenticate, async (req, res, next) => {
     try {
-        const { brans_id } = req.query; // Opsiyonel filtre
+        const isKoordinator = req.user.rol === 'koordinator';
+        const isAdmin = req.user.rol === 'admin';
 
-        // Ensure logic if table doesn't exist yet (first run)
         await ensureTables();
 
         let query = `
@@ -331,8 +326,11 @@ router.get('/', authenticate, async (req, res, next) => {
             query += `, NULL as my_upload_id, NULL as my_upload_url`;
         }
 
-        // Admin için tüm branşların yüklemelerini de getir
-        if (req.user.rol === 'admin') {
+        // Admin veya Koordinatör için yüklemeleri getir
+        if (isAdmin || isKoordinator) {
+            const pLimit = isKoordinator ? ' AND (dy.ekip_id = $2 OR dy.brans_id IN (SELECT id FROM branslar WHERE ekip_id = $2))' : '';
+            if (isKoordinator) params.push(req.user.ekip_id);
+
             query += `, (
                 SELECT json_agg(up) FROM (
                     SELECT DISTINCT ON (dy.brans_id)
@@ -344,7 +342,7 @@ router.get('/', authenticate, async (req, res, next) => {
                     FROM deneme_yuklemeleri dy
                     LEFT JOIN branslar b ON dy.brans_id = b.id
                     LEFT JOIN kullanicilar k ON dy.yukleyen_id = k.id
-                    WHERE dy.deneme_id = d.id
+                    WHERE dy.deneme_id = d.id ${pLimit}
                     ORDER BY dy.brans_id, dy.yukleme_tarihi DESC
                 ) as up
             ) as all_uploads`;
@@ -355,13 +353,11 @@ router.get('/', authenticate, async (req, res, next) => {
         query += ` FROM deneme_takvimi d WHERE d.aktif = true`;
 
         // Branş veya Ekip filtresi: Eğer kullanıcı admin değilse filtrele
-        if (req.user.rol !== 'admin') {
-            if (req.user.brans_id) {
-                query += ` AND (d.brans_id IS NULL OR d.brans_id = ${req.user.brans_id})`;
-            }
-            // Ekip filtresi (Admin olmayan ama ekipte olanlar için)
-            if (req.user.ekip_id) {
-                query += ` AND (d.ekip_id IS NULL OR d.ekip_id = ${req.user.ekip_id})`;
+        if (!isAdmin) {
+            if (isKoordinator) {
+                query += ` AND (d.ekip_id IS NULL OR d.ekip_id = $${params.length})`;
+            } else if (req.user.brans_id) {
+                query += ` AND (d.brans_id IS NULL OR d.brans_id = $${params.length})`;
             }
         }
 

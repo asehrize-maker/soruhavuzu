@@ -30,6 +30,7 @@ const formatDateForInput = (date) => {
 export default function Ajanda() {
     const { user: authUser, viewRole } = useAuthStore();
     const effectiveRole = viewRole || authUser?.rol;
+    const isManagement = effectiveRole === 'admin' || effectiveRole === 'koordinator';
     const isAdmin = effectiveRole === 'admin';
 
     const [loading, setLoading] = useState(true);
@@ -172,7 +173,7 @@ export default function Ajanda() {
                         })}
                     </div>
 
-                    {isAdmin && (
+                    {isManagement && (
                         <button
                             onClick={() => {
                                 setNewPlan({ ...newPlan, planlanan_tarih: formatDateForInput(selectedDate) });
@@ -300,7 +301,7 @@ export default function Ajanda() {
                                             <span className="w-1.5 h-1.5 bg-gray-200 rounded-full"></span>
                                             <span className="flex items-center gap-1.5 text-indigo-500"><SparklesIcon className="w-4 h-4" /> {event.toplam_yukleme || 0} DOSYA YÜKLENDİ</span>
                                         </div>
-                                        {isAdmin && event.all_uploads && event.all_uploads.length > 0 && (
+                                        {isManagement && event.all_uploads && event.all_uploads.length > 0 && (
                                             <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-50 mt-4">
                                                 {event.all_uploads.map((up, i) => (
                                                     <div key={i} className="bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 flex items-center gap-2">

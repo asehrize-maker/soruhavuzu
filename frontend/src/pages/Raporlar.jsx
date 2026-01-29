@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { soruAPI } from '../services/api';
+import useAuthStore from '../store/authStore';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import {
@@ -22,6 +23,8 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function Raporlar() {
+  const { user } = useAuthStore();
+  const isAdmin = user?.rol === 'admin';
   const [loading, setLoading] = useState(false);
   const [raporTipi, setRaporTipi] = useState('haftalik');
   const [baslangic, setBaslangic] = useState('');
@@ -121,16 +124,18 @@ export default function Raporlar() {
             <DocumentChartBarIcon className="w-12 h-12 text-indigo-600" strokeWidth={2.5} />
             <h1 className="text-4xl font-black text-gray-900 tracking-tight">Analiz ve Raporlar</h1>
           </div>
-          <p className="text-gray-500 font-medium">Sistemin performansını ölçün, verimlilik raporları oluşturun ve veritabanı yedeği alın.</p>
+          <p className="text-gray-500 font-medium">Sistemin performansını ölçün ve verimlilik raporları oluşturun{isAdmin ? ' ve veritabanı yedeği alın.' : '.'}</p>
         </div>
-        <button
-          onClick={downloadYedek}
-          disabled={yedekLoading}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl px-8 py-4 font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-emerald-100 flex items-center gap-2 active:scale-95"
-        >
-          {yedekLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin" /> : <ArrowDownTrayIcon className="w-5 h-5" />}
-          TAM YEDEK İNDİR (JSON)
-        </button>
+        {isAdmin && (
+          <button
+            onClick={downloadYedek}
+            disabled={yedekLoading}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl px-8 py-4 font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-emerald-100 flex items-center gap-2 active:scale-95"
+          >
+            {yedekLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin" /> : <ArrowDownTrayIcon className="w-5 h-5" />}
+            TAM YEDEK İNDİR (JSON)
+          </button>
+        )}
       </div>
 
       {/* FILTERS CARD */}
