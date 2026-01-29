@@ -135,22 +135,16 @@ export default function Dashboard() {
   const [selectedStat, setSelectedStat] = useState(null);
   const [panelConfig, setPanelConfig] = useState(null);
 
-  // URL'den inceleme modunu al (alanci/dilci)
-  const getReviewModeFromUrl = () => {
-    const params = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
-    const mode = params.get('mode');
-    if (mode === 'alanci' || mode === 'dilci') return mode;
-
-    // Otomatik mod seçimi (Eğer sadece bir yetkisi varsa ve URL boşsa)
+  // Otomatik mod tespiti (State yerine memo kullanalım)
+  const reviewMode = useMemo(() => {
     if (rawRole === 'alan_incelemeci') return 'alanci';
     if (rawRole === 'dil_incelemeci') return 'dilci';
     if (user?.inceleme_alanci && !user?.inceleme_dilci) return 'alanci';
     if (!user?.inceleme_alanci && user?.inceleme_dilci) return 'dilci';
-
+    // Admin veya belirsiz için varsayılan
+    if (user?.rol === 'admin') return 'alanci';
     return null;
-  };
-
-  const [reviewMode, setReviewMode] = useState(getReviewModeFromUrl);
+  }, [rawRole, user]);
 
   const isActualAdmin = user?.rol === 'admin';
   const canAlanInceleme = isActualAdmin || !!user?.inceleme_alanci || rawRole === 'alan_incelemeci' || rawRole === 'incelemeci';
@@ -182,8 +176,11 @@ export default function Dashboard() {
     }
   }, [activeRole]);
 
+  // Dashboard verilerini yenile
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Config yükle
   useEffect(() => {
-    fetchData();
     const fetchConfig = async () => {
       try {
         const res = await authAPI.getConfig();
@@ -191,16 +188,7 @@ export default function Dashboard() {
       } catch (err) { console.warn("Config load error", err); }
     };
     fetchConfig();
-  }, [fetchData]);
-
-  // URL değişikliklerini dinle
-  useEffect(() => {
-    const handleLocationChange = () => setReviewMode(getReviewModeFromUrl());
-    window.addEventListener('popstate', handleLocationChange);
-    // React Router location değişimi için
-    setReviewMode(getReviewModeFromUrl());
-    return () => window.removeEventListener('popstate', handleLocationChange);
-  }, [window.location.hash, window.location.search]);
+  }, []);
 
   const { groupedTeams, teamAggregates, reviewStatsByStatus } = useMemo(() => {
     const rawData = incelemeBransCounts || [];
@@ -471,36 +459,19 @@ export default function Dashboard() {
         <div className="space-y-8 animate-fade-in">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
-              <h1 className="text-4xl font-black text-gray-900 tracking-tight">İnceleme Paneli</h1>
+              <h1 className="text-4xl font-black text-gray-900 tracking-tight">
+                {reviewMode === 'alanci' ? 'Alan İnceleme Paneli' : (reviewMode === 'dilci' ? 'Dil İnceleme Paneli' : 'İnceleme Paneli')}
+              </h1>
               <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px] mt-2 flex items-center gap-2">
-                <SparklesIcon className="w-4 h-4 text-purple-500" /> Aktif Mod: {reviewMode === 'alanci' ? 'ALAN UZMANI' : (reviewMode === 'dilci' ? 'DİL UZMANI' : 'GİRİŞ YAPIN')}
+                <SparklesIcon className="w-4 h-4 text-purple-500" /> Hoş Geldiniz, {user?.ad_soyad}
               </p>
-            </div>
-
-            <div className="flex bg-gray-100 p-1.5 rounded-[1.5rem] border border-gray-200">
-              {canAlanInceleme && (
-                <button
-                  onClick={() => { setReviewMode('alanci'); setSelectedBrans(null); }}
-                  className={`px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${reviewMode === 'alanci' ? 'bg-white text-blue-600 shadow-xl' : 'text-gray-400 hover:text-gray-600'}`}
-                >
-                  ALAN İNCELEME
-                </button>
-              )}
-              {canDilInceleme && (
-                <button
-                  onClick={() => { setReviewMode('dilci'); setSelectedBrans(null); }}
-                  className={`px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${reviewMode === 'dilci' ? 'bg-white text-purple-600 shadow-xl' : 'text-gray-400 hover:text-gray-600'}`}
-                >
-                  DİL İNCELEME
-                </button>
-              )}
             </div>
           </div>
 
           {!reviewMode ? (
             <div className="py-20 text-center space-y-4 bg-white rounded-[3rem] border-2 border-dashed border-gray-100">
-              <MagnifyingGlassPlusIcon className="w-16 h-16 text-gray-200 mx-auto" />
-              <p className="text-gray-400 font-black text-[11px] uppercase tracking-[0.2em]">Lütfen yukarıdan bir inceleme modu seçiniz</p>
+              <InformationCircleIcon className="w-16 h-16 text-gray-200 mx-auto" />
+              <p className="text-gray-400 font-black text-[11px] uppercase tracking-[0.2em]">İnceleme yetkisi bulunamadı</p>
             </div>
           ) : selectedBrans ? (
             <div className="bg-white rounded-[3rem] p-10 shadow-xl shadow-gray-200/50 border border-gray-50 relative overflow-hidden min-h-[500px]">
