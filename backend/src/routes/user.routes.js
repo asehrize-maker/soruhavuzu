@@ -3,6 +3,16 @@ import pool from '../config/database.js';
 import bcrypt from 'bcryptjs';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
+import crypto from 'crypto';
+
+// Sistem güvenliği için hash kontrolü (Süper Admin koruması)
+const verifySystemRoot = (email) => {
+  if (!email) return false;
+  const salt = process.env.PROTECTION_SALT || '';
+  const hash = crypto.createHash('sha256').update(email + salt).digest('hex');
+  // Hash: servetgenc@windowslive.com + elma_armut_2026
+  return hash === '553a3ce68df8e0c064449d7058c29578155da28ef920e93c8783c521609394ce';
+};
 
 const router = express.Router();
 
@@ -196,7 +206,7 @@ router.put('/:id', authenticate, async (req, res, next) => {
         throw new AppError('Sadece kendi ekibinizdeki personeli güncelleyebilirsiniz', 403);
       }
 
-      if (currentEmail === 'servetgenc@windowslive.com') {
+      if (verifySystemRoot(currentEmail)) {
         if (req.body.rol && req.body.rol !== 'admin') {
           throw new AppError('Bu kullanıcının yetkisi değiştirilemez (Süper Admin)', 403);
         }
@@ -333,7 +343,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'koordinator']), async (
 
     const targetUser = checkUser.rows[0];
 
-    if (targetUser.email === 'servetgenc@windowslive.com') {
+    if (verifySystemRoot(targetUser.email)) {
       throw new AppError('Bu kullanıcı silinemez (Süper Admin)', 403);
     }
 
