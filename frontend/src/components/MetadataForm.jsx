@@ -8,7 +8,8 @@ const MetadataForm = ({
     kazanimLoading,
     disabled = false,
     className = '',
-    allowManualKazanim = false
+    allowManualKazanim = false,
+    gridCols = 'grid-cols-1 md:grid-cols-5'
 }) => {
     const handleChange = (field, value) => {
         if (allowManualKazanim && field === 'kazanim') {
@@ -30,7 +31,7 @@ const MetadataForm = ({
     }
 
     return (
-        <div className={`bg-white border rounded shadow-sm p-4 grid grid-cols-1 md:grid-cols-5 gap-4 ${className}`}>
+        <div className={`bg-white border rounded shadow-sm p-4 grid gap-4 ${gridCols} ${className}`}>
             <div className="flex flex-col">
                 <label className="text-[10px] font-bold text-gray-400 uppercase mb-1">Branş</label>
                 <select
@@ -48,12 +49,12 @@ const MetadataForm = ({
 
             <div className="flex flex-col">
                 <label className="text-[10px] font-bold text-gray-400 uppercase mb-1">Doğru Cevap</label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                     {['A', 'B', 'C', 'D', 'E'].map(opt => (
                         <button
                             key={opt}
                             onClick={() => !disabled && handleChange('dogruCevap', opt)}
-                            className={`w-8 h-8 rounded-full border font-bold text-xs transition flex items-center justify-center ${values.dogruCevap === opt ? 'bg-blue-600 text-white shadow-md scale-110' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                            className={`w-8 h-8 rounded-full border font-bold text-xs transition flex items-center justify-center shrink-0 ${values.dogruCevap === opt ? 'bg-blue-600 text-white shadow-md scale-110' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                                 } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                             disabled={disabled}
                         >

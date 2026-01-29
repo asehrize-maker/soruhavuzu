@@ -305,7 +305,7 @@ export default function SoruEkle() {
         </div>
 
         {/* CENTER EDITOR */}
-        <div className="lg:col-span-7 flex flex-col items-center gap-6">
+        <div className="lg:col-span-6 flex flex-col items-center gap-6">
           <div className="bg-gray-800 p-2 rounded-2xl shadow-xl flex items-center gap-1 border border-white/5 mx-auto sticky top-24 z-40">
             <RibbonButton cmd="bold" label="B" />
             <RibbonButton cmd="italic" label="I" />
@@ -368,7 +368,7 @@ export default function SoruEkle() {
         </div>
 
         {/* RIGHT METADATA PANEL - Moved here */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-4">
           <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-50 overflow-hidden sticky top-32">
             <div className="p-5 border-b border-gray-50 bg-gray-50/50">
               <h3 className="text-sm font-black text-gray-900 tracking-tight flex items-center gap-2">
@@ -383,7 +383,8 @@ export default function SoruEkle() {
                 kazanims={kazanims}
                 kazanimLoading={kazanimLoading}
                 allowManualKazanim={true}
-                className="grid-cols-1 md:grid-cols-1 bg-transparent !p-0 !shadow-none gap-5"
+                gridCols="grid-cols-1"
+                className="bg-transparent !p-0 !shadow-none gap-5"
               />
             </div>
           </div>
