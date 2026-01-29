@@ -20,7 +20,8 @@ import {
   MagnifyingGlassPlusIcon,
   ArchiveBoxArrowDownIcon,
   PrinterIcon,
-  XMarkIcon
+  XMarkIcon,
+  PencilSquareIcon
 } from '@heroicons/react/24/outline';
 
 export default function Sorular({ scope }) {
@@ -50,6 +51,20 @@ export default function Sorular({ scope }) {
     kazanim: '',
     kategori: '',
   });
+
+  const [kazanimlar, setKazanimlar] = useState([]);
+  const [kazanimSearch, setKazanimSearch] = useState('');
+  const [isKazanimOpen, setIsKazanimOpen] = useState(false);
+
+  useEffect(() => {
+    if (filters.brans_id) {
+      bransAPI.getKazanims(filters.brans_id).then(res => {
+        setKazanimlar(res.data.data || []);
+      }).catch(err => console.error('Kazanımlar yüklenemedi:', err));
+    } else {
+      setKazanimlar([]);
+    }
+  }, [filters.brans_id]);
 
   useEffect(() => {
     setFilters(prev => ({
@@ -305,15 +320,82 @@ export default function Sorular({ scope }) {
             </div>
           )}
 
-          <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
+          <div className="flex items-center gap-4 min-w-[240px] w-full md:w-auto relative">
             <SparklesIcon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
-            <input
-              type="text"
-              value={filters.kazanim}
-              onChange={(e) => setFilters({ ...filters, kazanim: e.target.value })}
-              placeholder="KAZANIM İLE ARA..."
-              className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner"
-            />
+            <div className="relative w-full">
+              <input
+                type="text"
+                value={filters.kazanim}
+                onFocus={() => setIsKazanimOpen(true)}
+                onChange={(e) => {
+                  setFilters({ ...filters, kazanim: e.target.value });
+                  setKazanimSearch(e.target.value);
+                  setIsKazanimOpen(true);
+                }}
+                placeholder="KAZANIM SEÇ VEYA YAZ..."
+                className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner"
+              />
+
+              {isKazanimOpen && (
+                <div className="absolute z-[100] mt-2 w-full max-h-60 bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-y-auto no-scrollbar py-2 animate-scale-up">
+                  {/* Manuel Yazma Seçeneği */}
+                  <div
+                    className="px-5 py-3 text-[10px] font-black text-blue-600 hover:bg-blue-50 cursor-pointer border-b border-gray-50 flex items-center justify-between group"
+                    onClick={() => {
+                      setIsKazanimOpen(false);
+                    }}
+                  >
+                    <span>"{filters.kazanim || 'Filtreyi Temizle'}" OLARAK ARA</span>
+                    <PencilSquareIcon className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+
+                  {kazanimlar
+                    .filter(k =>
+                      !kazanimSearch ||
+                      k.aciklama.toLowerCase().includes(kazanimSearch.toLowerCase()) ||
+                      k.kod.toLowerCase().includes(kazanimSearch.toLowerCase())
+                    )
+                    .map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          setFilters({ ...filters, kazanim: item.kod });
+                          setKazanimSearch(item.kod);
+                          setIsKazanimOpen(false);
+                        }}
+                        className="px-5 py-3 hover:bg-gray-50 cursor-pointer flex flex-col gap-1 transition-colors"
+                      >
+                        <span className="text-[10px] font-black text-gray-900 border-b border-gray-100 pb-1 w-fit mb-1">{item.kod}</span>
+                        <span className="text-[9px] font-bold text-gray-500 leading-relaxed uppercase">{item.aciklama}</span>
+                      </div>
+                    ))
+                  }
+
+                  {kazanimlar.length > 0 && kazanimlar.filter(k =>
+                    !kazanimSearch ||
+                    k.aciklama.toLowerCase().includes(kazanimSearch.toLowerCase()) ||
+                    k.kod.toLowerCase().includes(kazanimSearch.toLowerCase())
+                  ).length === 0 && (
+                      <div className="px-5 py-4 text-center">
+                        <p className="text-[9px] font-black text-gray-300 uppercase italic">Eşleşen kazanım bulunamadı</p>
+                      </div>
+                    )}
+
+                  {kazanimlar.length === 0 && !filters.brans_id && (
+                    <div className="px-5 py-4 text-center">
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Önce branş seçiniz</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            {/* Click outside to close */}
+            {isKazanimOpen && (
+              <div
+                className="fixed inset-0 z-[90]"
+                onClick={() => setIsKazanimOpen(false)}
+              />
+            )}
           </div>
 
           <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
