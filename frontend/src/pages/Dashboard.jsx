@@ -40,13 +40,12 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
 
   useEffect(() => {
     const fetchSorular = async () => {
-      if (!bransId) return;
       setListLoading(true);
       try {
         const response = await soruAPI.getAll();
         const allQuestions = response.data.data || [];
         const filtered = allQuestions.filter(s => {
-          if (parseInt(s.brans_id) !== parseInt(bransId)) return false;
+          if (bransId && parseInt(s.brans_id) !== parseInt(bransId)) return false;
           if (reviewMode === 'alanci') return ['alan_incelemede', 'inceleme_bekliyor', 'incelemede', 'revize_istendi'].includes(s.durum);
           if (reviewMode === 'dilci') return ['dil_incelemede', 'inceleme_bekliyor', 'incelemede', 'revize_istendi'].includes(s.durum);
           return true;
@@ -63,7 +62,7 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
     <div className="animate-fade-in space-y-6">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-          <DocumentTextIcon className="w-6 h-6 text-blue-600" /> {bransAdi} Soruları
+          <DocumentTextIcon className="w-6 h-6 text-blue-600" /> {bransAdi || 'Tüm Sorular'}
         </h3>
         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{sorular.length} Soru Bulundu</span>
       </div>
@@ -74,7 +73,7 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
           <p className="text-gray-400 font-black text-[10px] uppercase tracking-widest">İncelenecek soru kalmadı!</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-4 overflow-y-auto px-1">
           {sorular.map(soru => {
             const zorluk = normalizeZorlukToScale(soru.zorluk_seviyesi);
             const isPng = soru.soru_metni?.includes('<img');
@@ -83,38 +82,31 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
               <Link
                 key={soru.id}
                 to={`/sorular/${soru.id}?incelemeTuru=${reviewMode}`}
-                className="group flex flex-col md:flex-row gap-6 p-6 bg-white rounded-[2rem] border border-gray-100 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/5 transition-all relative overflow-hidden"
+                className="group flex flex-col gap-4 p-5 bg-white rounded-[2rem] border border-gray-100 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/5 transition-all relative overflow-hidden"
               >
-                {/* Sol - Soru Bilgisi */}
-                <div className="flex-1 space-y-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-3 py-1 bg-gray-900 text-white text-[8px] font-black uppercase tracking-[0.2em] rounded-lg">#{soru.id}</span>
-                    <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[8px] font-black uppercase tracking-[0.2em] rounded-lg">{soru.kategori || 'GENEL'}</span>
-                    <span className={`px-3 py-1 text-[8px] font-black uppercase tracking-[0.2em] rounded-lg ${zorluk === 4 || zorluk === 5 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
-                      }`}>
-                      {zorluk > 3 ? 'ZOR' : 'NORMAL'}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-2 py-0.5 bg-gray-900 text-white text-[8px] font-black uppercase tracking-widest rounded-md">#{soru.id}</span>
+                  {!bransAdi && (
+                    <span className="px-2 py-0.5 bg-purple-50 text-purple-600 text-[8px] font-black uppercase tracking-widest rounded-md max-w-[120px] truncate">
+                      {soru.brans_adi}
                     </span>
-                  </div>
-
-                  <div
-                    className="text-gray-600 text-sm font-medium line-clamp-3 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: isPng ? "<i>🖼️ Görsel İçerikli Soru</i>" : soru.soru_metni?.substring(0, 200) }}
-                  />
-
-                  <div className="pt-4 border-t border-gray-50 flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-gray-400">Yazar: {soru.olusturan_ad || 'Bilinmiyor'}</span>
-                    <div className="flex items-center gap-1.5 text-blue-600 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                      Hemen İncele <ArrowPathIcon className="w-3 h-3" />
-                    </div>
-                  </div>
+                  )}
+                  <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[8px] font-black uppercase tracking-widest rounded-md">{soru.kategori || 'GENEL'}</span>
+                  <span className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-widest rounded-md ${zorluk > 3 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+                    }`}>
+                    {zorluk > 3 ? 'ZOR' : 'NORMAL'}
+                  </span>
                 </div>
 
-                {/* Sağ - Varsa Önizleme */}
-                {soru.fotograf_url && (
-                  <div className="w-full md:w-32 h-32 rounded-2xl overflow-hidden bg-gray-50 border border-black/5 flex-shrink-0">
-                    <img src={soru.fotograf_url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="Soru" />
-                  </div>
-                )}
+                <div
+                  className="text-gray-600 text-xs font-semibold line-clamp-2 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: isPng ? "<i>🖼️ Görsel İçerikli Soru</i>" : (soru.soru_metni?.replace(/<[^>]*>?/gm, '').substring(0, 150) || 'Metinsiz') }}
+                />
+
+                <div className="pt-3 border-t border-gray-50 flex items-center justify-between mt-auto">
+                  <span className="text-[9px] font-bold text-gray-400 italic">Yazar: {soru.olusturan_ad || 'Bilinmiyor'}</span>
+                  <ArrowPathIcon className="w-3 h-3 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
               </Link>
             );
           })}
@@ -127,6 +119,10 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
 // --- MAIN COMPONENT ---
 export default function Dashboard() {
   // 1. ALL HOOKS
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const urlMode = searchParams.get('mode');
+
   const { user } = useAuthStore();
   const outletContext = useOutletContext();
   const effectiveRoleFromContext = outletContext?.effectiveRole;
@@ -487,22 +483,31 @@ export default function Dashboard() {
               <InformationCircleIcon className="w-16 h-16 text-gray-200 mx-auto" />
               <p className="text-gray-400 font-black text-[11px] uppercase tracking-[0.2em]">İnceleme yetkisi bulunamadı</p>
             </div>
-          ) : selectedBrans ? (
+          ) : (selectedBrans || urlMode) ? (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-[600px]">
               {/* SOL PANEL - SORU LİSTESİ */}
               <div className="lg:col-span-4 bg-gray-50/50 rounded-[3rem] p-8 border border-gray-100 shadow-inner overflow-y-auto max-h-[800px] custom-scrollbar">
-                <button
-                  onClick={() => setSelectedBrans(null)}
-                  className="mb-6 flex items-center gap-2 text-[10px] font-black text-gray-400 hover:text-blue-600 uppercase tracking-widest transition-all group"
-                >
-                  <span className="group-hover:-translate-x-1 transition-transform">←</span> Branşlara Dön
-                </button>
+                {(selectedBrans || !urlMode) && (
+                  <button
+                    onClick={() => setSelectedBrans(null)}
+                    className="mb-6 flex items-center gap-2 text-[10px] font-black text-gray-400 hover:text-blue-600 uppercase tracking-widest transition-all group"
+                  >
+                    <span className="group-hover:-translate-x-1 transition-transform">←</span> Branşlara Dön
+                  </button>
+                )}
+
                 <div className="space-y-6">
                   <div className="pb-4 border-b border-gray-200">
-                    <h2 className="text-xl font-black text-gray-900 leading-tight">{selectedBrans.brans_adi}</h2>
+                    <h2 className="text-xl font-black text-gray-900 leading-tight">
+                      {selectedBrans ? selectedBrans.brans_adi : (urlMode === 'alanci' ? 'Tüm Alan İncelemeleri' : 'Tüm Dil İncelemeleri')}
+                    </h2>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">İnceleme Akışı</p>
                   </div>
-                  <IncelemeListesi bransId={selectedBrans.id} bransAdi={selectedBrans.brans_adi} reviewMode={reviewMode} />
+                  <IncelemeListesi
+                    bransId={selectedBrans?.id}
+                    bransAdi={selectedBrans?.brans_adi}
+                    reviewMode={reviewMode}
+                  />
                 </div>
               </div>
 
@@ -513,10 +518,15 @@ export default function Dashboard() {
                   <div className="w-24 h-24 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto shadow-xl shadow-blue-500/10">
                     <CursorArrowRaysIcon className="w-10 h-10" />
                   </div>
-                  <h3 className="text-2xl font-black text-gray-900 tracking-tight">Soru Seçimi Bekleniyor</h3>
+                  <h3 className="text-2xl font-black text-gray-900 tracking-tight">İnceleme Başlatın</h3>
                   <p className="text-gray-500 text-sm font-medium leading-relaxed">
-                    İnceleme yapmak veya detayları görmek için sol paneldeki listeden bir soruya tıklayın.
+                    Soldaki akıştan bir soru seçerek detayları görüntüleyebilir ve inceleme sürecini tamamlayabilirsiniz.
                   </p>
+                  {!selectedBrans && urlMode && (
+                    <div className="mt-8 pt-6 border-t border-gray-100 italic text-[11px] text-gray-400">
+                      Branş bazlı özet için <Link to="/" className="text-blue-500 font-bold hover:underline">Ana Sayfa</Link>'ya dönebilirsiniz.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
