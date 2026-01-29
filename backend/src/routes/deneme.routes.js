@@ -357,7 +357,7 @@ router.get('/', authenticate, async (req, res, next) => {
             }
         }
 
-        query += ` ORDER BY d.planlanan_tarih ASC`;
+        query += ` ORDER BY (CASE WHEN d.planlanan_tarih >= CURRENT_DATE THEN 0 ELSE 1 END), (CASE WHEN d.planlanan_tarih >= CURRENT_DATE THEN d.planlanan_tarih END) ASC, d.planlanan_tarih DESC`;
 
         const result = await pool.query(query, params);
         res.json({ success: true, data: result.rows });
@@ -443,15 +443,20 @@ router.get('/ajanda', authenticate, async (req, res, next) => {
             if (req.user.brans_id) denemeQuery += ` AND (brans_id IS NULL OR brans_id = ${req.user.brans_id})`;
             if (req.user.ekip_id) denemeQuery += ` AND (ekip_id IS NULL OR ekip_id = ${req.user.ekip_id})`;
         }
-        denemeQuery += ' ORDER BY planlanan_tarih ASC';
+        denemeQuery += ' ORDER BY (CASE WHEN planlanan_tarih >= CURRENT_DATE THEN 0 ELSE 1 END), (CASE WHEN planlanan_tarih >= CURRENT_DATE THEN planlanan_tarih END) ASC, planlanan_tarih DESC';
 
         const denemeler = await pool.query(denemeQuery);
 
         // 2. Tüm branşları çek
         const branslar = await pool.query('SELECT * FROM branslar ORDER BY brans_adi');
 
-        // 3. Tüm yüklemeleri çek
-        const yuklemeler = await pool.query('SELECT * FROM deneme_yuklemeleri');
+        // 3. Tüm yüklemeleri çek (Yükleyen adını da çekerek)
+        const yuklemeler = await pool.query(`
+            SELECT y.*, k.ad_soyad as yukleyen_ad, b.brans_adi 
+            FROM deneme_yuklemeleri y
+            LEFT JOIN kullanicilar k ON y.yukleyen_id = k.id
+            LEFT JOIN branslar b ON y.brans_id = b.id
+        `);
 
         // 4. Matris oluştur
         const agenda = [];

@@ -35,6 +35,7 @@ export default function Ajanda() {
     const [loading, setLoading] = useState(true);
     const [events, setEvents] = useState([]);
     const [branslar, setBranslar] = useState([]);
+    const [ekipler, setEkipler] = useState([]);
 
     // Calendar State
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -43,17 +44,20 @@ export default function Ajanda() {
     // Create Modal State
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [createLoading, setCreateLoading] = useState(false);
-    const [newPlan, setNewPlan] = useState({ ad: '', planlanan_tarih: '', aciklama: '', gorev_tipi: 'deneme', brans_id: '' });
+    const [newPlan, setNewPlan] = useState({ ad: '', planlanan_tarih: '', aciklama: '', gorev_tipi: 'deneme', brans_id: '', ekip_id: '' });
 
     const fetchAll = async () => {
         setLoading(true);
         try {
-            const [agendaRes, bransRes] = await Promise.all([
+            const { ekipAPI } = await import('../services/api');
+            const [agendaRes, bransRes, ekipRes] = await Promise.all([
                 denemeAPI.getAll(),
-                bransAPI.getAll()
+                bransAPI.getAll(),
+                ekipAPI.getAll()
             ]);
             setEvents(agendaRes.data.data || []);
             setBranslar(bransRes.data.data || []);
+            setEkipler(ekipRes.data.data || []);
         } catch (error) {
             console.error('Veriler yüklenemedi:', error);
         } finally {
@@ -71,7 +75,7 @@ export default function Ajanda() {
         try {
             await denemeAPI.createPlan(newPlan);
             setShowCreateModal(false);
-            setNewPlan({ ad: '', planlanan_tarih: '', aciklama: '', gorev_tipi: 'deneme', brans_id: '' });
+            setNewPlan({ ad: '', planlanan_tarih: '', aciklama: '', gorev_tipi: 'deneme', brans_id: '', ekip_id: '' });
             fetchAll();
         } catch (error) {
             alert('Görev oluşturulamadı: ' + (error.response?.data?.message || error.message));
@@ -299,6 +303,17 @@ export default function Ajanda() {
                                             <span className="w-1.5 h-1.5 bg-gray-200 rounded-full"></span>
                                             <span className="flex items-center gap-1.5 text-indigo-500"><SparklesIcon className="w-4 h-4" /> {event.toplam_yukleme || 0} DOSYA YÜKLENDİ</span>
                                         </div>
+                                        {isAdmin && event.all_uploads && event.all_uploads.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-50 mt-4">
+                                                {event.all_uploads.map((up, i) => (
+                                                    <div key={i} className="bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 flex items-center gap-2">
+                                                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                                        <span className="text-[9px] font-black text-gray-600 uppercase tracking-tighter">{up.brans_adi}:</span>
+                                                        <span className="text-[9px] font-bold text-gray-400 capitalize">{up.yukleyen_ad}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
@@ -363,6 +378,19 @@ export default function Ajanda() {
                                             onChange={e => setNewPlan({ ...newPlan, planlanan_tarih: e.target.value })}
                                             className="w-full bg-gray-50 border-none p-5 rounded-2xl font-black text-xs text-gray-900 focus:ring-4 focus:ring-indigo-500/10 outline-none shadow-inner"
                                         />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Ekip Ataması</label>
+                                        <select
+                                            value={newPlan.ekip_id}
+                                            onChange={e => setNewPlan({ ...newPlan, ekip_id: e.target.value })}
+                                            className="w-full bg-gray-50 border-none p-5 rounded-2xl font-black text-xs text-gray-900 focus:ring-4 focus:ring-indigo-500/10 outline-none appearance-none shadow-inner"
+                                        >
+                                            <option value="">Tüm Ekipler</option>
+                                            {ekipler.map(e => (
+                                                <option key={e.id} value={e.id}>{e.ekip_adi}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </div>
                                 <div className="space-y-2">
