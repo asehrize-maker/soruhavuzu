@@ -19,6 +19,14 @@ import {
 const DAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 const MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 
+const formatDateForInput = (date) => {
+    if (!date) return "";
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 export default function Ajanda() {
     const { user: authUser, viewRole } = useAuthStore();
     const effectiveRole = viewRole || authUser?.rol;
@@ -163,7 +171,7 @@ export default function Ajanda() {
                     {isAdmin && (
                         <button
                             onClick={() => {
-                                setNewPlan({ ...newPlan, planlanan_tarih: selectedDate.toISOString().split('T')[0] });
+                                setNewPlan({ ...newPlan, planlanan_tarih: formatDateForInput(selectedDate) });
                                 setShowCreateModal(true);
                             }}
                             className="w-full mt-10 py-4 bg-gray-900 hover:bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-2 group active:scale-95"
@@ -345,6 +353,16 @@ export default function Ajanda() {
                                                 <option key={b.id} value={b.id}>{b.brans_adi}</option>
                                             ))}
                                         </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Planlanan Tarih</label>
+                                        <input
+                                            required
+                                            type="date"
+                                            value={newPlan.planlanan_tarih}
+                                            onChange={e => setNewPlan({ ...newPlan, planlanan_tarih: e.target.value })}
+                                            className="w-full bg-gray-50 border-none p-5 rounded-2xl font-black text-xs text-gray-900 focus:ring-4 focus:ring-indigo-500/10 outline-none shadow-inner"
+                                        />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
