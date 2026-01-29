@@ -183,9 +183,10 @@ export default function SoruDetay() {
 
   const isAdmin = effectiveRole === 'admin';
   const isOwner = soru?.olusturan_kullanici_id == user?.id;
-  const isBranchTeacher = user?.rol === 'soru_yazici' && user?.brans_id === soru?.brans_id;
+  const isBranchTeacher = user?.rol === 'soru_yazici' && Number(user?.brans_id) === Number(soru?.brans_id);
   const hasFullAccess = isAdmin || isOwner || isBranchTeacher;
   const canReview = (isAdmin || (effectiveRole === 'incelemeci' && !!effectiveIncelemeTuru)) && soru?.durum !== 'tamamlandi';
+
   const [dizgiNotu, setDizgiNotu] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -533,14 +534,20 @@ export default function SoruDetay() {
 
   const handleEditSave = async () => {
     if (components.length === 0) return alert("Soru içeriği boş!");
+    if (!editMetadata.dogruCevap) return alert("Lütfen doğru cevabı seçiniz.");
     setSaving(true);
     try {
       const formData = new FormData();
+      const firstImage = components.find(c => c.type === 'image' && c.file);
       formData.append('dogru_cevap', editMetadata.dogruCevap);
       formData.append('brans_id', editMetadata.brans_id);
       formData.append('kazanim', editMetadata.kazanim || 'Genel');
       formData.append('zorluk_seviyesi', editMetadata.zorluk);
       formData.append('kategori', editMetadata.kategori || 'deneme');
+      if (firstImage) {
+        formData.append('fotograf', firstImage.file);
+        formData.append('fotograf_konumu', 'ust');
+      }
       ['a', 'b', 'c', 'd', 'e'].forEach(opt => formData.append(`secenek_${opt}`, ''));
       let htmlContent = components.map(c => {
         let style = "";

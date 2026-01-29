@@ -204,6 +204,7 @@ export default function SoruEkle() {
 
     try {
       const formData = new FormData();
+      const firstImage = components.find(c => c.type === 'image' && c.file);
       formData.append('dogru_cevap', metadata.dogruCevap);
       formData.append('brans_id', metadata.brans_id);
       formData.append('kazanim', metadata.kazanim || 'Genel');
