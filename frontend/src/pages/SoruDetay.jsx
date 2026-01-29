@@ -1122,29 +1122,31 @@ export default function SoruDetay() {
         {/* SIDEBAR */}
         <div className="lg:col-span-4 space-y-8">
           {/* REVISION NOTES */}
-          <div className="bg-white rounded-[3rem] p-8 shadow-xl shadow-gray-200/50 border border-gray-50 space-y-6">
-            <div className="flex items-center justify-between">
-              <h4 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2 uppercase"><FlagIcon className="w-6 h-6 text-rose-500" /> Revize İmleri</h4>
-              <span className="w-8 h-8 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center font-black text-xs">{revizeNotlari.length}</span>
-            </div>
+          {(!isBranchTeacher || ['revize_istendi', 'revize_gerekli'].includes(soru.durum)) && (
+            <div className="bg-white rounded-[3rem] p-8 shadow-xl shadow-gray-200/50 border border-gray-50 space-y-6">
+              <div className="flex items-center justify-between">
+                <h4 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2 uppercase"><FlagIcon className="w-6 h-6 text-rose-500" /> Revize İmleri</h4>
+                <span className="w-8 h-8 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center font-black text-xs">{revizeNotlari.length}</span>
+              </div>
 
-            <div className="space-y-4 max-h-[500px] overflow-y-auto no-scrollbar pr-1">
-              {revizeNotlari.map((not, i) => (
-                <div key={not.id} className="group p-5 bg-gray-50 rounded-[1.5rem] border border-gray-100 space-y-3 relative hover:bg-white hover:shadow-lg transition-all">
-                  <div className="flex justify-between items-start">
-                    <div className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border ${not.inceleme_turu === 'alanci' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
-                      {not.inceleme_turu === 'alanci' ? 'ALAN UZMANI' : 'DİL UZMANI'}
+              <div className="space-y-4 max-h-[500px] overflow-y-auto no-scrollbar pr-1">
+                {revizeNotlari.map((not, i) => (
+                  <div key={not.id} className="group p-5 bg-gray-50 rounded-[1.5rem] border border-gray-100 space-y-3 relative hover:bg-white hover:shadow-lg transition-all">
+                    <div className="flex justify-between items-start">
+                      <div className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border ${not.inceleme_turu === 'alanci' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+                        {not.inceleme_turu === 'alanci' ? 'ALAN UZMANI' : 'DİL UZMANI'}
+                      </div>
+                      {(isAdmin || user?.id === not.kullanici_id) && <button onClick={() => handleDeleteRevizeNot(not.id)} className="p-1.5 bg-white text-gray-300 hover:text-rose-500 rounded-lg transition-colors border border-gray-100 active:scale-95"><XMarkIcon className="w-4 h-4" strokeWidth={3} /></button>}
                     </div>
-                    {(isAdmin || user?.id === not.kullanici_id) && <button onClick={() => handleDeleteRevizeNot(not.id)} className="p-1.5 bg-white text-gray-300 hover:text-rose-500 rounded-lg transition-colors border border-gray-100 active:scale-95"><XMarkIcon className="w-4 h-4" strokeWidth={3} /></button>}
+                    <p className="text-[11px] font-bold text-gray-400 italic bg-white/50 p-2 rounded-xl border border-gray-50 line-clamp-2">"{not.secilen_metin}"</p>
+                    <p className="text-xs font-black text-gray-900 leading-relaxed font-sans">{not.not_metni}</p>
+                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:scale-110 transition-transform"><FlagIcon className="w-12 h-12" /></div>
                   </div>
-                  <p className="text-[11px] font-bold text-gray-400 italic bg-white/50 p-2 rounded-xl border border-gray-50 line-clamp-2">"{not.secilen_metin}"</p>
-                  <p className="text-xs font-black text-gray-900 leading-relaxed font-sans">{not.not_metni}</p>
-                  <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:scale-110 transition-transform"><FlagIcon className="w-12 h-12" /></div>
-                </div>
-              ))}
-              {revizeNotlari.length === 0 && <div className="py-10 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest opacity-60 italic">HATA İŞARETLENMEDİ.</div>}
+                ))}
+                {revizeNotlari.length === 0 && <div className="py-10 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest opacity-60 italic">HATA İŞARETLENMEDİ.</div>}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* SYSTEM LOGS / HISTORY */}
           <div className="bg-white rounded-[3rem] p-8 shadow-xl shadow-gray-200/50 border border-gray-50 space-y-6">
