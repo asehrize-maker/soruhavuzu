@@ -105,6 +105,26 @@ export default function SoruEkle() {
     }
   };
 
+  const addOptionE = () => {
+    const existingSecenekler = components.filter(c => c.subtype === 'secenek');
+    const hasE = existingSecenekler.some(c => c.content.includes('E)'));
+    if (hasE) return;
+
+    let styleProps = { width: 100, float: 'none' };
+    if (existingSecenekler.length > 0) {
+      styleProps = { width: existingSecenekler[0].width, float: existingSecenekler[0].float };
+    }
+
+    const newComp = {
+      id: generateId(),
+      type: 'text', subtype: 'secenek', content: `<b>E)</b> `,
+      placeholder: ``,
+      label: `Seçenek E`,
+      ...styleProps
+    };
+    setComponents(prev => [...prev, newComp]);
+  };
+
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -204,9 +224,8 @@ export default function SoruEkle() {
 
       htmlContent += `<div style="clear: both;"></div>`;
       formData.append('soru_metni', htmlContent);
-      const firstImage = components.find(c => c.type === 'image' && c.file);
       if (firstImage) { formData.append('fotograf', firstImage.file); formData.append('fotograf_konumu', 'ust'); }
-      ['a', 'b', 'c', 'd'].forEach(opt => formData.append(`secenek_${opt}`, ''));
+      ['a', 'b', 'c', 'd', 'e'].forEach(opt => formData.append(`secenek_${opt}`, ''));
       await soruAPI.create(formData);
       navigate('/brans-havuzu');
     } catch (error) { alert("Hata: " + error.message); }
@@ -299,6 +318,10 @@ export default function SoruEkle() {
                   <div className="w-1.5 h-3 border border-current rounded-[1px]"></div>
                 </div>
                 <span className="text-[10px] font-black uppercase tracking-widest">YAN YANA</span>
+              </button>
+              <button onClick={addOptionE} className="w-full py-3 flex items-center justify-start px-4 gap-3 bg-indigo-50 hover:bg-indigo-500 text-indigo-700 hover:text-white rounded-2xl border border-indigo-100 transition-all group">
+                <span className="w-5 h-5 flex items-center justify-center font-black border-2 border-current rounded-lg text-xs">E</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">E ŞIKKI EKLE</span>
               </button>
             </div>
           </div>

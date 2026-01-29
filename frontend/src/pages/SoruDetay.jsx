@@ -503,6 +503,7 @@ export default function SoruDetay() {
       formData.append('kazanim', editMetadata.kazanim || 'Genel');
       formData.append('zorluk_seviyesi', editMetadata.zorluk);
       formData.append('kategori', editMetadata.kategori || 'deneme');
+      ['a', 'b', 'c', 'd', 'e'].forEach(opt => formData.append(`secenek_${opt}`, ''));
       let htmlContent = components.map(c => {
         let style = "";
         if (c.type === 'image') {
@@ -545,6 +546,26 @@ export default function SoruDetay() {
       label: `Seçenek ${opt}`, width: mode === 'grid' ? 48 : 100, float: mode === 'grid' ? 'left' : 'none'
     }));
     setComponents(prev => [...prev, ...newComps]);
+  };
+
+  const addOptionE = () => {
+    const existingSecenekler = components.filter(c => c.subtype === 'secenek');
+    const hasE = existingSecenekler.some(c => c.content.includes('E)'));
+    if (hasE) return;
+
+    let styleProps = { width: 100, float: 'none' };
+    if (existingSecenekler.length > 0) {
+      styleProps = { width: existingSecenekler[0].width, float: existingSecenekler[0].float };
+    }
+
+    const newComp = {
+      id: generateId(),
+      type: 'text', subtype: 'secenek', content: `<b>E)</b> `,
+      placeholder: ``,
+      label: `Seçenek E`,
+      ...styleProps
+    };
+    setComponents(prev => [...prev, newComp]);
   };
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -648,6 +669,9 @@ export default function SoruDetay() {
                     </button>
                     <button onClick={() => addSecenekler('grid')} className="flex items-center gap-2 p-4 bg-teal-50 hover:bg-teal-600 group rounded-2xl text-[10px] font-black text-teal-700 group-hover:text-white border border-teal-100 uppercase tracking-widest transition-all">
                       <Squares2X2Icon className="w-5 h-5 group-hover:text-white" /> IZGARA
+                    </button>
+                    <button onClick={addOptionE} className="col-span-2 flex items-center justify-center gap-2 p-4 bg-indigo-50 hover:bg-indigo-600 group rounded-2xl text-[10px] font-black text-indigo-700 group-hover:text-white border border-indigo-100 uppercase tracking-widest transition-all">
+                      <span className="w-5 h-5 flex items-center justify-center font-black border-2 border-current rounded-lg text-xs">E</span> 5. SEÇENEK (E) EKLE
                     </button>
                   </div>
                 </div>
