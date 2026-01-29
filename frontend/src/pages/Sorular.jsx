@@ -239,45 +239,6 @@ export default function Sorular({ scope }) {
     exportWindow.document.close();
   };
 
-  if (user?.rol === 'admin' && !filters.brans_id) {
-    return (
-      <div className="max-w-7xl mx-auto py-12 space-y-10 animate-fade-in-up">
-        <div className="text-center space-y-4">
-          <Squares2X2Icon className="w-16 h-16 text-blue-600 mx-auto" strokeWidth={2.5} />
-          <h1 className="text-xl font-black text-gray-900 tracking-tight">Merkezi Soru Birimi</h1>
-          <p className="text-gray-500 font-medium max-w-2xl mx-auto">İşlem yapmak istediğiniz branş birimini seçerek devam edin. Tüm sorulardan bağımsız branş bazlı yönetim paneline erişeceksiniz.</p>
-        </div>
-
-        {loading ? (
-          <div className="py-20 flex flex-col items-center gap-4">
-            <ArrowPathIcon className="w-10 h-10 text-gray-200 animate-spin" strokeWidth={3} />
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Branşlar Listeleniyor...</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-            {branslar.map(brans => (
-              <button
-                key={brans.id}
-                onClick={() => setFilters({ ...filters, brans_id: brans.id })}
-                className="group p-8 rounded-[2.5rem] bg-white border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all flex flex-col items-center text-center relative overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform"><Squares2X2Icon className="w-24 h-24" /></div>
-                <div className="w-24 h-24 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center text-3xl font-black mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner">
-                  {brans.brans_adi.charAt(0)}
-                </div>
-                <h3 className="text-2xl font-black text-gray-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{brans.brans_adi}</h3>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2">{brans.ekip_adi}</p>
-
-                <div className="mt-8 flex items-center gap-2 text-blue-600 font-black text-[10px] uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 group-hover:translate-y-0 translate-y-2 transition-all">
-                  BİRİME GİRİŞ YAP <ChevronRightIcon className="w-4 h-4" strokeWidth={3} />
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-20">
