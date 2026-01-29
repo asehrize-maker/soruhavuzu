@@ -277,70 +277,72 @@ export default function Sorular({ scope }) {
 
       {/* FILTER & TOOLS */}
       <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex flex-col md:flex-row items-center gap-6 w-full md:w-auto">
-          {(scope === 'brans' || isTakipModu) && (
+        {!(scope === 'brans' && effectiveRole === 'soru_yazici') ? (
+          <div className="flex flex-col md:flex-row items-center gap-6 w-full md:w-auto">
+            {(scope === 'brans' || isTakipModu) && (
+              <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
+                <FunnelIcon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
+                <select
+                  value={filters.durum}
+                  onChange={(e) => setFilters({ ...filters, durum: e.target.value })}
+                  className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
+                >
+                  <option value="">TÜM DURUMLAR</option>
+                  <option value="beklemede">BEKLEMEDE</option>
+                  <option value="dizgi_bekliyor">DİZGİ BEKLİYOR</option>
+                  <option value="dizgide">DİZGİDE</option>
+                  <option value="tamamlandi">TAMAMLANDI</option>
+                  <option value="revize_gerekli">REVİZE GEREKLİ</option>
+                  <option value="revize_istendi">REVİZE İSTENDİ</option>
+                </select>
+              </div>
+            )}
+
             <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
-              <FunnelIcon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
+              <Squares2X2Icon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
               <select
-                value={filters.durum}
-                onChange={(e) => setFilters({ ...filters, durum: e.target.value })}
+                value={filters.brans_id}
+                onChange={(e) => setFilters({ ...filters, brans_id: e.target.value })}
                 className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
               >
-                <option value="">TÜM DURUMLAR</option>
-                <option value="beklemede">BEKLEMEDE</option>
-                <option value="dizgi_bekliyor">DİZGİ BEKLİYOR</option>
-                <option value="dizgide">DİZGİDE</option>
-                <option value="tamamlandi">TAMAMLANDI</option>
-                <option value="revize_gerekli">REVİZE GEREKLİ</option>
-                <option value="revize_istendi">REVİZE İSTENDİ</option>
+                <option value="">TÜM BRANŞLAR</option>
+                {branslar.map((brans) => (
+                  <option key={brans.id} value={brans.id}>{brans.brans_adi}</option>
+                ))}
               </select>
             </div>
-          )}
 
-          <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
-            <Squares2X2Icon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
-            <select
-              value={filters.brans_id}
-              onChange={(e) => setFilters({ ...filters, brans_id: e.target.value })}
-              className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
-            >
-              <option value="">TÜM BRANŞLAR</option>
-              {branslar.map((brans) => (
-                <option key={brans.id} value={brans.id}>{brans.brans_adi}</option>
-              ))}
-            </select>
-          </div>
+            <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
+              <SparklesIcon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
+              <select
+                value={filters.zorluk_seviyesi}
+                onChange={(e) => setFilters({ ...filters, zorluk_seviyesi: e.target.value })}
+                className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
+              >
+                <option value="">TÜM ZORLUKLAR</option>
+                <option value="1">⭐ ÇOK KOLAY (1)</option>
+                <option value="2">⭐⭐ KOLAY (2)</option>
+                <option value="3">⭐⭐⭐ ORTA (3)</option>
+                <option value="4">⭐⭐⭐⭐ ZOR (4)</option>
+                <option value="5">🔥🔥🔥 ÇOK ZOR (5)</option>
+              </select>
+            </div>
 
-          <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
-            <SparklesIcon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
-            <select
-              value={filters.zorluk_seviyesi}
-              onChange={(e) => setFilters({ ...filters, zorluk_seviyesi: e.target.value })}
-              className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
-            >
-              <option value="">TÜM ZORLUKLAR</option>
-              <option value="1">⭐ ÇOK KOLAY (1)</option>
-              <option value="2">⭐⭐ KOLAY (2)</option>
-              <option value="3">⭐⭐⭐ ORTA (3)</option>
-              <option value="4">⭐⭐⭐⭐ ZOR (4)</option>
-              <option value="5">🔥🔥🔥 ÇOK ZOR (5)</option>
-            </select>
+            <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
+              <ArchiveBoxArrowDownIcon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
+              <select
+                value={filters.kategori}
+                onChange={(e) => setFilters({ ...filters, kategori: e.target.value })}
+                className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
+              >
+                <option value="">TÜM KATEGORİLER</option>
+                <option value="deneme">DENEME</option>
+                <option value="fasikul">FASİKÜL</option>
+                <option value="yaprak_test">YAPRAK TEST</option>
+              </select>
+            </div>
           </div>
-
-          <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
-            <ArchiveBoxArrowDownIcon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
-            <select
-              value={filters.kategori}
-              onChange={(e) => setFilters({ ...filters, kategori: e.target.value })}
-              className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
-            >
-              <option value="">TÜM KATEGORİLER</option>
-              <option value="deneme">DENEME</option>
-              <option value="fasikul">FASİKÜL</option>
-              <option value="yaprak_test">YAPRAK TEST</option>
-            </select>
-          </div>
-        </div>
+        ) : <div />}
 
         <div className="flex flex-wrap items-center gap-3">
           {selectedQuestions.length > 0 && (
