@@ -182,7 +182,6 @@ router.post('/:id/kazanim-import', authenticate, authorize('admin'), upload.sing
         let aciklama = '';
 
         if (Array.isArray(row) && row.length > 0) {
-          // İlk kolonu temizle
           const col1 = String(row[0] || '').trim();
           const col2 = row.length > 1 ? String(row[1] || '').trim() : '';
 
@@ -191,39 +190,52 @@ router.post('/:id/kazanim-import', authenticate, authorize('admin'), upload.sing
             continue;
           }
 
-          // Başlık satırlarını atla
-          if (col1.toLowerCase() === 'kod' || col1.toLowerCase() === 'kazanım kodu' || col2.toLowerCase() === 'aciklama' || col2.toLowerCase() === 'açıklama') {
+          const col1Lower = col1.toLowerCase();
+          const col2Lower = col2.toLowerCase();
+          if (col1Lower === 'kod' || col1Lower === 'kazanım kodu' || col2Lower === 'aciklama' || col2Lower === 'açıklama') {
             continue;
           }
 
           if (col1 && !col2) {
-            // Tek kolon formatı: "F.8.4.1. Asitler" veya "1. Giriş"
-            // Regex: Kod (Harf/Rakam/Nokta) + Opsiyonel Nokta + Boşluk + Açıklama
-            const match = col1.match(/^([A-ZŞĞÜİÖÇ\d\.]+)\.?\s+(.+)$/i);
+            // Tek kolon: kod + açıklama aynı hücrede olabilir
+            const match = col1.match(/^([A-ZŞĞÜİÖÇ0-9.]+)\.?\s+(.+)$/i);
             if (match) {
               kod = match[1];
               aciklama = match[2];
             } else {
+              kod = col1;
               aciklama = col1;
             }
           } else if (col1 && col2) {
-            // İki kolon formatı
             kod = col1;
-            aciklama = col2;
+            aciklama = col2 || col1;
           } else if (!col1 && col2) {
+            kod = col2;
             aciklama = col2;
           }
         } else if (typeof row === 'object' && row !== null) {
-          kod = String(row.kod || row.Kod || row.KOD || '').trim();
-          aciklama = String(row.aciklama || row.Açıklama || row.ACIKLAMA || '').trim();
+          kod = String(row.kod || row.Kod || row.KOD || row.kazanim || row.Kazanim || row.KAZANIM || '').trim();
+          aciklama = String(row.aciklama || row.Açıklama || row.ACIKLAMA || row.aciklama || '').trim();
+
+          if (!kod && aciklama) kod = aciklama;
+          if (kod && !aciklama) aciklama = kod;
+
+          if (!kod && !aciklama) {
+            const firstValue = Object.values(row)
+              .map(v => (v === undefined || v === null ? '' : String(v).trim()))
+              .find(Boolean) || '';
+            if (firstValue) {
+              kod = firstValue;
+              aciklama = firstValue;
+            }
+          }
         }
 
-        if (!kod && !aciklama) {
+        if (!kod) {
           skipped++;
           continue;
         }
 
-        // Sadece açıklama varsa kodsuz ekle
         await client.query(
           `INSERT INTO brans_kazanimlar (brans_id, kod, aciklama) 
                      VALUES ($1, $2, $3) 

@@ -95,17 +95,10 @@ export default function Branslar() {
   };
 
   const downloadTemplate = () => {
-    // Excel dostu CSV (Semicolon separator + BOM for Turkish characters)
-    const csvContent = "\uFEFF" +
-      "Kod;Kazanım Açıklaması\n" +
-      "F.8.4.1.1.;Asit ve bazların genel özelliklerini ifade eder.\n" +
-      "F.8.4.1.2.;Asit ve bazlara günlük yaşamdan örnekler verir.\n" +
-      "F.8.4.1.3.;Günlük hayatta ulaşılabilecek malzemeleri asit-baz ayracı olarak kullanır.";
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    // Public klasördeki hazır Excel şablonunu indir
     const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "kazanim_sablonu.csv");
+    link.href = "/kazanim_sablon.xlsx";
+    link.download = "kazanim_sablon.xlsx";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -337,10 +330,10 @@ export default function Branslar() {
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Dosya Seçin (.xlsx, .csv)</label>
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Dosya Seçin (.xlsx)</label>
               <input
                 type="file"
-                accept=".xlsx,.xls,.csv"
+                accept=".xlsx,.xls"
                 className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-700 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                 onChange={(e) => setImportFile(e.target.files?.[0] || null)}
               />
