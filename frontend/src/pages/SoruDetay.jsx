@@ -1124,7 +1124,8 @@ export default function SoruDetay() {
         {/* SIDEBAR */}
         <div className="lg:col-span-4 space-y-8">
           {/* REVISION NOTES */}
-          {(!isBranchTeacher || ['revize_istendi', 'revize_gerekli'].includes(soru.durum)) && (
+          {/* REVISION NOTES */}
+          {((!isBranchTeacher && effectiveRole !== 'dizgici') || revizeNotlari.length > 0 || ['revize_istendi', 'revize_gerekli'].includes(soru.durum)) && (
             <div className="bg-white rounded-[3rem] p-8 shadow-xl shadow-gray-200/50 border border-gray-50 space-y-6">
               <div className="flex items-center justify-between">
                 <h4 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2 uppercase"><FlagIcon className="w-6 h-6 text-rose-500" /> Revize İmleri</h4>
