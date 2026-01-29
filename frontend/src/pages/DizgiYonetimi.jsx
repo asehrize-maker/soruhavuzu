@@ -146,48 +146,40 @@ export default function DizgiYonetimi() {
     }
   };
 
-  const QuestionCard = ({ soru }) => (
-    <div
-      onClick={() => setSelectedSoru(soru)}
-      className={`p-5 rounded-3xl border transition-all cursor-pointer group flex flex-col gap-3 relative overflow-hidden ${selectedSoru?.id === soru.id
-        ? 'bg-blue-600 border-blue-600 shadow-xl shadow-blue-200 ring-4 ring-blue-500/10'
-        : 'bg-white border-gray-100 hover:border-blue-200 hover:shadow-lg shadow-sm hover:shadow-gray-200/50'
-        }`}
-    >
-      <div className="flex justify-between items-start relative z-10">
-        <div className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest ${selectedSoru?.id === soru.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'
-          }`}>
-          SORU
-        </div>
-        <div className={`text-[10px] font-black uppercase tracking-tighter ${selectedSoru?.id === soru.id ? 'text-blue-100' : 'text-blue-600'
-          }`}>
-          {soru.brans_adi}
-        </div>
-      </div>
+  const QuestionCard = ({ soru }) => {
+    // HTML etiketlerini temizle
+    const plainText = soru.soru_metni ? soru.soru_metni.replace(/<[^>]+>/g, '') : '';
+    const hasImage = soru.soru_metni?.includes('<img') || soru.fotograf_url;
 
+    return (
       <div
-        className={`text-sm font-bold line-clamp-2 leading-relaxed h-[2.5rem] ${selectedSoru?.id === soru.id ? 'text-white' : 'text-gray-700'
+        onClick={() => setSelectedSoru(soru)}
+        className={`p-4 rounded-2xl border transition-all cursor-pointer group flex flex-col gap-2 relative overflow-hidden ${selectedSoru?.id === soru.id
+          ? 'bg-blue-600 border-blue-600 shadow-xl shadow-blue-200 ring-2 ring-blue-500/20'
+          : 'bg-white border-gray-100 hover:border-blue-400 hover:shadow-md'
           }`}
-        dangerouslySetInnerHTML={{ __html: soru.soru_metni }}
-      />
-
-      <div className="flex items-center justify-between mt-2 pt-3 border-t border-dashed border-gray-100/20">
-        <div className="flex -space-x-2">
-          <div className={`w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[8px] font-bold ${selectedSoru?.id === soru.id ? 'bg-blue-400 text-white' : 'bg-gray-200 text-gray-500'
+      >
+        <div className="flex justify-between items-center z-10 relative">
+          <div className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${selectedSoru?.id === soru.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'
             }`}>
+            #{soru.id}
+          </div>
+          {hasImage && <PhotoIcon className={`w-4 h-4 ${selectedSoru?.id === soru.id ? 'text-blue-200' : 'text-gray-400'}`} />}
+        </div>
+
+        <div className={`text-xs font-bold line-clamp-2 min-h-[1.5em] ${selectedSoru?.id === soru.id ? 'text-white' : 'text-gray-700'}`}>
+          {plainText.trim().length > 0 ? plainText : (hasImage ? 'Görsel içerikli soru...' : 'İçerik önizlemesi yok')}
+        </div>
+
+        <div className={`text-[10px] font-bold uppercase tracking-wide flex items-center gap-1 ${selectedSoru?.id === soru.id ? 'text-blue-200' : 'text-gray-400'}`}>
+          <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] border ${selectedSoru?.id === soru.id ? 'border-white/20 bg-white/10' : 'border-gray-200 bg-gray-50'}`}>
             {soru.olusturan_ad?.charAt(0)}
           </div>
+          {soru.olusturan_ad}
         </div>
-        {soru.fotograf_url && <PhotoIcon className={`w-4 h-4 ${selectedSoru?.id === soru.id ? 'text-blue-200' : 'text-gray-300'}`} />}
       </div>
-
-      {selectedSoru?.id === soru.id && (
-        <div className="absolute -bottom-1 -right-1 p-2 opacity-20">
-          <PaintBrushIcon className="w-12 h-12 text-white" />
-        </div>
-      )}
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-10 animate-fade-in pb-20">
