@@ -541,12 +541,13 @@ export default function SoruDetay() {
   const addSecenekler = (mode = 'list') => {
     const existingSecenekler = components.filter(c => c.subtype === 'secenek');
     const hasE = existingSecenekler.some(c => c.content.includes('E)'));
+    const count = hasE ? 5 : 4;
     const baseId = generateId();
     const opts = hasE ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
 
     let styleProps = { width: 100, float: 'none' };
-    if (mode === 'grid') styleProps = { width: 48, float: 'left' };
-    else if (mode === 'yanyana') styleProps = { width: 23, float: 'left' };
+    if (mode === 'grid') styleProps = { width: count === 5 ? 31 : 48, float: 'left' };
+    else if (mode === 'yanyana') styleProps = { width: count === 5 ? 18 : 23, float: 'left' };
 
     const newComps = opts.map((opt, idx) => ({
       id: baseId + idx, type: 'text', subtype: 'secenek', content: `<b>${opt})</b>`,
@@ -560,10 +561,21 @@ export default function SoruDetay() {
     const hasE = existingSecenekler.some(c => c.content.includes('E)'));
     if (hasE) return;
 
-    let styleProps = { width: 100, float: 'none' };
+    let currentMode = 'list';
     if (existingSecenekler.length > 0) {
-      const first = existingSecenekler[0];
-      styleProps = { width: first.width, float: first.float };
+      const w = existingSecenekler[0].width;
+      if (w < 30) currentMode = 'yanyana';
+      else if (w < 60) currentMode = 'grid';
+    }
+
+    let styleProps = { width: 100, float: 'none' };
+    if (currentMode === 'grid') styleProps = { width: 31, float: 'left' };
+    else if (currentMode === 'yanyana') styleProps = { width: 18, float: 'left' };
+
+    if (currentMode !== 'list') {
+      setComponents(prev => prev.map(c =>
+        c.subtype === 'secenek' ? { ...c, ...styleProps } : c
+      ));
     }
 
     const newComp = {
