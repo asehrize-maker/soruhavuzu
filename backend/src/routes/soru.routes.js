@@ -2050,22 +2050,24 @@ router.get('/stats/inceleme-detayli', authenticate, async (req, res, next) => {
 
     const query = `
     SELECT
-      COALESCE(e.id, ${req.user.ekip_id || 0}) as ekip_id,
+      COALESCE(e.id, 0) as ekip_id,
       COALESCE(e.ekip_adi, 'Genel / Paylaşımlı') as ekip_adi,
       b.id as brans_id,
       b.brans_adi,
-      COUNT(s.id) FILTER(WHERE s.durum IN('inceleme_bekliyor', 'incelemede', 'revize_istendi', 'alan_incelemede') AND s.onay_alanci = false) as alanci_bekleyen,
-      COUNT(s.id) FILTER(WHERE s.durum IN('inceleme_bekliyor', 'incelemede', 'revize_istendi', 'dil_incelemede') AND s.onay_dilci = false) as dilci_bekleyen,
-      COUNT(s.id) as toplam_bekleyen
+      s.kategori,
+      COUNT(s.id) FILTER(WHERE s.durum IN('inceleme_bekliyor', 'incelemede', 'revize_istendi', 'alan_incelemede', 'dil_incelemede') AND s.onay_alanci = false) as alanci_bekleyen,
+      COUNT(s.id) FILTER(WHERE s.onay_alanci = true) as alanci_tamamlanan,
+      COUNT(s.id) FILTER(WHERE s.durum IN('inceleme_bekliyor', 'incelemede', 'revize_istendi', 'alan_incelemede', 'dil_incelemede') AND s.onay_dilci = false) as dilci_bekleyen,
+      COUNT(s.id) FILTER(WHERE s.onay_dilci = true) as dilci_tamamlanan,
+      COUNT(s.id) as kategori_toplam
     FROM sorular s
     JOIN branslar b ON s.brans_id = b.id
     LEFT JOIN ekipler e ON b.ekip_id = e.id
     LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
-    WHERE 
-      s.durum IN('inceleme_bekliyor', 'incelemede', 'revize_istendi', 'alan_incelemede', 'dil_incelemede')
+    WHERE 1=1
       ${req.user.rol !== 'admin' ? `AND (b.ekip_id = ${req.user.ekip_id || -1} OR k.ekip_id = ${req.user.ekip_id || -1})` : ''}
-    GROUP BY e.id, e.ekip_adi, b.id, b.brans_adi
-    ORDER BY b.brans_adi
+    GROUP BY e.id, e.ekip_adi, b.id, b.brans_adi, s.kategori
+    ORDER BY b.brans_adi, s.kategori
     `;
 
     const result = await pool.query(query);
