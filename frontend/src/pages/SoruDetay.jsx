@@ -43,8 +43,21 @@ import {
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 
-const parseHtmlToComponents = (html) => {
-  if (!html) return [];
+const parseHtmlToComponents = (html, soru = null) => {
+  if (!html) {
+    // Eğer HTML boşsa ama soru nesnesi/fotoğrafı varsa, fotoğrafı tek bileşen olarak döndür
+    if (soru?.fotograf_url) {
+      return [{
+        id: generateId(),
+        type: 'image',
+        content: soru.fotograf_url,
+        width: 100,
+        height: 'auto',
+        align: 'center'
+      }];
+    }
+    return [];
+  }
   const div = document.createElement('div');
   div.innerHTML = html;
 
@@ -55,7 +68,7 @@ const parseHtmlToComponents = (html) => {
 
   const nodes = Array.from(div.children);
 
-  return nodes.map((node, idx) => {
+  const result = nodes.map((node, idx) => {
     // RESİM KONTROLÜ: q-img class'lı, doğrudan img etiketi veya içinde sadece img olan div/p
     const isImageNode = node.classList.contains('q-img') || node.tagName === 'IMG' || (node.querySelector('img') && node.innerText.trim() === '');
 
@@ -112,6 +125,30 @@ const parseHtmlToComponents = (html) => {
       };
     }
   }).filter(Boolean);
+
+  // Eğer HTML işlendi ama hiç resim bulunamadıysa ve sorunun ana fotoğrafı varsa
+  // (Özellikle sadece metin içeren veya boş HTML'li PNG soruları için)
+  if (result.length === 0 && soru?.fotograf_url) {
+    result.push({
+      id: generateId(),
+      type: 'image',
+      content: soru.fotograf_url,
+      width: 100,
+      height: 'auto',
+      align: 'center'
+    });
+  } else if (result.length > 0 && !result.some(c => c.type === 'image') && soru?.fotograf_url) {
+    result.unshift({
+      id: generateId(),
+      type: 'image',
+      content: soru.fotograf_url,
+      width: 100,
+      height: 'auto',
+      align: 'center'
+    });
+  }
+
+  return result;
 };
 
 export default function SoruDetay() {
@@ -477,7 +514,7 @@ export default function SoruDetay() {
   };
 
   const handleEditStart = () => {
-    setComponents(parseHtmlToComponents(soru.soru_metni));
+    setComponents(parseHtmlToComponents(soru.soru_metni, soru));
     const toScale = (value) => {
       const raw = String(value || '').toLowerCase();
       const num = parseInt(raw, 10);
