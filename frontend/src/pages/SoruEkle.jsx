@@ -246,49 +246,67 @@ export default function SoruEkle() {
         </div>
       </div>
 
-      <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 p-10 pt-16">
-        {/* LEFT TOOLBAR */}
-        <div className="lg:col-span-3 space-y-8">
-          <div className="bg-white p-8 rounded-[3rem] shadow-xl shadow-gray-200/50 border border-gray-50 flex flex-col gap-6">
-            <div className="space-y-1 px-2 mb-4">
-              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none">ARAÇ KUTUSU</h4>
-              <h3 className="text-xl font-black text-gray-900 tracking-tight">İçerik Ekle</h3>
-            </div>
+      <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 pt-10">
+        {/* LEFT TOOLBAR: TOOLS + OPTIONS */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* CONTENT TOOLS */}
+          <div className="bg-white p-5 rounded-3xl shadow-lg border border-gray-100 flex flex-col gap-4">
+            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1">İÇERİK</h4>
 
-            <div className="grid grid-cols-1 gap-3">
-              <label className="group flex flex-col p-5 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-3xl cursor-pointer transition-all hover:shadow-xl hover:shadow-indigo-100 hover:-translate-y-1">
-                <div className="flex items-center gap-3 text-white font-black text-sm uppercase tracking-widest"><DocumentArrowUpIcon className="w-5 h-5" /> Soru PNG'si</div>
-
+            <div className="grid grid-cols-1 gap-2">
+              <label className="group flex flex-col p-4 bg-indigo-50 hover:bg-indigo-600 rounded-2xl cursor-pointer transition-all border border-indigo-100/50 hover:shadow-lg hover:shadow-indigo-200">
+                <div className="flex items-center gap-3 text-indigo-900 group-hover:text-white font-black text-xs uppercase tracking-widest">
+                  <DocumentArrowUpIcon className="w-5 h-5" />
+                  <span>Soru Resmİ</span>
+                </div>
                 <input type="file" className="hidden" accept="image/*" onChange={handleReadyQuestionUpload} />
               </label>
 
-              <div className="grid grid-cols-2 gap-3">
-                <button onClick={addKoku} className="flex flex-col p-5 bg-gray-50 hover:bg-blue-600 group rounded-3xl border border-gray-100 transition-all hover:shadow-lg hover:shadow-blue-100 text-left">
-                  <Bars4Icon className="w-5 h-5 text-gray-400 group-hover:text-white mb-2" />
-                  <span className="text-[10px] font-black text-gray-600 group-hover:text-white uppercase tracking-widest">Soru Kökü</span>
-                </button>
-                <button onClick={addGovde} className="flex flex-col p-5 bg-gray-50 hover:bg-blue-600 group rounded-3xl border border-gray-100 transition-all hover:shadow-lg hover:shadow-blue-100 text-left">
-                  <DocumentTextIcon className="w-5 h-5 text-gray-400 group-hover:text-white mb-2" />
-                  <span className="text-[10px] font-black text-gray-600 group-hover:text-white uppercase tracking-widest">Metin</span>
-                </button>
-              </div>
+              <button onClick={addKoku} className="flex items-center gap-3 p-4 bg-gray-50 hover:bg-gray-800 group rounded-2xl border border-gray-100 transition-all text-left">
+                <Bars4Icon className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                <span className="text-[10px] font-black text-gray-600 group-hover:text-white uppercase tracking-widest">Soru Kökü</span>
+              </button>
 
+              <button onClick={addGovde} className="flex items-center gap-3 p-4 bg-gray-50 hover:bg-gray-800 group rounded-2xl border border-gray-100 transition-all text-left">
+                <DocumentTextIcon className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                <span className="text-[10px] font-black text-gray-600 group-hover:text-white uppercase tracking-widest">Metin</span>
+              </button>
 
-
-              <label className="flex flex-col p-5 bg-orange-50 hover:bg-orange-600 group rounded-3xl border border-orange-100 transition-all text-left cursor-pointer mt-2">
-                <div className="flex items-center gap-3 text-orange-700 group-hover:text-white font-black text-sm uppercase tracking-widest"><PhotoIcon className="w-5 h-5" /> Görsel Ekle</div>
-
+              <label className="flex items-center gap-3 p-4 bg-orange-50 hover:bg-orange-500 group rounded-2xl border border-orange-100 transition-all text-left cursor-pointer">
+                <PhotoIcon className="w-5 h-5 text-orange-400 group-hover:text-white" />
+                <span className="text-[10px] font-black text-orange-700 group-hover:text-white uppercase tracking-widest">Görsel</span>
                 <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
               </label>
             </div>
           </div>
 
-
+          {/* OPTION BUTTONS moved here */}
+          <div className="bg-white p-5 rounded-3xl shadow-lg border border-gray-100 flex flex-col gap-4">
+            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1">ŞIKLAR</h4>
+            <div className="grid grid-cols-1 gap-2">
+              <button onClick={() => addSecenekler('list')} className="w-full py-3 flex items-center justify-start px-4 gap-3 bg-emerald-50 hover:bg-emerald-500 text-emerald-700 hover:text-white rounded-2xl border border-emerald-100 transition-all group">
+                <QueueListIcon className="w-5 h-5" strokeWidth={2} />
+                <span className="text-[10px] font-black uppercase tracking-widest">LİSTE</span>
+              </button>
+              <button onClick={() => addSecenekler('grid')} className="w-full py-3 flex items-center justify-start px-4 gap-3 bg-teal-50 hover:bg-teal-500 text-teal-700 hover:text-white rounded-2xl border border-teal-100 transition-all group">
+                <Squares2X2Icon className="w-5 h-5" strokeWidth={2} />
+                <span className="text-[10px] font-black uppercase tracking-widest">IZGARA</span>
+              </button>
+              <button onClick={() => addSecenekler('yanyana')} className="w-full py-3 flex items-center justify-start px-4 gap-3 bg-cyan-50 hover:bg-cyan-500 text-cyan-700 hover:text-white rounded-2xl border border-cyan-100 transition-all group">
+                <div className="flex gap-0.5">
+                  <div className="w-1.5 h-3 border border-current rounded-[1px]"></div>
+                  <div className="w-1.5 h-3 border border-current rounded-[1px]"></div>
+                  <div className="w-1.5 h-3 border border-current rounded-[1px]"></div>
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest">YAN YANA</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* CENTER EDITOR */}
-        <div className="lg:col-span-7 flex flex-col items-center gap-10">
-          <div className="bg-gray-800 p-2 rounded-3xl shadow-2xl flex items-center gap-1 border border-white/5 mx-auto">
+        <div className="lg:col-span-7 flex flex-col items-center gap-6">
+          <div className="bg-gray-800 p-2 rounded-2xl shadow-xl flex items-center gap-1 border border-white/5 mx-auto sticky top-24 z-40">
             <RibbonButton cmd="bold" label="B" />
             <RibbonButton cmd="italic" label="I" />
             <RibbonButton cmd="underline" label="U" />
@@ -299,7 +317,7 @@ export default function SoruEkle() {
             <button onMouseDown={(e) => { e.preventDefault(); execCmd('insertUnorderedList'); }} className="p-2 hover:bg-white/10 rounded-xl transition"><QueueListIcon className="w-5 h-5 text-gray-400" /></button>
           </div>
 
-          <div className="relative group/canvas perspective-1000">
+          <div className="relative group/canvas perspective-1000 w-full flex justify-center">
             <div
               className="bg-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-700 relative flex flex-col group min-h-[140mm] border border-gray-100"
               style={{
@@ -343,61 +361,31 @@ export default function SoruEkle() {
                     {comp.float === 'none' && <div style={{ clear: 'both' }}></div>}
                   </div>
                 ))}
-
-
                 <div style={{ clear: 'both' }}></div>
-              </div>
-            </div>
-          </div>
-
-          {/* METADATA FORM AREA */}
-          <div className="w-full xl:w-[169.6mm] animate-fade-in-up">
-            <div className="bg-white rounded-[3.5rem] shadow-xl shadow-gray-200/50 border border-gray-50 overflow-hidden">
-              <div className="p-8 border-b border-gray-50 flex items-center justify-between">
-                <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                  <SparklesIcon className="w-6 h-6 text-amber-500" /> Soru Künyesi ve Ayarlar
-                </h3>
-
-              </div>
-              <div className="p-4">
-                <MetadataForm
-                  values={metadata}
-                  onChange={setMetadata}
-                  branslar={branslar}
-                  kazanims={kazanims}
-                  kazanimLoading={kazanimLoading}
-                  allowManualKazanim={true}
-                  className="border-0 shadow-none bg-transparent"
-                />
               </div>
             </div>
           </div>
         </div>
 
-        {/* RIGHT TOOLBAR */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="sticky top-32">
-            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 text-center">ŞIK EKLE</h4>
-            <div className="flex flex-col gap-3">
-              <button onClick={() => addSecenekler('list')} className="w-full py-4 flex flex-col items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-3xl shadow-lg shadow-emerald-200 transition-all hover:scale-[1.02] active:scale-95 group">
-                <QueueListIcon className="w-6 h-6" strokeWidth={2} />
-                <span className="text-[10px] font-black uppercase tracking-widest">LİSTE</span>
-              </button>
-              <button onClick={() => addSecenekler('grid')} className="w-full py-4 flex flex-col items-center justify-center gap-2 bg-teal-600 hover:bg-teal-500 text-white rounded-3xl shadow-lg shadow-teal-200 transition-all hover:scale-[1.02] active:scale-95 group">
-                <Squares2X2Icon className="w-6 h-6" strokeWidth={2} />
-                <span className="text-[10px] font-black uppercase tracking-widest">IZGARA</span>
-              </button>
-              <button onClick={() => addSecenekler('yanyana')} className="w-full py-4 flex flex-col items-center justify-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-3xl shadow-lg shadow-cyan-200 transition-all hover:scale-[1.02] active:scale-95 group">
-                <div className="flex gap-0.5">
-                  <div className="w-2 h-4 border border-white/50 rounded-sm"></div>
-                  <div className="w-2 h-4 border border-white/50 rounded-sm"></div>
-                  <div className="w-2 h-4 border border-white/50 rounded-sm"></div>
-                  <div className="w-2 h-4 border border-white/50 rounded-sm"></div>
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-widest">YAN YANA</span>
-              </button>
+        {/* RIGHT METADATA PANEL - Moved here */}
+        <div className="lg:col-span-3">
+          <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-50 overflow-hidden sticky top-32">
+            <div className="p-5 border-b border-gray-50 bg-gray-50/50">
+              <h3 className="text-sm font-black text-gray-900 tracking-tight flex items-center gap-2">
+                <SparklesIcon className="w-5 h-5 text-amber-500" /> KÜNYE
+              </h3>
             </div>
-
+            <div className="p-5">
+              <MetadataForm
+                values={metadata}
+                onChange={setMetadata}
+                branslar={branslar}
+                kazanims={kazanims}
+                kazanimLoading={kazanimLoading}
+                allowManualKazanim={true}
+                className="grid-cols-1 md:grid-cols-1 bg-transparent !p-0 !shadow-none gap-5"
+              />
+            </div>
           </div>
         </div>
       </div>
