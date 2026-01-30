@@ -281,7 +281,7 @@ export default function SoruEkle() {
 
       <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 pt-10">
         {/* LEFT TOOLBAR: TOOLS + OPTIONS */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-3 space-y-6">
           {/* CONTENT TOOLS */}
           <div className="bg-white p-5 rounded-3xl shadow-lg border border-gray-100 flex flex-col gap-4">
             <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1">İÇERİK</h4>
@@ -404,8 +404,8 @@ export default function SoruEkle() {
           </div>
         </div>
 
-        {/* RIGHT METADATA PANEL - Moved here */}
-        <div className="lg:col-span-4">
+        {/* RIGHT METADATA PANEL */}
+        <div className="lg:col-span-3">
           <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-50 overflow-hidden sticky top-32">
             <div className="p-5 border-b border-gray-50 bg-gray-50/50">
               <h3 className="text-sm font-black text-gray-900 tracking-tight flex items-center gap-2">
