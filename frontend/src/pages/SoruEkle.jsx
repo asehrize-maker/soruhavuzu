@@ -246,7 +246,7 @@ export default function SoruEkle() {
   };
 
   const RibbonButton = ({ cmd, label, icon }) => (
-    <button onMouseDown={(e) => { e.preventDefault(); execCmd(cmd); }} className="w-9 h-9 flex items-center justify-center hover:bg-white hover:text-blue-600 rounded-xl transition-all shadow-sm active:scale-95">{icon || label}</button>
+    <button onMouseDown={(e) => { e.preventDefault(); execCmd(cmd); }} className="w-9 h-9 flex items-center justify-center text-white font-bold hover:bg-white hover:text-blue-600 rounded-xl transition-all shadow-sm active:scale-95">{icon || label}</button>
   );
 
   return (
@@ -351,7 +351,7 @@ export default function SoruEkle() {
             <RibbonButton cmd="superscript" label="x²" />
             <RibbonButton cmd="subscript" label="x₂" />
             <div className="w-px h-6 bg-white/10 mx-2"></div>
-            <button onMouseDown={(e) => { e.preventDefault(); execCmd('insertUnorderedList'); }} className="p-2 hover:bg-white/10 rounded-xl transition"><QueueListIcon className="w-5 h-5 text-gray-400" /></button>
+            <button onMouseDown={(e) => { e.preventDefault(); execCmd('insertUnorderedList'); }} className="p-2 hover:bg-white/10 rounded-xl transition"><QueueListIcon className="w-5 h-5 text-white/90" /></button>
           </div>
 
           <div className="relative group/canvas perspective-1000 w-full flex justify-center">
