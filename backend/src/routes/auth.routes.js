@@ -193,7 +193,7 @@ router.get('/me', authenticate, async (req, res, next) => {
 
     const user = result.rows[0];
 
-    // Otomatik giriş logu (6 saatte bir en fazla 1 kayıt)
+    // Otomatik giriş logu (1 saatte bir en fazla 1 kayıt)
     // Şifre girmeden (token ile) girenleri de loglarda görmek için
     try {
       const lastLog = await pool.query(
@@ -202,9 +202,9 @@ router.get('/me', authenticate, async (req, res, next) => {
       );
 
       const now = new Date();
-      const sixHoursInMs = 6 * 60 * 60 * 1000;
+      const oneHourInMs = 1 * 60 * 60 * 1000;
       const needsNewLog = lastLog.rows.length === 0 ||
-        (now - new Date(lastLog.rows[0].tarih)) > sixHoursInMs;
+        (now - new Date(lastLog.rows[0].tarih)) > oneHourInMs;
 
       if (needsNewLog) {
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
