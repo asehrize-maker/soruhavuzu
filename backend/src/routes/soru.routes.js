@@ -2192,4 +2192,67 @@ router.delete('/:id/revize-not/:notId', authenticate, async (req, res, next) => 
   } catch (err) { next(err); }
 });
 
+
+// Toplu kullanım güncelleme
+router.post('/bulk-usage', authenticate, async (req, res, next) => {
+  try {
+    const { ids, kullanildi, kullanim_alani } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      throw new AppError('Geçerli soru ID listesi gerekli', 400);
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      for (const id of ids) {
+        // Yetki kontrolü (Admin, Koordinatör veya branş yetkisi)
+        const checkResult = await client.query('SELECT brans_id FROM sorular WHERE id = $1', [id]);
+        if (checkResult.rows.length > 0) {
+          const brans_id = checkResult.rows[0].brans_id;
+
+          let hasPermission = req.user.rol === 'admin';
+          if (!hasPermission && req.user.rol === 'koordinator') {
+            const ekipResult = await client.query('SELECT ekip_id FROM branslar WHERE id = $1', [brans_id]);
+            if (ekipResult.rows[0]?.ekip_id === req.user.ekip_id) hasPermission = true;
+          }
+          if (!hasPermission) {
+            const authBrans = await client.query(`
+              SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1 AND brans_id = $2
+              UNION
+              SELECT 1 FROM kullanicilar WHERE id = $1 AND brans_id = $2
+            `, [req.user.id, brans_id]);
+            if (authBrans.rows.length > 0) hasPermission = true;
+          }
+
+          if (hasPermission) {
+            await client.query(
+              `UPDATE sorular SET 
+               kullanildi = $1, 
+               kullanim_alani = $2,
+               guncellenme_tarihi = CURRENT_TIMESTAMP 
+               WHERE id = $3`,
+              [kullanildi === true || kullanildi === 'true', kullanim_alani || null, id]
+            );
+
+            await logActivity(client, req.user.id, 'toplu_kullanim_guncelleme',
+              `Soru kullanım durumunu güncelledi: ${kullanildi ? 'Kullanıldı' : 'Kullanılmadı'} - ${kullanim_alani || ''}`, id);
+          }
+        }
+      }
+
+      await client.query('COMMIT');
+      res.json({ success: true, message: `${ids.length} soru başarıyla güncellendi.` });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

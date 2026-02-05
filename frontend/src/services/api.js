@@ -121,6 +121,7 @@ export const soruAPI = {
   uploadFinal: (id, formData) => api.put(`/sorular/${id}/final-upload`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  updateBulkUsage: (data) => api.post('/sorular/bulk-usage', data),
   adminCleanup: (data) => api.post('/sorular/admin-cleanup', data),
 };
 

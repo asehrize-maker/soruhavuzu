@@ -42,6 +42,9 @@ export default function Sorular({ scope }) {
 
   const [sorular, setSorular] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showUsageModal, setShowUsageModal] = useState(false);
+  const [usageLocation, setUsageLocation] = useState('');
+  const [bulkUpdating, setBulkUpdating] = useState(false);
   const [branslar, setBranslar] = useState([]);
   const [filters, setFilters] = useState({
     durum: urlDurum || ((user?.rol === 'admin' && !isTakipModu) ? '' : (isTakipModu ? '' : (scope === 'brans' ? '' : 'tamamlandi'))),
@@ -244,6 +247,26 @@ export default function Sorular({ scope }) {
       alert('İşlem sırasında beklenmeyen bir hata oluştu.');
     } finally {
       setLoading(false);
+    }
+  };
+  const handleBulkMarkUsed = async () => {
+    if (selectedQuestions.length === 0 || !usageLocation) return;
+
+    try {
+      setBulkUpdating(true);
+      await soruAPI.updateBulkUsage({
+        ids: selectedQuestions,
+        kullanildi: true,
+        kullanim_alani: usageLocation
+      });
+      setShowUsageModal(false);
+      setUsageLocation('');
+      setSelectedQuestions([]);
+      loadSorular();
+    } catch (error) {
+      alert('Güncelleme sırasında bir hata oluştu: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setBulkUpdating(false);
     }
   };
 
@@ -459,9 +482,14 @@ export default function Sorular({ scope }) {
               </>
             )}
             {scope !== 'brans' && (
-              <button onClick={handleTestBuilder} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-100 transition-all flex items-center gap-2 active:scale-95">
-                <SparklesIcon className="w-4 h-4" strokeWidth={2.5} /> SAYFA TASARLA
-              </button>
+              <>
+                <button onClick={handleTestBuilder} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-100 transition-all flex items-center gap-2 active:scale-95">
+                  <SparklesIcon className="w-4 h-4" strokeWidth={2.5} /> SAYFA TASARLA
+                </button>
+                <button onClick={() => setShowUsageModal(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-100 transition-all flex items-center gap-2 active:scale-95">
+                  <CheckCircleIcon className="w-4 h-4" strokeWidth={2.5} /> KULLANILDI İŞARETLE
+                </button>
+              </>
             )}
             <button onClick={handleExport} className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-100 px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-sm transition-all flex items-center gap-2 active:scale-95">
               <PrinterIcon className="w-4 h-4" strokeWidth={2.5} /> YAZDIR / WORD
@@ -652,6 +680,62 @@ export default function Sorular({ scope }) {
           </div>
         )
       }
+
+      {/* USAGE MODAL */}
+      {showUsageModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden">
+            <div className="p-6 bg-emerald-600 text-white flex justify-between items-center px-8">
+              <h5 className="font-black text-xs uppercase tracking-[0.2em] flex items-center gap-2">
+                <CheckCircleIcon className="w-5 h-5" /> Kullanıldı İşaretle
+              </h5>
+              <button onClick={() => setShowUsageModal(false)} className="hover:bg-white/10 p-2 rounded-xl transition-all">
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-8 space-y-6">
+              <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1 text-center">
+                  SEÇİLEN SORU SAYISI
+                </p>
+                <p className="text-2xl font-black text-emerald-900 text-center">{selectedQuestions.length}</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">KULLANIM YERİ / ETKİNLİK ADI</label>
+                <input
+                  autoFocus
+                  className="w-full bg-gray-50 border-2 border-gray-100 focus:border-emerald-600 rounded-2xl p-4 text-sm font-bold text-gray-800 outline-none transition-all"
+                  placeholder="Örn: 2024 Mart Denemesi, 5. Fasikül"
+                  value={usageLocation}
+                  onChange={(e) => setUsageLocation(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleBulkMarkUsed(); }}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowUsageModal(false)}
+                  className="flex-1 py-4 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
+                >
+                  İPTAL
+                </button>
+                <button
+                  onClick={handleBulkMarkUsed}
+                  disabled={!usageLocation || bulkUpdating}
+                  className="flex-[2] py-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-emerald-100 transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  {bulkUpdating ? (
+                    <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                  ) : (
+                    'İŞLEEMİ TAMAMLA'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div >
   );
 }
