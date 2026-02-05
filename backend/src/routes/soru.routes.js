@@ -616,7 +616,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
            durum = $1, 
            ${field} = true, 
            guncellenme_tarihi = NOW(),
-           versiyon = COALESCE(versiyon, 1) + 1 
+           versiyon = CASE WHEN $1 = 'dizgi_tamam' THEN COALESCE(versiyon, 1) + 1 ELSE COALESCE(versiyon, 1) END
          WHERE id = $2 RETURNING *`,
         [yeni_durum, id]
       );
@@ -627,7 +627,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
            onay_alanci = false, 
            onay_dilci = false, 
            guncellenme_tarihi = NOW(),
-           versiyon = COALESCE(versiyon, 1) + 1 
+           versiyon = CASE WHEN $1 = 'dizgi_tamam' THEN COALESCE(versiyon, 1) + 1 ELSE COALESCE(versiyon, 1) END
          WHERE id = $2 RETURNING *`,
         [yeni_durum, id]
       );
@@ -636,7 +636,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         `UPDATE sorular SET 
            durum = $1, 
            guncellenme_tarihi = NOW(),
-           versiyon = COALESCE(versiyon, 1) + 1 
+           versiyon = CASE WHEN $1 = 'dizgi_tamam' THEN COALESCE(versiyon, 1) + 1 ELSE COALESCE(versiyon, 1) END
          WHERE id = $2 RETURNING *`,
         [yeni_durum, id]
       );
@@ -843,8 +843,7 @@ router.put('/:id(\\d+)', [
            zorluk_seviyesi = $4, kazanim = $5, durum = $6, 
            secenek_a = $7, secenek_b = $8, secenek_c = $9, secenek_d = $10, secenek_e = $11, 
            dogru_cevap = $12, fotograf_konumu = $13,
-           guncellenme_tarihi = CURRENT_TIMESTAMP,
-           versiyon = COALESCE(versiyon, 1) + 1
+           guncellenme_tarihi = CURRENT_TIMESTAMP
        WHERE id = $14 RETURNING *`,
       [
         soru_metni, fotograf_url, fotograf_public_id, normalizedZorluk, req.body.kazanim || null, yeniDurum,
@@ -1079,8 +1078,7 @@ router.post('/:id(\\d+)/dizgi-al', authenticate, authorize('dizgici', 'admin'), 
 
     const result = await pool.query(
       `UPDATE sorular 
-        SET durum = 'dizgide', dizgici_id = $1, guncellenme_tarihi = CURRENT_TIMESTAMP,
-            versiyon = COALESCE(versiyon, 1) + 1
+        SET durum = 'dizgide', dizgici_id = $1, guncellenme_tarihi = CURRENT_TIMESTAMP
         WHERE id = $2 AND (durum = 'dizgi_bekliyor' OR durum = 'beklemede' OR durum = 'revize_istendi')
         RETURNING * `,
       [req.user.id, id]
