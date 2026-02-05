@@ -545,13 +545,22 @@ export default function Sorular({ scope }) {
                               {soru.zorluk_seviyesi}
                             </span>
                           )}
-                          {soru.kullanildi && (
-                            <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 uppercase tracking-widest flex items-center gap-1.5 shadow-sm">
-                              <CheckCircleIcon className="w-3.5 h-3.5" strokeWidth={3} />
-                              KULLANILDI: {soru.kullanim_alani || 'BELİRTİLMEDİ'}
-                            </span>
-                          )}
                         </div>
+
+                        {soru.kullanildi && (
+                          <div className="bg-emerald-50/80 border border-emerald-200 rounded-3xl p-5 flex items-center justify-between shadow-sm animate-fade-in group-hover:bg-white transition-colors duration-500">
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200">
+                                <CheckCircleIcon className="w-6 h-6 text-white" strokeWidth={3} />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest leading-none mb-1">KULLANIM BİLGİSİ</span>
+                                <span className="text-xs font-black text-emerald-900 line-clamp-1">{soru.kullanim_alani || 'Kullanım yeri belirtilmedi'}</span>
+                              </div>
+                            </div>
+                            <span className="text-[9px] font-black text-emerald-600/40 uppercase tracking-[0.2em] italic mr-2 hidden sm:block">BU SORU SEÇİLEREK KULLANILMIŞTIR</span>
+                          </div>
+                        )}
 
                         <div className="relative group">
                           {['tamamlandi', 'dizgi_tamam'].includes(soru.durum) && soru.final_png_url ? (
