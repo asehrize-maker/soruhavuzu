@@ -1415,23 +1415,7 @@ export default function SoruDetay() {
             </button>
           )}
 
-          {/* KULLANIM BİLGİSİ CARD */}
-          {soru.kullanildi && (
-            <div className="bg-emerald-50 rounded-[3rem] p-8 shadow-xl shadow-emerald-100/50 border border-emerald-100 space-y-4 animate-pulse-subtle">
-              <div className="flex items-center justify-between">
-                <h4 className="text-lg font-black text-emerald-900 tracking-tight flex items-center gap-2 uppercase">
-                  <CheckCircleIcon className="w-6 h-6 text-emerald-600" /> Kullanım Bilgisi
-                </h4>
-              </div>
-              <div className="bg-white/60 backdrop-blur-sm p-5 rounded-[2rem] border border-emerald-200/50">
-                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-2 text-center">NEREDE KULLANILDI?</p>
-                <p className="text-sm font-black text-emerald-900 text-center leading-relaxed">
-                  {soru.kullanim_alani || 'Kullanım yeri henüz belirtilmemiş.'}
-                </p>
-              </div>
-              <p className="text-[9px] font-black text-emerald-500/70 text-center uppercase tracking-widest italic">BU SORU SEÇİLEREK DİZGİYE DAHİL EDİLMİŞTİR.</p>
-            </div>
-          )}
+
         </div>
       </div>
 

@@ -151,34 +151,7 @@ const MetadataForm = ({
                 </select>
             </div>
 
-            <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-gray-400 uppercase mb-1">Kullanıldı mı?</label>
-                <div className="flex items-center gap-2 h-full">
-                    <input
-                        type="checkbox"
-                        id="kullanildi"
-                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition cursor-pointer"
-                        checked={values.kullanildi || false}
-                        onChange={e => handleChange('kullanildi', e.target.checked)}
-                        disabled={disabled}
-                    />
-                    <label htmlFor="kullanildi" className="text-xs text-gray-600 cursor-pointer select-none font-medium">
-                        Evet, kullanıldı
-                    </label>
-                </div>
-            </div>
 
-            <div className="flex flex-col md:col-span-2 lg:col-span-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase mb-1">Nerede Kullanıldı?</label>
-                <input
-                    type="text"
-                    className="w-full border p-2 rounded text-xs bg-gray-50 focus:bg-white transition"
-                    placeholder="Örn: 2024 Deneme-1, 5. Fasikül..."
-                    value={values.kullanim_alani || ''}
-                    onChange={e => handleChange('kullanim_alani', e.target.value)}
-                    disabled={disabled || !values.kullanildi}
-                />
-            </div>
         </div>
     );
 };

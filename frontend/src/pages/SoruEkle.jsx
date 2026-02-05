@@ -36,9 +36,7 @@ export default function SoruEkle() {
     kazanim: '',
     zorluk: '3',
     kazanim_is_custom: false,
-    kategori: 'deneme',
-    kullanildi: false,
-    kullanim_alani: ''
+    kategori: 'deneme'
   });
   const [components, setComponents] = useState([]);
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
@@ -219,8 +217,6 @@ export default function SoruEkle() {
       formData.append('kazanim', metadata.kazanim || 'Genel');
       formData.append('zorluk_seviyesi', normalizeZorluk(metadata.zorluk));
       formData.append('kategori', metadata.kategori || 'deneme');
-      formData.append('kullanildi', metadata.kullanildi ? 'true' : 'false');
-      formData.append('kullanim_alani', metadata.kullanim_alani || '');
       formData.append('durum', 'beklemede');
 
       let htmlContent = components.map(c => {
