@@ -947,8 +947,8 @@ export default function SoruDetay() {
                 <div className="flex gap-2">
                   <input type="file" ref={finalFileInputRef} className="hidden" accept="image/*" onChange={handleFinalUpload} />
                   <button onClick={() => finalFileInputRef.current.click()} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2"><PhotoIcon className="w-5 h-5" /> PNG YÜKLE</button>
-                  <button onClick={() => handleUpdateStatus('alan_incelemede', 'Dizgiyi sonlandırıp soruyu branşa göndermek istediğinize emin misiniz?')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-emerald-100 flex items-center gap-2">
-                    <CheckCircleIcon className="w-5 h-5" /> SONLANDIR VE BRANŞA GÖNDER
+                  <button onClick={() => handleUpdateStatus('dizgi_tamam', 'Dizgiyi tamamlayıp soru yazarının onayına sunmak istediğinize emin misiniz?')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-emerald-100 flex items-center gap-2">
+                    <CheckCircleIcon className="w-5 h-5" /> DİZGİYİ TAMAMLA VE GÖNDER
                   </button>
                 </div>
               )}

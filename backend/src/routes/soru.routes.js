@@ -574,8 +574,8 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
           break;
         case 'alan_incelemede':
         case 'dil_incelemede':
-          // Dizgici veya Branş öğretmeni incelemeye gönderebilir
-          if (isCreatorOrBranch || isDizgici) hasPermission = true;
+          // Dizgici DEĞİL, sadece Branş öğretmeni incelemeye gönderebilir
+          if (isCreatorOrBranch) hasPermission = true;
           break;
         case 'tamamlandi':
           // Tamamlamayı sadece sorunun sahibi/branş yetkilisi yapabilir (Dizgici yapamaz)
