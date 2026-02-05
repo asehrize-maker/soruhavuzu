@@ -309,15 +309,15 @@ export default function Sorular({ scope }) {
       </div>
 
       {/* FILTER & TOOLS */}
-      <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex flex-col md:flex-row items-center gap-6 w-full md:w-auto">
+      <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 flex flex-col lg:flex-row items-center justify-between gap-6">
+        <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
           {(scope === 'brans' || isTakipModu) && (
-            <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
+            <div className="flex items-center gap-3 min-w-[160px] flex-1 md:flex-none">
               <FunnelIcon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
               <select
                 value={filters.durum}
                 onChange={(e) => setFilters({ ...filters, durum: e.target.value })}
-                className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
+                className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer"
               >
                 <option value="">TÜM DURUMLAR</option>
                 <option value="beklemede">BEKLEMEDE</option>
@@ -331,12 +331,12 @@ export default function Sorular({ scope }) {
           )}
 
           {effectiveRole !== 'soru_yazici' && (
-            <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
+            <div className="flex items-center gap-3 min-w-[160px] flex-1 md:flex-none">
               <Squares2X2Icon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
               <select
                 value={filters.brans_id}
                 onChange={(e) => setFilters({ ...filters, brans_id: e.target.value })}
-                className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
+                className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer"
               >
                 <option value="">TÜM BRANŞLAR</option>
                 {branslar.map((brans) => (
@@ -346,7 +346,7 @@ export default function Sorular({ scope }) {
             </div>
           )}
 
-          <div className="flex items-center gap-4 min-w-[240px] w-full md:w-auto relative">
+          <div className="flex items-center gap-3 min-w-[200px] flex-1 md:flex-none relative">
             <SparklesIcon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
             <div className="relative w-full">
               <input
@@ -358,8 +358,8 @@ export default function Sorular({ scope }) {
                   setKazanimSearch(e.target.value);
                   setIsKazanimOpen(true);
                 }}
-                placeholder="KAZANIM SEÇ VEYA YAZ..."
-                className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner"
+                placeholder="KAZANIM SEÇ..."
+                className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner"
               />
 
               {isKazanimOpen && (
@@ -424,12 +424,12 @@ export default function Sorular({ scope }) {
             )}
           </div>
 
-          <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
+          <div className="flex items-center gap-3 min-w-[160px] flex-1 md:flex-none">
             <SparklesIcon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
             <select
               value={filters.zorluk_seviyesi}
               onChange={(e) => setFilters({ ...filters, zorluk_seviyesi: e.target.value })}
-              className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
+              className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer"
             >
               <option value="">TÜM ZORLUKLAR</option>
               <option value="1">⭐ ÇOK KOLAY (1)</option>
@@ -440,12 +440,12 @@ export default function Sorular({ scope }) {
             </select>
           </div>
 
-          <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
+          <div className="flex items-center gap-3 min-w-[160px] flex-1 md:flex-none">
             <ArchiveBoxArrowDownIcon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
             <select
               value={filters.kategori}
               onChange={(e) => setFilters({ ...filters, kategori: e.target.value })}
-              className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
+              className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer"
             >
               <option value="">TÜM KATEGORİLER</option>
               <option value="deneme">DENEME</option>
@@ -454,12 +454,12 @@ export default function Sorular({ scope }) {
             </select>
           </div>
 
-          <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
+          <div className="flex items-center gap-3 min-w-[160px] flex-1 md:flex-none">
             <CheckCircleIcon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
             <select
               value={filters.kullanildi}
               onChange={(e) => setFilters({ ...filters, kullanildi: e.target.value })}
-              className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
+              className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer"
             >
               <option value="">TÜM KULLANIMLAR</option>
               <option value="true">KULLANILANLAR</option>
