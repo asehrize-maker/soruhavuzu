@@ -59,6 +59,8 @@ export default function Sorular({ scope }) {
   const [kazanimlar, setKazanimlar] = useState([]);
   const [kazanimSearch, setKazanimSearch] = useState('');
   const [isKazanimOpen, setIsKazanimOpen] = useState(false);
+  const [allQuestionsForTracking, setAllQuestionsForTracking] = useState([]);
+  const [statsForTracking, setStatsForTracking] = useState({});
 
   useEffect(() => {
     if (filters.brans_id) {
@@ -97,6 +99,24 @@ export default function Sorular({ scope }) {
     if (!user) return;
     setLoading(true);
     try {
+      // Bekleyen iş takibi modunda tüm bekleyenleri istatistik için çek
+      if (isTakipModu) {
+        const trackingResponse = await soruAPI.getAll({ scope: undefined });
+        const allPending = trackingResponse.data.data.filter(s => s.durum !== 'tamamlandi' && s.durum !== 'arsiv');
+        setAllQuestionsForTracking(allPending);
+
+        const stats = {
+          dizgi_bekliyor: allPending.filter(s => s.durum === 'dizgi_bekliyor').length,
+          dizgide: allPending.filter(s => s.durum === 'dizgide' || s.durum === 'revize_istendi').length,
+          inceleme_bekliyor: allPending.filter(s => s.durum === 'inceleme_bekliyor' || s.durum === 'incelemede').length,
+          incelemede: allPending.filter(s => s.durum === 'alan_incelemede' || s.durum === 'dil_incelemede').length,
+          onay_bekleyen: allPending.filter(s => ['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam'].includes(s.durum)).length,
+          revize_yazarda: allPending.filter(s => s.durum === 'revize_gerekli').length,
+          taslak: allPending.filter(s => s.durum === 'beklemede').length
+        };
+        setStatsForTracking(stats);
+      }
+
       const params = {
         durum: ['incelemede_grubu', 'taslak_grubu', 'dizgi_grubu', 'dizgi_sonrasi'].includes(filters.durum) ? undefined : (filters.durum || undefined),
         brans_id: filters.brans_id || undefined,
@@ -307,6 +327,41 @@ export default function Sorular({ scope }) {
     exportWindow.document.close();
   };
 
+  const renderTrackerGrid = () => {
+    if (!isTakipModu) return null;
+
+    const cards = [
+      { id: 'taslak', label: 'TASLAK HAVUZU', count: statsForTracking.taslak, icon: '✍️', color: 'bg-gray-50 text-gray-400 border-gray-100', filter: 'taslak_grubu' },
+      { id: 'revize', label: 'YAZAR REVİZE', count: statsForTracking.revize_yazarda, icon: '⚠️', color: 'bg-red-50 text-red-600 border-red-100', filter: 'revize_gerekli' },
+      { id: 'dizgi_bekliyor', label: 'DİZGİ SIRASI', count: statsForTracking.dizgi_bekliyor, icon: '⚙️', color: 'bg-purple-50 text-purple-600 border-purple-100', filter: 'dizgi_bekliyor' },
+      { id: 'dizgide', label: 'DİZGİDE / REVİZE', count: statsForTracking.dizgide, icon: '🖍️', color: 'bg-orange-50 text-orange-600 border-orange-100', filter: 'dizgi_grubu' },
+      { id: 'inceleme_bekliyor', label: 'İNCELEME SIRASI', count: statsForTracking.inceleme_bekliyor, icon: '⏳', color: 'bg-emerald-50 text-emerald-600 border-emerald-100', filter: 'inceleme_bekliyor' },
+      { id: 'incelemede', label: 'İNCELEMEDE', count: statsForTracking.incelemede, icon: '🔍', color: 'bg-blue-50 text-blue-600 border-blue-100', filter: 'incelemede_grubu' },
+      { id: 'onay_bekleyen', label: 'ONAY BEKLEYEN', count: statsForTracking.onay_bekleyen, icon: '🚀', color: 'bg-indigo-50 text-indigo-600 border-indigo-100', filter: 'dizgi_sonrasi' },
+    ];
+
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-10">
+        {cards.map(card => (
+          <button
+            key={card.id}
+            onClick={() => setFilters({ ...filters, durum: card.filter })}
+            className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col items-center justify-center text-center group relative h-40 ${filters.durum === card.filter ? 'border-blue-600 shadow-xl shadow-blue-50 scale-[1.02]' : `${card.color} hover:scale-[1.05] hover:shadow-lg`}`}
+          >
+            <span className="text-2xl mb-2">{card.icon}</span>
+            <span className="text-[9px] font-black uppercase tracking-widest leading-tight mb-1">{card.label}</span>
+            <span className="text-3xl font-black">{card.count || 0}</span>
+            {filters.durum === card.filter && (
+              <div className="absolute -top-2 -right-2 bg-blue-600 text-white p-1.5 rounded-full shadow-lg">
+                <CheckCircleIcon className="w-4 h-4" strokeWidth={3} />
+              </div>
+            )}
+          </button>
+        ))}
+      </div>
+    );
+  };
+
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-20">
@@ -314,8 +369,8 @@ export default function Sorular({ scope }) {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
         <div>
           <div className="flex items-center gap-4 mb-2">
-            {user?.rol === 'admin' && filters.brans_id && (
-              <button onClick={() => setFilters({ ...filters, brans_id: '' })} className="p-3 bg-white border border-gray-100 rounded-2xl hover:bg-gray-50 text-gray-400 hover:text-gray-900 transition-all shadow-sm">
+            {(user?.rol === 'admin' || isTakipModu) && (filters.brans_id || filters.durum) && (
+              <button onClick={() => setFilters({ ...filters, brans_id: '', durum: isTakipModu ? '' : filters.durum })} className="p-3 bg-white border border-gray-100 rounded-2xl hover:bg-gray-50 text-gray-400 hover:text-gray-900 transition-all shadow-sm">
                 <ChevronRightIcon className="w-6 h-6 rotate-180" strokeWidth={3} />
               </button>
             )}
@@ -324,16 +379,19 @@ export default function Sorular({ scope }) {
                 {isTakipModu ? <ArrowPathIcon className="w-10 h-10 text-amber-500" /> : <InboxIcon className="w-10 h-10 text-blue-600" />}
                 {isTakipModu ? 'Bekleyen İş Takibi' : (scope === 'brans' ? 'Tamamlanmayan Sorular' : 'Tamamlanan Sorular')}
               </h1>
-              {user?.rol === 'admin' && filters.brans_id && (
+              {user?.rol === 'admin' && (filters.brans_id || (isTakipModu && filters.durum)) && (
                 <p className="text-indigo-600 font-black text-xs uppercase tracking-[0.2em] mt-1 flex items-center gap-2">
                   <span className="w-2 h-2 bg-indigo-600 rounded-full animate-pulse"></span>
-                  {branslar.find(b => b.id == filters.brans_id)?.brans_adi} BİRİMİ KONTROLÜ
+                  {filters.brans_id ? `${branslar.find(b => b.id == filters.brans_id)?.brans_adi} BİRİMİ` : ''}
+                  {isTakipModu && filters.durum ? `FİLTRE: ${filters.durum === 'taslak_grubu' ? 'TASLAKLAR' : filters.durum.toUpperCase()}` : 'GENEL TAKİP'}
                 </p>
               )}
             </div>
           </div>
         </div>
       </div>
+
+      {renderTrackerGrid()}
 
       {/* FILTER & TOOLS */}
       <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 flex flex-col lg:flex-row items-center justify-between gap-6">
