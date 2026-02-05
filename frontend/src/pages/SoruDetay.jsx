@@ -950,6 +950,11 @@ export default function SoruDetay() {
                   <button onClick={() => handleUpdateStatus('dizgi_tamam')} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">SONLANDIR</button>
                 </div>
               )}
+              {effectiveRole === 'dizgici' && soru.durum === 'dizgi_tamam' && (
+                <button onClick={() => handleUpdateStatus('alan_incelemede', 'Soru branş incelemesine gönderilsin mi?')} className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-orange-100 flex items-center gap-2">
+                  🚀 BRANŞA GÖNDER
+                </button>
+              )}
             </div>
           )}
         </div>
