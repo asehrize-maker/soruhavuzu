@@ -566,14 +566,7 @@ export default function Sorular({ scope }) {
                           <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic flex items-center gap-1">
                             <SparklesIcon className="w-3 h-3" /> VERSIYON {soru.versiyon || 1}
                           </span>
-                          {soru.zorluk_seviyesi && (
-                            <span className={`text-[10px] font-black px-3 py-1.5 rounded-xl border uppercase tracking-widest ${soru.zorluk_seviyesi === 'Zor' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                              soru.zorluk_seviyesi === 'Orta' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                'bg-emerald-50 text-emerald-600 border-emerald-100'
-                              }`}>
-                              {soru.zorluk_seviyesi}
-                            </span>
-                          )}
+
                         </div>
 
                         {soru.kullanildi && (
