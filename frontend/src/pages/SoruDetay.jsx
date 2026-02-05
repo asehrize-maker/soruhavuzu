@@ -533,7 +533,9 @@ export default function SoruDetay() {
       dogruCevap: soru.dogru_cevap || '',
       brans_id: soru.brans_id || '',
       kazanim: soru.kazanim || '',
-      kategori: soru.kategori || 'deneme'
+      kategori: soru.kategori || 'deneme',
+      kullanildi: soru.kullanildi || false,
+      kullanim_alani: soru.kullanim_alani || ''
     });
     setEditMode(true);
   };
@@ -550,6 +552,8 @@ export default function SoruDetay() {
       formData.append('kazanim', editMetadata.kazanim || 'Genel');
       formData.append('zorluk_seviyesi', editMetadata.zorluk);
       formData.append('kategori', editMetadata.kategori || 'deneme');
+      formData.append('kullanildi', editMetadata.kullanildi ? 'true' : 'false');
+      formData.append('kullanim_alani', editMetadata.kullanim_alani || '');
       if (firstImage) {
         formData.append('fotograf', firstImage.file);
         formData.append('fotograf_konumu', 'ust');

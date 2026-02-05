@@ -50,6 +50,7 @@ export default function Sorular({ scope }) {
     search: '',
     kazanim: '',
     kategori: '',
+    kullanildi: '',
   });
 
   const [kazanimlar, setKazanimlar] = useState([]);
@@ -100,6 +101,7 @@ export default function Sorular({ scope }) {
         search: filters.search || undefined,
         kazanim: filters.kazanim || undefined,
         kategori: filters.kategori || undefined,
+        kullanildi: filters.kullanildi || undefined,
         scope: scope || undefined
       };
       const response = await soruAPI.getAll(params);
@@ -427,6 +429,19 @@ export default function Sorular({ scope }) {
               <option value="yaprak_test">YAPRAK TEST</option>
             </select>
           </div>
+
+          <div className="flex items-center gap-4 min-w-[200px] w-full md:w-auto">
+            <CheckCircleIcon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
+            <select
+              value={filters.kullanildi}
+              onChange={(e) => setFilters({ ...filters, kullanildi: e.target.value })}
+              className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
+            >
+              <option value="">TÜM KULLANIMLAR</option>
+              <option value="true">KULLANILANLAR</option>
+              <option value="false">KULLANILMAYANLAR</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -528,6 +543,12 @@ export default function Sorular({ scope }) {
                                 'bg-emerald-50 text-emerald-600 border-emerald-100'
                               }`}>
                               {soru.zorluk_seviyesi}
+                            </span>
+                          )}
+                          {soru.kullanildi && (
+                            <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 uppercase tracking-widest flex items-center gap-1.5 shadow-sm">
+                              <CheckCircleIcon className="w-3.5 h-3.5" strokeWidth={3} />
+                              KULLANILDI: {soru.kullanim_alani || 'BELİRTİLMEDİ'}
                             </span>
                           )}
                         </div>

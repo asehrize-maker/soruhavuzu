@@ -30,6 +30,7 @@ import { addSystemSettings } from './migrations/030_add_system_settings.js';
 import { addKategoriColumn } from './migrations/031_add_kategori_column.js';
 import createDenemelerTables from './migrations/032_add_denemeler.js';
 import { addGorevTipiToDenemeler } from './migrations/033_add_gorev_tipi.js';
+import { addKullanimAlanlari } from './migrations/034_add_kullanim_alanlari.js';
 
 // En güncel durum listesi (workflow v2 + dizgi tamam)
 const ALLOWED_DURUMLAR = [
@@ -255,6 +256,7 @@ const createTables = async () => {
     await addKategoriColumn();
     await createDenemelerTables(client);
     await addGorevTipiToDenemeler(client);
+    await addKullanimAlanlari();
 
   } catch (error) {
     await client.query('ROLLBACK');
