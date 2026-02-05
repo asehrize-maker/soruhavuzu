@@ -20,6 +20,7 @@ export const addKullanimAlanlari = async (existingClient = null) => {
         console.log('✅ MIGRATION: Kullanım alanları kolonları eklendi.');
     } catch (error) {
         console.error('❌ MIGRATION ERROR (034_add_kullanim_alanlari):', error);
+        throw error;
     } finally {
         if (!existingClient) client.release();
     }

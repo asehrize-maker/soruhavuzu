@@ -19,7 +19,7 @@ export const addKategoriColumn = async () => {
         console.log('✅ MIGRATION: Kategori kolonu eklendi.');
     } catch (error) {
         console.error('❌ MIGRATION ERROR (031_add_kategori_column):', error);
-        // Hata olsa da devam et (tablo zaten varsa vs)
+        throw error;
     } finally {
         client.release();
     }

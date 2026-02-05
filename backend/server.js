@@ -104,6 +104,15 @@ const startServer = async () => {
           await pool.query(`ALTER TABLE sorular DROP CONSTRAINT IF EXISTS "${row.conname}"`);
         }
         await pool.query(`ALTER TABLE sorular ADD CONSTRAINT sorular_durum_check_final CHECK (durum IN (${statusSqlList}))`);
+
+        // --- KULLANIM ALANLARI KONTROLÜ (KRİTİK) ---
+        process.stdout.write('🔄 Kullanım takip kolonları kontrol ediliyor... ');
+        await pool.query(`
+          ALTER TABLE sorular 
+          ADD COLUMN IF NOT EXISTS kullanildi BOOLEAN DEFAULT false,
+          ADD COLUMN IF NOT EXISTS kullanim_alani VARCHAR(255)
+        `);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_sorular_kullanildi ON sorular(kullanildi)`);
         console.log('✅ TAMAMLANDI');
 
         console.log('🌟 TÜM SİSTEMLER ÇALIŞIR DURUMDA');
