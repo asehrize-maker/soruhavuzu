@@ -98,7 +98,7 @@ export default function Sorular({ scope }) {
     setLoading(true);
     try {
       const params = {
-        durum: filters.durum || undefined,
+        durum: ['incelemede_grubu', 'taslak_grubu', 'dizgi_grubu'].includes(filters.durum) ? undefined : (filters.durum || undefined),
         brans_id: filters.brans_id || undefined,
         zorluk_seviyesi: filters.zorluk_seviyesi || undefined,
         search: filters.search || undefined,
@@ -110,19 +110,24 @@ export default function Sorular({ scope }) {
       const response = await soruAPI.getAll(params);
       let data = response.data.data || [];
 
+      // Custom Frontend Filtering for Workflow Groups
+      if (filters.durum === 'incelemede_grubu') {
+        data = data.filter(s => ['inceleme_bekliyor', 'alan_incelemede', 'dil_incelemede', 'alan_onaylandi', 'dil_onaylandi'].includes(s.durum));
+      } else if (filters.durum === 'taslak_grubu') {
+        data = data.filter(s => ['beklemede', 'revize_gerekli'].includes(s.durum));
+      } else if (filters.durum === 'dizgi_grubu') {
+        data = data.filter(s => ['dizgi_bekliyor', 'dizgide', 'revize_istendi'].includes(s.durum));
+      }
+
       if (scope === 'brans') {
-        // Show all incomplete questions for branch scope
-        // If filter is explicitly set to 'tamamlandi', let it show completed ones? 
-        // But usually scope='brans' implies "Incomplete" via Dashboard link.
-        // However, user can select 'TAMAMLANDI' from filter dropdown.
-        // If 'durum' filter is empty, default behavior:
+        // Default behavior: hide completed if no specific durum is requested (and not using a group filter that might include complete-like states)
         if (!filters.durum) {
           data = data.filter(s => s.durum !== 'tamamlandi');
         }
       }
 
       if (effectiveRole === 'dizgici' && authUser?.rol !== 'admin') {
-        data = data.filter(s => ['dizgi_bekliyor', 'dizgide'].includes(s.durum));
+        data = data.filter(s => ['dizgi_bekliyor', 'dizgide', 'revize_istendi', 'dizgi_tamam'].includes(s.durum));
       }
       setSorular(data);
     } catch (error) {
