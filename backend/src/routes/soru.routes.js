@@ -859,22 +859,44 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
       throw new AppError('Bu aşama için yetkili değilsiniz.', 403);
     }
 
-    // VERİTABANI GÜNCELLEME
+    // 1. Mevcut halini versiyon geçmişine kaydet
+    await pool.query(
+      `INSERT INTO soru_versiyonlari (soru_id, versiyon_no, data, degistiren_kullanici_id, degisim_aciklamasi)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [id, soru.versiyon || 1, JSON.stringify(soru), req.user.id, `Durum değişikliği: ${yeni_durum}${aciklama ? ' - ' + aciklama : ''}`]
+    );
+
+    // 2. VERİTABANI GÜNCELLEME
     let result;
     if (yeni_durum === 'alan_onaylandi' || yeni_durum === 'dil_onaylandi') {
       const field = yeni_durum === 'alan_onaylandi' ? 'onay_alanci' : 'onay_dilci';
       result = await pool.query(
-        `UPDATE sorular SET durum = $1, ${field} = true, guncellenme_tarihi = NOW() WHERE id = $2 RETURNING *`,
+        `UPDATE sorular SET 
+           durum = $1, 
+           ${field} = true, 
+           guncellenme_tarihi = NOW(),
+           versiyon = COALESCE(versiyon, 1) + 1 
+         WHERE id = $2 RETURNING *`,
         [yeni_durum, id]
       );
     } else if (yeni_durum === 'revize_istendi' || yeni_durum === 'revize_gerekli') {
       result = await pool.query(
-        `UPDATE sorular SET durum = $1, onay_alanci = false, onay_dilci = false, guncellenme_tarihi = NOW() WHERE id = $2 RETURNING *`,
+        `UPDATE sorular SET 
+           durum = $1, 
+           onay_alanci = false, 
+           onay_dilci = false, 
+           guncellenme_tarihi = NOW(),
+           versiyon = COALESCE(versiyon, 1) + 1 
+         WHERE id = $2 RETURNING *`,
         [yeni_durum, id]
       );
     } else {
       result = await pool.query(
-        `UPDATE sorular SET durum = $1, guncellenme_tarihi = NOW() WHERE id = $2 RETURNING *`,
+        `UPDATE sorular SET 
+           durum = $1, 
+           guncellenme_tarihi = NOW(),
+           versiyon = COALESCE(versiyon, 1) + 1 
+         WHERE id = $2 RETURNING *`,
         [yeni_durum, id]
       );
     }
@@ -1170,7 +1192,14 @@ router.put('/:id/final-upload', [authenticate, upload.single('final_png')], asyn
     const finalUrl = uploadResult.secure_url;
     const finalPublicId = uploadResult.public_id;
 
-    // DB güncelle - Eğer dizgici_id yoksa yükleyen kişiyi ata
+    // 1. Mevcut halini versiyon geçmişine kaydet
+    await pool.query(
+      `INSERT INTO soru_versiyonlari (soru_id, versiyon_no, data, degistiren_kullanici_id, degisim_aciklamasi)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [id, soru.versiyon || 1, JSON.stringify(soru), req.user.id, 'Dizgi dosyası yüklendi']
+    );
+
+    // 2. DB güncelle - Eğer dizgici_id yoksa yükleyen kişiyi ata
     // AYRICA: Durumu 'inceleme_bekliyor' yap (Branşa gönder) ve onayları sıfırla
     const updateQuery = `
       UPDATE sorular 
@@ -1179,7 +1208,8 @@ router.put('/:id/final-upload', [authenticate, upload.single('final_png')], asyn
           durum = 'inceleme_bekliyor',
           onay_alanci = false,
           onay_dilci = false,
-          guncellenme_tarihi = CURRENT_TIMESTAMP
+          guncellenme_tarihi = CURRENT_TIMESTAMP,
+          versiyon = COALESCE(versiyon, 1) + 1
       WHERE id = $4 
       RETURNING *
     `;
@@ -1285,9 +1315,22 @@ router.post('/:id(\\d+)/dizgi-al', authenticate, authorize('dizgici', 'admin'), 
   try {
     const { id } = req.params;
 
+    // 1. Önce versiyon snapshot al
+    const currentSoruRes = await pool.query('SELECT * FROM sorular WHERE id = $1', [id]);
+    const currentSoru = currentSoruRes.rows[0];
+
+    if (currentSoru) {
+      await pool.query(
+        `INSERT INTO soru_versiyonlari (soru_id, versiyon_no, data, degistiren_kullanici_id, degisim_aciklamasi)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [id, currentSoru.versiyon || 1, JSON.stringify(currentSoru), req.user.id, 'Soru dizgiye alındı']
+      );
+    }
+
     const result = await pool.query(
       `UPDATE sorular 
-        SET durum = 'dizgide', dizgici_id = $1, guncellenme_tarihi = CURRENT_TIMESTAMP
+        SET durum = 'dizgide', dizgici_id = $1, guncellenme_tarihi = CURRENT_TIMESTAMP,
+            versiyon = COALESCE(versiyon, 1) + 1
         WHERE id = $2 AND (durum = 'dizgi_bekliyor' OR durum = 'beklemede' OR durum = 'revize_istendi')
         RETURNING * `,
       [req.user.id, id]
@@ -1328,8 +1371,17 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
     try {
       await client.query('BEGIN');
 
-      // Soruyu güncelle -> Dizgiden çıkan soru artık havuza gider
-      // Soruyu güncelle -> Dizgiden çıkan soru artık havuza gider
+      // 1. Önce mevcut hali versiyon geçmişine kaydet (Admin/Dizgici farketmeksizin)
+      const currentSoruRes = await client.query('SELECT * FROM sorular WHERE id = $1', [id]);
+      const currentSoru = currentSoruRes.rows[0];
+
+      await client.query(
+        `INSERT INTO soru_versiyonlari (soru_id, versiyon_no, data, degistiren_kullanici_id, degisim_aciklamasi)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [id, currentSoru.versiyon || 1, JSON.stringify(currentSoru), req.user.id, 'Dizgi tamamlandı']
+      );
+
+      // 2. Soruyu güncelle -> Dizgiden çıkan soru artık havuza gider
       let soruResult;
       try {
         // Admin her soruyu tamamlayabilir, dizgici sadece kendine atanmış olanı
@@ -2227,11 +2279,23 @@ router.post('/bulk-usage', authenticate, async (req, res, next) => {
           }
 
           if (hasPermission) {
+            // 1. Önce snapshot al
+            const soruRes = await client.query('SELECT * FROM sorular WHERE id = $1', [id]);
+            const soru = soruRes.rows[0];
+
+            await client.query(
+              `INSERT INTO soru_versiyonlari (soru_id, versiyon_no, data, degistiren_kullanici_id, degisim_aciklamasi)
+               VALUES ($1, $2, $3, $4, $5)`,
+              [id, soru.versiyon || 1, JSON.stringify(soru), req.user.id, `Toplu kullanım işaretleme: ${kullanim_alani || ''}`]
+            );
+
+            // 2. Güncelle
             await client.query(
               `UPDATE sorular SET 
                kullanildi = $1, 
                kullanim_alani = $2,
-               guncellenme_tarihi = CURRENT_TIMESTAMP 
+               guncellenme_tarihi = CURRENT_TIMESTAMP,
+               versiyon = COALESCE(versiyon, 1) + 1
                WHERE id = $3`,
               [kullanildi === true || kullanildi === 'true', kullanim_alani || null, id]
             );

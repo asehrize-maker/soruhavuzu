@@ -905,7 +905,7 @@ export default function SoruDetay() {
               {getDurumBadge(soru.durum)}
             </div>
             <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px] flex items-center gap-2">
-              <SparklesIcon className="w-4 h-4 text-blue-500" /> {soru.brans_adi} <span className="opacity-20">|</span> {soru.olusturan_ad} tarafından oluşturuldu
+              <SparklesIcon className="w-4 h-4 text-blue-500" /> {soru.brans_adi} <span className="opacity-20">|</span> <span className="text-blue-600 font-black">V{soru.versiyon || 1}</span> <span className="opacity-20">|</span> {soru.olusturan_ad} tarafından oluşturuldu
             </p>
           </div>
         </div>
