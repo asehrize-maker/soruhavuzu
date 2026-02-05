@@ -590,8 +590,15 @@ export default function Sorular({ scope }) {
                               <img src={soru.final_png_url} className="max-h-56 object-contain drop-shadow-2xl rounded-xl group-hover:scale-[1.03] transition-transform duration-500" alt="Final Out" />
                             </div>
                           ) : (
-                            // Liste görünümünde görselleri kısıtla: Max yükseklik 200px, genişlik auto, float yok
-                            <div className="text-gray-800 text-sm font-semibold leading-relaxed tracking-tight group-hover:text-black transition-colors [&_img]:!max-h-[200px] [&_img]:!w-auto [&_img]:!max-w-full [&_img]:!object-contain [&_img]:!float-none [&_img]:!mx-0 [&_img]:!my-2 [&_img]:rounded-lg [&_div]:!float-none [&_div]:!w-auto" dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
+                            // Liste görünümünde görselleri kısıtla
+                            <div className="flex flex-col gap-3">
+                              {soru.fotograf_url && (
+                                <div className="bg-gray-50/50 p-2 rounded-xl border border-gray-100 w-fit">
+                                  <img src={soru.fotograf_url} className="max-h-48 object-contain rounded-lg shadow-sm" alt="Soru Görseli" />
+                                </div>
+                              )}
+                              <div className={`text-gray-800 text-sm font-semibold leading-relaxed tracking-tight group-hover:text-black transition-colors [&_img]:!max-h-[200px] [&_img]:!w-auto [&_img]:!max-w-full [&_img]:!object-contain [&_img]:!float-none [&_img]:!mx-0 [&_img]:!my-2 [&_img]:rounded-lg [&_div]:!float-none [&_div]:!w-auto ${soru.fotograf_url ? '[&_img]:!hidden' : ''}`} dangerouslySetInnerHTML={{ __html: soru.soru_metni }} />
+                            </div>
                           )}
                         </div>
 
