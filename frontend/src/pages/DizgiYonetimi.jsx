@@ -336,12 +336,7 @@ export default function DizgiYonetimi() {
                         </label>
                       </div>
 
-                      {/* BRANCH SEND ACTION */}
-                      {selectedSoru.durum === 'dizgi_tamam' && (
-                        <button onClick={() => handleDurumGuncelle(selectedSoru.id, 'alan_incelemede')} className="w-full bg-orange-600 hover:bg-orange-700 text-white py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.1em] transition-all shadow-xl shadow-orange-100 active:scale-95 flex items-center justify-center gap-3">
-                          🚀 BRANŞA GÖNDER (İNCELEME İÇİN)
-                        </button>
-                      )}
+
                     </div>
                   )}
 
