@@ -122,25 +122,31 @@ export default function Sorular({ scope }) {
       }
 
       if (scope === 'brans') {
-        // Default behavior: hide completed if no specific durum is requested (and not using a group filter that might include complete-like states)
+        // Tamamlanmayan Sorular: 'tamamlandi' hariç her şey
         if (!filters.durum) {
           data = data.filter(s => s.durum !== 'tamamlandi');
         }
       }
 
-      // Bekleyen İş Takibi Modu: Sadece aktif işlem bekleyenleri göster (Eğer spesifik bir durum seçilmemişse)
+      // Bekleyen İş Takibi Modu: Sadece aktif işlem bekleyenleri göster (Taslaklar ve Tamamlananlar hariç)
       if (isTakipModu && !filters.durum) {
         data = data.filter(s => [
           'dizgi_bekliyor',
           'dizgide',
+          'dizgi_tamam',
+          'alan_incelemede',
+          'alan_onaylandi',
+          'dil_incelemede',
+          'dil_onaylandi',
           'inceleme_bekliyor',
           'incelemede',
-          'alan_incelemede',
-          'dil_incelemede',
+          'inceleme_tamam',
           'revize_istendi',
           'revize_gerekli'
         ].includes(s.durum));
       }
+
+      console.log(`Filter Mode: scope=${scope},isTakip=${isTakipModu},durum=${filters.durum},count=${data.length}`);
 
       if (effectiveRole === 'dizgici' && authUser?.rol !== 'admin') {
         data = data.filter(s => ['dizgi_bekliyor', 'dizgide', 'revize_istendi', 'dizgi_tamam'].includes(s.durum));
