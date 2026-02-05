@@ -128,6 +128,20 @@ export default function Sorular({ scope }) {
         }
       }
 
+      // Bekleyen İş Takibi Modu: Sadece aktif işlem bekleyenleri göster (Eğer spesifik bir durum seçilmemişse)
+      if (isTakipModu && !filters.durum) {
+        data = data.filter(s => [
+          'dizgi_bekliyor',
+          'dizgide',
+          'inceleme_bekliyor',
+          'incelemede',
+          'alan_incelemede',
+          'dil_incelemede',
+          'revize_istendi',
+          'revize_gerekli'
+        ].includes(s.durum));
+      }
+
       if (effectiveRole === 'dizgici' && authUser?.rol !== 'admin') {
         data = data.filter(s => ['dizgi_bekliyor', 'dizgide', 'revize_istendi', 'dizgi_tamam'].includes(s.durum));
       }
