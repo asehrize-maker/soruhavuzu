@@ -648,7 +648,7 @@ export default function Dashboard() {
                 <p className="text-[10px] text-orange-500 mt-1">Dizgi Biriminde</p>
               </Link>
 
-              <Link to="/brans-havuzu?durum=dizgi_tamam" className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100 shadow-sm hover:shadow-md transition text-center group">
+              <Link to="/brans-havuzu?durum=dizgi_sonrasi" className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100 shadow-sm hover:shadow-md transition text-center group">
                 <p className="text-emerald-600 text-[10px] font-bold uppercase tracking-widest">DİZGİ SONRASI</p>
                 <h3 className="text-3xl font-black text-emerald-700 mt-1">{stats?.dizgi_tamam || 0}</h3>
                 <p className="text-[10px] text-emerald-500 mt-1 font-bold">Onay Bekleyenler &rarr;</p>

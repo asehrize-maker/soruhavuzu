@@ -98,7 +98,7 @@ export default function Sorular({ scope }) {
     setLoading(true);
     try {
       const params = {
-        durum: ['incelemede_grubu', 'taslak_grubu', 'dizgi_grubu'].includes(filters.durum) ? undefined : (filters.durum || undefined),
+        durum: ['incelemede_grubu', 'taslak_grubu', 'dizgi_grubu', 'dizgi_sonrasi'].includes(filters.durum) ? undefined : (filters.durum || undefined),
         brans_id: filters.brans_id || undefined,
         zorluk_seviyesi: filters.zorluk_seviyesi || undefined,
         search: filters.search || undefined,
@@ -112,11 +112,13 @@ export default function Sorular({ scope }) {
 
       // Custom Frontend Filtering for Workflow Groups
       if (filters.durum === 'incelemede_grubu') {
-        data = data.filter(s => ['inceleme_bekliyor', 'alan_incelemede', 'dil_incelemede', 'alan_onaylandi', 'dil_onaylandi'].includes(s.durum));
+        data = data.filter(s => ['inceleme_bekliyor', 'alan_incelemede', 'dil_incelemede', 'incelemede'].includes(s.durum));
       } else if (filters.durum === 'taslak_grubu') {
         data = data.filter(s => ['beklemede', 'revize_gerekli'].includes(s.durum));
       } else if (filters.durum === 'dizgi_grubu') {
         data = data.filter(s => ['dizgi_bekliyor', 'dizgide', 'revize_istendi'].includes(s.durum));
+      } else if (filters.durum === 'dizgi_sonrasi') {
+        data = data.filter(s => ['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam'].includes(s.durum));
       }
 
       if (scope === 'brans') {
