@@ -311,27 +311,37 @@ export default function DizgiYonetimi() {
 
                   {/* ACTIONS FOR POST-COMPLETION */}
                   {(selectedSoru.durum === 'tamamlandi' || selectedSoru.durum === 'dizgi_tamam') && (
-                    <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                      <button onClick={handleCapturePNG} className="flex-1 flex items-center justify-center gap-3 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.1em] transition-all shadow-sm active:scale-95">
-                        <PhotoIcon className="w-6 h-6" /> PNG ÇIKTISI AL (AUTO)
-                      </button>
+                    <div className="flex flex-col gap-4 pt-4">
+                      {/* FILE ACTIONS */}
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <button onClick={handleCapturePNG} className="flex-1 flex items-center justify-center gap-3 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.1em] transition-all shadow-sm active:scale-95">
+                          <PhotoIcon className="w-6 h-6" /> PNG ÇIKTISI AL (AUTO)
+                        </button>
 
-                      <label className="flex-1 flex items-center justify-center gap-3 bg-purple-600 hover:bg-purple-700 text-white py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.1em] transition-all shadow-lg shadow-purple-100 active:scale-95 cursor-pointer">
-                        <DocumentArrowUpIcon className="w-6 h-6" /> MANUEL DOSYA YÜKLE
-                        <input type="file" className="hidden" accept="image/*,application/pdf" onChange={async (e) => {
-                          const file = e.target.files[0];
-                          if (!file) return;
-                          if (!confirm("Seçilen dosya yüklenecek ve soru güncellenecek. Emin misiniz?")) { e.target.value = null; return; }
-                          const fd = new FormData();
-                          fd.append('final_png', file);
-                          try {
-                            await soruAPI.uploadFinal(selectedSoru.id, fd);
-                            alert('Dosya yüklendi ve havuza aktarıldı');
-                            await loadSorular();
-                            loadBransCounts();
-                          } catch (err) { alert(err.response?.data?.error || 'Dosya yüklenemedi'); }
-                        }} />
-                      </label>
+                        <label className="flex-1 flex items-center justify-center gap-3 bg-purple-600 hover:bg-purple-700 text-white py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.1em] transition-all shadow-lg shadow-purple-100 active:scale-95 cursor-pointer">
+                          <DocumentArrowUpIcon className="w-6 h-6" /> MANUEL DOSYA YÜKLE
+                          <input type="file" className="hidden" accept="image/*,application/pdf" onChange={async (e) => {
+                            const file = e.target.files[0];
+                            if (!file) return;
+                            if (!confirm("Seçilen dosya yüklenecek ve soru güncellenecek. Emin misiniz?")) { e.target.value = null; return; }
+                            const fd = new FormData();
+                            fd.append('final_png', file);
+                            try {
+                              await soruAPI.uploadFinal(selectedSoru.id, fd);
+                              alert('Dosya yüklendi ve havuza aktarıldı');
+                              await loadSorular();
+                              loadBransCounts();
+                            } catch (err) { alert(err.response?.data?.error || 'Dosya yüklenemedi'); }
+                          }} />
+                        </label>
+                      </div>
+
+                      {/* BRANCH SEND ACTION */}
+                      {selectedSoru.durum === 'dizgi_tamam' && (
+                        <button onClick={() => handleDurumGuncelle(selectedSoru.id, 'alan_incelemede')} className="w-full bg-orange-600 hover:bg-orange-700 text-white py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.1em] transition-all shadow-xl shadow-orange-100 active:scale-95 flex items-center justify-center gap-3">
+                          🚀 BRANŞA GÖNDER (İNCELEME İÇİN)
+                        </button>
+                      )}
                     </div>
                   )}
 
