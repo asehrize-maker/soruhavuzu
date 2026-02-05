@@ -1,7 +1,7 @@
 import pool from '../../config/database.js';
 
-export const addKullanimAlanlari = async () => {
-    const client = await pool.connect();
+export const addKullanimAlanlari = async (existingClient = null) => {
+    const client = existingClient || await pool.connect();
     try {
         console.log('🔄 MIGRATION: 034_add_kullanim_alanlari çalıştırılıyor...');
 
@@ -21,6 +21,6 @@ export const addKullanimAlanlari = async () => {
     } catch (error) {
         console.error('❌ MIGRATION ERROR (034_add_kullanim_alanlari):', error);
     } finally {
-        client.release();
+        if (!existingClient) client.release();
     }
 };

@@ -264,7 +264,8 @@ export default function Sorular({ scope }) {
       setSelectedQuestions([]);
       loadSorular();
     } catch (error) {
-      alert('Güncelleme sırasında bir hata oluştu: ' + (error.response?.data?.message || error.message));
+      const errorMsg = error.response?.data?.error || error.response?.data?.message || error.message;
+      alert('Güncelleme sırasında bir hata oluştu: ' + errorMsg);
     } finally {
       setBulkUpdating(false);
     }
@@ -728,7 +729,7 @@ export default function Sorular({ scope }) {
                   {bulkUpdating ? (
                     <ArrowPathIcon className="w-4 h-4 animate-spin" />
                   ) : (
-                    'İŞLEEMİ TAMAMLA'
+                    'İŞLEMİ TAMAMLA'
                   )}
                 </button>
               </div>

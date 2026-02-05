@@ -256,7 +256,7 @@ const createTables = async () => {
     await addKategoriColumn();
     await createDenemelerTables(client);
     await addGorevTipiToDenemeler(client);
-    await addKullanimAlanlari();
+    await addKullanimAlanlari(client);
 
   } catch (error) {
     await client.query('ROLLBACK');
