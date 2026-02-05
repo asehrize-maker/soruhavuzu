@@ -851,6 +851,12 @@ router.put('/:id(\\d+)', [
       ]
     );
 
+    // 2. Mevcut revize notlarını "çözüldü" olarak işaretle (İçerik güncellenince eskiler geçersiz kalır)
+    await pool.query(
+      `UPDATE soru_revize_notlari SET cozuldu = true WHERE soru_id = $1`,
+      [id]
+    );
+
     // Eğer revize durumundan güncellendiyse ve dizgici atanmışsa, dizgiciye bildirim gönder
     if (soru.durum === 'revize_gerekli' && soru.dizgici_id) {
       await createNotification(

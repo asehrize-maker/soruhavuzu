@@ -330,6 +330,8 @@ export default function SoruDetay() {
     try {
       const response = await soruAPI.getById(id);
       setSoru(response.data.data);
+      // Soru yüklendiğinde revize notlarını da tazele
+      loadRevizeNotlari();
     } catch (error) {
       navigate('/sorular');
     } finally { setLoading(false); }
@@ -399,7 +401,9 @@ export default function SoruDetay() {
     if (confirmMsg && !confirm(confirmMsg)) return;
     try {
       await soruAPI.updateDurum(id, { yeni_durum: status, aciklama: 'Durum güncellendi: ' + status });
-      loadSoru();
+      // Durum değiştiğinde notları tazele (belki çözüldü yapılmıştır)
+      await loadSoru();
+      await loadRevizeNotlari();
       if (['tamamlandi', 'dizgi_bekliyor', 'alan_incelemede', 'dil_incelemede'].includes(status)) {
         navigate(scope === 'brans' ? '/brans-havuzu' : '/sorular');
       }
@@ -514,8 +518,11 @@ export default function SoruDetay() {
       try {
         const formData = new FormData();
         formData.append('final_png', file);
+        // Önce local olarak notları temizle (görsel değişeceği için)
+        setRevizeNotlari([]);
         await soruAPI.uploadFinal(id, formData);
-        loadSoru();
+        await loadSoru();
+        await loadRevizeNotlari();
       } catch (err) { alert('Yükleme başarısız: ' + (err.response?.data?.error || err.message)); }
     }
   };
@@ -587,6 +594,7 @@ export default function SoruDetay() {
       await soruAPI.update(id, formData);
       setEditMode(false);
       loadSoru();
+      loadRevizeNotlari();
     } catch (error) { alert(error.response?.data?.error || 'Güncelleme başarısız'); }
     finally { setSaving(false); }
   };
