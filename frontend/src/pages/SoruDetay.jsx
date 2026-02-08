@@ -763,14 +763,14 @@ export default function SoruDetay() {
                   <input type="file" className="hidden" accept="image/*" onChange={handleReadyQuestionUpload} />
                 </label>
 
-                <button onClick={addKoku} className="flex items-center gap-3 p-4 bg-gray-50 hover:bg-gray-800 group rounded-2xl border border-gray-100 transition-all text-left">
-                  <Bars4Icon className="w-5 h-5 text-gray-400 group-hover:text-white" />
-                  <span className="text-[10px] font-black text-gray-600 group-hover:text-white uppercase tracking-widest">Soru Kökü</span>
-                </button>
-
                 <button onClick={addGovde} className="flex items-center gap-3 p-4 bg-gray-50 hover:bg-gray-800 group rounded-2xl border border-gray-100 transition-all text-left">
                   <DocumentTextIcon className="w-5 h-5 text-gray-400 group-hover:text-white" />
                   <span className="text-[10px] font-black text-gray-600 group-hover:text-white uppercase tracking-widest">Metin</span>
+                </button>
+
+                <button onClick={addKoku} className="flex items-center gap-3 p-4 bg-gray-50 hover:bg-gray-800 group rounded-2xl border border-gray-100 transition-all text-left">
+                  <Bars4Icon className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                  <span className="text-[10px] font-black text-gray-600 group-hover:text-white uppercase tracking-widest">Soru Kökü</span>
                 </button>
 
                 <label className="flex items-center gap-3 p-4 bg-orange-50 hover:bg-orange-500 group rounded-2xl border border-orange-100 transition-all text-left cursor-pointer">
