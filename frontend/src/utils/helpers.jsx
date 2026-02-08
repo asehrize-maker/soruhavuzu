@@ -17,6 +17,26 @@ export const STATUS_LABELS = {
   inceleme_tamam: 'İnceleme Tamamlandı',
 };
 
+export const formatLogDescription = (desc) => {
+  if (!desc) return desc;
+  let text = String(desc);
+
+  // Status çevirileri - En uzun anahtardan başla ki çakışma olmasın
+  const sortedKeys = Object.keys(STATUS_LABELS).sort((a, b) => b.length - a.length);
+
+  sortedKeys.forEach(key => {
+    const label = STATUS_LABELS[key];
+    const regex = new RegExp(`\\b${key}\\b`, 'g');
+    text = text.replace(regex, label);
+  });
+
+  // Bazı genel düzenlemeler
+  text = text.replace(/Durum:/g, 'Yeni Durum:');
+  text = text.replace(/Not:/g, '📝 Not:');
+
+  return text;
+};
+
 export const translateKey = (key) => {
   const dictionary = {
     // Ayarlar (Settings)
@@ -46,7 +66,8 @@ export const translateKey = (key) => {
     'koordinator': 'Koordinatör',
     'soru_yazici': 'Soru Yazarı',
     'dizgici': 'Dizgi Birimi',
-    'incelemeci': 'İnceleme Birimi'
+    'incelemeci': 'İnceleme Birimi',
+    ...STATUS_LABELS
   };
 
   if (dictionary[key]) return dictionary[key];

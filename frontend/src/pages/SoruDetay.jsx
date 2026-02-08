@@ -401,7 +401,7 @@ export default function SoruDetay() {
   const handleUpdateStatus = async (status, confirmMsg = null) => {
     if (confirmMsg && !confirm(confirmMsg)) return;
     try {
-      await soruAPI.updateDurum(id, { yeni_durum: status, aciklama: 'Durum güncellendi: ' + status });
+      await soruAPI.updateDurum(id, { yeni_durum: status, aciklama: `Durum güncellendi: ${STATUS_LABELS[status] || status}` });
       // Durum değiştiğinde notları tazele (belki çözüldü yapılmıştır)
       await loadSoru();
       await loadRevizeNotlari();

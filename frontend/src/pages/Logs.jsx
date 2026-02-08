@@ -9,7 +9,7 @@ import {
     ChevronRightIcon,
     MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
-import { translateKey } from '../utils/helpers';
+import { translateKey, formatLogDescription } from '../utils/helpers';
 
 export default function Logs() {
     const [loginLogs, setLoginLogs] = useState([]);
@@ -158,7 +158,7 @@ export default function Logs() {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-5 text-sm font-bold text-gray-600 leading-relaxed">
-                                                    {log.aciklama}
+                                                    {formatLogDescription(log.aciklama)}
                                                 </td>
                                                 <td className="px-8 py-5 whitespace-nowrap text-right text-sm font-bold text-gray-400">
                                                     {new Date(log.tarih).toLocaleDateString('tr-TR')} <span className="text-gray-200 font-medium mx-1">/</span> {new Date(log.tarih).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
