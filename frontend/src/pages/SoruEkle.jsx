@@ -368,13 +368,13 @@ export default function SoruEkle() {
               className="bg-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-700 relative flex flex-col group min-h-[140mm] border border-gray-100"
               style={{
                 width: widthMode === 'dar' ? '82.4mm' : '169.6mm',
-                padding: '3mm 3mm 3mm 10mm',
-                paddingTop: '5mm',
+                padding: '1mm 1mm 1mm 6mm',
+                paddingTop: '1mm',
                 borderRadius: '2px'
               }}
             >
               <div
-                className="space-y-1 relative"
+                className="space-y-0 relative"
                 style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}
                 onClick={(e) => {
                   if (!e.target.closest('.delete-btn')) setConfirmDeleteId(null);
@@ -383,7 +383,7 @@ export default function SoruEkle() {
                 {components.map((comp, index) => (
                   <div
                     key={comp.id}
-                    className={`relative group/item rounded p-2 pt-6 transition-all duration-300 ${draggedItemIndex === index ? 'opacity-30 scale-95' : 'hover:bg-blue-50/10'} ${confirmDeleteId === comp.id ? 'ring-2 ring-rose-500 bg-rose-50/50' : ''}`}
+                    className={`relative group/item rounded p-0 pt-2 transition-all duration-300 ${draggedItemIndex === index ? 'opacity-30 scale-95' : 'hover:bg-blue-50/10'} ${confirmDeleteId === comp.id ? 'ring-2 ring-rose-500 bg-rose-50/50' : ''}`}
                     style={{
                       float: comp.float || 'none',
                       width: comp.width && comp.subtype === 'secenek' ? `${comp.width}%` : 'auto',

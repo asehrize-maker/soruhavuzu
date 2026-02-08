@@ -34,7 +34,7 @@ const EditableBlock = memo(({ initialHtml, onChange, className, style, label, ha
                 ref={ref}
                 contentEditable
                 suppressContentEditableWarning
-                className={`outline-none min-h-[2em] p-1 border border-transparent hover:border-gray-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition rounded ${className || ''}`}
+                className={`outline-none min-h-[1.5em] p-0 border border-transparent hover:border-gray-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition rounded ${className || ''}`}
                 style={computedStyle}
                 onInput={(e) => onChange(e.currentTarget.innerHTML)}
                 onPaste={(e) => {
