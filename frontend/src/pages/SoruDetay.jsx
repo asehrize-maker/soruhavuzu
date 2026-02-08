@@ -842,35 +842,45 @@ export default function SoruDetay() {
                   {components.map((comp, index) => (
                     <div
                       key={comp.id}
-                      className={`relative group/item rounded px-2 transition-all duration-300 ${draggedItemIndex === index ? 'opacity-30 scale-95' : 'hover:bg-blue-50/30'}`}
+                      className={`relative group/item rounded p-2 pt-6 transition-all duration-300 ${draggedItemIndex === index ? 'opacity-30 scale-95' : 'hover:bg-blue-50/10'} ${confirmDeleteId === comp.id ? 'ring-2 ring-rose-500 bg-rose-50/50' : ''}`}
                       style={{
                         float: comp.float || 'none',
                         width: comp.width && comp.subtype === 'secenek' ? `${comp.width}%` : 'auto',
-                        marginRight: comp.float === 'left' ? '2%' : '0'
+                        marginRight: comp.float === 'left' ? '2%' : '1%'
                       }}
                       draggable="true"
                       onDragStart={(e) => onDragStart(e, index)}
                       onDragOver={(e) => onDragOver(e, index)}
                       onDragEnd={onDragEnd}
                     >
-                      <div className={`absolute -left-10 top-2 flex flex-col gap-2 transition-all z-[60] w-8 ${confirmDeleteId === comp.id ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100'}`}>
-                        <div title="Sürükle" className="p-2 bg-white rounded-xl shadow-sm border border-gray-100 text-gray-300 hover:text-blue-500 cursor-grab active:cursor-grabbing"><Bars4Icon className="w-4 h-4" strokeWidth={3} /></div>
-
+                      {/* TOOLBAR - Top Right */}
+                      <div className={`absolute top-0 right-1 flex items-center gap-1 transition-all z-[60] pt-1 ${confirmDeleteId === comp.id ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100'}`}>
                         {confirmDeleteId === comp.id ? (
-                          <button
-                            onClick={() => { removeComponent(comp.id); setConfirmDeleteId(null); }}
-                            className="delete-btn p-2 bg-rose-600 rounded-xl shadow-lg border border-rose-700 text-white animate-pulse"
-                            title="Onaylamak için tekrar tıkla"
-                          >
-                            <CheckBadgeIcon className="w-4 h-4" strokeWidth={3} />
-                          </button>
+                          <div className="flex items-center gap-1 bg-rose-600 rounded-xl px-2 py-1 shadow-lg border border-rose-700 animate-fade-in text-white">
+                            <span className="text-[9px] font-black uppercase tracking-tighter mr-1">SİLİNSİN Mİ?</span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); removeComponent(comp.id); setConfirmDeleteId(null); }}
+                              className="delete-btn p-1.5 hover:bg-white/20 rounded-lg transition-all active:scale-90"
+                            >
+                              <CheckBadgeIcon className="w-4 h-4" strokeWidth={3} />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
+                              className="delete-btn p-1.5 hover:bg-white/20 rounded-lg transition-all active:scale-90"
+                            >
+                              <XMarkIcon className="w-4 h-4" strokeWidth={3} />
+                            </button>
+                          </div>
                         ) : (
-                          <button
-                            onClick={() => setConfirmDeleteId(comp.id)}
-                            className="delete-btn p-2 bg-white rounded-xl shadow-sm border border-gray-100 text-rose-300 hover:text-rose-600"
-                          >
-                            <TrashIcon className="w-4 h-4" strokeWidth={3} />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <div title="Sürükle" className="p-1.5 bg-white/80 backdrop-blur rounded-lg shadow-sm border border-gray-100 text-gray-300 hover:text-blue-500 cursor-grab active:cursor-grabbing"><Bars4Icon className="w-4 h-4" strokeWidth={3} /></div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(comp.id); }}
+                              className="delete-btn p-1.5 bg-white/80 backdrop-blur rounded-lg shadow-sm border border-gray-100 text-rose-300 hover:text-rose-600 active:scale-90 transition-all"
+                            >
+                              <TrashIcon className="w-4 h-4" strokeWidth={3} />
+                            </button>
+                          </div>
                         )}
                       </div>
 
