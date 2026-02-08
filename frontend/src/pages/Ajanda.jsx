@@ -125,10 +125,10 @@ export default function Ajanda() {
         .slice(0, 5); // İlk 5 gelecek işi göster
 
     return (
-        <div className="max-w-7xl mx-auto h-[calc(100vh-8rem)] flex flex-col md:flex-row gap-8 animate-fade-in overflow-hidden">
+        <div className="max-w-7xl mx-auto md:h-[calc(100vh-8rem)] flex flex-col md:flex-row gap-8 animate-fade-in overflow-y-auto md:overflow-hidden pb-10 md:pb-0">
             {/* SIDEBAR - CALENDAR WIDGET */}
-            <aside className="w-full md:w-[380px] shrink-0 space-y-8 flex flex-col overflow-y-auto no-scrollbar pb-10">
-                <div className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 p-8">
+            <aside className="w-full md:w-[380px] shrink-0 space-y-8 flex flex-col overflow-y-auto pb-10">
+                <div className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 p-4 sm:p-8">
                     <div className="flex items-center justify-between mb-8">
                         <div>
                             <h2 className="text-xl font-black text-gray-900 leading-tight">{MONTHS[currentDate.getMonth()]}</h2>
@@ -155,7 +155,7 @@ export default function Ajanda() {
                                     key={idx}
                                     onClick={() => setSelectedDate(date)}
                                     className={`
-                                        relative group p-3 rounded-2xl transition-all flex flex-col items-center justify-center gap-1
+                                        relative group p-2 sm:p-3 rounded-2xl transition-all flex flex-col items-center justify-center gap-1
                                         ${isSelected ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'hover:bg-gray-50 text-gray-700'}
                                     `}
                                 >
@@ -242,7 +242,7 @@ export default function Ajanda() {
             </aside>
 
             {/* MAIN PANEL - EVENTS FOR SELECTED DATE */}
-            <main className="flex-1 overflow-y-auto no-scrollbar space-y-8 pb-20">
+            <main className="flex-1 overflow-y-auto space-y-8 pb-20">
                 <div className="flex items-center justify-between px-4">
                     <div>
                         <h2 className="text-4xl font-black text-gray-900 tracking-tight">
@@ -270,7 +270,7 @@ export default function Ajanda() {
                 ) : (
                     <div className="grid grid-cols-1 gap-6 px-2">
                         {selectedEvents.map((event, idx) => (
-                            <div key={event.id || idx} className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-gray-200/50 border border-gray-50 flex flex-col md:flex-row items-center justify-between gap-8 group hover:border-indigo-100 transition-all duration-500">
+                            <div key={event.id || idx} className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-xl shadow-gray-200/50 border border-gray-50 flex flex-col md:flex-row items-center justify-between gap-8 group hover:border-indigo-100 transition-all duration-500">
                                 <div className="flex items-center gap-8">
                                     <div className={`w-20 h-20 rounded-[2rem] flex flex-col items-center justify-center border-2 transition-all group-hover:scale-110 shadow-sm
                                         ${event.gorev_tipi === 'deneme' ? 'bg-indigo-50 border-indigo-100 text-indigo-600' :
