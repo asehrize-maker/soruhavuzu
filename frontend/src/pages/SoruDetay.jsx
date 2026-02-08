@@ -827,8 +827,8 @@ export default function SoruDetay() {
                 className="bg-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-700 relative flex flex-col group min-h-[140mm] border border-gray-100"
                 style={{
                   width: widthMode === 'dar' ? '82.4mm' : '169.6mm',
-                  padding: '10mm',
-                  paddingTop: '15mm',
+                  padding: '3mm 3mm 3mm 10mm',
+                  paddingTop: '5mm',
                   borderRadius: '2px'
                 }}
               >
