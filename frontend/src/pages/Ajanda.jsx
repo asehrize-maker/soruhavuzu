@@ -125,130 +125,15 @@ export default function Ajanda() {
         .slice(0, 5); // İlk 5 gelecek işi göster
 
     return (
-        <div className="max-w-7xl mx-auto md:h-[calc(100vh-8rem)] flex flex-col md:flex-row gap-8 animate-fade-in overflow-y-auto md:overflow-hidden pb-10 md:pb-0">
-            {/* SIDEBAR - CALENDAR WIDGET */}
-            <aside className="w-full md:w-[380px] shrink-0 space-y-8 flex flex-col overflow-y-auto pb-10">
-                <div className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 p-4 sm:p-8">
-                    <div className="flex items-center justify-between mb-8">
-                        <div>
-                            <h2 className="text-xl font-black text-gray-900 leading-tight">{MONTHS[currentDate.getMonth()]}</h2>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{currentDate.getFullYear()}</p>
-                        </div>
-                        <div className="flex gap-2">
-                            <button onClick={prevMonth} className="p-2 hover:bg-gray-50 rounded-xl transition-all"><ChevronLeftIcon className="w-5 h-5" /></button>
-                            <button onClick={nextMonth} className="p-2 hover:bg-gray-50 rounded-xl transition-all"><ChevronRightIcon className="w-5 h-5" /></button>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-7 gap-y-4 text-center">
-                        {DAYS.map(day => (
-                            <div key={day} className="text-[9px] font-black text-gray-300 uppercase tracking-widest mb-2">{day}</div>
-                        ))}
-                        {dates.map((date, idx) => {
-                            if (!date) return <div key={`empty-${idx}`} />;
-                            const dayEvents = getEventsForDate(date);
-                            const isSelected = isSameDay(date, selectedDate);
-                            const isToday = isSameDay(date, new Date());
-
-                            return (
-                                <button
-                                    key={idx}
-                                    onClick={() => setSelectedDate(date)}
-                                    className={`
-                                        relative group p-2 sm:p-3 rounded-2xl transition-all flex flex-col items-center justify-center gap-1
-                                        ${isSelected ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'hover:bg-gray-50 text-gray-700'}
-                                    `}
-                                >
-                                    <span className={`text-sm font-black ${isSelected ? 'text-white' : ''}`}>
-                                        {date.getDate()}
-                                    </span>
-                                    {dayEvents.length > 0 && (
-                                        <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : (new Date(date) >= new Date().setHours(0, 0, 0, 0) ? 'bg-blue-500' : 'bg-gray-300')} animate-pulse`} />
-                                    )}
-                                    {isToday && !isSelected && (
-                                        <div className="absolute top-1 right-1 w-1 h-1 bg-rose-500 rounded-full" />
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    {isManagement && (
-                        <button
-                            onClick={() => {
-                                setNewPlan({ ...newPlan, planlanan_tarih: formatDateForInput(selectedDate) });
-                                setShowCreateModal(true);
-                            }}
-                            className="w-full mt-10 py-4 bg-gray-900 hover:bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-2 group active:scale-95"
-                        >
-                            <PlusIcon className="w-5 h-5 group-hover:rotate-90 transition-transform" />
-                            GÖREV TANIMLA
-                        </button>
-                    )}
-                </div>
-
-                {/* FILTERS / STATUS SUMMARY */}
-                <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-indigo-200">
-                    <h3 className="text-lg font-black uppercase tracking-tight mb-2">Ajanda Özeti</h3>
-                    <p className="text-[10px] font-bold text-indigo-100 opacity-70 uppercase tracking-widest mb-6">Branş bazlı görev takibi</p>
-                    <div className="space-y-4">
-                        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 flex items-center justify-between">
-                            <span className="text-[11px] font-bold">Toplam Görev</span>
-                            <span className="text-lg font-black">{events.length}</span>
-                        </div>
-                        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 flex items-center justify-between">
-                            <span className="text-[11px] font-bold">Tamamlanan</span>
-                            <span className="text-lg font-black">{events.filter(e => e.toplam_yukleme > 0).length}</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* YAKLAŞAN İŞLER LİSTESİ */}
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between px-4">
-                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Yaklaşan İşler</h3>
-                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-ping"></span>
-                    </div>
-                    {upcomingEvents.length === 0 ? (
-                        <div className="bg-white rounded-3xl p-6 text-center border border-gray-100">
-                            <p className="text-[10px] font-bold text-gray-300 uppercase">Planlanmış iş yok</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {upcomingEvents.map((event, idx) => (
-                                <button
-                                    key={event.id || idx}
-                                    onClick={() => {
-                                        setCurrentDate(new Date(event.planlanan_tarih));
-                                        setSelectedDate(new Date(event.planlanan_tarih));
-                                    }}
-                                    className="w-full bg-white hover:bg-gray-50 p-4 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4 group transition-all text-left"
-                                >
-                                    <div className="shrink-0 w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-black text-xs">
-                                        {new Date(event.planlanan_tarih).getDate()}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="text-[11px] font-black text-gray-900 uppercase truncate leading-tight">{event.ad}</h4>
-                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter mt-0.5">
-                                            {new Date(event.planlanan_tarih).toLocaleDateString('tr-TR', { month: 'long', weekday: 'short' })}
-                                        </p>
-                                    </div>
-                                    <ChevronRightIcon className="w-4 h-4 text-gray-200 group-hover:text-blue-500 transition-colors" />
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </aside>
-
-            {/* MAIN PANEL - EVENTS FOR SELECTED DATE */}
-            <main className="flex-1 overflow-y-auto space-y-8 pb-20">
-                <div className="flex items-center justify-between px-4">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8 animate-fade-in pb-20 p-4">
+            {/* MAIN PANEL - EVENTS FOR SELECTED DATE (LEFT) */}
+            <main className="flex-1 space-y-8 order-2 lg:order-1">
+                <div className="flex items-center justify-between px-4 mt-6">
                     <div>
                         <h2 className="text-4xl font-black text-gray-900 tracking-tight">
                             {selectedDate.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}
                         </h2>
-                        <p className="text-gray-400 font-bold uppercase tracking-widest text-xs mt-1">Gününün Planlanan İşleri</p>
+                        <p className="text-gray-400 font-bold uppercase tracking-widest text-xs mt-1">Günün Planlanan İşleri</p>
                     </div>
                 </div>
 
@@ -258,7 +143,7 @@ export default function Ajanda() {
                         <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Yükleniyor...</p>
                     </div>
                 ) : selectedEvents.length === 0 ? (
-                    <div className="bg-white rounded-[3.5rem] border-2 border-dashed border-gray-100 p-32 text-center space-y-6">
+                    <div className="bg-white rounded-[3.5rem] border-2 border-dashed border-gray-100 p-20 text-center space-y-6">
                         <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto shadow-inner">
                             <CalendarIcon className="w-12 h-12 text-gray-200" />
                         </div>
@@ -270,18 +155,18 @@ export default function Ajanda() {
                 ) : (
                     <div className="grid grid-cols-1 gap-6 px-2">
                         {selectedEvents.map((event, idx) => (
-                            <div key={event.id || idx} className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-xl shadow-gray-200/50 border border-gray-50 flex flex-col md:flex-row items-center justify-between gap-8 group hover:border-indigo-100 transition-all duration-500">
-                                <div className="flex items-center gap-8">
-                                    <div className={`w-20 h-20 rounded-[2rem] flex flex-col items-center justify-center border-2 transition-all group-hover:scale-110 shadow-sm
+                            <div key={event.id || idx} className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-xl shadow-gray-200/50 border border-gray-50 flex flex-col xl:flex-row items-center justify-between gap-8 group hover:border-indigo-100 transition-all duration-500">
+                                <div className="flex flex-col sm:flex-row items-center gap-8 w-full">
+                                    <div className={`w-20 h-20 shrink-0 rounded-[2rem] flex flex-col items-center justify-center border-2 transition-all group-hover:scale-110 shadow-sm
                                         ${event.gorev_tipi === 'deneme' ? 'bg-indigo-50 border-indigo-100 text-indigo-600' :
                                             event.gorev_tipi === 'fasikul' ? 'bg-amber-50 border-amber-100 text-amber-600' :
                                                 'bg-emerald-50 border-emerald-100 text-emerald-600'}
                                     `}>
                                         <DocumentTextIcon className="w-8 h-8" strokeWidth={2.5} />
                                     </div>
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-3">
-                                            <h3 className="text-2xl font-black text-gray-900 tracking-tight">{event.ad}</h3>
+                                    <div className="space-y-2 flex-1 min-w-0">
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            <h3 className="text-2xl font-black text-gray-900 tracking-tight truncate">{event.ad}</h3>
                                             <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border
                                                 ${event.gorev_tipi === 'deneme' ? 'bg-indigo-100 border-indigo-200 text-indigo-700' :
                                                     event.gorev_tipi === 'fasikul' ? 'bg-amber-100 border-amber-200 text-amber-700' :
@@ -296,9 +181,9 @@ export default function Ajanda() {
                                             )}
                                         </div>
                                         <p className="text-sm text-gray-500 font-medium max-w-xl">{event.aciklama}</p>
-                                        <div className="flex items-center gap-4 text-[10px] font-black text-gray-400 uppercase tracking-widest pt-2">
+                                        <div className="flex flex-wrap items-center gap-4 text-[10px] font-black text-gray-400 uppercase tracking-widest pt-2">
                                             <span className="flex items-center gap-1.5"><ClockIcon className="w-4 h-4" /> {new Date(event.olusturma_tarihi).toLocaleDateString()} OLUŞTURULDU</span>
-                                            <span className="w-1.5 h-1.5 bg-gray-200 rounded-full"></span>
+                                            <span className="hidden sm:block w-1.5 h-1.5 bg-gray-200 rounded-full"></span>
                                             <span className="flex items-center gap-1.5 text-indigo-500"><SparklesIcon className="w-4 h-4" /> {event.toplam_yukleme || 0} DOSYA YÜKLENDİ</span>
                                         </div>
                                         {isManagement && event.all_uploads && event.all_uploads.length > 0 && (
@@ -314,7 +199,7 @@ export default function Ajanda() {
                                         )}
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-3 shrink-0">
                                     <button onClick={() => navigate('/denemeler')} className="bg-gray-50 hover:bg-indigo-600 hover:text-white text-gray-600 p-4 rounded-2xl transition-all shadow-sm group-hover:scale-105 active:scale-95 group/btn flex items-center gap-2">
                                         <EyeIcon className="w-6 h-6" />
                                         <span className="text-[10px] font-black uppercase tracking-widest hidden group-hover/btn:block">Detayı Gör</span>
@@ -325,6 +210,121 @@ export default function Ajanda() {
                     </div>
                 )}
             </main>
+
+            {/* SIDEBAR - CALENDAR WIDGET (RIGHT) */}
+            <aside className="w-full lg:w-[320px] shrink-0 space-y-6 order-1 lg:order-2">
+                <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 p-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="text-lg font-black text-gray-900 leading-tight">{MONTHS[currentDate.getMonth()]}</h2>
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{currentDate.getFullYear()}</p>
+                        </div>
+                        <div className="flex gap-1">
+                            <button onClick={prevMonth} className="p-1.5 hover:bg-gray-50 rounded-lg transition-all"><ChevronLeftIcon className="w-4 h-4" /></button>
+                            <button onClick={nextMonth} className="p-1.5 hover:bg-gray-50 rounded-lg transition-all"><ChevronRightIcon className="w-4 h-4" /></button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-7 gap-y-2 text-center">
+                        {DAYS.map(day => (
+                            <div key={day} className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-1">{day}</div>
+                        ))}
+                        {dates.map((date, idx) => {
+                            if (!date) return <div key={`empty-${idx}`} />;
+                            const dayEvents = getEventsForDate(date);
+                            const isSelected = isSameDay(date, selectedDate);
+                            const isToday = isSameDay(date, new Date());
+
+                            return (
+                                <button
+                                    key={idx}
+                                    onClick={() => setSelectedDate(date)}
+                                    className={`
+                                        relative group p-1.5 rounded-xl transition-all flex flex-col items-center justify-center gap-1
+                                        ${isSelected ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'hover:bg-gray-50 text-gray-700'}
+                                    `}
+                                >
+                                    <span className={`text-[11px] font-black ${isSelected ? 'text-white' : ''}`}>
+                                        {date.getDate()}
+                                    </span>
+                                    {dayEvents.length > 0 && (
+                                        <div className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : (new Date(date) >= new Date().setHours(0, 0, 0, 0) ? 'bg-blue-500' : 'bg-gray-300')} animate-pulse`} />
+                                    )}
+                                    {isToday && !isSelected && (
+                                        <div className="absolute top-0.5 right-0.5 w-0.5 h-0.5 bg-rose-500 rounded-full" />
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {isManagement && (
+                        <button
+                            onClick={() => {
+                                setNewPlan({ ...newPlan, planlanan_tarih: formatDateForInput(selectedDate) });
+                                setShowCreateModal(true);
+                            }}
+                            className="w-full mt-6 py-3 bg-gray-900 hover:bg-black text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg transition-all flex items-center justify-center gap-2 group active:scale-95"
+                        >
+                            <PlusIcon className="w-4 h-4 group-hover:rotate-90 transition-transform" />
+                            GÖREV TANIMLA
+                        </button>
+                    )}
+                </div>
+
+                {/* FILTERS / STATUS SUMMARY */}
+                <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-[2rem] p-6 text-white shadow-2xl shadow-indigo-100">
+                    <h3 className="text-sm font-black uppercase tracking-tight mb-2">Özet</h3>
+                    <div className="space-y-3">
+                        <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 flex items-center justify-between">
+                            <span className="text-[10px] font-bold">Toplam</span>
+                            <span className="text-base font-black">{events.length}</span>
+                        </div>
+                        <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 flex items-center justify-between">
+                            <span className="text-[10px] font-bold">Biten</span>
+                            <span className="text-base font-black">{events.filter(e => e.toplam_yukleme > 0).length}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* YAKLAŞAN İŞLER LİSTESİ */}
+                <div className="space-y-4 pt-4">
+                    <div className="flex items-center justify-between px-4">
+                        <h3 className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Yaklaşan İşler</h3>
+                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping"></span>
+                    </div>
+                    {upcomingEvents.length === 0 ? (
+                        <div className="bg-white rounded-[2rem] p-6 text-center border border-gray-100">
+                            <p className="text-[9px] font-bold text-gray-300 uppercase">Planlanmış iş yok</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {upcomingEvents.map((event, idx) => (
+                                <button
+                                    key={event.id || idx}
+                                    onClick={() => {
+                                        setCurrentDate(new Date(event.planlanan_tarih));
+                                        setSelectedDate(new Date(event.planlanan_tarih));
+                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    }}
+                                    className="w-full bg-white hover:bg-gray-50 p-3 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3 group transition-all text-left"
+                                >
+                                    <div className="shrink-0 w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center font-black text-[10px]">
+                                        {new Date(event.planlanan_tarih).getDate()}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="text-[10px] font-black text-gray-900 uppercase truncate leading-tight">{event.ad}</h4>
+                                        <p className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">
+                                            {MONTHS[new Date(event.planlanan_tarih).getMonth()]}
+                                        </p>
+                                    </div>
+                                    <ChevronRightIcon className="w-3 h-3 text-gray-200 group-hover:text-blue-500 transition-colors" />
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </aside>
 
             {/* CREATE MODAL */}
             {showCreateModal && (
