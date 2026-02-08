@@ -128,9 +128,9 @@ export default function Ajanda() {
         <div className="max-w-[1600px] mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 animate-fade-in pb-20 p-4">
             {/* LEFT SIDE - CALENDAR & MAIN PLAN (COL 1-9) */}
             <div className="md:col-span-9 space-y-8">
-                <div className="flex flex-col xl:flex-row gap-8">
-                    {/* CALENDAR WIDGET (Compact) */}
-                    <aside className="w-full xl:w-[320px] shrink-0">
+                <div className="flex flex-col xl:flex-row gap-8 items-start">
+                    {/* CALENDAR WIDGET (Sticky) */}
+                    <aside className="w-full xl:w-[320px] shrink-0 xl:sticky xl:top-8">
                         <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 p-5">
                             <div className="flex items-center justify-between mb-6 px-1">
                                 <div>
@@ -263,8 +263,8 @@ export default function Ajanda() {
                 </div>
             </div>
 
-            {/* RIGHT SIDEBAR - UPCOMING TASKS ONLY (COL 10-12) */}
-            <aside className="md:col-span-3 space-y-4">
+            {/* RIGHT SIDEBAR - UPCOMING TASKS (Sticky) */}
+            <aside className="md:col-span-3 space-y-4 md:sticky md:top-8 self-start">
                 <div className="flex items-center justify-between px-4 mt-2">
                     <h3 className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Yaklaşan İşler</h3>
                     <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping"></span>
