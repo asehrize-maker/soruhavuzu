@@ -152,7 +152,7 @@ export default function Ekipler() {
             <UserGroupIcon className="w-12 h-12 text-blue-600" strokeWidth={2} />
             Ekip Yönetimi
           </h1>
-          <p className="mt-2 text-gray-500 font-medium">Branşları ve personelleri gruplandırmak için ekipler oluşturun.</p>
+          <p className="mt-2 text-gray-500 font-medium">Branşları ve personeli gruplandırmak için ekipler oluşturun.</p>
         </div>
         <button
           onClick={openNewModal}
@@ -213,7 +213,7 @@ export default function Ekipler() {
                   </div>
                   <div className="space-y-1 text-right">
                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] flex items-center gap-1 justify-end">
-                      <UsersIcon className="w-3 h-3" /> Personeller
+                      <UsersIcon className="w-3 h-3" /> Personel
                     </span>
                     <span className="font-black text-2xl text-gray-800">{ekip.kullanici_sayisi || 0}</span>
                   </div>

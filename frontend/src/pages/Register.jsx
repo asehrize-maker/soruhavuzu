@@ -65,7 +65,7 @@ export default function Register() {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email
+                E-posta
               </label>
               <input
                 id="email"
@@ -107,7 +107,7 @@ export default function Register() {
                 <option value="soru_yazici">Branş</option>
                 <option value="dizgici">Dizgici</option>
                 <option value="incelemeci">İncelemeci</option>
-                <option value="admin">Admin</option>
+                <option value="admin">Yönetici</option>
               </select>
             </div>
 
@@ -149,7 +149,7 @@ export default function Register() {
 
           <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded text-sm">
             <p className="font-medium mb-1">📝 Önemli Not:</p>
-            <p>Kayıt olduktan sonra admin ekip ve branş ataması yapacaktır.</p>
+            <p>Kayıt olduktan sonra yönetici; ekip ve branş ataması yapacaktır.</p>
           </div>
 
           <div>

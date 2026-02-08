@@ -252,9 +252,9 @@ export default function Branslar() {
         <div>
           <div className="flex items-center gap-3 mb-2">
             <AcademicCapIcon className="w-10 h-10 text-blue-600" strokeWidth={2.5} />
-            <h1 className="text-4xl font-black text-gray-900 tracking-tight">Branş ve Personeller</h1>
+            <h1 className="text-4xl font-black text-gray-900 tracking-tight">Branş ve Personel</h1>
           </div>
-          <p className="text-gray-500 font-medium">Sistemdeki branşları yönetin, kazanım yükleyin ve personelleri branşlara atayın.</p>
+          <p className="text-gray-500 font-medium">Sistemdeki branşları yönetin, kazanım yükleyin ve personeli branşlara atayın.</p>
         </div>
         <button
           onClick={() => setShowAddBranchForm(!showAddBranchForm)}

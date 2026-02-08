@@ -283,7 +283,7 @@ export default function Duyurular() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Görünüm Çeşidi</label>
+                        <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Görünüm Türü</label>
                         <select
                           className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                           value={getPopupValue('panel_duyuru_tip')}

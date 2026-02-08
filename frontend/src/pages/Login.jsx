@@ -93,7 +93,7 @@ export default function Login() {
             <div className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
-                  Email Adresi
+                  E-posta Adresi
                 </label>
                 <input
                   id="email"

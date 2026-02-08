@@ -299,7 +299,7 @@ export default function SoruEkle() {
               <label className="group flex flex-col p-4 bg-indigo-50 hover:bg-indigo-600 rounded-2xl cursor-pointer transition-all border border-indigo-100/50 hover:shadow-lg hover:shadow-indigo-200">
                 <div className="flex items-center gap-3 text-indigo-900 group-hover:text-white font-black text-xs uppercase tracking-widest">
                   <DocumentArrowUpIcon className="w-5 h-5" />
-                  <span>Soru Resmİ</span>
+                  <span>Soru Resmi</span>
                 </div>
                 <input type="file" className="hidden" accept="image/*" onChange={handleReadyQuestionUpload} />
               </label>
