@@ -195,6 +195,7 @@ export default function SoruDetay() {
 
   const [dizgiNotu, setDizgiNotu] = useState('');
   const [editMode, setEditMode] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [branslar, setBranslar] = useState([]);
   const [kazanims, setKazanims] = useState([]);
@@ -831,7 +832,13 @@ export default function SoruDetay() {
                   borderRadius: '2px'
                 }}
               >
-                <div className="space-y-1 relative" style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}>
+                <div
+                  className="space-y-1 relative"
+                  style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}
+                  onClick={(e) => {
+                    if (!e.target.closest('.delete-btn')) setConfirmDeleteId(null);
+                  }}
+                >
                   {components.map((comp, index) => (
                     <div
                       key={comp.id}
@@ -846,9 +853,25 @@ export default function SoruDetay() {
                       onDragOver={(e) => onDragOver(e, index)}
                       onDragEnd={onDragEnd}
                     >
-                      <div className="absolute -left-10 top-2 flex flex-col gap-2 opacity-0 group-hover/item:opacity-100 transition-all z-[60] w-8">
+                      <div className={`absolute -left-10 top-2 flex flex-col gap-2 transition-all z-[60] w-8 ${confirmDeleteId === comp.id ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100'}`}>
                         <div title="Sürükle" className="p-2 bg-white rounded-xl shadow-sm border border-gray-100 text-gray-300 hover:text-blue-500 cursor-grab active:cursor-grabbing"><Bars4Icon className="w-4 h-4" strokeWidth={3} /></div>
-                        <button onClick={() => removeComponent(comp.id)} className="p-2 bg-white rounded-xl shadow-sm border border-gray-100 text-rose-300 hover:text-rose-600"><TrashIcon className="w-4 h-4" strokeWidth={3} /></button>
+
+                        {confirmDeleteId === comp.id ? (
+                          <button
+                            onClick={() => { removeComponent(comp.id); setConfirmDeleteId(null); }}
+                            className="delete-btn p-2 bg-rose-600 rounded-xl shadow-lg border border-rose-700 text-white animate-pulse"
+                            title="Onaylamak için tekrar tıkla"
+                          >
+                            <CheckBadgeIcon className="w-4 h-4" strokeWidth={3} />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDeleteId(comp.id)}
+                            className="delete-btn p-2 bg-white rounded-xl shadow-sm border border-gray-100 text-rose-300 hover:text-rose-600"
+                          >
+                            <TrashIcon className="w-4 h-4" strokeWidth={3} />
+                          </button>
+                        )}
                       </div>
 
                       {comp.type === 'text' ? (
