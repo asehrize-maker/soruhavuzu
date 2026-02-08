@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useOutletContext, Link, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { soruAPI, bransAPI, userAPI, authAPI } from '../services/api';
+import { translateKey } from '../utils/helpers';
 import {
   ArrowPathIcon,
   ChartBarIcon,
@@ -630,7 +631,7 @@ export default function Dashboard() {
         <div className="space-y-8 animate-fade-in">
           <div className="bg-gradient-to-r from-blue-700 to-blue-600 p-8 rounded-2xl text-white shadow-xl">
             <h1 className="text-3xl font-bold">Hoş Geldiniz, {user?.ad_soyad}</h1>
-            <p className="mt-2 text-blue-100 uppercase font-black tracking-widest text-xs">{activeRole?.replace('_', ' ')} Paneli</p>
+            <p className="mt-2 text-blue-100 uppercase font-black tracking-widest text-xs">{translateKey(activeRole)} Paneli</p>
           </div>
 
           <div className="space-y-6">
@@ -692,7 +693,7 @@ export default function Dashboard() {
         <div className="space-y-8 animate-fade-in">
           <div className="bg-gradient-to-r from-blue-700 to-blue-600 p-8 rounded-2xl text-white shadow-xl">
             <h1 className="text-3xl font-bold">Hoş Geldiniz, {user?.ad_soyad}</h1>
-            <p className="mt-2 text-blue-100 uppercase font-black tracking-widest text-xs">{activeRole?.replace('_', ' ')} Paneli</p>
+            <p className="mt-2 text-blue-100 uppercase font-black tracking-widest text-xs">{translateKey(activeRole)} Paneli</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-center">

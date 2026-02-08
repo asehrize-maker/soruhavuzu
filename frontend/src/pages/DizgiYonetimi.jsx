@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { soruAPI } from '../services/api';
 import useAuthStore from '../store/authStore';
 import MesajKutusu from '../components/MesajKutusu';
-import { getDurumBadge } from '../utils/helpers';
+import { getDurumBadge, STATUS_LABELS } from '../utils/helpers';
 import html2canvas from 'html2canvas';
 import {
   PaintBrushIcon,
@@ -264,7 +264,7 @@ export default function DizgiYonetimi() {
                           selectedSoru.durum.includes('dizgide') ? 'bg-blue-50 text-blue-600 border-blue-100' :
                             'bg-emerald-50 text-emerald-600 border-emerald-100'
                           }`}>
-                          {selectedSoru.durum.replace(/_/g, ' ')}
+                          {STATUS_LABELS[selectedSoru.durum] || selectedSoru.durum}
                         </div>
                       </div>
                       <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">

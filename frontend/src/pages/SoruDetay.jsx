@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { soruAPI, bransAPI } from '../services/api';
-import { getDurumBadge } from '../utils/helpers';
+import { getDurumBadge, STATUS_LABELS } from '../utils/helpers';
 import EditableBlock from '../components/EditableBlock';
 import ResizableImage from '../components/ResizableImage';
 
@@ -1398,7 +1398,7 @@ export default function SoruDetay() {
               <p className={`text-sm font-black uppercase tracking-wide ${soru.durum === 'tamamlandi' ? 'text-emerald-700' :
                 ['revize_istendi', 'revize_gerekli'].includes(soru.durum) ? 'text-rose-700' :
                   'text-gray-700'
-                }`}>{soru.durum?.replace(/_/g, ' ')}</p>
+                }`}>{STATUS_LABELS[soru.durum] || soru.durum?.replace(/_/g, ' ')}</p>
             </div>
 
             <div className="p-5 bg-gray-50 rounded-[2rem] border border-gray-100 text-center">

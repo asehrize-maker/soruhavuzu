@@ -1,5 +1,61 @@
 import React from 'react';
 
+export const STATUS_LABELS = {
+  beklemede: 'Hazırlanıyor',
+  dizgi_bekliyor: 'Dizgi Bekliyor',
+  dizgide: 'Dizgide',
+  dizgi_tamam: 'Dizgi Tamamlandı',
+  alan_incelemede: 'Alan İncelemede',
+  alan_onaylandi: 'Alan Onaylı (Branşta)',
+  dil_incelemede: 'Dil İncelemede',
+  dil_onaylandi: 'Dil Onaylı (Branşta)',
+  tamamlandi: 'Tamamlandı',
+  revize_gerekli: 'Revize Gerekli',
+  revize_istendi: 'Revize İstendi',
+  inceleme_bekliyor: 'İnceleme Bekliyor',
+  incelemede: 'İncelemede',
+  inceleme_tamam: 'İnceleme Tamamlandı',
+};
+
+export const translateKey = (key) => {
+  const dictionary = {
+    // Ayarlar (Settings)
+    'site_basligi': 'Site Başlığı',
+    'bakim_modu': 'Bakım Modu',
+    'kayit_acik': 'Kullanıcı Kaydı',
+    'iletisim_email': 'İletişim E-Posta Adresi',
+    'duyuru_aktif': 'Genel Duyuru Durumu',
+    'duyuru_mesaji': 'Genel Duyuru Mesajı',
+    'panel_duyuru_aktif': 'Panel Duyuru Durumu',
+    'panel_duyuru_baslik': 'Panel Duyuru Başlığı',
+    'panel_duyuru_mesaj': 'Panel Duyuru Mesajı',
+    'panel_duyuru_tip': 'Panel Duyuru Tipi',
+    'footer_metni': 'Alt Bilgi (Footer) Metni',
+
+    // İşlem Türleri (Action Types)
+    'soru_ekleme': 'Soru Ekleme',
+    'soru_guncelleme': 'Soru Güncelleme',
+    'soru_silme': 'Soru Silme',
+    'durum_degisikligi': 'Durum Değişikliği',
+    'dizgi_yukleme': 'Dizgi Yükleme',
+    'dizgi_bitirme': 'Dizgi Bitirme',
+    'login': 'Giriş Yapıldı',
+
+    // Roller (Roles)
+    'admin': 'Yönetici',
+    'koordinator': 'Koordinatör',
+    'soru_yazici': 'Soru Yazarı',
+    'dizgici': 'Dizgi Birimi',
+    'incelemeci': 'İnceleme Birimi'
+  };
+
+  if (dictionary[key]) return dictionary[key];
+
+  return key.replace(/_/g, ' ').split(' ').map(word =>
+    word.charAt(0).toUpperCase() + word.slice(1)
+  ).join(' ');
+};
+
 export const getDurumBadge = (durum) => {
   const badges = {
     beklemede: 'badge badge-warning',
@@ -17,24 +73,8 @@ export const getDurumBadge = (durum) => {
     incelemede: 'badge badge-primary',
     inceleme_tamam: 'badge bg-teal-100 text-teal-700',
   };
-  const labels = {
-    beklemede: 'Hazırlanıyor',
-    dizgi_bekliyor: 'Dizgi Bekliyor',
-    dizgide: 'Dizgide',
-    dizgi_tamam: 'Dizgi Tamamlandı',
-    alan_incelemede: 'Alan İncelemede',
-    alan_onaylandi: 'Alan Onaylı (Branşta)',
-    dil_incelemede: 'Dil İncelemede',
-    dil_onaylandi: 'Dil Onaylı (Branşta)',
-    tamamlandi: 'Tamamlandı',
-    revize_gerekli: 'Revize Gerekli',
-    revize_istendi: 'Revize İstendi',
-    inceleme_bekliyor: 'İnceleme Bekliyor',
-    incelemede: 'İncelemede',
-    inceleme_tamam: 'İnceleme Tamamlandı',
-  };
 
-  return <span className={badges[durum] || 'badge'}>{labels[durum] || durum}</span>;
+  return <span className={badges[durum] || 'badge'}>{STATUS_LABELS[durum] || durum}</span>;
 };
 
 export const generateExportHtml = (selectedData) => {

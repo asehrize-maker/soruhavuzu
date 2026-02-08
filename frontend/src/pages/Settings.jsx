@@ -8,6 +8,7 @@ import {
     ArrowPathIcon,
     AdjustmentsHorizontalIcon
 } from '@heroicons/react/24/outline';
+import { translateKey } from '../utils/helpers';
 
 export default function Settings() {
     const [settings, setSettings] = useState([]);
@@ -85,7 +86,7 @@ export default function Settings() {
                                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                                         <div className="space-y-1">
                                             <label className="block text-xs font-black text-gray-400 uppercase tracking-widest group-hover:text-gray-900 transition-colors">
-                                                {setting.anahtar.replace(/_/g, ' ')}
+                                                {translateKey(setting.anahtar)}
                                             </label>
                                             <p className="text-xs text-gray-400 font-medium leading-relaxed italic pr-10">
                                                 {setting.aciklamalar}

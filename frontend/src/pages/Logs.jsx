@@ -9,6 +9,7 @@ import {
     ChevronRightIcon,
     MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
+import { translateKey } from '../utils/helpers';
 
 export default function Logs() {
     const [loginLogs, setLoginLogs] = useState([]);
@@ -153,7 +154,7 @@ export default function Logs() {
                                                         log.islem_turu.includes('ekleme') || log.islem_turu.includes('create') ? 'bg-green-50 text-green-600 border-green-100' :
                                                             'bg-indigo-50 text-indigo-600 border-indigo-100'
                                                         }`}>
-                                                        {log.islem_turu.replace(/_/g, ' ')}
+                                                        {translateKey(log.islem_turu)}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-5 text-sm font-bold text-gray-600 leading-relaxed">
