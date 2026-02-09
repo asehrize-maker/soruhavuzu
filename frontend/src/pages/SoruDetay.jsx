@@ -420,7 +420,8 @@ export default function SoruDetay() {
         navigate(scope === 'brans' ? '/brans-havuzu' : '/sorular');
       }
     } catch (e) {
-      alert('Hata: ' + (e.response?.data?.error || e.message));
+      const errorMsg = e.response?.data?.error || e.response?.data?.message || e.message;
+      alert('Hata: ' + errorMsg);
     }
   };
 

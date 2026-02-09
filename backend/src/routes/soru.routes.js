@@ -543,7 +543,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
 
     const isAdmin = req.user.rol === 'admin';
     const isKoordinator = req.user.rol === 'koordinator';
-    const isOwner = req.user.id === soru.olusturan_kullanici_id;
+    const isOwner = Number(req.user.id) == Number(soru.olusturan_kullanici_id);
     const isDizgici = req.user.rol === 'dizgici';
     const isReviewer = req.user.rol === 'incelemeci';
 
@@ -582,7 +582,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
           if (isDizgici || isAdmin) hasPermission = true;
           break;
         case 'dizgi_tamam':
-          if (isDizgici && (!soru.dizgici_id || soru.dizgici_id === req.user.id)) hasPermission = true;
+          if (isDizgici && (!soru.dizgici_id || soru.dizgici_id == req.user.id)) hasPermission = true;
           break;
         case 'alan_incelemede':
         case 'dil_incelemede':
@@ -691,7 +691,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
       bildirimMesaji = `#${id} numaralı sorunuzun durumu '${yeni_durum}' olarak güncellendi.`;
     }
 
-    if (bildirimAliciId && bildirimAliciId !== req.user.id) {
+    if (bildirimAliciId && bildirimAliciId != req.user.id) {
       await createNotification(bildirimAliciId, 'Soru Durum Güncellemesi', bildirimMesaji, 'info', `/sorular/${id}`);
     }
 
@@ -794,7 +794,7 @@ router.put('/:id(\\d+)', [
     }
 
     // Yetki kuralları: Admin veya Koordinatör (kendi ekibi) veya Branş yetkilisi veya Sahibi düzenleyebilir
-    let hasPermission = req.user.rol === 'admin' || soru.olusturan_kullanici_id === req.user.id;
+    let hasPermission = req.user.rol === 'admin' || soru.olusturan_kullanici_id == req.user.id;
 
     if (!hasPermission && req.user.rol === 'koordinator') {
       if (soru.ekip_id === req.user.ekip_id) hasPermission = true;
@@ -942,10 +942,10 @@ router.put('/:id/final-upload', [authenticate, upload.single('final_png')], asyn
     }
 
     // Dizgici ise, sorunun dizgicisi o mu?
-    if (isDizgici && soru.dizgici_id !== req.user.id) {
+    if (isDizgici && soru.dizgici_id != req.user.id) {
       // Belki de dizgici atanmamıştır? (Genelde 'dizgide' durumunda atanmış olur)
       // Eğer atanmamışsa ve dizgide ise, yükleyen kişi dizgici olur.
-      if (soru.dizgici_id && soru.dizgici_id !== req.user.id) {
+      if (soru.dizgici_id && soru.dizgici_id != req.user.id) {
         throw new AppError('Bu soru başka bir dizgicide.', 403);
       }
     }

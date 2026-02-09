@@ -283,7 +283,8 @@ export default function Sorular({ scope }) {
       const succeeded = results.filter(r => r.status === 'fulfilled');
 
       if (failed.length > 0) {
-        alert(`${failed.length} işlem başarısız oldu. Lütfen tekrar deneyin.`);
+        const firstError = failed[0].reason?.response?.data?.error || failed[0].reason?.message || 'Bilinmeyen hata';
+        alert(`${failed.length} işlem başarısız oldu. Hata: ${firstError}`);
       }
 
       if (succeeded.length > 0) {
