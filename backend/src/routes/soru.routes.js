@@ -166,7 +166,7 @@ router.get('/', authenticate, async (req, res, next) => {
     // Eğer kullanıcının bir ekibi varsa:
     // 1. Ya sorunun branşı o ekibe aittir (b.ekip_id)
     // 2. Ya da soruyu oluşturan kişi o ekiptendir (k.ekip_id)
-    if (req.user.rol !== 'admin' && req.user.ekip_id) {
+    if (!['admin', 'dizgici', 'incelemeci'].includes(req.user.rol) && req.user.ekip_id) {
       query += ` AND (b.ekip_id = $${paramCount} OR k.ekip_id = $${paramCount})`;
       params.push(req.user.ekip_id);
       paramCount++;
@@ -185,8 +185,8 @@ router.get('/', authenticate, async (req, res, next) => {
       } else {
         query += ` AND (
           s.durum IN ('dizgi_bekliyor', 'revize_istendi') 
-          OR (s.durum = 'dizgide' AND s.dizgici_id = $${paramCount})
-          OR (s.durum = 'dizgi_tamam' AND s.dizgici_id = $${paramCount})
+          OR (s.durum = 'dizgide' AND s.dizgici_id = $${paramCount}::integer)
+          OR (s.durum = 'dizgi_tamam' AND s.dizgici_id = $${paramCount}::integer)
         )`;
         params.push(req.user.id);
         paramCount++;
@@ -203,9 +203,9 @@ router.get('/', authenticate, async (req, res, next) => {
       // Eğer scope 'brans' ise VEYA kullanıcı 'soru_yazici' ise ve scope 'common' değilse --> Kendi branşındaki TÜM durumu (beklemede dahil) görsün
       if (scope === 'brans' || brans_id || (targetRole === 'soru_yazici' && scope !== 'common')) {
         query += ` AND s.brans_id IN (
-          SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount}
+          SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $${paramCount}::integer
           UNION 
-          SELECT brans_id FROM kullanicilar WHERE id = $${paramCount}
+          SELECT brans_id FROM kullanicilar WHERE id = $${paramCount}::integer
         )`;
         params.push(req.user.id);
         paramCount++;
@@ -296,9 +296,9 @@ router.get('/:id(\\d+)', authenticate, async (req, res, next) => {
     // Yetki kontrolü
     if (req.user.rol === 'soru_yazici') {
       const authBransResult = await pool.query(`
-        SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1 AND brans_id = $2
+        SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1::integer AND brans_id = $2::integer
         UNION
-        SELECT 1 FROM kullanicilar WHERE id = $1 AND brans_id = $2
+        SELECT 1 FROM kullanicilar WHERE id = $1::integer AND brans_id = $2::integer
       `, [req.user.id, soru.brans_id]);
 
       if (authBransResult.rows.length === 0 && soru.olusturan_kullanici_id !== req.user.id && soru.durum !== 'tamamlandi') {
@@ -802,9 +802,9 @@ router.put('/:id(\\d+)', [
 
     if (!hasPermission && req.user.rol === 'soru_yazici') {
       const authBrans = await pool.query(`
-        SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1 AND brans_id = $2
+        SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1::integer AND brans_id = $2::integer
         UNION
-        SELECT 1 FROM kullanicilar WHERE id = $1 AND brans_id = $2
+        SELECT 1 FROM kullanicilar WHERE id = $1::integer AND brans_id = $2::integer
       `, [req.user.id, soru.brans_id]);
       if (authBrans.rows.length > 0) hasPermission = true;
     }
@@ -1444,9 +1444,9 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
           COUNT(*) FILTER(WHERE durum IN ('revize_gerekli', 'revize_istendi')) as revize_gerekli
         FROM sorular s
         ${isActuallyAdmin ? '' : `WHERE s.brans_id IN (
-          SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1
+          SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1::integer
           UNION 
-          SELECT brans_id FROM kullanicilar WHERE id = $1
+          SELECT brans_id FROM kullanicilar WHERE id = $1::integer
         )`}
       `;
       params = isActuallyAdmin ? [] : [req.user.id];
@@ -2065,9 +2065,9 @@ router.post('/bulk-usage', authenticate, async (req, res, next) => {
           }
           if (!hasPermission) {
             const authBrans = await client.query(`
-              SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1 AND brans_id = $2
+              SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1::integer AND brans_id = $2::integer
               UNION
-              SELECT 1 FROM kullanicilar WHERE id = $1 AND brans_id = $2
+              SELECT 1 FROM kullanicilar WHERE id = $1::integer AND brans_id = $2::integer
             `, [req.user.id, brans_id]);
             if (authBrans.rows.length > 0) hasPermission = true;
           }
