@@ -853,13 +853,17 @@ router.put('/:id(\\d+)', [
     }
 
     // 1. Mevcut halini versiyon geçmişine kaydet (Backup)
+    const jsonSafeSoru = JSON.stringify(soru, (key, value) =>
+      typeof value === 'bigint' ? value.toString() : value
+    );
+
     await pool.query(
       `INSERT INTO soru_versiyonlari (soru_id, versiyon_no, data, degistiren_kullanici_id, degisim_aciklamasi)
        VALUES ($1, $2, $3, $4, $5)`,
       [
         id,
         soru.versiyon || 1,
-        JSON.stringify(soru),
+        jsonSafeSoru,
         req.user.id,
         'Soru güncellemesi'
       ]
@@ -1097,10 +1101,14 @@ router.post('/:id(\\d+)/dizgi-al', authenticate, authorize('dizgici', 'admin'), 
     const currentSoru = currentSoruRes.rows[0];
 
     if (currentSoru) {
+      const jsonSafeSoru = JSON.stringify(currentSoru, (key, value) =>
+        typeof value === 'bigint' ? value.toString() : value
+      );
+
       await pool.query(
         `INSERT INTO soru_versiyonlari (soru_id, versiyon_no, data, degistiren_kullanici_id, degisim_aciklamasi)
          VALUES ($1, $2, $3, $4, $5)`,
-        [id, currentSoru.versiyon || 1, JSON.stringify(currentSoru), req.user.id, 'Soru dizgiye alındı']
+        [id, currentSoru.versiyon || 1, jsonSafeSoru, req.user.id, 'Soru dizgiye alındı']
       );
     }
 
@@ -1151,10 +1159,14 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
       const currentSoruRes = await client.query('SELECT * FROM sorular WHERE id = $1', [id]);
       const currentSoru = currentSoruRes.rows[0];
 
+      const jsonSafeSoru = JSON.stringify(currentSoru, (key, value) =>
+        typeof value === 'bigint' ? value.toString() : value
+      );
+
       await client.query(
         `INSERT INTO soru_versiyonlari (soru_id, versiyon_no, data, degistiren_kullanici_id, degisim_aciklamasi)
          VALUES ($1, $2, $3, $4, $5)`,
-        [id, currentSoru.versiyon || 1, JSON.stringify(currentSoru), req.user.id, 'Dizgi tamamlandı']
+        [id, currentSoru.versiyon || 1, jsonSafeSoru, req.user.id, 'Dizgi tamamlandı']
       );
 
       // 2. Soruyu güncelle -> Dizgiden çıkan soru artık havuza gider

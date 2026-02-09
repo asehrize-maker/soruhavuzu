@@ -198,7 +198,10 @@ export default function SoruDetay() {
     (authUser?.branslar?.some(b => Number(b.id) === Number(soru?.brans_id)))
   );
 
-  const hasFullAccess = isAdmin || isOwner || isBranchTeacher;
+  // Koordinatör kendi ekibindeki TÜM soruları görebilir ve yönetebilir
+  const isTeamKoordinator = isKoordinator && (Number(user?.ekip_id) === Number(soru?.ekip_id));
+
+  const hasFullAccess = isAdmin || isOwner || isBranchTeacher || isTeamKoordinator;
   const canReview = (isAdmin || (effectiveRole === 'incelemeci' && !!effectiveIncelemeTuru)) && soru?.durum !== 'tamamlandi';
 
   const [dizgiNotu, setDizgiNotu] = useState('');
