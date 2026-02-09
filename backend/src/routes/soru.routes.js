@@ -1500,11 +1500,11 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
       SELECT
       COUNT(*) as toplam,
         COUNT(*) FILTER(WHERE durum = 'beklemede') as beklemede,
-          COUNT(*) FILTER(WHERE durum = 'inceleme_bekliyor') as inceleme_bekliyor,
-            COUNT(*) FILTER(WHERE durum = 'dizgi_bekliyor') as dizgi_bekliyor,
-              COUNT(*) FILTER(WHERE durum = 'dizgide') as dizgide,
-                COUNT(*) FILTER(WHERE durum = 'tamamlandi') as tamamlandi,
-                  COUNT(*) FILTER(WHERE durum = 'revize_gerekli' OR durum = 'revize_istendi') as revize_gerekli
+        COUNT(*) FILTER(WHERE durum IN ('inceleme_bekliyor', 'incelemede', 'alan_incelemede', 'dil_incelemede', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam')) as inceleme_bekliyor,
+        COUNT(*) FILTER(WHERE durum IN ('dizgi_bekliyor', 'dizgi_tamam')) as dizgi_bekliyor,
+        COUNT(*) FILTER(WHERE durum = 'dizgide') as dizgide,
+        COUNT(*) FILTER(WHERE durum = 'tamamlandi') as tamamlandi,
+        COUNT(*) FILTER(WHERE durum = 'revize_gerekli' OR durum = 'revize_istendi') as revize_gerekli
         FROM sorular
         `;
     }
@@ -1555,12 +1555,10 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
       SELECT
         COUNT(*) as toplam_soru,
         COUNT(CASE WHEN durum = 'beklemede' THEN 1 END) as beklemede,
-        COUNT(CASE WHEN durum = 'inceleme_bekliyor' THEN 1 END) as inceleme_bekliyor,
-        COUNT(CASE WHEN durum = 'incelemede' THEN 1 END) as incelemede,
-        COUNT(CASE WHEN durum = 'revize_istendi' OR durum = 'revize_gerekli' THEN 1 END) as revize_istendi,
-        COUNT(CASE WHEN durum = 'dizgi_bekliyor' THEN 1 END) as dizgi_bekliyor,
+        COUNT(CASE WHEN durum IN ('inceleme_bekliyor', 'incelemede', 'alan_incelemede', 'dil_incelemede', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam') THEN 1 END) as incelemede,
+        COUNT(CASE WHEN durum IN ('revize_istendi', 'revize_gerekli') THEN 1 END) as revize_istendi,
+        COUNT(CASE WHEN durum IN ('dizgi_bekliyor', 'dizgi_tamam') THEN 1 END) as dizgi_bekliyor,
         COUNT(CASE WHEN durum = 'dizgide' THEN 1 END) as dizgide,
-        COUNT(CASE WHEN durum = 'inceleme_tamam' THEN 1 END) as inceleme_tamam,
         COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlandi,
         COUNT(CASE WHEN zorluk_seviyesi IN(1, 2) THEN 1 END) as kolay,
         COUNT(CASE WHEN zorluk_seviyesi = 3 THEN 1 END) as orta,
