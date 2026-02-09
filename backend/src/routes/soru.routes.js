@@ -298,8 +298,8 @@ router.get('/:id(\\d+)', authenticate, async (req, res, next) => {
       const authBransResult = await pool.query(`
         SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1::integer AND brans_id = $2::integer
         UNION
-        SELECT 1 FROM kullanicilar WHERE id = $1::integer AND brans_id = $2::integer
-      `, [req.user.id, soru.brans_id]);
+        SELECT 1 FROM kullanicilar WHERE id = $3::integer AND brans_id = $4::integer
+      `, [req.user.id, soru.brans_id, req.user.id, soru.brans_id]);
 
       if (authBransResult.rows.length === 0 && soru.olusturan_kullanici_id !== req.user.id && soru.durum !== 'tamamlandi') {
         throw new AppError('Bu branştaki soruları görme yetkiniz yok', 403);
@@ -554,8 +554,8 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
       const authBrans = await pool.query(`
         SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1::integer AND brans_id = $2::integer
         UNION
-        SELECT 1 FROM kullanicilar WHERE id = $1::integer AND brans_id = $2::integer
-      `, [req.user.id, soru.brans_id]);
+        SELECT 1 FROM kullanicilar WHERE id = $3::integer AND brans_id = $4::integer
+      `, [req.user.id, soru.brans_id, req.user.id, soru.brans_id]);
       if (authBrans.rows.length > 0) isBranchTeacher = true;
     }
 
@@ -634,6 +634,10 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
 
     // 2. VERİTABANI GÜNCELLEME
     let result;
+    const versiyonSqlSnippet = yeni_durum === 'dizgi_tamam'
+      ? 'COALESCE(versiyon, 1) + 1'
+      : 'COALESCE(versiyon, 1)';
+
     if (yeni_durum === 'alan_onaylandi' || yeni_durum === 'dil_onaylandi') {
       const field = yeni_durum === 'alan_onaylandi' ? 'onay_alanci' : 'onay_dilci';
       result = await pool.query(
@@ -641,7 +645,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
            durum = $1, 
            ${field} = true, 
            guncellenme_tarihi = NOW(),
-           versiyon = CASE WHEN $1 = 'dizgi_tamam' THEN COALESCE(versiyon, 1) + 1 ELSE COALESCE(versiyon, 1) END
+           versiyon = ${versiyonSqlSnippet}
          WHERE id = $2 RETURNING *`,
         [yeni_durum, id]
       );
@@ -653,7 +657,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
            onay_alanci = false, 
            onay_dilci = false, 
            guncellenme_tarihi = NOW(),
-           versiyon = CASE WHEN $1 = 'dizgi_tamam' THEN COALESCE(versiyon, 1) + 1 ELSE COALESCE(versiyon, 1) END
+           versiyon = ${versiyonSqlSnippet}
          WHERE id = $2 RETURNING *`,
         [yeni_durum, id]
       );
@@ -664,7 +668,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         `UPDATE sorular SET 
            durum = $1, 
            guncellenme_tarihi = NOW(),
-           versiyon = CASE WHEN $1 = 'dizgi_tamam' THEN COALESCE(versiyon, 1) + 1 ELSE COALESCE(versiyon, 1) END
+           versiyon = ${versiyonSqlSnippet}
          WHERE id = $2 RETURNING *`,
         [yeni_durum, id]
       );
@@ -804,8 +808,8 @@ router.put('/:id(\\d+)', [
       const authBrans = await pool.query(`
         SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1::integer AND brans_id = $2::integer
         UNION
-        SELECT 1 FROM kullanicilar WHERE id = $1::integer AND brans_id = $2::integer
-      `, [req.user.id, soru.brans_id]);
+        SELECT 1 FROM kullanicilar WHERE id = $3::integer AND brans_id = $4::integer
+      `, [req.user.id, soru.brans_id, req.user.id, soru.brans_id]);
       if (authBrans.rows.length > 0) hasPermission = true;
     }
 
@@ -1369,8 +1373,8 @@ router.delete('/:id(\\d+)', authenticate, async (req, res, next) => {
       const authBrans = await pool.query(`
         SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1::integer AND brans_id = $2::integer
         UNION
-        SELECT 1 FROM kullanicilar WHERE id = $1::integer AND brans_id = $2::integer
-      `, [req.user.id, soru.brans_id]);
+        SELECT 1 FROM kullanicilar WHERE id = $3::integer AND brans_id = $4::integer
+      `, [req.user.id, soru.brans_id, req.user.id, soru.brans_id]);
       if (authBrans.rows.length > 0) hasDeletePermission = true;
     }
 
@@ -1446,7 +1450,7 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
         ${isActuallyAdmin ? '' : `WHERE s.brans_id IN (
           SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1::integer
           UNION 
-          SELECT brans_id FROM kullanicilar WHERE id = $1::integer
+          SELECT brans_id FROM kullanicilar WHERE id = $2::integer
         )`}
       `;
       params = isActuallyAdmin ? [] : [req.user.id];
@@ -2067,8 +2071,8 @@ router.post('/bulk-usage', authenticate, async (req, res, next) => {
             const authBrans = await client.query(`
               SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1::integer AND brans_id = $2::integer
               UNION
-              SELECT 1 FROM kullanicilar WHERE id = $1::integer AND brans_id = $2::integer
-            `, [req.user.id, brans_id]);
+              SELECT 1 FROM kullanicilar WHERE id = $3::integer AND brans_id = $4::integer
+            `, [req.user.id, brans_id, req.user.id, brans_id]);
             if (authBrans.rows.length > 0) hasPermission = true;
           }
 
