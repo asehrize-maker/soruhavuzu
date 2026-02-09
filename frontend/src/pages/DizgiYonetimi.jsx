@@ -18,7 +18,9 @@ import {
   PhotoIcon,
   DocumentArrowUpIcon,
   BeakerIcon,
-  SparklesIcon
+  SparklesIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon as ChevronRightOutline
 } from '@heroicons/react/24/outline';
 
 export default function DizgiYonetimi() {
@@ -39,6 +41,7 @@ export default function DizgiYonetimi() {
   const [showMesaj, setShowMesaj] = useState(null);
   const [revizeNotu, setRevizeNotu] = useState('');
   const [completeData, setCompleteData] = useState({ notlar: '', finalPng: null });
+  const [pendingIndex, setPendingIndex] = useState(0);
   const questionRef = useRef(null);
 
   useEffect(() => {
@@ -51,10 +54,17 @@ export default function DizgiYonetimi() {
     try {
       const response = await soruAPI.getAll({ role: 'dizgici' });
       const all = (response.data.data || []);
-      setPending(all.filter(s => s.durum === 'dizgi_bekliyor' || s.durum === 'revize_istendi'));
+      // Kuyrukta bekleyenleri yazım sırasına göre (eskiden yeniye) sırala
+      const pendingList = all.filter(s => s.durum === 'dizgi_bekliyor' || s.durum === 'revize_istendi')
+        .sort((a, b) => new Date(a.olusturulma_tarihi) - new Date(b.olusturulma_tarihi));
+
+      setPending(pendingList);
       setInProgress(all.filter(s => s.durum === 'dizgide'));
       setCompleted(all.filter(s => s.durum === 'dizgi_tamam' || (s.durum === 'tamamlandi' && !s.final_png_url)));
       setSorular(all);
+
+      // Eğer seçili soru yoksa veya seçili soru artık listede değilse index'i sıfırla
+      setPendingIndex(0);
     } catch (error) {
       console.error('Sorular yüklenemedi');
     } finally {
@@ -213,11 +223,36 @@ export default function DizgiYonetimi() {
                 <h3 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
                   <ClockIcon className="w-4 h-4 text-amber-500" strokeWidth={2.5} /> Kuyrukta Bekleyenler
                 </h3>
-                <span className="bg-amber-100 text-amber-600 px-3 py-1 rounded-xl text-[10px] font-black">{pending.length}</span>
+                <span className="bg-amber-100 text-amber-600 px-3 py-1 rounded-xl text-[10px] font-black">{pending.length === 0 ? 0 : `${pendingIndex + 1} / ${pending.length}`}</span>
               </div>
-              <div className="flex flex-col gap-4 max-h-[40vh] overflow-y-auto no-scrollbar pr-2">
-                {pending.map(soru => <QuestionCard key={soru.id} soru={soru} />)}
-                {pending.length === 0 && <div className="p-10 text-center border-2 border-dashed border-gray-100 rounded-3xl text-gray-300 font-bold uppercase tracking-widest text-xs italic">Kuyruk Boş</div>}
+
+              <div className="relative group">
+                {pending.length > 0 && (
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setPendingIndex(prev => Math.max(0, prev - 1))}
+                      disabled={pendingIndex === 0}
+                      className="p-2 bg-white border border-gray-100 rounded-xl shadow-sm hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
+                    >
+                      <ChevronLeftIcon className="w-6 h-6 text-gray-600" strokeWidth={2.5} />
+                    </button>
+
+                    <div className="flex-1 animate-fade-in-right" key={pending[pendingIndex]?.id}>
+                      <QuestionCard soru={pending[pendingIndex]} />
+                    </div>
+
+                    <button
+                      onClick={() => setPendingIndex(prev => Math.min(pending.length - 1, prev + 1))}
+                      disabled={pendingIndex === pending.length - 1}
+                      className="p-2 bg-white border border-gray-100 rounded-xl shadow-sm hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
+                    >
+                      <ChevronRightOutline className="w-6 h-6 text-gray-600" strokeWidth={2.5} />
+                    </button>
+                  </div>
+                )}
+                {pending.length === 0 && (
+                  <div className="p-10 text-center border-2 border-dashed border-gray-100 rounded-3xl text-gray-300 font-bold uppercase tracking-widest text-xs italic">Kuyruk Boş</div>
+                )}
               </div>
             </div>
 
