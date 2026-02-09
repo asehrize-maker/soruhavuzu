@@ -542,13 +542,15 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
     const soru = soruRes.rows[0];
 
     const isAdmin = req.user.rol === 'admin';
+    const isKoordinator = req.user.rol === 'koordinator';
     const isOwner = req.user.id === soru.olusturan_kullanici_id;
     const isDizgici = req.user.rol === 'dizgici';
     const isReviewer = req.user.rol === 'incelemeci';
 
     // Branş yetkisi kontrolü (Kendi branşındaki soruları yönetebilme)
     let isBranchTeacher = false;
-    if (req.user.rol === 'soru_yazici') {
+    // Soru yazarları ve koordinatörler branş bazlı yetkiye sahip olabilir
+    if (req.user.rol === 'soru_yazici' || isKoordinator) {
       const authBrans = await pool.query(`
         SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1 AND brans_id = $2
         UNION
@@ -557,29 +559,41 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
       if (authBrans.rows.length > 0) isBranchTeacher = true;
     }
 
+    // Koordinatör kendi ekibindeki branşlar için de yetkilidir
+    let isTeamKoordinator = false;
+    if (isKoordinator && req.user.ekip_id === soru.ekip_id) {
+      isTeamKoordinator = true;
+    }
+
     // ROL VE DURUM BAZLI YETKİ KONTROLÜ
     let hasPermission = isAdmin;
 
     if (!hasPermission) {
-      const isCreatorOrBranch = isOwner || isBranchTeacher;
+      const isCreatorOrBranchOrTeam = isOwner || isBranchTeacher || isTeamKoordinator;
+
       switch (yeni_durum) {
+        case 'beklemede':
+          if (isCreatorOrBranchOrTeam) hasPermission = true;
+          break;
         case 'dizgi_bekliyor':
-          if (isCreatorOrBranch) hasPermission = true;
+          if (isCreatorOrBranchOrTeam) hasPermission = true;
           break;
         case 'dizgide':
-          if (isDizgici) hasPermission = true;
+          if (isDizgici || isAdmin) hasPermission = true;
           break;
         case 'dizgi_tamam':
           if (isDizgici && (!soru.dizgici_id || soru.dizgici_id === req.user.id)) hasPermission = true;
           break;
         case 'alan_incelemede':
         case 'dil_incelemede':
-          // Dizgici DEĞİL, sadece Branş öğretmeni incelemeye gönderebilir
-          if (isCreatorOrBranch) hasPermission = true;
+        case 'inceleme_bekliyor':
+        case 'incelemede':
+          // Sadece Branş yetkilisi (Dizgici DEĞİL) incelemeye gönderebilir
+          if (isCreatorOrBranchOrTeam) hasPermission = true;
           break;
         case 'tamamlandi':
-          // Tamamlamayı sadece sorunun sahibi/branş yetkilisi yapabilir (Dizgici yapamaz)
-          if (isCreatorOrBranch) hasPermission = true;
+          // Tamamlamayı sadece sorunun sahibi/branş yetkilisi veya admin yapabilir
+          if (isCreatorOrBranchOrTeam) hasPermission = true;
           break;
         case 'alan_onaylandi':
           if (isReviewer && req.user.inceleme_alanci) hasPermission = true;
@@ -589,22 +603,33 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
           break;
         case 'revize_istendi':
         case 'revize_gerekli':
-          if (isReviewer || isDizgici || isCreatorOrBranch) hasPermission = true;
+          // İncelemeci hatayı söyler, Dizgici de söyleyebilir, Yazar/Branş da kendisi çekebilir
+          if (isReviewer || isDizgici || isCreatorOrBranchOrTeam) hasPermission = true;
+          break;
+        case 'arsiv':
+          if (isAdmin || isCreatorOrBranchOrTeam) hasPermission = true;
           break;
         default:
+          // Eğer durum allowedStatuses içinde ama switch'te yoksa, güvenlik için admin kontrolü kalır
           break;
       }
     }
 
     if (!hasPermission) {
-      throw new AppError('Bu aşama için yetkili değilsiniz.', 403);
+      console.warn(`⛔ Yetkisiz Durum Güncelleme Girişimi: User=${req.user.id}, Role=${req.user.rol}, Soru=${id}, YeniDurum=${yeni_durum}`);
+      throw new AppError('Bu aşama için yetkili değilsiniz veya soru size ait değil.', 403);
     }
 
     // 1. Mevcut halini versiyon geçmişine kaydet
+    // BigInt serialization safely (just in case)
+    const jsonSafeSoru = JSON.stringify(soru, (key, value) =>
+      typeof value === 'bigint' ? value.toString() : value
+    );
+
     await pool.query(
       `INSERT INTO soru_versiyonlari (soru_id, versiyon_no, data, degistiren_kullanici_id, degisim_aciklamasi)
        VALUES ($1, $2, $3, $4, $5)`,
-      [id, soru.versiyon || 1, JSON.stringify(soru), req.user.id, `Durum değişikliği: ${yeni_durum}${aciklama ? ' - ' + aciklama : ''}`]
+      [id, soru.versiyon || 1, jsonSafeSoru, req.user.id, `Durum değişikliği: ${yeni_durum}${aciklama ? ' - ' + aciklama : ''}`]
     );
 
     // 2. VERİTABANI GÜNCELLEME
@@ -621,6 +646,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         [yeni_durum, id]
       );
     } else if (yeni_durum === 'revize_istendi' || yeni_durum === 'revize_gerekli') {
+      // Revize istendiğinde onayları sıfırla
       result = await pool.query(
         `UPDATE sorular SET 
            durum = $1, 
@@ -632,6 +658,8 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         [yeni_durum, id]
       );
     } else {
+      // Diğer durumlar (dizgi_bekliyor, bekleyim, incelemede vb.)
+      // Mevcut onayları koru (eğer vardıysa)
       result = await pool.query(
         `UPDATE sorular SET 
            durum = $1, 

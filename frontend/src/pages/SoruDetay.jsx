@@ -188,8 +188,16 @@ export default function SoruDetay() {
   const [loading, setLoading] = useState(true);
 
   const isAdmin = effectiveRole === 'admin';
+  const isKoordinator = effectiveRole === 'koordinator';
   const isOwner = soru?.olusturan_kullanici_id == user?.id;
-  const isBranchTeacher = user?.rol === 'soru_yazici' && Number(user?.brans_id) === Number(soru?.brans_id);
+
+  // Branş öğretmenliği kontrolü: soru_yazici veya koordinator ve branş ID eşleşmesi
+  // authUser.branslar çoklu branş yetkisi için kullanılabilir
+  const isBranchTeacher = (user?.rol === 'soru_yazici' || isKoordinator) && (
+    Number(user?.brans_id) === Number(soru?.brans_id) ||
+    (authUser?.branslar?.some(b => Number(b.id) === Number(soru?.brans_id)))
+  );
+
   const hasFullAccess = isAdmin || isOwner || isBranchTeacher;
   const canReview = (isAdmin || (effectiveRole === 'incelemeci' && !!effectiveIncelemeTuru)) && soru?.durum !== 'tamamlandi';
 
