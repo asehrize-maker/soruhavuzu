@@ -552,9 +552,9 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
     // Soru yazarları ve koordinatörler branş bazlı yetkiye sahip olabilir
     if (req.user.rol === 'soru_yazici' || isKoordinator) {
       const authBrans = await pool.query(`
-        SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1 AND brans_id = $2
+        SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1::integer AND brans_id = $2::integer
         UNION
-        SELECT 1 FROM kullanicilar WHERE id = $1 AND brans_id = $2
+        SELECT 1 FROM kullanicilar WHERE id = $1::integer AND brans_id = $2::integer
       `, [req.user.id, soru.brans_id]);
       if (authBrans.rows.length > 0) isBranchTeacher = true;
     }
@@ -1367,9 +1367,9 @@ router.delete('/:id(\\d+)', authenticate, async (req, res, next) => {
 
     if (!hasDeletePermission && req.user.rol === 'soru_yazici') {
       const authBrans = await pool.query(`
-        SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1 AND brans_id = $2
+        SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1::integer AND brans_id = $2::integer
         UNION
-        SELECT 1 FROM kullanicilar WHERE id = $1 AND brans_id = $2
+        SELECT 1 FROM kullanicilar WHERE id = $1::integer AND brans_id = $2::integer
       `, [req.user.id, soru.brans_id]);
       if (authBrans.rows.length > 0) hasDeletePermission = true;
     }
