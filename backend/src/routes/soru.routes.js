@@ -1453,7 +1453,7 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
           SELECT brans_id FROM kullanicilar WHERE id = $2::integer
         )`}
       `;
-      params = isActuallyAdmin ? [] : [req.user.id];
+      params = isActuallyAdmin ? [] : [req.user.id, req.user.id];
     } else if (targetRole === 'dizgici') {
       // Dizgici: Genel havuzdaki işler (Sadece kendi ekibindekiler)
       // Hem branşın ekibine hem de oluşturan kişinin ekibine bakıyoruz
@@ -1473,10 +1473,10 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
       const isAlan = targetRole === 'alan_incelemeci';
       const isActuallyAdmin = req.user.rol === 'admin';
       query = `
-        SELECT COUNT(*) FILTER(WHERE s.durum IN ('inceleme_bekliyor', 'incelemede') AND s.${isAlan ? 'onay_alanci' : 'onay_dilci'} = false ${isActuallyAdmin ? '' : `AND (s.brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1) OR s.brans_id = (SELECT brans_id FROM kullanicilar WHERE id = $1))`}) as inceleme_bekliyor 
+        SELECT COUNT(*) FILTER(WHERE s.durum IN ('inceleme_bekliyor', 'incelemede') AND s.${isAlan ? 'onay_alanci' : 'onay_dilci'} = false ${isActuallyAdmin ? '' : `AND (s.brans_id IN (SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1::integer) OR s.brans_id IN (SELECT brans_id FROM kullanicilar WHERE id = $2::integer))`}) as inceleme_bekliyor 
         FROM sorular s 
       `;
-      params = [];
+      params = isActuallyAdmin ? [] : [req.user.id, req.user.id];
     } else if (isAnyIncelemeci) {
       const isAdmin = req.user.rol === 'admin';
       const canAlan = isAdmin || !!req.user.inceleme_alanci;
