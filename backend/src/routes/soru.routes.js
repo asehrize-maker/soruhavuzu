@@ -1555,7 +1555,8 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
       SELECT
         COUNT(*) as toplam_soru,
         COUNT(CASE WHEN durum = 'beklemede' THEN 1 END) as beklemede,
-        COUNT(CASE WHEN durum IN ('inceleme_bekliyor', 'incelemede', 'alan_incelemede', 'dil_incelemede', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam') THEN 1 END) as incelemede,
+        COUNT(CASE WHEN durum IN ('inceleme_bekliyor', 'incelemede', 'alan_incelemede', 'dil_incelemede') THEN 1 END) as inceleme_bekliyor,
+        COUNT(CASE WHEN durum IN ('alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam') THEN 1 END) as incelemede,
         COUNT(CASE WHEN durum IN ('revize_istendi', 'revize_gerekli') THEN 1 END) as revize_istendi,
         COUNT(CASE WHEN durum IN ('dizgi_bekliyor', 'dizgi_tamam') THEN 1 END) as dizgi_bekliyor,
         COUNT(CASE WHEN durum = 'dizgide' THEN 1 END) as dizgide,
