@@ -246,15 +246,19 @@ export default function Ajanda() {
                                                     </span>
                                                 </div>
                                                 <p className="text-[11px] text-gray-500 font-medium line-clamp-2">{event.aciklama}</p>
-                                                <div className="flex items-center gap-3 text-[9px] font-black text-gray-400 uppercase tracking-widest pt-1">
-                                                    <span className="flex items-center gap-1 text-indigo-500"><SparklesIcon className="w-3.5 h-3.5" /> {event.toplam_yukleme || 0} DOSYA</span>
+                                                <div className="flex items-center gap-3 text-[9px] font-black uppercase tracking-widest pt-1">
+                                                    {event.toplam_yukleme > 0 ? (
+                                                        <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
+                                                            <CheckCircleIcon className="w-3.5 h-3.5" /> DOSYA YÜKLENDİ
+                                                        </span>
+                                                    ) : (
+                                                        <span className="flex items-center gap-1 text-gray-400">
+                                                            <ClockIcon className="w-3.5 h-3.5" /> DOSYA BEKLENİYOR
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
-                                        <button onClick={() => navigate('/denemeler')} className="bg-gray-50 hover:bg-indigo-600 hover:text-white text-gray-600 p-3 rounded-xl transition-all active:scale-95 flex items-center gap-2">
-                                            <EyeIcon className="w-5 h-5" />
-                                            <span className="text-[8px] font-black uppercase tracking-widest whitespace-nowrap">Detay</span>
-                                        </button>
                                     </div>
                                 ))}
                             </div>
