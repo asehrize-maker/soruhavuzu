@@ -37,10 +37,8 @@ export default function DizgiYonetimi() {
   const [loading, setLoading] = useState(true);
   const [selectedSoru, setSelectedSoru] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [showMesaj, setShowMesaj] = useState(null);
   const [revizeNotu, setRevizeNotu] = useState('');
-  const [completeData, setCompleteData] = useState({ notlar: '', finalPng: null });
   const [pendingIndex, setPendingIndex] = useState(0);
   const questionRef = useRef(null);
 
@@ -107,7 +105,6 @@ export default function DizgiYonetimi() {
       }
       await soruAPI.updateDurum(soruId, data);
       setShowModal(false);
-      setShowCompleteModal(false);
       setSelectedSoru(null);
       setRevizeNotu('');
       await loadSorular();
@@ -117,27 +114,7 @@ export default function DizgiYonetimi() {
     }
   };
 
-  const handleDizgiTamamla = async () => {
-    if (!selectedSoru) return;
-    try {
-      setLoading(true);
-      const fd = new FormData();
-      fd.append('notlar', completeData.notlar);
-      if (completeData.finalPng) {
-        fd.append('final_png', completeData.finalPng);
-      }
-      await soruAPI.dizgiTamamlaWithFile(selectedSoru.id, fd);
-      setShowCompleteModal(false);
-      setSelectedSoru(null);
-      setCompleteData({ notlar: '', finalPng: null });
-      await loadSorular();
-      loadBransCounts();
-    } catch (err) {
-      alert(err.response?.data?.error || 'Tamamlama işlemi başarısız');
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   const handleCapturePNG = async () => {
     if (!questionRef.current) return;
@@ -321,10 +298,6 @@ export default function DizgiYonetimi() {
                         <button onClick={() => handleDizgiAl(selectedSoru.id)} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-blue-100 active:scale-95 flex items-center gap-2">
                           <PaintBrushIcon className="w-4 h-4" strokeWidth={2.5} /> Dizgiye Al
                         </button>
-                      ) : selectedSoru.durum === 'dizgide' ? (
-                        <button onClick={() => setShowCompleteModal(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-emerald-100 active:scale-95 flex items-center gap-2">
-                          <CheckCircleIcon className="w-4 h-4" strokeWidth={2.5} /> Dizgiyi Bitir
-                        </button>
                       ) : null}
                     </div>
                   </div>
@@ -408,67 +381,7 @@ export default function DizgiYonetimi() {
         </div>
       )}
 
-      {/* COMPLETE MODAL */}
-      {showCompleteModal && selectedSoru && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-6">
-          <div className="bg-white rounded-[3rem] p-10 max-w-xl w-full shadow-2xl border border-gray-50 animate-scale-up">
-            <div className="flex justify-between items-start mb-8">
-              <div>
-                <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                  <CheckCircleIcon className="w-8 h-8 text-emerald-500" /> Görevi Sonlandır
-                </h2>
-                <p className="text-gray-400 font-bold text-xs uppercase tracking-widest mt-1">Soru Final Çıktısı</p>
-              </div>
-              <button onClick={() => setShowCompleteModal(false)} className="p-3 hover:bg-gray-100 rounded-2xl transition">
-                <XMarkIcon className="w-7 h-7 text-gray-300" />
-              </button>
-            </div>
 
-            <div className="space-y-8">
-              <div className="relative">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 ml-1">Final PNG Yükle (LaTeX / Tasarım)</label>
-                <div className="flex items-center justify-center w-full">
-                  <label className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-[2rem] cursor-pointer transition-all ${completeData.finalPng ? 'bg-emerald-50 border-emerald-300' : 'bg-gray-50 border-gray-200 hover:bg-white hover:border-blue-400'
-                    }`}>
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
-                      {completeData.finalPng ? (
-                        <DocumentArrowUpIcon className="w-12 h-12 text-emerald-500 mb-3 animate-bounce-short" />
-                      ) : (
-                        <PhotoIcon className="w-12 h-12 text-gray-300 mb-3" />
-                      )}
-                      <p className={`text-xs font-black uppercase tracking-widest ${completeData.finalPng ? 'text-emerald-700' : 'text-gray-400'}`}>
-                        {completeData.finalPng ? 'DOSYA SEÇİLDİ' : 'GÖRSELİ BURAYA SÜRÜKLEYİN'}
-                      </p>
-                      <p className="mt-1 text-[10px] text-gray-400 font-medium italic">
-                        {completeData.finalPng ? completeData.finalPng.name : 'Veya buraya tıklayarak dosya seçin'}
-                      </p>
-                    </div>
-                    <input type="file" className="hidden" accept="image/png,image/jpeg" onChange={(e) => setCompleteData({ ...completeData, finalPng: e.target.files[0] })} />
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 ml-1">Eğitimci/Yazar Notu</label>
-                <textarea
-                  rows="4"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-[2rem] px-6 py-5 text-sm font-bold text-gray-700 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all outline-none"
-                  placeholder="Dizgi hakkında teknik detaylar, kullanılan fontlar vb. bilgiler ekleyebilirsiniz..."
-                  value={completeData.notlar}
-                  onChange={(e) => setCompleteData({ ...completeData, notlar: e.target.value })}
-                />
-              </div>
-
-              <div className="flex gap-4">
-                <button onClick={() => setShowCompleteModal(false)} className="flex-1 py-5 rounded-3xl text-[11px] font-black text-gray-400 uppercase tracking-widest hover:bg-gray-50 transition-colors">İPTAL</button>
-                <button onClick={handleDizgiTamamla} className="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white rounded-3xl py-5 font-black text-sm uppercase tracking-[0.1em] transition-all shadow-xl shadow-emerald-100 active:scale-95 flex items-center justify-center gap-2">
-                  GÖREVİ SİSTEME GÖNDER
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
 
     </div>
