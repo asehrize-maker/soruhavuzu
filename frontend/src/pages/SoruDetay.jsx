@@ -239,6 +239,25 @@ export default function SoruDetay() {
   const [drawingShape, setDrawingShape] = useState(null); // { type, ...data }
 
   const [viewMode, setViewMode] = useState('auto'); // 'auto', 'text', 'image'
+  const [draggedItemIndex, setDraggedItemIndex] = useState(null);
+
+  const onDragStart = (e, index) => {
+    setDraggedItemIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const onDragOver = (e, index) => {
+    e.preventDefault();
+    if (draggedItemIndex === null || draggedItemIndex === index) return;
+    const newItems = [...components];
+    const draggedItem = newItems[draggedItemIndex];
+    newItems.splice(draggedItemIndex, 1);
+    newItems.splice(index, 0, draggedItem);
+    setDraggedItemIndex(index);
+    setComponents(newItems);
+  };
+
+  const onDragEnd = () => setDraggedItemIndex(null);
 
   useEffect(() => {
     loadSoru();
@@ -998,20 +1017,7 @@ export default function SoruDetay() {
         {/* VIEW / EDIT CANVAS */}
         <div className="lg:col-span-8 space-y-8">
           <div className={`flex flex-col bg-white rounded-[3.5rem] shadow-2xl shadow-gray-200/50 border border-gray-50 overflow-hidden relative ${editMode ? 'perspective-1000' : ''}`}>
-            {editMode && (
-              <div className="bg-gray-900 text-white p-4 flex justify-between items-center z-[70]">
-                <div className="flex items-center gap-4">
-                  <div className="flex bg-black/40 p-1 rounded-2xl border border-white/5">
-                    <button onClick={() => setWidthMode('dar')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${widthMode === 'dar' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400'}`}>82mm</button>
-                    <button onClick={() => setWidthMode('genis')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${widthMode === 'genis' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400'}`}>169mm</button>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => setEditMode(false)} className="px-5 py-2 hover:bg-white/10 text-gray-400 font-black text-[10px] uppercase tracking-widest rounded-xl">İPTAL</button>
-                  <button onClick={handleEditSave} disabled={saving} className="bg-white text-blue-600 px-8 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-50 transition-all shadow-xl active:scale-95">DEĞİŞİKLİKLERİ KAYDET</button>
-                </div>
-              </div>
-            )}
+
 
 
 
@@ -1226,65 +1232,21 @@ export default function SoruDetay() {
                     borderRadius: '2px'
                   }}
                 >
-                  {editMode ? (
-                    <div className="space-y-1 relative" style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}>
-                      {/* Edit Toolbar - Always Visible */}
-                      <div className="sticky top-0 -mt-4 mb-4 -mx-2 bg-gradient-to-r from-gray-800 to-gray-900 rounded-2xl p-3 flex items-center justify-between gap-4 shadow-xl z-[80]">
-                        <div className="flex items-center gap-1">
-                          <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest mr-2">Format:</span>
-                          <button onMouseDown={(e) => { e.preventDefault(); execCmd('bold'); }} className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg text-white font-bold text-sm transition-all" title="Kalın">B</button>
-                          <button onMouseDown={(e) => { e.preventDefault(); execCmd('italic'); }} className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg text-white italic text-sm transition-all" title="İtalik">I</button>
-                          <button onMouseDown={(e) => { e.preventDefault(); execCmd('underline'); }} className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg text-white underline text-sm transition-all" title="Altı Çizili">U</button>
-                          <button onMouseDown={(e) => { e.preventDefault(); execCmd('subscript'); }} className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg text-white text-xs transition-all" title="Alt Simge">X₂</button>
-                          <button onMouseDown={(e) => { e.preventDefault(); execCmd('superscript'); }} className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg text-white text-xs transition-all" title="Üst Simge">X²</button>
-                        </div>
-                        <div className="h-6 w-px bg-gray-600"></div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest mr-2">Ekle:</span>
-                          <button onClick={addKoku} className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/40 text-amber-400 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all">+ Kök</button>
-                          <button onClick={addGovde} className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/40 text-blue-400 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all">+ Metin</button>
-                          <button onClick={() => addSecenekler('list')} className="px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/40 text-purple-400 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all">+ Şıklar</button>
-                          <label className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all cursor-pointer">
-                            + Görsel
-                            <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
-                          </label>
-                        </div>
-                      </div>
-                      {components.map((comp, index) => (
-                        <div
-                          key={comp.id}
-                          className={`relative group/item rounded px-1 transition-all hover:bg-blue-50/20`}
-                          style={{ float: comp.float || 'none', width: comp.width && comp.subtype === 'secenek' ? `${comp.width}%` : 'auto', marginRight: comp.float === 'left' ? '2%' : '0' }}
-                        >
-                          <div className="absolute -left-8 top-1 flex flex-col gap-1 opacity-0 group-hover/item:opacity-100 transition-all z-[60]">
-                            <button onClick={() => removeComponent(comp.id)} className="p-1.5 text-gray-300 hover:text-rose-500"><TrashIcon className="w-4 h-4" /></button>
-                          </div>
-                          {comp.type === 'text' ? (
-                            <EditableBlock initialHtml={comp.content} onChange={(html) => updateComponent(comp.id, { content: html })} label={comp.label} hangingIndent={comp.subtype === 'secenek'} className={comp.subtype === 'koku' ? 'font-bold text-sm' : 'text-sm'} />
-                          ) : (
-                            <ResizableImage src={comp.content} width={comp.width} height={comp.height} align={comp.align} onUpdate={(updates) => updateComponent(comp.id, updates)} onDelete={() => removeComponent(comp.id)} />
-                          )}
-                          {comp.float === 'none' && <div style={{ clear: 'both' }}></div>}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="prose max-w-[185mm] mx-auto w-full" style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}>
-                      <div ref={soruMetniRef} className="text-gray-900 katex-left-align q-preview-container select-text" onMouseUp={handleTextSelection} />
+                  <div className="prose max-w-[185mm] mx-auto w-full" style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}>
+                    <div ref={soruMetniRef} className="text-gray-900 katex-left-align q-preview-container select-text" onMouseUp={handleTextSelection} />
 
-                      {/* FALLBACK GÖRSEL: HTML içinde görsel yoksa ama URL varsa göster */}
-                      {soru.fotograf_url && !soru.soru_metni?.includes('<img') && (
-                        <div className="mt-8 flex justify-center p-4 border rounded-xl bg-gray-50 border-gray-100">
-                          <img
-                            src={soru.fotograf_url}
-                            className="max-w-full rounded-lg shadow-sm cursor-zoom-in"
-                            onClick={(e) => window.open(e.target.src, '_blank')}
-                            alt="Soru Görseli"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    {/* FALLBACK GÖRSEL: HTML içinde görsel yoksa ama URL varsa göster */}
+                    {soru.fotograf_url && !soru.soru_metni?.includes('<img') && (
+                      <div className="mt-8 flex justify-center p-4 border rounded-xl bg-gray-50 border-gray-100">
+                        <img
+                          src={soru.fotograf_url}
+                          className="max-w-full rounded-lg shadow-sm cursor-zoom-in"
+                          onClick={(e) => window.open(e.target.src, '_blank')}
+                          alt="Soru Görseli"
+                        />
+                      </div>
+                    )}
+                  </div>
                   <div style={{ clear: 'both' }}></div>
                 </div>
               )}
