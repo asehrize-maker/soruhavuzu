@@ -1399,8 +1399,9 @@ export default function SoruDetay() {
                     const zoom = 100 / Math.max(pw, ph, 10);
                     previewStyle = {
                       width: `${zoom * 100}%`,
-                      left: `${50 - (px + pw / 2) * zoom}%`,
-                      top: `${50 - (py + ph / 2) * zoom}%`,
+                      left: '50%',
+                      top: '50%',
+                      transform: `translate(-${px + pw / 2}%, -${py + ph / 2}%)`,
                       position: 'absolute',
                       maxWidth: 'none'
                     };
@@ -1435,7 +1436,7 @@ export default function SoruDetay() {
                           </div>
 
                           {/* Cropped Preview */}
-                          <div className="relative h-40 w-full rounded-2xl overflow-hidden border border-gray-100 bg-white group/preview">
+                          <div className="relative h-48 w-full rounded-2xl overflow-hidden border border-gray-100 bg-white group/preview">
                             <img
                               src={soru.final_png_url}
                               className="absolute pointer-events-none"
