@@ -542,6 +542,28 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
     const soru = soruRes.rows[0];
 
     const isAdmin = req.user.rol === 'admin';
+
+    // %%% İŞ AKIŞI KISITLAMALARI (WORKFLOW VALIDATION) %%%
+    if (!isAdmin) {
+      const isTaslakAşaması = ['beklemede', 'revize_gerekli'].includes(soru.durum);
+      const hedefİncelemeVeyaTamam = [
+        'alan_incelemede', 'dil_incelemede', 'inceleme_bekliyor',
+        'incelemede', 'inceleme_tamam', 'alan_onaylandi',
+        'dil_onaylandi', 'tamamlandi'
+      ].includes(yeni_durum);
+
+      // 1. Yazılan soru dizgiye girmeden inceleme veya tamamlanana gidemez
+      if (isTaslakAşaması && hedefİncelemeVeyaTamam) {
+        throw new AppError('Soru dizgiye gönderilmeden inceleme veya tamamlama aşamasına geçemez.', 400);
+      }
+
+      // 2. Alan ve Dil onayı olmadan tamamlanamaz
+      if (yeni_durum === 'tamamlandi') {
+        if (!soru.onay_alanci || !soru.onay_dilci) {
+          throw new AppError('Soru hem alan hem de dil onayını almadan tamamlananlara aktarılamaz.', 400);
+        }
+      }
+    }
     const isKoordinator = req.user.rol === 'koordinator';
     const isOwner = Number(req.user.id) == Number(soru.olusturan_kullanici_id);
     const isDizgici = req.user.rol === 'dizgici';
