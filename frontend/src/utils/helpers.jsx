@@ -1,19 +1,19 @@
 import React from 'react';
 
 export const STATUS_LABELS = {
-  beklemede: 'Hazırlanıyor',
-  dizgi_bekliyor: 'Dizgi Bekliyor',
-  dizgide: 'Dizgide',
-  dizgi_tamam: 'Dizgi Tamamlandı',
-  alan_incelemede: 'Alan İncelemede',
-  alan_onaylandi: 'Alan Onaylı (Branşta)',
-  dil_incelemede: 'Dil İncelemede',
-  dil_onaylandi: 'Dil Onaylı (Branşta)',
-  tamamlandi: 'Tamamlandı',
-  revize_gerekli: 'Revize Gerekli',
-  revize_istendi: 'Revize İstendi',
-  inceleme_bekliyor: 'İnceleme Bekliyor',
-  incelemede: 'İncelemede',
+  beklemede: 'Hazırlanıyor (Yazarın Panelinde)',
+  dizgi_bekliyor: 'Dizgi Sırasında',
+  dizgide: 'Dizgi İşleminde (Dizgi Biriminde)',
+  dizgi_tamam: 'Dizgi Tamamlandı (Onay Bekliyor)',
+  alan_incelemede: 'Alan İncelemede (Konu Uzmanında)',
+  alan_onaylandi: 'Alan Onaylı (Dil Kontrolü Bekliyor)',
+  dil_incelemede: 'Dil İncelemede (Dil Uzmanında)',
+  dil_onaylandi: 'Dil Onaylı (Branş Onayı Bekliyor)',
+  tamamlandi: 'Tamamlandı (Havuzda)',
+  revize_gerekli: 'Revize Gerekli (Yediden Yazarda)',
+  revize_istendi: 'Revize İstendi (Dizgi Düzeltmesinde)',
+  inceleme_bekliyor: 'İnceleme Sırasında',
+  incelemede: 'İnceleme Sürecinde',
   inceleme_tamam: 'İnceleme Tamamlandı',
 };
 
@@ -79,23 +79,23 @@ export const translateKey = (key) => {
 
 export const getDurumBadge = (durum) => {
   const badges = {
-    beklemede: 'badge badge-warning',
-    dizgi_bekliyor: 'badge bg-purple-100 text-purple-700',
-    dizgide: 'badge badge-info',
-    dizgi_tamam: 'badge bg-emerald-100 text-emerald-700 border border-emerald-200',
-    alan_incelemede: 'badge bg-orange-100 text-orange-700 border border-orange-200',
-    alan_onaylandi: 'badge bg-indigo-100 text-indigo-700 border border-indigo-200',
-    dil_incelemede: 'badge bg-blue-100 text-blue-700 border border-blue-200',
-    dil_onaylandi: 'badge bg-cyan-100 text-cyan-700 border border-cyan-200',
-    tamamlandi: 'badge badge-success',
-    revize_gerekli: 'badge badge-error',
-    revize_istendi: 'badge badge-error',
-    inceleme_bekliyor: 'badge badge-primary',
-    incelemede: 'badge badge-primary',
-    inceleme_tamam: 'badge bg-teal-100 text-teal-700',
+    beklemede: 'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-amber-50 text-amber-600 border border-amber-100',
+    dizgi_bekliyor: 'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-purple-50 text-purple-700 border border-purple-100',
+    dizgide: 'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-blue-50 text-blue-700 border border-blue-100',
+    dizgi_tamam: 'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-700 border border-emerald-200',
+    alan_incelemede: 'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-orange-50 text-orange-700 border border-orange-200',
+    alan_onaylandi: 'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-indigo-50 text-indigo-700 border border-indigo-200',
+    dil_incelemede: 'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-sky-50 text-sky-700 border border-sky-200',
+    dil_onaylandi: 'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-cyan-50 text-cyan-700 border border-cyan-200',
+    tamamlandi: 'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-green-600 text-white border border-green-700 shadow-sm',
+    revize_gerekli: 'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-rose-50 text-rose-700 border border-rose-200',
+    revize_istendi: 'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-rose-50 text-rose-700 border border-rose-200',
+    inceleme_bekliyor: 'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-blue-50 text-blue-600 border border-blue-100',
+    incelemede: 'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-blue-50 text-blue-600 border border-blue-100',
+    inceleme_tamam: 'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-teal-50 text-teal-700 border border-teal-200',
   };
 
-  return <span className={badges[durum] || 'badge'}>{STATUS_LABELS[durum] || durum}</span>;
+  return <span className={badges[durum] || 'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-gray-50 text-gray-500'}>{STATUS_LABELS[durum] || durum}</span>;
 };
 
 export const generateExportHtml = (selectedData) => {

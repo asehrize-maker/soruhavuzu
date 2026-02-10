@@ -38,7 +38,8 @@ import {
   StopIcon,
   MinusIcon,
   PencilIcon,
-  DocumentArrowUpIcon
+  DocumentArrowUpIcon,
+  RocketLaunchIcon
 } from '@heroicons/react/24/outline';
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
@@ -1318,6 +1319,54 @@ export default function SoruDetay() {
 
         {/* SIDEBAR */}
         <div className="lg:col-span-4 space-y-8">
+          {/* STAGE TRACKER CARD */}
+          {soru.durum !== 'tamamlandi' && (
+            <div className="bg-white rounded-[3rem] p-8 shadow-xl shadow-gray-200/50 border border-gray-50 space-y-6">
+              <div className="flex items-center justify-between">
+                <h4 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2 uppercase">
+                  <RocketLaunchIcon className="w-6 h-6 text-indigo-500" /> Süreç Takİbİ
+                </h4>
+              </div>
+              <div className="space-y-4">
+                <div className="p-6 bg-indigo-50/50 rounded-[2rem] border border-indigo-100 space-y-3">
+                  <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block">GÜNCEL AŞAMA</span>
+                  {getDurumBadge(soru.durum)}
+                </div>
+
+                <div className="grid grid-cols-1 gap-2">
+                  <div className={`p-4 rounded-2xl flex items-center justify-between border transition-all ${soru.dizgici_ad ? 'bg-purple-50 border-purple-100' : 'bg-gray-50 border-gray-100 opacity-40'}`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${soru.dizgici_ad ? 'bg-purple-500 text-white' : 'bg-gray-300 text-white'}`}>
+                        <PaintBrushIcon className="w-4 h-4" />
+                      </div>
+                      <span className={`text-[11px] font-black uppercase tracking-widest ${soru.dizgici_ad ? 'text-purple-700' : 'text-gray-400'}`}>DİZGİ BİRİMİ</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-gray-500 italic">{soru.dizgici_ad || 'Atanmadı'}</span>
+                  </div>
+
+                  <div className={`p-4 rounded-2xl flex items-center justify-between border transition-all ${soru.onay_alanci ? 'bg-emerald-50 border-emerald-100' : (soru.durum === 'alan_incelemede' ? 'bg-orange-50 border-orange-100 ring-2 ring-orange-200 animate-pulse' : 'bg-gray-50 border-gray-100 opacity-40')}`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${soru.onay_alanci ? 'bg-emerald-500 text-white' : (soru.durum === 'alan_incelemede' ? 'bg-orange-500 text-white' : 'bg-gray-300 text-white')}`}>
+                        <MagnifyingGlassPlusIcon className="w-4 h-4" />
+                      </div>
+                      <span className={`text-[11px] font-black uppercase tracking-widest ${soru.onay_alanci ? 'text-emerald-700' : (soru.durum === 'alan_incelemede' ? 'text-orange-700' : 'text-gray-400')}`}>ALAN UZMANI ONAYI</span>
+                    </div>
+                    {soru.onay_alanci ? <CheckCircleIcon className="w-5 h-5 text-emerald-500" /> : <span className="text-[9px] font-black text-gray-300">BEKLENİYOR</span>}
+                  </div>
+
+                  <div className={`p-4 rounded-2xl flex items-center justify-between border transition-all ${soru.onay_dilci ? 'bg-emerald-50 border-emerald-100' : (soru.durum === 'dil_incelemede' ? 'bg-blue-50 border-blue-100 ring-2 ring-blue-200 animate-pulse' : 'bg-gray-50 border-gray-100 opacity-40')}`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${soru.onay_dilci ? 'bg-emerald-500 text-white' : (soru.durum === 'dil_incelemede' ? 'bg-blue-500 text-white' : 'bg-gray-300 text-white')}`}>
+                        <SparklesIcon className="w-4 h-4" />
+                      </div>
+                      <span className={`text-[11px] font-black uppercase tracking-widest ${soru.onay_dilci ? 'text-emerald-700' : (soru.durum === 'dil_incelemede' ? 'text-blue-700' : 'text-gray-400')}`}>DİL UZMANI ONAYI</span>
+                    </div>
+                    {soru.onay_dilci ? <CheckCircleIcon className="w-5 h-5 text-emerald-500" /> : <span className="text-[9px] font-black text-gray-300">BEKLENİYOR</span>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           {/* REVISION NOTES */}
           {/* REVISION NOTES */}
           {((!isBranchTeacher && effectiveRole !== 'dizgici') || revizeNotlari.length > 0 || ['revize_istendi', 'revize_gerekli'].includes(soru.durum)) && (

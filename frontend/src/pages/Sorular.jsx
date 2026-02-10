@@ -714,14 +714,22 @@ export default function Sorular({ scope }) {
 
                             {/* STATUS TRACKER */}
                             {soru.durum !== 'tamamlandi' && (
-                              <div className="flex items-center gap-2 mt-2">
-                                <div className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 ${soru.onay_alanci ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-50 text-gray-300 border border-gray-100'
-                                  }`}>
-                                  {soru.onay_alanci && <CheckCircleIcon className="w-3 h-3" />} Alan Kontrol
+                              <div className="flex flex-col gap-3 mt-4 p-4 bg-gray-50/50 rounded-[1.5rem] border border-gray-100 transition-colors group-hover:bg-white">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">BULUNDUĞU AŞAMA:</span>
+                                    {getDurumBadge(soru.durum)}
+                                  </div>
                                 </div>
-                                <div className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 ${soru.onay_dilci ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-50 text-gray-300 border border-gray-100'
-                                  }`}>
-                                  {soru.onay_dilci && <CheckCircleIcon className="w-3 h-3" />} Dil Kontrol
+                                <div className="flex items-center gap-2">
+                                  <div className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 ${soru.onay_alanci ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-50 text-gray-300 border border-gray-100'
+                                    }`}>
+                                    {soru.onay_alanci ? <CheckCircleIcon className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-current opacity-20" />} ALAN KONTROLÜ
+                                  </div>
+                                  <div className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 ${soru.onay_dilci ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-50 text-gray-300 border border-gray-100'
+                                    }`}>
+                                    {soru.onay_dilci ? <CheckCircleIcon className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-current opacity-20" />} DİL KONTROLÜ
+                                  </div>
                                 </div>
                               </div>
                             )}

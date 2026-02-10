@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useOutletContext, Link, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { soruAPI, bransAPI, userAPI, authAPI } from '../services/api';
-import { translateKey } from '../utils/helpers';
+import { translateKey, getDurumBadge } from '../utils/helpers';
 import {
   ArrowPathIcon,
   ChartBarIcon,
@@ -97,6 +97,7 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
                     }`}>
                     {zorluk > 3 ? 'ZOR' : 'NORMAL'}
                   </span>
+                  {getDurumBadge(soru.durum)}
                 </div>
 
                 <div
