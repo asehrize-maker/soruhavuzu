@@ -406,101 +406,33 @@ export default function Branslar() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar p-10 bg-white grid grid-cols-1 lg:grid-cols-2 gap-10">
-              {/* LEFT: ACTIONS */}
-              <div className="space-y-8">
-                <div className="flex bg-gray-100 p-1 rounded-2xl border border-gray-200">
-                  <button onClick={() => setActiveTab('add')} className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'add' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>SİSTEMDEN ATA</button>
-                  <button onClick={() => setActiveTab('create')} className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'create' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>YENİ KAYIT & ATA</button>
+            <div className="flex-1 overflow-y-auto no-scrollbar p-10 bg-white">
+              {/* PERSONNEL LIST */}
+              <div className="space-y-8 max-w-4xl mx-auto">
+                <div className="flex items-center justify-between border-b border-gray-50 pb-6">
+                  <h4 className="flex items-center gap-3 text-xl font-black text-gray-900 tracking-tight uppercase">
+                    <CheckBadgeIcon className="w-7 h-7 text-green-500" /> Aktif Personel Listesi
+                  </h4>
+                  <div className="bg-gray-100 px-4 py-2 rounded-2xl text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                    Toplam: {getBranchTeachers(selectedBranch.id).length} Kişi
+                  </div>
                 </div>
 
-                {activeTab === 'add' ? (
-                  <div className="space-y-6 animate-fade-in">
-                    <div>
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Personel Seçin</label>
-                      <div className="relative">
-                        <IdentificationIcon className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                        <select
-                          className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-12 pr-6 py-4 text-sm font-bold text-gray-700 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
-                          value={selectedTeacherId}
-                          onChange={e => setSelectedTeacherId(e.target.value)}
-                        >
-                          <option value="">Seçiniz...</option>
-                          {getAvailableTeachers(selectedBranch.id).map(u => (
-                            <option key={u.id} value={u.id}>{u.ad_soyad} ({u.brans_adi || 'Branşsız'})</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Yetki Rolü</label>
-                      <select
-                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold text-gray-700 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
-                        value={selectedRole}
-                        onChange={e => setSelectedRole(e.target.value)}
-                      >
-                        <option value="soru_yazici">Branş Yazarı</option>
-                        <option value="dizgici">Dizgi Personeli</option>
-                        <option value="incelemeci">İncelemeci</option>
-                      </select>
-                    </div>
-                    <button
-                      onClick={handleAssignTeacher}
-                      disabled={!selectedTeacherId || assigningLoading}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-2xl py-4 font-black uppercase tracking-widest text-sm shadow-xl shadow-blue-100 transition-all active:scale-95 disabled:opacity-50"
-                    >
-                      {assigningLoading ? 'İŞLENİYOR...' : 'BRANŞA DAHİL ET'}
-                    </button>
-                  </div>
-                ) : (
-                  <form onSubmit={handleCreateAndAssignTeacher} className="space-y-4 animate-fade-in">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="col-span-2">
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Ad Soyad</label>
-                        <input required className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold text-gray-700" value={newUser.ad_soyad} onChange={e => setNewUser({ ...newUser, ad_soyad: e.target.value })} />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">E-Posta</label>
-                        <div className="relative">
-                          <EnvelopeIcon className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                          <input required type="email" className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-10 pr-4 py-4 text-sm font-bold text-gray-700" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Geçici Şifre</label>
-                        <div className="relative">
-                          <LockClosedIcon className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                          <input required className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-10 pr-4 py-4 text-sm font-bold text-gray-700" value={newUser.sifre} onChange={e => setNewUser({ ...newUser, sifre: e.target.value })} />
-                        </div>
-                      </div>
-                    </div>
-                    <button type="submit" disabled={assigningLoading} className="w-full bg-green-600 hover:bg-green-700 text-white rounded-2xl py-4 font-black uppercase tracking-widest text-sm shadow-xl shadow-green-100 transition-all active:scale-95">
-                      {assigningLoading ? 'PERSONEL KAYDEDİLİYOR...' : 'KAYDET VE ATAMAYI YAP'}
-                    </button>
-                  </form>
-                )}
-              </div>
-
-              {/* RIGHT: LIST */}
-              <div className="space-y-6">
-                <h4 className="flex items-center gap-2 text-sm font-black text-gray-900 tracking-tight uppercase">
-                  <CheckBadgeIcon className="w-5 h-5 text-green-500" /> Aktif Personel Listesi ({getBranchTeachers(selectedBranch.id).length})
-                </h4>
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
                   {getBranchTeachers(selectedBranch.id).map(teacher => (
-                    <div key={teacher.id} className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100 flex items-center justify-between group transition-all hover:bg-white hover:shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-[1rem] bg-gray-100 text-gray-500 flex items-center justify-center font-black text-xs uppercase group-hover:bg-blue-600 group-hover:text-white transition-colors tracking-tighter">
+                    <div key={teacher.id} className="bg-gray-50/50 rounded-2xl p-5 border border-gray-100 flex items-center justify-between group transition-all hover:bg-white hover:shadow-lg hover:shadow-gray-200/50">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gray-100 text-gray-400 group-hover:bg-blue-600 group-hover:text-white flex items-center justify-center font-black text-xs uppercase transition-all shadow-sm">
                           {teacher.ad_soyad.charAt(0)}{teacher.ad_soyad.split(' ').pop().charAt(0)}
                         </div>
                         <div>
-                          <div className="text-sm font-black text-gray-900">{teacher.ad_soyad}</div>
-                          <div className="text-[10px] font-black text-blue-600 uppercase tracking-widest leading-none mt-1 flex items-center gap-1.5">
-                            <span>{teacher.rol === 'soru_yazici' ? 'BRANŞ YAZARI' : teacher.rol === 'dizgici' ? 'DİZGİ EKİBİ' : 'İNCELEMECİ'}</span>
+                          <div className="text-sm font-black text-gray-900 group-hover:text-blue-600 transition-colors">{teacher.ad_soyad}</div>
+                          <div className="text-[9px] font-black text-blue-600 uppercase tracking-widest leading-none mt-1.5 flex items-center gap-2">
+                            <span>{teacher.rol === 'soru_yazici' ? 'YAZAR' : teacher.rol === 'dizgici' ? 'DİZGİ' : 'İNCELEME'}</span>
                             {teacher.ekip_adi && (
                               <>
-                                <span className="text-gray-300">|</span>
-                                <span className="text-gray-400">{teacher.ekip_adi}</span>
+                                <span className="w-1 h-1 rounded-full bg-gray-200" />
+                                <span className="text-gray-400 italic">{teacher.ekip_adi}</span>
                               </>
                             )}
                           </div>
@@ -508,16 +440,20 @@ export default function Branslar() {
                       </div>
                       <button
                         onClick={() => handleRemoveTeacher(teacher.id)}
-                        className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                        className="p-2.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100 shadow-sm border border-transparent hover:border-red-100"
+                        title="Branştan Çıkar"
                       >
-                        <TrashIcon className="w-5 h-5" />
+                        <TrashIcon className="w-5 h-5" strokeWidth={2.5} />
                       </button>
                     </div>
                   ))}
-                  {getBranchTeachers(selectedBranch.id).length === 0 && (
-                    <div className="p-10 text-center border-2 border-dashed border-gray-100 rounded-3xl text-gray-300 font-black uppercase tracking-widest text-xs italic">Hiç personel atanmamış.</div>
-                  )}
                 </div>
+                {getBranchTeachers(selectedBranch.id).length === 0 && (
+                  <div className="p-20 text-center border-2 border-dashed border-gray-100 rounded-[3rem] bg-gray-50/30">
+                    <UserGroupIcon className="w-12 h-12 text-gray-200 mx-auto mb-4" />
+                    <p className="text-gray-400 font-black uppercase tracking-widest text-[10px]">Bu branşa henüz personel atanmamış.</p>
+                  </div>
+                )}
               </div>
             </div>
 
