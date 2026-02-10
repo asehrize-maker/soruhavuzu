@@ -376,7 +376,7 @@ export default function Branslar() {
               <h3 className="text-xl font-black tracking-tight">{branch.name}</h3>
               <div className="flex items-center justify-between">
                 <div className="bg-white/20 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest backdrop-blur-sm">
-                  Yönet
+                  Listele
                 </div>
                 <ChevronRightIcon className="w-5 h-5 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" strokeWidth={3} />
               </div>
@@ -385,60 +385,7 @@ export default function Branslar() {
         ))}
       </div>
 
-      {/* ALL BRANCHES LIST */}
-      <div className="space-y-6 pt-10 border-t border-gray-100">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-black text-gray-900 tracking-tight">Sistemdeki Tüm Branşlar ({branslar.length})</h2>
-          <div className="relative">
-            <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input placeholder="Branş ara..." className="bg-gray-100 border-none rounded-xl pl-9 pr-4 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
-          </div>
-        </div>
 
-        <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 divide-x divide-y divide-gray-50">
-            {branslar.map((branch) => {
-              const isMain = MAIN_BRANCHES.some(mb => branch.brans_adi.toUpperCase().includes(mb.name.split(' ')[0]));
-              return (
-                <div key={branch.id} className="p-6 hover:bg-gray-50/50 transition-colors group">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs ${isMain ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                      {branch.brans_adi.charAt(0)}
-                    </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => { setSelectedBranch(branch); setShowModal(true); }} className="p-2 hover:bg-blue-100 text-blue-600 rounded-lg transition" title="Düzenle">
-                        <PencilSquareIcon className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (confirm(`"${branch.brans_adi}" branşını silmek istediğinize emin misiniz?`)) {
-                            try { await bransAPI.delete(branch.id); loadData(); } catch (e) { alert('Hata: ' + e.message); }
-                          }
-                        }}
-                        className="p-2 hover:bg-red-100 text-red-600 rounded-lg transition"
-                        title="Sil"
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <h5 className="font-black text-gray-900 text-sm tracking-tight mb-1">{branch.brans_adi}</h5>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-4 truncate italic">{branch.aciklama || 'Açıklama yok'}</p>
-                  <button
-                    onClick={() => { setSelectedBranch(branch); setShowModal(true); }}
-                    className="w-full bg-white border border-gray-100 text-[10px] font-black text-blue-600 uppercase py-2 rounded-xl hover:bg-blue-600 hover:text-white transition-all"
-                  >
-                    Atamaları Yönet
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-          {branslar.length === 0 && (
-            <div className="p-20 text-center text-gray-300 font-black uppercase tracking-[0.2em]">Veri Bulunamadı</div>
-          )}
-        </div>
-      </div>
 
       {/* TEACHER ASSIGNMENT MODAL */}
       {showModal && selectedBranch && (
@@ -548,8 +495,14 @@ export default function Branslar() {
                         </div>
                         <div>
                           <div className="text-sm font-black text-gray-900">{teacher.ad_soyad}</div>
-                          <div className="text-[10px] font-black text-blue-600 uppercase tracking-widest leading-none mt-1">
-                            {teacher.rol === 'soru_yazici' ? 'BRANŞ YAZARI' : teacher.rol === 'dizgici' ? 'DİZGİ EKİBİ' : 'İNCELEMECİ'}
+                          <div className="text-[10px] font-black text-blue-600 uppercase tracking-widest leading-none mt-1 flex items-center gap-1.5">
+                            <span>{teacher.rol === 'soru_yazici' ? 'BRANŞ YAZARI' : teacher.rol === 'dizgici' ? 'DİZGİ EKİBİ' : 'İNCELEMECİ'}</span>
+                            {teacher.ekip_adi && (
+                              <>
+                                <span className="text-gray-300">|</span>
+                                <span className="text-gray-400">{teacher.ekip_adi}</span>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
