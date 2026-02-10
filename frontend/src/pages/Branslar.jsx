@@ -144,6 +144,16 @@ export default function Branslar() {
     setActiveTab('add');
   };
 
+  const handleDeleteBranch = async (branchId, branchName) => {
+    if (!confirm(`"${branchName}" branşını ve bu branşa ait tüm verileri silmek istediğinize emin misiniz?`)) return;
+    try {
+      await bransAPI.delete(branchId);
+      await loadData();
+    } catch (error) {
+      alert('Silme işlemi başarısız: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
   const createBranchAuto = async (branchName) => {
     setCreatingBranch(true);
     try {
@@ -262,9 +272,113 @@ export default function Branslar() {
   return (
     <div className="max-w-7xl mx-auto space-y-10 animate-fade-in pb-20">
       {/* HEADER */}
-      <div className="flex items-center gap-3 mb-2">
-        <AcademicCapIcon className="w-10 h-10 text-blue-600" strokeWidth={2.5} />
-        <h1 className="text-4xl font-black text-gray-900 tracking-tight">Branş Personel Listesi</h1>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <AcademicCapIcon className="w-10 h-10 text-blue-600" strokeWidth={2.5} />
+            <h1 className="text-4xl font-black text-gray-900 tracking-tight">Branş Personel Listesi</h1>
+          </div>
+          <p className="text-gray-500 font-medium tracking-tight">Sistemdeki branşları yönetin, kazanımları aktarın ve personel listesini görüntüleyin.</p>
+        </div>
+        <button
+          onClick={() => setShowAddBranchForm(!showAddBranchForm)}
+          className={`flex items-center gap-2 px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl active:scale-95 ${showAddBranchForm ? 'bg-gray-200 text-gray-600' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200'
+            }`}
+        >
+          {showAddBranchForm ? <XMarkIcon className="w-6 h-6" strokeWidth={2.5} /> : <PlusIcon className="w-6 h-6" strokeWidth={3} />}
+          {showAddBranchForm ? 'İPTAL' : 'YENİ BRANŞ'}
+        </button>
+      </div>
+
+      {/* QUICK ACTIONS / IMPORT */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        {/* ADD BRANCH FORM */}
+        {showAddBranchForm && (
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 space-y-6 animate-scale-up">
+            <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+              <BookOpenIcon className="w-6 h-6 text-blue-500" /> Yeni Branş Tanımla
+            </h3>
+            <form onSubmit={handleCreateBranch} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Branş Adı *</label>
+                <input
+                  required
+                  placeholder="Örn: MATEMATİK"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold text-gray-700 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                  value={newBranchData.brans_adi}
+                  onChange={e => setNewBranchData({ ...newBranchData, brans_adi: e.target.value.toUpperCase() })}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Kısa Açıklama</label>
+                <input
+                  placeholder="Branş hakkında not..."
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold text-gray-700 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                  value={newBranchData.aciklama}
+                  onChange={e => setNewBranchData({ ...newBranchData, aciklama: e.target.value })}
+                />
+              </div>
+              <button type="submit" disabled={creatingBranch} className="w-full bg-gray-900 text-white rounded-2xl py-4 font-black text-sm uppercase tracking-widest hover:bg-black transition-all shadow-lg active:scale-95">
+                {creatingBranch ? 'KAYDEDİLİYOR...' : 'SİSTEME KAYDET'}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* EXCEL IMPORT */}
+        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex-1 space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+              <FolderArrowDownIcon className="w-6 h-6 text-green-500" /> Kazanım İçe Aktar (Excel)
+            </h3>
+            <button
+              onClick={downloadTemplate}
+              className="group flex items-center gap-2 px-4 py-2 bg-gray-50 hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 rounded-xl border border-gray-100 transition-all active:scale-95"
+              title="Örnek Excel şablonunu indir"
+            >
+              <ArrowPathIcon className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Örnek Şablon</span>
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Hedef Branş</label>
+              <select
+                className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold text-gray-700 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all appearance-none"
+                value={importBranchId}
+                onChange={(e) => setImportBranchId(e.target.value)}
+              >
+                {branslar.map((b) => (
+                  <option key={b.id} value={b.id}>{b.brans_adi}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Dosya Seçin (.xlsx)</label>
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-700 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+              />
+            </div>
+          </div>
+          <button
+            onClick={handleImport}
+            disabled={importing || !importFile}
+            className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-green-100 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {importing ? <ArrowPathIcon className="w-5 h-5 animate-spin" /> : <CloudArrowUpIcon className="w-5 h-5" />}
+            {importing ? 'AKTARILIYOR...' : 'VERİLERİ İÇE AKTAR'}
+          </button>
+          {importMessage && (
+            <div className={`p-4 rounded-2xl text-[11px] font-bold uppercase tracking-wider flex items-center gap-2 ${importMessage.type === 'success' ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-700 border border-red-100'
+              }`}>
+              {importMessage.type === 'success' ? <CheckBadgeIcon className="w-5 h-5" /> : <XMarkIcon className="w-5 h-5" />}
+              {importMessage.text}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* BRANCH GRID */}
@@ -287,10 +401,24 @@ export default function Branslar() {
               <div className="relative z-10 text-white h-24 flex flex-col justify-between">
                 <h3 className="text-xl font-black tracking-tight uppercase">{branch.brans_adi}</h3>
                 <div className="flex items-center justify-between">
-                  <div className="bg-white/20 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest backdrop-blur-sm">
-                    Kişileri Listele
+                  <div className="flex items-center gap-2">
+                    <div className="bg-white/20 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest backdrop-blur-sm">
+                      Kişileri Listele
+                    </div>
                   </div>
-                  <ChevronRightIcon className="w-5 h-5 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" strokeWidth={3} />
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteBranch(branch.id, branch.brans_adi);
+                      }}
+                      className="p-2 hover:bg-white/20 rounded-xl transition-all"
+                      title="Branşı Sil"
+                    >
+                      <TrashIcon className="w-5 h-5 text-white/70 hover:text-white" strokeWidth={2.5} />
+                    </button>
+                    <ChevronRightIcon className="w-5 h-5 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" strokeWidth={3} />
+                  </div>
                 </div>
               </div>
             </div>
