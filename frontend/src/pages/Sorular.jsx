@@ -189,7 +189,8 @@ export default function Sorular({ scope }) {
         await soruAPI.delete(id);
         setSorular(sorular.filter(s => s.id !== id));
       } catch (err) {
-        alert('Silme işlemi başarısız oldu.');
+        const errorMsg = err.response?.data?.error || err.message || 'Silme işlemi başarısız oldu.';
+        alert('Hata: ' + errorMsg);
       }
     }
   };

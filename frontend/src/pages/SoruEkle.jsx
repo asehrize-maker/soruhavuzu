@@ -40,7 +40,6 @@ export default function SoruEkle() {
     kategori: 'deneme'
   });
   const [components, setComponents] = useState([]);
-  const [draggedItemIndex, setDraggedItemIndex] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [widthMode, setWidthMode] = useState('dar'); // dar (82mm) | genis (169mm)
 
@@ -183,21 +182,6 @@ export default function SoruEkle() {
   const updateComponent = (id, updates) => setComponents(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
   const removeComponent = (id) => setComponents(prev => prev.filter(c => c.id !== id));
 
-  const onDragStart = (e, index) => {
-    setDraggedItemIndex(index);
-    e.dataTransfer.effectAllowed = "move";
-  };
-  const onDragOver = (e, index) => {
-    e.preventDefault();
-    if (draggedItemIndex === null || draggedItemIndex === index) return;
-    const newComps = [...components];
-    const item = newComps[draggedItemIndex];
-    newComps.splice(draggedItemIndex, 1);
-    newComps.splice(index, 0, item);
-    setComponents(newComps);
-    setDraggedItemIndex(index);
-  };
-  const onDragEnd = () => setDraggedItemIndex(null);
   const execCmd = (cmd) => document.execCommand(cmd, false, null);
 
   const normalizeZorluk = (value) => {
@@ -383,16 +367,12 @@ export default function SoruEkle() {
                 {components.map((comp, index) => (
                   <div
                     key={comp.id}
-                    className={`relative group/item rounded p-0 pt-2 transition-all duration-300 ${draggedItemIndex === index ? 'opacity-30 scale-95' : 'hover:bg-blue-50/10'} ${confirmDeleteId === comp.id ? 'ring-2 ring-rose-500 bg-rose-50/50' : ''}`}
+                    className={`relative group/item rounded p-0 pt-2 transition-all duration-300 ${confirmDeleteId === comp.id ? 'ring-2 ring-rose-500 bg-rose-50/50' : 'hover:bg-blue-50/10'}`}
                     style={{
                       float: comp.float || 'none',
                       width: comp.width && comp.subtype === 'secenek' ? `${comp.width}%` : 'auto',
                       marginRight: comp.float === 'left' ? '2%' : '1%'
                     }}
-                    draggable="true"
-                    onDragStart={(e) => onDragStart(e, index)}
-                    onDragOver={(e) => onDragOver(e, index)}
-                    onDragEnd={onDragEnd}
                   >
                     {/* TOOLBAR - Top Right */}
                     <div className={`absolute top-0 right-1 flex items-center gap-1 transition-all z-[60] pt-1 ${confirmDeleteId === comp.id ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100'}`}>
@@ -414,7 +394,6 @@ export default function SoruEkle() {
                         </div>
                       ) : (
                         <div className="flex items-center gap-1">
-                          <div title="Sürükle" className="p-1.5 bg-white/80 backdrop-blur rounded-lg shadow-sm border border-gray-100 text-gray-300 hover:text-blue-500 cursor-grab active:cursor-grabbing"><Bars4Icon className="w-4 h-4" strokeWidth={3} /></div>
                           <button
                             onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(comp.id); }}
                             className="delete-btn p-1.5 bg-white/80 backdrop-blur rounded-lg shadow-sm border border-gray-100 text-rose-300 hover:text-rose-600 active:scale-90 transition-all"

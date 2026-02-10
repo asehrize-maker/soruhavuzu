@@ -1402,22 +1402,51 @@ router.delete('/:id(\\d+)', authenticate, async (req, res, next) => {
         console.log(`Cloudinary dosya silindi: ${soru.dosya_public_id}`, deleteResult);
       } catch (cloudinaryError) {
         console.error(`Cloudinary dosya silinemedi: ${soru.dosya_public_id}`, cloudinaryError);
-        // Cloudinary hatası olsa bile soru silinmeye devam edecek
       }
     }
 
-    // LOGLAMA (Silinmeden önce)
-    await logActivity(pool, req.user.id, 'soru_silme', 'Soruyu sildi', null, { brans_id: soru.brans_id, silinen_soru_id: id });
+    // İŞLEMİ TRANSACTION İÇİNE AL (Foreign key hatalarını önlemek ve atomisite için)
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    await pool.query('DELETE FROM sorular WHERE id = $1', [id]);
+      // 1. İlişkili tüm verileri temizle (CASCADE eksikliği ihtimaline karşı manuel temizlik)
+      await client.query('DELETE FROM mesajlar WHERE soru_id = $1', [id]);
+      await client.query('DELETE FROM soru_goruntulenme WHERE soru_id = $1', [id]);
+      await client.query('DELETE FROM dizgi_gecmisi WHERE soru_id = $1', [id]);
+      await client.query('DELETE FROM soru_versiyonlari WHERE soru_id = $1', [id]);
+      await client.query('DELETE FROM soru_yorumlari WHERE soru_id = $1', [id]);
+      await client.query('DELETE FROM soru_revize_notlari WHERE soru_id = $1', [id]);
 
-    // Auto-reset sequence to MAX(id) to avoid jumping IDs for future inserts
-    await pool.query("SELECT setval('sorular_id_seq', COALESCE((SELECT MAX(id) FROM sorular), 0))");
+      // 2. Aktivite loglarını yetim (orphan) bırak (soru silinse de log kalsın ama referans temizlensin)
+      await client.query('UPDATE aktivite_loglari SET soru_id = NULL WHERE soru_id = $1', [id]);
 
-    res.json({
-      success: true,
-      message: 'Soru silindi ve ID sırası güncellendi'
-    });
+      // 3. LOGLAMA (Silinmeden önce)
+      await logActivity(client, req.user.id, 'soru_silme', 'Soruyu sildi', null, {
+        brans_id: soru.brans_id,
+        silinen_soru_id: id,
+        durum: soru.durum
+      });
+
+      // 4. Soruyu sil
+      await client.query('DELETE FROM sorular WHERE id = $1', [id]);
+
+      // 5. Sequence sıfırla (isteğe bağlı, ama mevcut kodda vardı)
+      await client.query("SELECT setval('sorular_id_seq', COALESCE((SELECT MAX(id) FROM sorular), 0))");
+
+      await client.query('COMMIT');
+
+      res.json({
+        success: true,
+        message: 'Soru ve ilişkili tüm veriler başarıyla silindi'
+      });
+    } catch (transactionError) {
+      await client.query('ROLLBACK');
+      console.error('Soru silme işlem hatası:', transactionError);
+      throw new AppError(`Soru silinemedi: ${transactionError.message}`, 500);
+    } finally {
+      client.release();
+    }
   } catch (error) {
     next(error);
   }

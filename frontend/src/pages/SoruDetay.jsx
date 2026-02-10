@@ -215,7 +215,6 @@ export default function SoruDetay() {
   const [components, setComponents] = useState([]);
   const [widthMode, setWidthMode] = useState('dar');
   const [editMetadata, setEditMetadata] = useState({ zorluk: '3', dogruCevap: '', brans_id: '', kazanim: '' });
-  const [draggedItemIndex, setDraggedItemIndex] = useState(null);
 
   useEffect(() => { if (editMode && branslar.length === 0) bransAPI.getAll().then(res => setBranslar(res.data.data || [])).catch(console.error); }, [editMode]);
   useEffect(() => {
@@ -226,7 +225,7 @@ export default function SoruDetay() {
     if (editMode) loadKazanims();
   }, [editMetadata.brans_id, editMode]);
 
-  const onDragEnd = () => setDraggedItemIndex(null);
+
 
   const soruMetniRef = useRef(null);
   const [selectedText, setSelectedText] = useState('');
@@ -355,7 +354,8 @@ export default function SoruDetay() {
       await soruAPI.delete(id);
       navigate(scope === 'brans' ? '/brans-havuzu' : '/sorular');
     } catch (e) {
-      alert('Silme işlemi başarısız');
+      const errorMsg = e.response?.data?.error || e.message || 'Silme işlemi başarısız';
+      alert('Hata: ' + errorMsg);
     }
   };
 
@@ -698,17 +698,7 @@ export default function SoruDetay() {
   const updateComponent = (id, updates) => setComponents(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
   const removeComponent = (id) => setComponents(prev => prev.filter(c => c.id !== id));
   const execCmd = (cmd) => document.execCommand(cmd, false, null);
-  const onDragStart = (e, index) => { setDraggedItemIndex(index); };
-  const onDragOver = (e, index) => {
-    e.preventDefault();
-    if (draggedItemIndex === null || draggedItemIndex === index) return;
-    const newComps = [...components];
-    const item = newComps[draggedItemIndex];
-    newComps.splice(draggedItemIndex, 1);
-    newComps.splice(index, 0, item);
-    setComponents(newComps);
-    setDraggedItemIndex(index);
-  };
+
 
   const RibbonButton = ({ cmd, label, icon }) => (
     <button onMouseDown={(e) => { e.preventDefault(); execCmd(cmd); }} className="w-9 h-9 flex items-center justify-center hover:bg-white hover:text-blue-600 rounded-xl transition-all shadow-sm active:scale-95">{icon || label}</button>
@@ -1262,12 +1252,10 @@ export default function SoruDetay() {
                       {components.map((comp, index) => (
                         <div
                           key={comp.id}
-                          className={`relative group/item rounded px-1 transition-all ${draggedItemIndex === index ? 'opacity-30' : 'hover:bg-blue-50/20'}`}
+                          className={`relative group/item rounded px-1 transition-all hover:bg-blue-50/20`}
                           style={{ float: comp.float || 'none', width: comp.width && comp.subtype === 'secenek' ? `${comp.width}%` : 'auto', marginRight: comp.float === 'left' ? '2%' : '0' }}
-                          draggable="true" onDragStart={(e) => onDragStart(e, index)} onDragOver={(e) => onDragOver(e, index)}
                         >
                           <div className="absolute -left-8 top-1 flex flex-col gap-1 opacity-0 group-hover/item:opacity-100 transition-all z-[60]">
-                            <div className="p-1.5 text-gray-300 hover:text-blue-600 cursor-grab active:cursor-grabbing"><Bars4Icon className="w-4 h-4" /></div>
                             <button onClick={() => removeComponent(comp.id)} className="p-1.5 text-gray-300 hover:text-rose-500"><TrashIcon className="w-4 h-4" /></button>
                           </div>
                           {comp.type === 'text' ? (
