@@ -1091,7 +1091,7 @@ export default function SoruDetay() {
                               />
                               {/* Label at last point */}
                               <foreignObject x={`${shape.points[shape.points.length - 1].x}%`} y={`${shape.points[shape.points.length - 1].y}%`} width="30" height="30" style={{ overflow: 'visible' }}>
-                                <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
+                                <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{String.fromCharCode(65 + i)}</div>
                               </foreignObject>
                             </svg>
                           )}
@@ -1100,7 +1100,7 @@ export default function SoruDetay() {
                               className={`absolute border-2 border-${colorClass}-500 bg-${colorClass}-500/0 hover:bg-${colorClass}-500/10 transition-colors z-10 pointer-events-auto`}
                               style={{ left: `${shape.x}%`, top: `${shape.y}%`, width: `${shape.w}%`, height: `${shape.h}%` }}
                             >
-                              <div className={`absolute -top-3 -right-3 w-6 h-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[10px] font-black shadow-sm`}>{i + 1}</div>
+                              <div className={`absolute -top-3 -right-3 w-6 h-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[10px] font-black shadow-sm`}>{String.fromCharCode(65 + i)}</div>
                             </div>
                           )}
                           {shape.type === 'line' && (
@@ -1116,7 +1116,7 @@ export default function SoruDetay() {
                               <circle cx={`${shape.x2}%`} cy={`${shape.y2}%`} r="3" fill={colorHex} />
                               {/* Label at the end */}
                               <foreignObject x={`${shape.x2}%`} y={`${shape.y2}%`} width="30" height="30" style={{ overflow: 'visible' }}>
-                                <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
+                                <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{String.fromCharCode(65 + i)}</div>
                               </foreignObject>
                             </svg>
                           )}
@@ -1128,7 +1128,7 @@ export default function SoruDetay() {
                               <div className={`absolute inset-0 rounded-full bg-${colorClass}-400/30 mix-blend-multiply border border-${colorClass}-400/20 shadow-[0_0_10px_rgba(0,0,0,0.1)] transition-all group-hover/marker:bg-${colorClass}-400/50`}></div>
                               <div className={`absolute inset-0 rounded-full animate-ping opacity-20 bg-${colorClass}-400`} style={{ animationDuration: '3s' }}></div>
                               <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-full border border-white bg-${colorClass}-600 text-white shadow-md flex items-center justify-center text-[9px] font-black z-20 scale-90 group-hover/marker:scale-110 transition-transform`}>
-                                {i + 1}
+                                {String.fromCharCode(65 + i)}
                               </div>
                               {/* Tooltip */}
                               <div className="opacity-0 group-hover/marker:opacity-100 absolute bottom-full mb-3 bg-gray-900/95 backdrop-blur-md text-white text-xs p-3 rounded-2xl whitespace-nowrap shadow-2xl transition-all translate-y-2 group-hover/marker:translate-y-0 pointer-events-none z-[100] border border-white/10">
@@ -1377,19 +1377,50 @@ export default function SoruDetay() {
               </div>
 
               <div className="space-y-4 max-h-[500px] overflow-y-auto no-scrollbar pr-1">
-                {revizeNotlari.map((not, i) => (
-                  <div key={not.id} className="group p-5 bg-gray-50 rounded-[1.5rem] border border-gray-100 space-y-3 relative hover:bg-white hover:shadow-lg transition-all">
-                    <div className="flex justify-between items-start">
-                      <div className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border ${not.inceleme_turu === 'alanci' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
-                        {not.inceleme_turu === 'alanci' ? 'ALAN UZMANI' : 'DİL UZMANI'}
+                {revizeNotlari.map((not, i) => {
+                  const colorClass = not.inceleme_turu === 'alanci' ? 'blue' : 'emerald';
+                  return (
+                    <div key={not.id} className="group p-5 bg-gray-50 rounded-[1.5rem] border border-gray-100 space-y-4 relative hover:bg-white hover:shadow-lg transition-all">
+                      <div className="flex justify-between items-start">
+                        <div className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border ${not.inceleme_turu === 'alanci' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+                          {not.inceleme_turu === 'alanci' ? 'ALAN UZMANI' : 'DİL UZMANI'}
+                        </div>
+                        {(isAdmin || user?.id === not.kullanici_id) && (
+                          <button onClick={() => handleDeleteRevizeNot(not.id)} className="p-1.5 bg-white text-gray-300 hover:text-rose-500 rounded-lg transition-colors border border-gray-100 active:scale-95">
+                            <XMarkIcon className="w-4 h-4" strokeWidth={3} />
+                          </button>
+                        )}
                       </div>
-                      {(isAdmin || user?.id === not.kullanici_id) && <button onClick={() => handleDeleteRevizeNot(not.id)} className="p-1.5 bg-white text-gray-300 hover:text-rose-500 rounded-lg transition-colors border border-gray-100 active:scale-95"><XMarkIcon className="w-4 h-4" strokeWidth={3} /></button>}
+
+                      {not.secilen_metin?.startsWith('IMG##') ? (
+                        <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm transition-all group-hover:border-blue-100">
+                          <div className={`w-8 h-8 shrink-0 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-xs font-black shadow-lg shadow-${colorClass}-100`}>
+                            {String.fromCharCode(65 + i)}
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">GÖRSEL ÜZERİNDE</p>
+                            <p className="text-[10px] font-black text-gray-700 uppercase tracking-tight">
+                              {not.secilen_metin.includes('BOX:') ? 'ALAN KUTUCUĞU' :
+                                not.secilen_metin.includes('LINE:') ? 'ALT ÇİZGİ' : 'İŞARETLEME'}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5">
+                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">SEÇİLEN METİN</span>
+                          <p className="text-[11px] font-bold text-gray-400 italic bg-white/50 p-2 rounded-xl border border-gray-50 line-clamp-2">"{not.secilen_metin}"</p>
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">REVİZE NOTU</span>
+                        <p className="text-xs font-black text-gray-900 leading-relaxed font-sans bg-white p-4 rounded-xl border border-gray-50 shadow-inner group-hover:border-blue-50 transition-colors">{not.not_metni}</p>
+                      </div>
+
+                      <div className={`absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:scale-110 transition-transform text-${colorClass}-600`}><FlagIcon className="w-12 h-12" /></div>
                     </div>
-                    <p className="text-[11px] font-bold text-gray-400 italic bg-white/50 p-2 rounded-xl border border-gray-50 line-clamp-2">"{not.secilen_metin}"</p>
-                    <p className="text-xs font-black text-gray-900 leading-relaxed font-sans">{not.not_metni}</p>
-                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:scale-110 transition-transform"><FlagIcon className="w-12 h-12" /></div>
-                  </div>
-                ))}
+                  );
+                })}
                 {revizeNotlari.length === 0 && <div className="py-10 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest opacity-60 italic">HATA İŞARETLENMEDİ.</div>}
               </div>
             </div>
