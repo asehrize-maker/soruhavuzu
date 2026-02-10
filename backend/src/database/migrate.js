@@ -6,7 +6,7 @@ import { addDosyaFields } from './migrations/005_dosya_ekleme.js';
 import { updateDurumConstraint } from './migrations/006_durum_constraint.js';
 import { addSoruDetaylari } from './migrations/007_soru_detaylari.js';
 import { addSoruIncelemeVeVersiyon } from './migrations/008_soru_inceleme_versiyon.js';
-import { seedSivasEkibi } from './migrations/009_sivas_ekibi_seed.js';
+// import { seedSivasEkibi } from './migrations/009_sivas_ekibi_seed.js'; // Disabled to prevent re-creation
 import { updateWorkflowStatus } from './migrations/010_update_workflow_status.js';
 import { doubleApprovalSystem } from './migrations/011_double_approval_system.js';
 import { incelemeciRolVeAltRoller } from './migrations/012_incelemeci_rol_altroller.js';
@@ -205,12 +205,14 @@ const createTables = async () => {
     // Soru inceleme ve versiyon sistemi
     await addSoruIncelemeVeVersiyon();
 
+    /* 
     // Sivas Ekibi ve Temel Branşları Seed Et
     try {
       await seedSivasEkibi();
     } catch (e) {
       console.warn('⚠️ Seed Sivas Ekibi skipped (likely already exists or minor DB issue):', e.message);
     }
+    */
 
     // İş akışı durumlarını güncelle (V2)
     // İş akışı durumlarını güncelle (V2)
