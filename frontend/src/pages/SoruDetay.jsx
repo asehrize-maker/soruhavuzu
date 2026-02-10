@@ -1091,7 +1091,7 @@ export default function SoruDetay() {
                               />
                               {/* Label at last point */}
                               <foreignObject x={`${shape.points[shape.points.length - 1].x}%`} y={`${shape.points[shape.points.length - 1].y}%`} width="30" height="30" style={{ overflow: 'visible' }}>
-                                <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{String.fromCharCode(65 + i)}</div>
+                                <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
                               </foreignObject>
                             </svg>
                           )}
@@ -1100,7 +1100,7 @@ export default function SoruDetay() {
                               className={`absolute border-2 border-${colorClass}-500 bg-${colorClass}-500/0 hover:bg-${colorClass}-500/10 transition-colors z-10 pointer-events-auto`}
                               style={{ left: `${shape.x}%`, top: `${shape.y}%`, width: `${shape.w}%`, height: `${shape.h}%` }}
                             >
-                              <div className={`absolute -top-3 -right-3 w-6 h-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[10px] font-black shadow-sm`}>{String.fromCharCode(65 + i)}</div>
+                              <div className={`absolute -top-3 -right-3 w-6 h-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[10px] font-black shadow-sm`}>{i + 1}</div>
                             </div>
                           )}
                           {shape.type === 'line' && (
@@ -1116,7 +1116,7 @@ export default function SoruDetay() {
                               <circle cx={`${shape.x2}%`} cy={`${shape.y2}%`} r="3" fill={colorHex} />
                               {/* Label at the end */}
                               <foreignObject x={`${shape.x2}%`} y={`${shape.y2}%`} width="30" height="30" style={{ overflow: 'visible' }}>
-                                <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{String.fromCharCode(65 + i)}</div>
+                                <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
                               </foreignObject>
                             </svg>
                           )}
@@ -1128,7 +1128,7 @@ export default function SoruDetay() {
                               <div className={`absolute inset-0 rounded-full bg-${colorClass}-400/30 mix-blend-multiply border border-${colorClass}-400/20 shadow-[0_0_10px_rgba(0,0,0,0.1)] transition-all group-hover/marker:bg-${colorClass}-400/50`}></div>
                               <div className={`absolute inset-0 rounded-full animate-ping opacity-20 bg-${colorClass}-400`} style={{ animationDuration: '3s' }}></div>
                               <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-full border border-white bg-${colorClass}-600 text-white shadow-md flex items-center justify-center text-[9px] font-black z-20 scale-90 group-hover/marker:scale-110 transition-transform`}>
-                                {String.fromCharCode(65 + i)}
+                                {i + 1}
                               </div>
                               {/* Tooltip */}
                               <div className="opacity-0 group-hover/marker:opacity-100 absolute bottom-full mb-3 bg-gray-900/95 backdrop-blur-md text-white text-xs p-3 rounded-2xl whitespace-nowrap shadow-2xl transition-all translate-y-2 group-hover/marker:translate-y-0 pointer-events-none z-[100] border border-white/10">
@@ -1379,6 +1379,30 @@ export default function SoruDetay() {
               <div className="space-y-4 max-h-[500px] overflow-y-auto no-scrollbar pr-1">
                 {revizeNotlari.map((not, i) => {
                   const colorClass = not.inceleme_turu === 'alanci' ? 'blue' : 'emerald';
+
+                  // Extract coordinates for preview
+                  let previewStyle = {};
+                  if (not.secilen_metin?.startsWith('IMG##')) {
+                    const meta = not.secilen_metin.replace('IMG##', '');
+                    let px, py, pw, ph;
+                    if (meta.startsWith('BOX:')) {
+                      [px, py, pw, ph] = meta.replace('BOX:', '').split(',').map(Number);
+                    } else if (meta.startsWith('LINE:')) {
+                      const [lx1, ly1, lx2, ly2] = meta.replace('LINE:', '').split(',').map(Number);
+                      px = Math.min(lx1, lx2); py = Math.min(ly1, ly2);
+                      pw = Math.max(Math.abs(lx2 - lx1), 5); ph = Math.max(Math.abs(ly2 - ly1), 5);
+                    } else {
+                      const coords = meta.replace('POINT:', '').split(',').map(Number);
+                      px = coords[0] - 10; py = coords[1] - 10; pw = 20; ph = 20;
+                    }
+
+                    const zoom = 100 / Math.max(pw, ph, 15);
+                    previewStyle = {
+                      transform: `scale(${zoom})`,
+                      transformOrigin: `${px + pw / 2}% ${py + ph / 2}%`
+                    };
+                  }
+
                   return (
                     <div key={not.id} className="group p-5 bg-gray-50 rounded-[1.5rem] border border-gray-100 space-y-4 relative hover:bg-white hover:shadow-lg transition-all">
                       <div className="flex justify-between items-start">
@@ -1393,16 +1417,29 @@ export default function SoruDetay() {
                       </div>
 
                       {not.secilen_metin?.startsWith('IMG##') ? (
-                        <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm transition-all group-hover:border-blue-100">
-                          <div className={`w-8 h-8 shrink-0 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-xs font-black shadow-lg shadow-${colorClass}-100`}>
-                            {String.fromCharCode(65 + i)}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
+                            <div className={`w-8 h-8 shrink-0 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-xs font-black shadow-lg shadow-${colorClass}-100`}>
+                              {i + 1}
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">GÖRSEL ÜZERİNDE</p>
+                              <p className="text-[10px] font-black text-gray-700 uppercase tracking-tight">
+                                {not.secilen_metin.includes('BOX:') ? 'ALAN KUTUCUĞU' :
+                                  not.secilen_metin.includes('LINE:') ? 'ALT ÇİZGİ' : 'İŞARETLEME'}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">GÖRSEL ÜZERİNDE</p>
-                            <p className="text-[10px] font-black text-gray-700 uppercase tracking-tight">
-                              {not.secilen_metin.includes('BOX:') ? 'ALAN KUTUCUĞU' :
-                                not.secilen_metin.includes('LINE:') ? 'ALT ÇİZGİ' : 'İŞARETLEME'}
-                            </p>
+
+                          {/* Cropped Preview */}
+                          <div className="relative h-32 w-full rounded-2xl overflow-hidden border border-gray-100 bg-white group/preview">
+                            <img
+                              src={soru.final_png_url}
+                              className="absolute w-full h-full object-contain pointer-events-none"
+                              style={previewStyle}
+                              alt="Crop"
+                            />
+                            <div className="absolute inset-0 bg-black/5 group-hover/preview:bg-transparent transition-colors"></div>
                           </div>
                         </div>
                       ) : (
