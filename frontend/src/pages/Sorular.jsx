@@ -21,7 +21,8 @@ import {
   ArchiveBoxArrowDownIcon,
   PrinterIcon,
   XMarkIcon,
-  PencilSquareIcon
+  PencilSquareIcon,
+  CheckBadgeIcon
 } from '@heroicons/react/24/outline';
 
 export default function Sorular({ scope }) {
@@ -550,6 +551,9 @@ export default function Sorular({ scope }) {
                     </button>
                     <button onClick={() => handleBulkUpdateStatus('alan_incelemede', 'Alan İncelemeye Gönder')} className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-100 transition-all flex items-center gap-2 active:scale-95">
                       <MagnifyingGlassPlusIcon className="w-4 h-4" strokeWidth={2.5} /> ALAN İNCELEME
+                    </button>
+                    <button onClick={() => handleBulkUpdateStatus('dil_incelemede', 'Dil İncelemeye Gönder')} className="bg-cyan-600 hover:bg-cyan-700 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-cyan-100 transition-all flex items-center gap-2 active:scale-95">
+                      <CheckBadgeIcon className="w-4 h-4" strokeWidth={2.5} /> DİL İNCELEME
                     </button>
                   </>
                 )}
