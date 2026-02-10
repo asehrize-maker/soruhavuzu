@@ -1396,10 +1396,13 @@ export default function SoruDetay() {
                       px = coords[0] - 10; py = coords[1] - 10; pw = 20; ph = 20;
                     }
 
-                    const zoom = 100 / Math.max(pw, ph, 15);
+                    const zoom = 100 / Math.max(pw, ph, 10);
                     previewStyle = {
-                      transform: `scale(${zoom})`,
-                      transformOrigin: `${px + pw / 2}% ${py + ph / 2}%`
+                      width: `${zoom * 100}%`,
+                      left: `${50 - (px + pw / 2) * zoom}%`,
+                      top: `${50 - (py + ph / 2) * zoom}%`,
+                      position: 'absolute',
+                      maxWidth: 'none'
                     };
                   }
 
@@ -1432,14 +1435,14 @@ export default function SoruDetay() {
                           </div>
 
                           {/* Cropped Preview */}
-                          <div className="relative h-32 w-full rounded-2xl overflow-hidden border border-gray-100 bg-white group/preview">
+                          <div className="relative h-40 w-full rounded-2xl overflow-hidden border border-gray-100 bg-white group/preview">
                             <img
                               src={soru.final_png_url}
-                              className="absolute w-full h-full object-contain pointer-events-none"
+                              className="absolute pointer-events-none"
                               style={previewStyle}
                               alt="Crop"
                             />
-                            <div className="absolute inset-0 bg-black/5 group-hover/preview:bg-transparent transition-colors"></div>
+                            <div className="absolute inset-0 ring-1 ring-inset ring-black/5 pointer-events-none"></div>
                           </div>
                         </div>
                       ) : (
