@@ -142,14 +142,14 @@ router.get('/', authenticate, async (req, res, next) => {
 
     let query = `
       SELECT s.*, 
-             b.brans_adi, b.ekip_id,
+             b.brans_adi, b.ekip_id as brans_ekip_id,
              e.ekip_adi,
              k.ad_soyad as olusturan_ad,
              d.ad_soyad as dizgici_ad
       FROM sorular s
       LEFT JOIN branslar b ON s.brans_id = b.id
-      LEFT JOIN ekipler e ON b.ekip_id = e.id
       LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
+      LEFT JOIN ekipler e ON k.ekip_id = e.id
       LEFT JOIN kullanicilar d ON s.dizgici_id = d.id
       WHERE 1=1
     `;
@@ -275,14 +275,14 @@ router.get('/:id(\\d+)', authenticate, async (req, res, next) => {
 
     const result = await pool.query(`
       SELECT s.*, 
-             b.brans_adi, b.ekip_id,
+             b.brans_adi, b.ekip_id as brans_ekip_id,
              e.ekip_adi,
              k.ad_soyad as olusturan_ad, k.email as olusturan_email,
              d.ad_soyad as dizgici_ad, d.email as dizgici_email
       FROM sorular s
       LEFT JOIN branslar b ON s.brans_id = b.id
-      LEFT JOIN ekipler e ON b.ekip_id = e.id
       LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
+      LEFT JOIN ekipler e ON k.ekip_id = e.id
       LEFT JOIN kullanicilar d ON s.dizgici_id = d.id
       WHERE s.id = $1
     `, [id]);
@@ -1632,7 +1632,6 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
       LIMIT 10
     `, params);
 
-    // Branş istatistikleri
     const bransStats = await pool.query(`
       SELECT
         b.id, b.brans_adi, COALESCE(e.ekip_adi, 'Ekipsiz') as ekip_adi,
@@ -1644,8 +1643,9 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
         COUNT(CASE WHEN s.durum = 'tamamlandi' THEN 1 END) as tamamlandi
       FROM branslar b
       LEFT JOIN sorular s ON b.id = s.brans_id
-      LEFT JOIN ekipler e ON b.ekip_id = e.id
-      ${ekipId ? 'WHERE b.ekip_id = $1' : ''}
+      LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
+      LEFT JOIN ekipler e ON k.ekip_id = e.id
+      ${ekipId ? 'WHERE k.ekip_id = $1' : ''}
       GROUP BY b.id, b.brans_adi, e.ekip_adi
       HAVING COUNT(s.id) > 0
       ORDER BY b.brans_adi
@@ -1756,24 +1756,26 @@ router.get('/rapor', authenticate, authorize(['admin', 'koordinator']), async (r
         COUNT(CASE WHEN durum = 'dizgide' THEN 1 END) as devam_eden,
         COUNT(CASE WHEN zorluk_seviyesi IN(4, 5) THEN 1 END) as zor
       FROM sorular s
+      LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
       WHERE s.olusturulma_tarihi >= $1::date AND s.olusturulma_tarihi < ($2::date + interval '1 day')
-      ${ekipId ? `AND s.brans_id IN (SELECT id FROM branslar WHERE ekip_id = ${pLimit})` : ''}
+      ${ekipId ? `AND k.ekip_id = ${pLimit}` : ''}
     `;
 
     // Branş bazında detaylı rapor
     const bransQuery = `
       SELECT
-        b.brans_adi, e.ekip_adi,
+        b.brans_adi, COALESCE(e.ekip_adi, 'Ekipsiz') as ekip_adi,
         COUNT(s.id) as toplam_soru,
         COUNT(CASE WHEN s.durum = 'tamamlandi' THEN 1 END) as tamamlanan,
         COUNT(CASE WHEN s.durum = 'beklemede' THEN 1 END) as bekleyen,
         COUNT(CASE WHEN s.durum = 'dizgide' THEN 1 END) as devam_eden
       FROM branslar b
-      LEFT JOIN ekipler e ON b.ekip_id = e.id
       LEFT JOIN sorular s ON b.id = s.brans_id 
         AND s.olusturulma_tarihi >= $1::date 
         AND s.olusturulma_tarihi < ($2::date + interval '1 day')
-      ${ekipId ? `WHERE b.ekip_id = ${pLimit}` : ''}
+      LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
+      LEFT JOIN ekipler e ON k.ekip_id = e.id
+      ${ekipId ? `WHERE k.ekip_id = ${pLimit}` : ''}
       GROUP BY b.id, b.brans_adi, e.ekip_adi
       ORDER BY toplam_soru DESC
     `;
@@ -1946,8 +1948,8 @@ router.get('/stats/inceleme-detayli', authenticate, async (req, res, next) => {
       COUNT(s.id) as kategori_toplam
     FROM sorular s
     JOIN branslar b ON s.brans_id = b.id
-    LEFT JOIN ekipler e ON b.ekip_id = e.id
     LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
+    LEFT JOIN ekipler e ON k.ekip_id = e.id
     WHERE 1=1
       ${req.user.rol !== 'admin' ? `AND (b.ekip_id = ${req.user.ekip_id || -1} OR k.ekip_id = ${req.user.ekip_id || -1})` : ''}
     GROUP BY e.id, e.ekip_adi, b.id, b.brans_adi, s.kategori
@@ -1981,7 +1983,7 @@ s.*,
       FROM sorular s
       LEFT JOIN kullanicilar u ON s.olusturan_kullanici_id = u.id
       LEFT JOIN branslar b ON s.brans_id = b.id
-      LEFT JOIN ekipler e ON b.ekip_id = e.id
+      LEFT JOIN ekipler e ON u.ekip_id = e.id
       LEFT JOIN kullanicilar d ON s.dizgici_id = d.id
       ORDER BY s.olusturulma_tarihi DESC
     `;
