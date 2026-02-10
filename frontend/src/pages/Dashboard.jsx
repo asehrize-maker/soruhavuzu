@@ -264,18 +264,17 @@ export default function Dashboard() {
           brans_adi: item.brans_adi,
           teams: [],
           total: {
-            soru: 0, beklemede: 0, incelemede: 0, revize: 0,
-            dizgide: 0, onay: 0, tamamlandi: 0
+            soru: 0, taslak: 0, dizgi: 0, alan_inceleme: 0,
+            dil_inceleme: 0, tamamlandi: 0
           }
         };
       }
       groups[id].teams.push(item);
       groups[id].total.soru += Number(item.soru_sayisi || 0);
-      groups[id].total.beklemede += Number(item.beklemede || 0);
-      groups[id].total.incelemede += Number(item.incelemede || 0);
-      groups[id].total.revize += Number(item.revize || 0);
-      groups[id].total.dizgide += Number(item.dizgide || 0);
-      groups[id].total.onay += Number(item.onay_bekleyen || 0);
+      groups[id].total.taslak += Number(item.taslak || 0);
+      groups[id].total.dizgi += Number(item.dizgi || 0);
+      groups[id].total.alan_inceleme += Number(item.alan_inceleme || 0);
+      groups[id].total.dil_inceleme += Number(item.dil_inceleme || 0);
       groups[id].total.tamamlandi += Number(item.tamamlandi || 0);
     });
 
@@ -381,24 +380,24 @@ export default function Dashboard() {
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">📊 İş Akış Özeti</h2>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
-              <Link to="/brans-havuzu?tab=taslaklar&durum=beklemede" className="p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-300 transition group">
-                <p className="text-xs font-bold text-gray-400 group-hover:text-blue-500 transition">TASLAK</p>
-                <p className="text-2xl font-black text-gray-700">{detayliStats?.genel?.beklemede || 0}</p>
+              <Link to="/brans-havuzu?tab=taslaklar" className="p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-300 transition group">
+                <p className="text-xs font-bold text-gray-400 group-hover:text-blue-500 transition uppercase">TASLAK</p>
+                <p className="text-2xl font-black text-gray-700">{detayliStats?.genel?.taslak || 0}</p>
               </Link>
-              <Link to="/brans-havuzu?tab=taslaklar" className="p-4 bg-yellow-50 rounded-xl border border-yellow-200 hover:border-yellow-400 transition group">
-                <p className="text-xs font-bold text-yellow-600">İNCELEME</p>
-                <p className="text-2xl font-black text-yellow-700">{(parseInt(detayliStats?.genel?.inceleme_bekliyor) || 0) + (parseInt(detayliStats?.genel?.incelemede) || 0)}</p>
+              <Link to="/dizgi-yonetimi" className="p-4 bg-orange-50 rounded-xl border border-orange-200 hover:border-orange-400 transition group">
+                <p className="text-xs font-bold text-orange-600 uppercase">DİZGİ</p>
+                <p className="text-2xl font-black text-orange-700">{detayliStats?.genel?.dizgi || 0}</p>
               </Link>
-              <Link to="/brans-havuzu?tab=taslaklar&durum=revize_istendi" className="p-4 bg-red-50 rounded-xl border border-red-200 hover:border-red-400 transition group">
-                <p className="text-xs font-bold text-red-600">REVİZE</p>
-                <p className="text-2xl font-black text-red-700">{detayliStats?.genel?.revize_istendi || 0}</p>
+              <Link to="/dashboard?mode=alanci" className="p-4 bg-blue-50 rounded-xl border border-blue-200 hover:border-blue-400 transition group">
+                <p className="text-xs font-bold text-blue-600 uppercase">ALAN İNCELEME</p>
+                <p className="text-2xl font-black text-blue-700">{detayliStats?.genel?.alan_inceleme || 0}</p>
               </Link>
-              <Link to="/brans-havuzu?tab=taslaklar&durum=dizgi_bekliyor" className="p-4 bg-orange-50 rounded-xl border border-orange-200 hover:border-orange-400 transition group">
-                <p className="text-xs font-bold text-orange-600">DİZGİ</p>
-                <p className="text-2xl font-black text-orange-700">{(parseInt(detayliStats?.genel?.dizgi_bekliyor) || 0) + (parseInt(detayliStats?.genel?.dizgide) || 0)}</p>
+              <Link to="/dashboard?mode=dilci" className="p-4 bg-purple-50 rounded-xl border border-purple-200 hover:border-purple-400 transition group">
+                <p className="text-xs font-bold text-purple-600 uppercase">DİL İNCELEME</p>
+                <p className="text-2xl font-black text-purple-700">{detayliStats?.genel?.dil_inceleme || 0}</p>
               </Link>
               <Link to="/sorular?durum=tamamlandi" className="p-4 bg-green-50 rounded-xl border border-green-200 hover:border-green-400 transition group">
-                <p className="text-xs font-bold text-green-600">TAMAMLANAN</p>
+                <p className="text-xs font-bold text-green-600 uppercase">TAMAMLANAN</p>
                 <p className="text-2xl font-black text-green-700">{detayliStats?.genel?.tamamlandi || 0}</p>
               </Link>
             </div>
@@ -417,12 +416,11 @@ export default function Dashboard() {
                   <tr>
                     <th className="px-4 py-3 rounded-l-lg cursor-help" title="Alt ekipleri görmek için branş ismine tıklayın">Branş (Detay)</th>
                     <th className="px-4 py-3 text-center">Toplam</th>
-                    <th className="px-4 py-3 text-center text-gray-400">Taslak</th>
-                    <th className="px-4 py-3 text-center text-blue-600">İnceleme</th>
-                    <th className="px-4 py-3 text-center text-red-600">Revize</th>
-                    <th className="px-4 py-3 text-center text-orange-600">Dizgi</th>
-                    <th className="px-4 py-3 text-center text-emerald-600">Onay</th>
-                    <th className="px-4 py-3 rounded-r-lg text-center text-green-700">Tamamlanan</th>
+                    <th className="px-4 py-3 text-center text-gray-400 uppercase">Taslak</th>
+                    <th className="px-4 py-3 text-center text-orange-600 uppercase">Dizgi</th>
+                    <th className="px-4 py-3 text-center text-blue-600 uppercase">Alan İncele</th>
+                    <th className="px-4 py-3 text-center text-purple-600 uppercase">Dil İncele</th>
+                    <th className="px-4 py-3 rounded-r-lg text-center text-green-700 uppercase">Tamamlanan</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -438,11 +436,10 @@ export default function Dashboard() {
                           {group.brans_adi}
                         </td>
                         <td className="px-4 py-3 text-center font-bold bg-gray-50/50">{group.total.soru}</td>
-                        <td className="px-4 py-3 text-center text-gray-400">{group.total.beklemede || '-'}</td>
-                        <td className="px-4 py-3 text-center text-blue-600 font-medium">{group.total.incelemede || '-'}</td>
-                        <td className="px-4 py-3 text-center text-red-600 font-medium">{group.total.revize || '-'}</td>
-                        <td className="px-4 py-3 text-center text-orange-600 font-medium">{group.total.dizgide || '-'}</td>
-                        <td className="px-4 py-3 text-center text-emerald-600 font-medium">{group.total.onay || '-'}</td>
+                        <td className="px-4 py-3 text-center text-gray-400">{group.total.taslak || '-'}</td>
+                        <td className="px-4 py-3 text-center text-orange-600 font-medium">{group.total.dizgi || '-'}</td>
+                        <td className="px-4 py-3 text-center text-blue-600 font-medium">{group.total.alan_inceleme || '-'}</td>
+                        <td className="px-4 py-3 text-center text-purple-600 font-medium">{group.total.dil_inceleme || '-'}</td>
                         <td className="px-4 py-3 text-center text-green-700 font-bold bg-green-50/30">{group.total.tamamlandi || '-'}</td>
                       </tr>
                       {expandedBranch === group.id && (
@@ -452,11 +449,10 @@ export default function Dashboard() {
                               <span>↳</span> {team.ekip_adi}
                             </td>
                             <td className="px-4 py-2 text-center text-gray-500">{team.soru_sayisi}</td>
-                            <td className="px-4 py-2 text-center text-gray-400 opacity-70">{team.beklemede || '-'}</td>
-                            <td className="px-4 py-2 text-center text-blue-500 opacity-70">{team.incelemede || '-'}</td>
-                            <td className="px-4 py-2 text-center text-red-500 opacity-70">{team.revize || '-'}</td>
-                            <td className="px-4 py-2 text-center text-orange-500 opacity-70">{team.dizgide || '-'}</td>
-                            <td className="px-4 py-2 text-center text-emerald-500 opacity-70">{team.onay_bekleyen || '-'}</td>
+                            <td className="px-4 py-2 text-center text-gray-400 opacity-70">{team.taslak || '-'}</td>
+                            <td className="px-4 py-2 text-center text-orange-500 opacity-70">{team.dizgi || '-'}</td>
+                            <td className="px-4 py-2 text-center text-blue-500 opacity-70">{team.alan_inceleme || '-'}</td>
+                            <td className="px-4 py-2 text-center text-purple-500 opacity-70">{team.dil_inceleme || '-'}</td>
                             <td className="px-4 py-2 text-center text-green-600 opacity-70">{team.tamamlandi || '-'}</td>
                           </tr>
                         ))
