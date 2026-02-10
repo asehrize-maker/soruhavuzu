@@ -1593,12 +1593,16 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
 // Admin veya Koordinatör detaylı istatistikler
 router.get('/stats/detayli', authenticate, async (req, res, next) => {
   try {
+    const isAdmin = req.user.rol === 'admin';
     const isKoordinator = req.user.rol === 'koordinator';
-    if (req.user.rol !== 'admin' && !isKoordinator) {
+    if (!isAdmin && !isKoordinator) {
       throw new AppError('Bu işlem için yetkiniz yok', 403);
     }
 
     const ekipId = isKoordinator ? req.user.ekip_id : null;
+    const whereClause = ekipId ? 'WHERE (b.ekip_id = $1 OR k.ekip_id = $1)' : '';
+    const params = ekipId ? [ekipId] : [];
+
     // Genel istatistikler
     let genelStats;
     if (isAdmin) {
