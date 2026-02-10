@@ -1549,15 +1549,16 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
       // Admin: Global istatistikler
       query = `
       SELECT
-      COUNT(*) as toplam,
+        COUNT(*) as toplam,
         COUNT(*) FILTER(WHERE durum = 'beklemede') as beklemede,
         COUNT(*) FILTER(WHERE durum IN ('inceleme_bekliyor', 'incelemede', 'alan_incelemede', 'dil_incelemede', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam')) as inceleme_bekliyor,
-        COUNT(*) FILTER(WHERE durum IN ('dizgi_bekliyor', 'dizgi_tamam')) as dizgi_bekliyor,
+        COUNT(*) FILTER(WHERE durum IN ('dizgi_bekliyor', 'dizgide')) as dizgi_bekliyor,
+        COUNT(*) FILTER(WHERE durum IN ('dizgi_tamam', 'revize_istendi', 'revize_gerekli')) as dizgi_sonrasi,
         COUNT(*) FILTER(WHERE durum = 'dizgide') as dizgide,
         COUNT(*) FILTER(WHERE durum = 'tamamlandi') as tamamlandi,
         COUNT(*) FILTER(WHERE durum = 'revize_gerekli' OR durum = 'revize_istendi') as revize_gerekli
-        FROM sorular
-        `;
+      FROM sorular
+      `;
     }
 
     const result = await pool.query(query, params);
@@ -1598,34 +1599,46 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
     }
 
     const ekipId = isKoordinator ? req.user.ekip_id : null;
-    const whereClause = ekipId ? 'WHERE (b.ekip_id = $1 OR k.ekip_id = $1)' : '';
-    const params = ekipId ? [ekipId] : [];
-
     // Genel istatistikler
-    const genelStats = await pool.query(`
-      SELECT
-        COUNT(*) as toplam_soru,
-        COUNT(CASE WHEN durum = 'beklemede' THEN 1 END) as taslak,
-        COUNT(CASE WHEN durum IN ('dizgi_bekliyor', 'dizgide') THEN 1 END) as dizgi,
-        COUNT(CASE WHEN durum IN ('dizgi_tamam', 'revize_istendi', 'revize_gerekli') THEN 1 END) as dizgi_sonrasi,
-        COUNT(CASE WHEN durum IN ('alan_incelemede', 'alan_onaylandi', 'inceleme_bekliyor', 'incelemede') AND onay_alanci = false THEN 1 END) as alan_inceleme,
-        COUNT(CASE WHEN durum IN ('dil_incelemede', 'dil_onaylandi', 'inceleme_bekliyor', 'incelemede') AND onay_dilci = false THEN 1 END) as dil_inceleme,
-        COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlandi,
-        COUNT(CASE WHEN zorluk_seviyesi IN(1, 2) THEN 1 END) as kolay,
-        COUNT(CASE WHEN zorluk_seviyesi = 3 THEN 1 END) as orta,
-        COUNT(CASE WHEN zorluk_seviyesi IN(4, 5) THEN 1 END) as zor,
-        COUNT(CASE WHEN zorluk_seviyesi = 1 THEN 1 END) as seviye1,
-        COUNT(CASE WHEN zorluk_seviyesi = 2 THEN 1 END) as seviye2,
-        COUNT(CASE WHEN zorluk_seviyesi = 3 THEN 1 END) as seviye3,
-        COUNT(CASE WHEN zorluk_seviyesi = 4 THEN 1 END) as seviye4,
-        COUNT(CASE WHEN zorluk_seviyesi = 5 THEN 1 END) as seviye5,
-        COUNT(CASE WHEN fotograf_url IS NOT NULL THEN 1 END) as fotografli,
-        COUNT(CASE WHEN latex_kodu IS NOT NULL AND latex_kodu != '' THEN 1 END) as latexli
-      FROM sorular s
-      LEFT JOIN branslar b ON s.brans_id = b.id
-      LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
-      ${whereClause}
-    `, params);
+    let genelStats;
+    if (isAdmin) {
+      genelStats = await pool.query(`
+        SELECT
+          COUNT(*) as toplam_soru,
+          COUNT(CASE WHEN durum = 'beklemede' THEN 1 END) as taslak,
+          COUNT(CASE WHEN durum IN ('dizgi_bekliyor', 'dizgide') THEN 1 END) as dizgi,
+          COUNT(CASE WHEN durum IN ('dizgi_tamam', 'revize_istendi', 'revize_gerekli') THEN 1 END) as dizgi_sonrasi,
+          COUNT(CASE WHEN durum IN ('alan_incelemede', 'alan_onaylandi', 'inceleme_bekliyor', 'incelemede') AND onay_alanci = false THEN 1 END) as alan_inceleme,
+          COUNT(CASE WHEN durum IN ('dil_incelemede', 'dil_onaylandi', 'inceleme_bekliyor', 'incelemede') AND onay_dilci = false THEN 1 END) as dil_inceleme,
+          COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlandi,
+          COUNT(CASE WHEN zorluk_seviyesi IN(1, 2) THEN 1 END) as kolay,
+          COUNT(CASE WHEN zorluk_seviyesi = 3 THEN 1 END) as orta,
+          COUNT(CASE WHEN zorluk_seviyesi IN(4, 5) THEN 1 END) as zor,
+          COUNT(CASE WHEN fotograf_url IS NOT NULL THEN 1 END) as fotografli,
+          COUNT(CASE WHEN latex_kodu IS NOT NULL AND latex_kodu != '' THEN 1 END) as latexli
+        FROM sorular
+      `);
+    } else {
+      genelStats = await pool.query(`
+        SELECT
+          COUNT(*) as toplam_soru,
+          COUNT(CASE WHEN durum = 'beklemede' THEN 1 END) as taslak,
+          COUNT(CASE WHEN durum IN ('dizgi_bekliyor', 'dizgide') THEN 1 END) as dizgi,
+          COUNT(CASE WHEN durum IN ('dizgi_tamam', 'revize_istendi', 'revize_gerekli') THEN 1 END) as dizgi_sonrasi,
+          COUNT(CASE WHEN durum IN ('alan_incelemede', 'alan_onaylandi', 'inceleme_bekliyor', 'incelemede') AND onay_alanci = false THEN 1 END) as alan_inceleme,
+          COUNT(CASE WHEN durum IN ('dil_incelemede', 'dil_onaylandi', 'inceleme_bekliyor', 'incelemede') AND onay_dilci = false THEN 1 END) as dil_inceleme,
+          COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlandi,
+          COUNT(CASE WHEN zorluk_seviyesi IN(1, 2) THEN 1 END) as kolay,
+          COUNT(CASE WHEN zorluk_seviyesi = 3 THEN 1 END) as orta,
+          COUNT(CASE WHEN zorluk_seviyesi IN(4, 5) THEN 1 END) as zor,
+          COUNT(CASE WHEN fotograf_url IS NOT NULL THEN 1 END) as fotografli,
+          COUNT(CASE WHEN latex_kodu IS NOT NULL AND latex_kodu != '' THEN 1 END) as latexli
+        FROM sorular s
+        LEFT JOIN branslar b ON s.brans_id = b.id
+        LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
+        ${whereClause}
+      `, params);
+    }
 
     // Son eklenen soruları getir
     const sonSorular = await pool.query(`
