@@ -1431,8 +1431,8 @@ router.delete('/:id(\\d+)', authenticate, async (req, res, next) => {
       // 4. Soruyu sil
       await client.query('DELETE FROM sorular WHERE id = $1', [id]);
 
-      // 5. Sequence sıfırla (isteğe bağlı, ama mevcut kodda vardı)
-      await client.query("SELECT setval('sorular_id_seq', COALESCE((SELECT MAX(id) FROM sorular), 0))");
+      // 5. Sequence sıfırla (İlişkili tabloların ID'lerini bozmadan en büyük ID'ye çek)
+      await client.query("SELECT setval('sorular_id_seq', COALESCE((SELECT MAX(id) FROM sorular), 1), (SELECT MAX(id) FROM sorular) IS NOT NULL)");
 
       await client.query('COMMIT');
 
@@ -1869,7 +1869,7 @@ router.post('/admin-cleanup', authenticate, authorize(['admin']), async (req, re
     if (action === 'clear_all') {
       const result = await pool.query('DELETE FROM sorular RETURNING id');
       // Reset sequence after clearing all
-      await pool.query("SELECT setval('sorular_id_seq', 0, false)");
+      await pool.query("SELECT setval('sorular_id_seq', 1, false)");
       console.log(`⚠️ ADMIN CLEANUP: ${result.rows.length} soru silindi.`);
       return res.json({
         success: true,
@@ -1907,7 +1907,7 @@ router.post('/admin-cleanup', authenticate, authorize(['admin']), async (req, re
         await client.query('UPDATE sorular SET id = -id');
 
         // 4. Diziyi sıfırla (Bir sonraki soru son sayının bir fazlası olsun)
-        await client.query("SELECT setval('sorular_id_seq', COALESCE((SELECT MAX(id) FROM sorular), 0))");
+        await client.query("SELECT setval('sorular_id_seq', COALESCE((SELECT MAX(id) FROM sorular), 1), (SELECT MAX(id) FROM sorular) IS NOT NULL)");
 
         await client.query('COMMIT');
         return res.json({ success: true, message: 'Tüm soru ID\'leri ardışık olarak yeniden düzenlendi.' });
