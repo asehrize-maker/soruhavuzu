@@ -135,11 +135,11 @@ export default function Sorular({ scope }) {
       if (filters.durum === 'incelemede_grubu') {
         data = data.filter(s => ['inceleme_bekliyor', 'alan_incelemede', 'dil_incelemede', 'incelemede'].includes(s.durum));
       } else if (filters.durum === 'taslak_grubu') {
-        data = data.filter(s => ['beklemede', 'revize_gerekli'].includes(s.durum));
+        data = data.filter(s => ['beklemede'].includes(s.durum));
       } else if (filters.durum === 'dizgi_grubu') {
-        data = data.filter(s => ['dizgi_bekliyor', 'dizgide', 'revize_istendi'].includes(s.durum));
+        data = data.filter(s => ['dizgi_bekliyor', 'dizgide'].includes(s.durum));
       } else if (filters.durum === 'dizgi_sonrasi') {
-        data = data.filter(s => ['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam'].includes(s.durum));
+        data = data.filter(s => ['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam', 'revize_istendi', 'revize_gerekli'].includes(s.durum));
       }
 
       if (scope === 'brans') {

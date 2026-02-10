@@ -1605,8 +1605,9 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
     const genelStats = await pool.query(`
       SELECT
         COUNT(*) as toplam_soru,
-        COUNT(CASE WHEN durum IN ('beklemede', 'revize_istendi', 'revize_gerekli') THEN 1 END) as taslak,
-        COUNT(CASE WHEN durum IN ('dizgi_bekliyor', 'dizgide', 'dizgi_tamam') THEN 1 END) as dizgi,
+        COUNT(CASE WHEN durum = 'beklemede' THEN 1 END) as taslak,
+        COUNT(CASE WHEN durum IN ('dizgi_bekliyor', 'dizgide') THEN 1 END) as dizgi,
+        COUNT(CASE WHEN durum IN ('dizgi_tamam', 'revize_istendi', 'revize_gerekli') THEN 1 END) as dizgi_sonrasi,
         COUNT(CASE WHEN durum IN ('alan_incelemede', 'alan_onaylandi', 'inceleme_bekliyor', 'incelemede') AND onay_alanci = false THEN 1 END) as alan_inceleme,
         COUNT(CASE WHEN durum IN ('dil_incelemede', 'dil_onaylandi', 'inceleme_bekliyor', 'incelemede') AND onay_dilci = false THEN 1 END) as dil_inceleme,
         COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlandi,
@@ -1658,8 +1659,9 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
       SELECT
         b.id, b.brans_adi, COALESCE(e.ekip_adi, 'Ekipsiz') as ekip_adi,
         COUNT(s.id) as soru_sayisi,
-        COUNT(CASE WHEN s.durum IN ('beklemede', 'revize_istendi', 'revize_gerekli') THEN 1 END) as taslak,
-        COUNT(CASE WHEN s.durum IN ('dizgi_bekliyor', 'dizgide', 'dizgi_tamam') THEN 1 END) as dizgi,
+        COUNT(CASE WHEN s.durum = 'beklemede' THEN 1 END) as taslak,
+        COUNT(CASE WHEN s.durum IN ('dizgi_bekliyor', 'dizgide') THEN 1 END) as dizgi,
+        COUNT(CASE WHEN s.durum IN ('dizgi_tamam', 'revize_istendi', 'revize_gerekli') THEN 1 END) as dizgi_sonrasi,
         COUNT(CASE WHEN s.durum IN ('alan_incelemede', 'alan_onaylandi', 'inceleme_bekliyor', 'incelemede') AND s.onay_alanci = false THEN 1 END) as alan_inceleme,
         COUNT(CASE WHEN s.durum IN ('dil_incelemede', 'dil_onaylandi', 'inceleme_bekliyor', 'incelemede') AND s.onay_dilci = false THEN 1 END) as dil_inceleme,
         COUNT(CASE WHEN s.durum = 'tamamlandi' THEN 1 END) as tamamlandi
