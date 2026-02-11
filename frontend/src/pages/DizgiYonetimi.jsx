@@ -135,7 +135,7 @@ export default function DizgiYonetimi() {
   const QuestionCard = ({ soru }) => {
     // HTML etiketlerini temizle
     const plainText = soru.soru_metni ? soru.soru_metni.replace(/<[^>]+>/g, '') : '';
-    const hasImage = soru.soru_metni?.includes('<img') || soru.fotograf_url;
+    const hasImage = soru.soru_metni?.includes('<img') || soru.fotograf_url || soru.final_png_url;
 
     return (
       <div
@@ -146,9 +146,17 @@ export default function DizgiYonetimi() {
           }`}
       >
         <div className="flex justify-between items-center z-10 relative">
-          <div className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest ${selectedSoru?.id === soru.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'
-            }`}>
-            #{soru.id}
+          <div className="flex items-center gap-2">
+            <div className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest ${selectedSoru?.id === soru.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'
+              }`}>
+              #{soru.id}
+            </div>
+            {soru.final_png_url && (
+              <div className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${selectedSoru?.id === soru.id ? 'bg-emerald-400/20 text-white' : 'bg-emerald-50 text-emerald-600'
+                }`}>
+                DİZGİLİ
+              </div>
+            )}
           </div>
           {hasImage && <PhotoIcon className={`w-5 h-5 ${selectedSoru?.id === soru.id ? 'text-blue-200' : 'text-gray-400'}`} />}
         </div>
@@ -293,10 +301,31 @@ export default function DizgiYonetimi() {
                       <SparklesIcon className="w-4 h-4" />
                     </div>
                     <div className="p-10 bg-gray-50/50 rounded-[2.5rem] border border-gray-100 shadow-inner min-h-[15rem] relative" ref={questionRef}>
-                      <div className="text-gray-900 prose prose-xl max-w-none font-medium leading-relaxed [&_img]:hidden" dangerouslySetInnerHTML={{ __html: selectedSoru.soru_metni }} />
+                      {/* ÖNCE FİNAL PNG'Yİ GÖSTER (EĞER VARSA LATEST STATE ODUR) */}
+                      {selectedSoru.final_png_url ? (
+                        <div className="mb-10 text-center">
+                          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4">Mevcut Dizgi Çıktısı (En Son Kaydedilen)</p>
+                          <div className="p-4 bg-white rounded-3xl shadow-md border border-emerald-100 inline-block overflow-hidden max-w-full">
+                            <img src={selectedSoru.final_png_url} className="max-w-full rounded-2xl mx-auto block" alt="Soru Dizgi Çıktısı" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-gray-900 prose prose-xl max-w-none font-medium leading-relaxed [&_img]:hidden" dangerouslySetInnerHTML={{ __html: selectedSoru.soru_metni }} />
+                      )}
+
+                      {/* ORİJİNAL DRAFT GÖRSELİ (EĞER VARSA) */}
                       {selectedSoru.fotograf_url && (
                         <div className="mt-10 p-4 bg-white rounded-3xl shadow-sm border border-gray-100 inline-block overflow-hidden max-w-full">
-                          <img src={selectedSoru.fotograf_url} className="max-w-full rounded-2xl mx-auto block hover:scale-[1.02] transition-transform duration-500" alt="Soru Görseli" />
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 text-center">Orijinal Taslak Görseli</p>
+                          <img src={selectedSoru.fotograf_url} className="max-w-full rounded-2xl mx-auto block opacity-60 hover:opacity-100 transition-opacity" alt="Soru Taslak Görseli" />
+                        </div>
+                      )}
+
+                      {/* EĞER FİNAL PNG VARSA METNİ ALTTA REFERANS OLARAK GÖSTERELİM */}
+                      {selectedSoru.final_png_url && (
+                        <div className="mt-10 pt-10 border-t border-gray-100">
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 text-center italic">Soru İçerik Metni (Referans)</p>
+                          <div className="text-gray-500 prose prose-lg max-w-none font-medium leading-relaxed opacity-50 font-sans" dangerouslySetInnerHTML={{ __html: selectedSoru.soru_metni }} />
                         </div>
                       )}
                     </div>
