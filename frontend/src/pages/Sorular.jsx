@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import { soruAPI, bransAPI } from '../services/api';
+import { soruAPI, bransAPI, userAPI } from '../services/api';
 import { getDurumBadge, generateExportHtml } from '../utils/helpers';
 import {
   Squares2X2Icon,
@@ -55,7 +55,22 @@ export default function Sorular({ scope }) {
     kazanim: '',
     kategori: '',
     kullanildi: '',
+    olusturan_id: '',
   });
+
+  const [authors, setAuthors] = useState([]);
+
+  useEffect(() => {
+    const loadAuthors = async () => {
+      try {
+        const res = await userAPI.getAuthors();
+        setAuthors(res.data.data || []);
+      } catch (err) {
+        console.error('Yazarlar yüklenemedi', err);
+      }
+    };
+    if (user) loadAuthors();
+  }, [user?.id]);
 
   const [kazanimlar, setKazanimlar] = useState([]);
   const [kazanimSearch, setKazanimSearch] = useState('');
@@ -126,6 +141,7 @@ export default function Sorular({ scope }) {
         kazanim: filters.kazanim || undefined,
         kategori: filters.kategori || undefined,
         kullanildi: filters.kullanildi || undefined,
+        olusturan_id: filters.olusturan_id || undefined,
         scope: scope || undefined
       };
       const response = await soruAPI.getAll(params);
@@ -434,6 +450,20 @@ export default function Sorular({ scope }) {
                 </select>
               </div>
             )}
+
+            <div className="flex items-center gap-3 min-w-[160px] flex-1 md:flex-none">
+              <PencilSquareIcon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />
+              <select
+                value={filters.olusturan_id}
+                onChange={(e) => setFilters({ ...filters, olusturan_id: e.target.value })}
+                className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-xs font-black text-gray-700 uppercase tracking-widest outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer"
+              >
+                <option value="">TÜM YAZARLAR</option>
+                {authors.map((a) => (
+                  <option key={a.id} value={a.id}>{a.ad_soyad}</option>
+                ))}
+              </select>
+            </div>
 
             <div className="flex items-center gap-3 min-w-[200px] flex-1 md:flex-none relative">
               <SparklesIcon className="w-5 h-5 text-gray-300" strokeWidth={2.5} />

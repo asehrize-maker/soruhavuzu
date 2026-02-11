@@ -79,6 +79,41 @@ router.post('/admin-create', authenticate, authorize(['admin', 'koordinator']), 
   }
 });
 
+// Yazarları getir (Filtreleme için)
+router.get('/authors', authenticate, async (req, res, next) => {
+  try {
+    const isAdmin = req.user.rol === 'admin';
+    const isKoordinator = req.user.rol === 'koordinator';
+    const { ekip_id } = req.user;
+
+    let query = `SELECT id, ad_soyad FROM kullanicilar WHERE 1=1`;
+    const params = [];
+
+    // Admin hepsini görür.
+    // Koordinatör sadece kendi ekibini görür.
+    // Diğerleri (Soru Yazarı vb.) sadece kendi ekibini görür.
+    if (!isAdmin) {
+      if (ekip_id) {
+        query += ` AND ekip_id = $1`;
+        params.push(ekip_id);
+      } else {
+        // Ekibi yoksa sadece kendisini görsün (veya belki boş dönsün?)
+        // Güvenlik için sadece kendisi diyelim, ama soru yazarları genelde bir ekibe dahil.
+        // Eğer bağımsız soru yazarı ise sadece kendisi.
+        query += ` AND id = $1`;
+        params.push(req.user.id);
+      }
+    }
+
+    query += ` ORDER BY ad_soyad ASC`;
+
+    const result = await pool.query(query, params);
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Tüm kullanıcıları getir (Admin veya Koordinatör)
 router.get('/', authenticate, authorize(['admin', 'koordinator']), async (req, res, next) => {
   try {

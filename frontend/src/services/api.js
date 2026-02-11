@@ -50,6 +50,7 @@ export const authAPI = {
 // Kullanıcı API
 export const userAPI = {
   getAll: () => api.get('/users'),
+  getAuthors: () => api.get('/users/authors'),
   getById: (id) => api.get(`/users/${id}`),
   adminCreate: (data) => api.post('/users/admin-create', data),
   update: (id, data) => api.put(`/users/${id}`, data),
