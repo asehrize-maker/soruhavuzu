@@ -122,6 +122,12 @@ export default function Ajanda() {
         }
     };
 
+    const handleViewFile = (uploadId) => {
+        const token = localStorage.getItem('token');
+        const url = `${import.meta.env.VITE_API_URL || '/api'}/denemeler/view/${uploadId}?token=${token}`;
+        window.open(url, '_blank');
+    };
+
     // Calendar Helpers
     const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
     const getFirstDayOfMonth = (year, month) => {
@@ -264,53 +270,93 @@ export default function Ajanda() {
                         ) : (
                             <div className="grid grid-cols-1 gap-4">
                                 {selectedEvents.map((event, idx) => (
-                                    <div key={event.id || idx} className="bg-white rounded-[2rem] p-5 shadow-lg shadow-gray-200/50 border border-gray-50 flex flex-col xl:flex-row items-center justify-between gap-6 group hover:border-indigo-100 transition-all duration-500">
-                                        <div className="flex flex-col sm:flex-row items-center gap-6 w-full">
-                                            <div className={`w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center border-2 transition-all group-hover:scale-110
-                                                ${event.gorev_tipi === 'deneme' ? 'bg-indigo-50 border-indigo-100 text-indigo-600' :
-                                                    event.gorev_tipi === 'fasikul' ? 'bg-amber-50 border-amber-100 text-amber-600' :
-                                                        'bg-emerald-50 border-emerald-100 text-emerald-600'}
-                                            `}>
-                                                <DocumentTextIcon className="w-6 h-6" strokeWidth={2.5} />
-                                            </div>
-                                            <div className="space-y-1 flex-1 min-w-0">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <h3 className="text-lg font-black text-gray-900 tracking-tight truncate">{event.ad}</h3>
-                                                    <span className={`px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.1em] border
-                                                        ${event.gorev_tipi === 'deneme' ? 'bg-indigo-100 border-indigo-200 text-indigo-700' :
-                                                            event.gorev_tipi === 'fasikul' ? 'bg-amber-100 border-amber-200 text-amber-700' :
-                                                                'bg-emerald-100 border-emerald-200 text-emerald-700'}
-                                                    `}>
-                                                        {event.gorev_tipi.toUpperCase()}
-                                                    </span>
+                                    <div key={event.id || idx} className="bg-white rounded-[2rem] p-5 shadow-lg shadow-gray-200/50 border border-gray-50 flex flex-col group hover:border-indigo-100 transition-all duration-500">
+                                        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 w-full">
+                                            <div className="flex items-center gap-6 flex-1">
+                                                <div className={`w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center border-2 transition-all group-hover:scale-110
+                                                    ${event.gorev_tipi === 'deneme' ? 'bg-indigo-50 border-indigo-100 text-indigo-600' :
+                                                        event.gorev_tipi === 'fasikul' ? 'bg-amber-50 border-amber-100 text-amber-600' :
+                                                            'bg-emerald-50 border-emerald-100 text-emerald-600'}
+                                                `}>
+                                                    <DocumentTextIcon className="w-6 h-6" strokeWidth={2.5} />
                                                 </div>
-                                                <p className="text-[11px] text-gray-500 font-medium line-clamp-2">{event.aciklama}</p>
-                                                <div className="flex items-center gap-3 text-[9px] font-black uppercase tracking-widest pt-1">
-                                                    {event.toplam_yukleme > 0 ? (
-                                                        <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
-                                                            <CheckCircleIcon className="w-3.5 h-3.5" /> DOSYA YÜKLENDİ
+                                                <div className="space-y-1 flex-1 min-w-0">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <h3 className="text-lg font-black text-gray-900 tracking-tight truncate">{event.ad}</h3>
+                                                        <span className={`px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.1em] border
+                                                            ${event.gorev_tipi === 'deneme' ? 'bg-indigo-100 border-indigo-200 text-indigo-700' :
+                                                                event.gorev_tipi === 'fasikul' ? 'bg-amber-100 border-amber-200 text-amber-700' :
+                                                                    'bg-emerald-100 border-emerald-200 text-emerald-700'}
+                                                        `}>
+                                                            {event.gorev_tipi.toUpperCase()}
                                                         </span>
-                                                    ) : (
-                                                        <span className="flex items-center gap-1 text-gray-400">
-                                                            <ClockIcon className="w-3.5 h-3.5" /> DOSYA BEKLENİYOR
-                                                        </span>
-                                                    )}
+                                                    </div>
+                                                    <p className="text-[11px] text-gray-500 font-medium line-clamp-2">{event.aciklama}</p>
+                                                    <div className="flex items-center gap-3 text-[9px] font-black uppercase tracking-widest pt-1">
+                                                        {event.toplam_yukleme > 0 ? (
+                                                            <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
+                                                                <CheckCircleIcon className="w-3.5 h-3.5" /> {event.toplam_yukleme} YÜKLEME
+                                                            </span>
+                                                        ) : (
+                                                            <span className="flex items-center gap-1 text-gray-400">
+                                                                <ClockIcon className="w-3.5 h-3.5" /> DOSYA BEKLENİYOR
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            {/* UPLOAD BUTTON FOR BRANCH TEACHERS */}
-                                            {!isManagement && (
-                                                <button
-                                                    onClick={() => {
-                                                        setUploadingEventId(event.id);
-                                                        if (fileInputRef.current) fileInputRef.current.click();
-                                                    }}
-                                                    className="shrink-0 px-4 py-3 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
-                                                >
-                                                    <CloudArrowUpIcon className="w-4 h-4" /> DOSYA YÜKLE
-                                                </button>
-                                            )}
+                                            <div className="flex items-center gap-2 self-end sm:self-center">
+                                                {/* BRANCH TEACHER VIEW FILE */}
+                                                {event.my_upload_id && (
+                                                    <button
+                                                        onClick={() => handleViewFile(event.my_upload_id)}
+                                                        className="shrink-0 px-4 py-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                                                    >
+                                                        <EyeIcon className="w-4 h-4" /> DOSYAYI GÖR
+                                                    </button>
+                                                )}
+
+                                                {/* UPLOAD BUTTON FOR BRANCH TEACHERS */}
+                                                {!isManagement && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setUploadingEventId(event.id);
+                                                            if (fileInputRef.current) fileInputRef.current.click();
+                                                        }}
+                                                        className="shrink-0 px-4 py-3 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                                                    >
+                                                        <CloudArrowUpIcon className="w-4 h-4" /> DOSYA YÜKLE
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
+
+                                        {/* ADMIN/MANAGEMENT VIEW ALL UPLOADS LIST */}
+                                        {isManagement && event.all_uploads && event.all_uploads.length > 0 && (
+                                            <div className="mt-4 pt-4 border-t border-dashed border-gray-100 w-full animate-fade-in">
+                                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Yüklenen Dosyalar ({event.all_uploads.length})</p>
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    {event.all_uploads.map(upload => (
+                                                        <div key={upload.id} className="flex items-center justify-between bg-gray-50 hover:bg-gray-100 p-3 rounded-xl transition-colors group/item">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center border border-gray-100 text-gray-400 font-bold text-[10px]">PDF</div>
+                                                                <div>
+                                                                    <p className="text-[10px] font-black text-gray-700 uppercase">{upload.brans_adi}</p>
+                                                                    <p className="text-[9px] text-gray-400 font-bold">{upload.yukleyen_ad}</p>
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => handleViewFile(upload.id)}
+                                                                className="px-3 py-1.5 bg-white border border-gray-200 text-gray-500 hover:text-indigo-600 hover:border-indigo-200 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5"
+                                                            >
+                                                                <EyeIcon className="w-3 h-3" /> GÖRÜNTÜLE
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
