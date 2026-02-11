@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import { kullaniciMesajAPI, bildirimAPI, authAPI } from '../services/api';
+import { kullaniciMesajAPI, bildirimAPI, soruAPI, authAPI } from '../services/api';
 import { Toaster } from 'react-hot-toast';
 
 export default function Layout() {
+
   const { user: authUser, logout, viewRole, setViewRole } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
