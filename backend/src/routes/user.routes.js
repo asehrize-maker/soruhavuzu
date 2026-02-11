@@ -96,10 +96,12 @@ router.get('/authors', authenticate, async (req, res, next) => {
       if (ekip_id) {
         query += ` AND ekip_id = $1`;
         params.push(ekip_id);
+        if (!isKoordinator && req.user.brans_id) {
+          query += ` AND brans_id = $${params.length + 1}`;
+          params.push(req.user.brans_id);
+        }
       } else {
-        // Ekibi yoksa sadece kendisini görsün (veya belki boş dönsün?)
-        // Güvenlik için sadece kendisi diyelim, ama soru yazarları genelde bir ekibe dahil.
-        // Eğer bağımsız soru yazarı ise sadece kendisi.
+        // Ekibi yoksa sadece kendisini görsün
         query += ` AND id = $1`;
         params.push(req.user.id);
       }
