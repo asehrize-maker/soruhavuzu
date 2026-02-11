@@ -540,11 +540,22 @@ export default function SoruDetay() {
     }
 
     if (!type) { alert('İnceleme türü belirlenemedi.'); return; }
-    const nextStatus = type === 'alanci' ? 'alan_onaylandi' : 'dil_onaylandi';
-    const msg = hasNotes ? `İşaretlediğiniz ${revizeNotlari.length} adet notla birlikte incelemeyi bitirmek istiyor musunuz?` : 'Soru hatasız mı? ONAYLAYIP incelemeyi bitirmek istediğinizden emin misiniz?';
+
+    // ÖNEMLİ: Eğer not girişi yapılmışsa, durum 'revize_istendi' olmalı (Hata var demek)
+    // Eğer not yoksa, türüne göre onaylanmış aşamaya geçmeli
+    const nextStatus = hasNotes ? 'revize_istendi' : (type === 'alanci' ? 'alan_onaylandi' : 'dil_onaylandi');
+
+    const msg = hasNotes
+      ? `İşaretlediğiniz ${revizeNotlari.length} adet notla birlikte incelemeyi bitirip REVİZE İSTEMEK istiyor musunuz?`
+      : 'Soru hatasız mı? ONAYLAYIP incelemeyi bitirmek istediğinizden emin misiniz?';
+
     if (!confirm(msg)) return;
     try {
-      await soruAPI.updateDurum(id, { yeni_durum: nextStatus, aciklama: hasNotes ? (dizgiNotu || 'Hatalar belirtildi.') : 'İnceleme onayı verildi.', inceleme_turu: type });
+      await soruAPI.updateDurum(id, {
+        yeni_durum: nextStatus,
+        aciklama: hasNotes ? (dizgiNotu || 'Hatalar belirtildi, düzeltme bekleniyor.') : 'İnceleme onayı verildi.',
+        inceleme_turu: type
+      });
       navigate('/');
     } catch (e) { alert('Hata: ' + (e.response?.data?.error || e.message)); }
   };

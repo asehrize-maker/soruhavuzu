@@ -531,7 +531,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
 
     // Soruyu ve branş bilgisini al
     const soruRes = await pool.query(`
-      SELECT s.*, b.brans_adi, k.ad_soyad as yazar_ad
+      SELECT s.*, b.brans_adi, k.ad_soyad as yazar_ad, b.ekip_id as brans_ekip_id, k.ekip_id as yazar_ekip_id
       FROM sorular s
       LEFT JOIN branslar b ON s.brans_id = b.id
       LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
@@ -540,6 +540,9 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
 
     if (soruRes.rows.length === 0) throw new AppError('Soru bulunamadı', 404);
     const soru = soruRes.rows[0];
+
+    // Ekip ID'sini belirle (branştan veya yazardan)
+    const soruEkipId = soru.brans_ekip_id || soru.yazar_ekip_id;
 
     const isAdmin = req.user.rol === 'admin';
 
@@ -564,8 +567,9 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         }
       }
     }
+
     const isKoordinator = req.user.rol === 'koordinator';
-    const isOwner = Number(req.user.id) == Number(soru.olusturan_kullanici_id);
+    const isOwner = Number(req.user.id) === Number(soru.olusturan_kullanici_id);
     const isDizgici = req.user.rol === 'dizgici';
     const isReviewer = req.user.rol === 'incelemeci';
 
@@ -577,26 +581,24 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1::integer AND brans_id = $2::integer
         UNION
         SELECT 1 FROM kullanicilar WHERE id = $3::integer AND brans_id = $4::integer
-      `, [req.user.id, soru.brans_id, req.user.id, soru.brans_id]);
+      `, [Number(req.user.id), Number(soru.brans_id), Number(req.user.id), Number(soru.brans_id)]);
       if (authBrans.rows.length > 0) isBranchTeacher = true;
     }
 
     // Koordinatör kendi ekibindeki branşlar için de yetkilidir
     let isTeamKoordinator = false;
-    if (isKoordinator && req.user.ekip_id === soru.ekip_id) {
+    if (isKoordinator && Number(req.user.ekip_id) === Number(soruEkipId)) {
       isTeamKoordinator = true;
     }
+
+    const isCreatorOrBranchOrTeam = isOwner || isBranchTeacher || isTeamKoordinator;
 
     // ROL VE DURUM BAZLI YETKİ KONTROLÜ
     let hasPermission = isAdmin;
 
     if (!hasPermission) {
-      const isCreatorOrBranchOrTeam = isOwner || isBranchTeacher || isTeamKoordinator;
-
       switch (yeni_durum) {
         case 'beklemede':
-          if (isCreatorOrBranchOrTeam) hasPermission = true;
-          break;
         case 'dizgi_bekliyor':
           if (isCreatorOrBranchOrTeam) hasPermission = true;
           break;
@@ -604,35 +606,37 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
           if (isDizgici || isAdmin) hasPermission = true;
           break;
         case 'dizgi_tamam':
-          if (isDizgici && (!soru.dizgici_id || soru.dizgici_id == req.user.id)) hasPermission = true;
+          if (isDizgici && (!soru.dizgici_id || Number(soru.dizgici_id) === Number(req.user.id))) hasPermission = true;
           break;
+        case 'alan_onaylandi':
+          // Branş yetkilisi (Branch Teacher) veya İncelemeci (Alan flagi olan) onaylayabilir
+          if ((isReviewer && req.user.inceleme_alanci) || isBranchTeacher || isTeamKoordinator || isAdmin) hasPermission = true;
+          break;
+        case 'dil_onaylandi':
+          // Branş yetkilisi (Branch Teacher) veya İncelemeci (Dil flagi olan) onaylayabilir
+          if ((isReviewer && req.user.inceleme_dilci) || isBranchTeacher || isTeamKoordinator || isAdmin) hasPermission = true;
+          break;
+        case 'inceleme_tamam':
+        case 'inceleme_bekliyor':
         case 'alan_incelemede':
         case 'dil_incelemede':
-        case 'inceleme_bekliyor':
         case 'incelemede':
-          // Sadece Branş yetkilisi (Dizgici DEĞİL) incelemeye gönderebilir
-          if (isCreatorOrBranchOrTeam) hasPermission = true;
+          // Sadece Branş yetkilisi (Dizgici DEĞİL) incelemeye gönderebilir veya bitirebilir
+          if (isCreatorOrBranchOrTeam || isAdmin) hasPermission = true;
           break;
         case 'tamamlandi':
           // Tamamlamayı sadece sorunun sahibi/branş yetkilisi veya admin yapabilir
-          if (isCreatorOrBranchOrTeam) hasPermission = true;
-          break;
-        case 'alan_onaylandi':
-          if (isReviewer && req.user.inceleme_alanci) hasPermission = true;
-          break;
-        case 'dil_onaylandi':
-          if (isReviewer && req.user.inceleme_dilci) hasPermission = true;
+          if (isCreatorOrBranchOrTeam || isAdmin) hasPermission = true;
           break;
         case 'revize_istendi':
         case 'revize_gerekli':
           // İncelemeci hatayı söyler, Dizgici de söyleyebilir, Yazar/Branş da kendisi çekebilir
-          if (isReviewer || isDizgici || isCreatorOrBranchOrTeam) hasPermission = true;
+          if (isReviewer || isDizgici || isCreatorOrBranchOrTeam || isAdmin) hasPermission = true;
           break;
         case 'arsiv':
           if (isAdmin || isCreatorOrBranchOrTeam) hasPermission = true;
           break;
         default:
-          // Eğer durum allowedStatuses içinde ama switch'te yoksa, güvenlik için admin kontrolü kalır
           break;
       }
     }
