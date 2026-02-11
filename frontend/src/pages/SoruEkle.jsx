@@ -176,7 +176,7 @@ export default function SoruEkle() {
         else if (img.naturalHeight > img.naturalWidth) w = 60;  // Dikey
         else if (Math.abs(img.naturalHeight - img.naturalWidth) < 100) w = 70; // Kareye yakın
 
-        setComponents(prev => [...prev, { id: generateId(), type: 'image', content: objectUrl, file: file, width: w, height: 'auto', align: 'center' }]);
+        setComponents(prev => [{ id: generateId(), type: 'image', content: objectUrl, file: file, width: w, height: 'auto', align: 'center' }, ...prev]);
       };
     }
   };
