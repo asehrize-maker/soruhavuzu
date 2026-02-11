@@ -73,11 +73,16 @@ export default function Kullanicilar() {
       ? kullanici.branslar.map(b => b.id)
       : (kullanici.brans_id ? [kullanici.brans_id] : []);
 
+    const mevcutEkipIds = kullanici.ekipler && Array.isArray(kullanici.ekipler)
+      ? kullanici.ekipler.map(e => e.id)
+      : (kullanici.ekip_id ? [kullanici.ekip_id] : []);
+
     setFormData({
       ad_soyad: kullanici.ad_soyad || '',
       email: kullanici.email || '',
       sifre: '',
       ekip_id: kullanici.ekip_id || '',
+      ekip_ids: mevcutEkipIds,
       brans_id: kullanici.brans_id || '',
       brans_ids: mevcutBransIds,
       rol: kullanici.rol,
@@ -95,6 +100,7 @@ export default function Kullanicilar() {
       email: '',
       sifre: '123456',
       ekip_id: '',
+      ekip_ids: [],
       brans_id: '',
       brans_ids: [],
       rol: 'soru_yazici',
@@ -112,6 +118,13 @@ export default function Kullanicilar() {
       if (payload.rol !== 'incelemeci') {
         payload.inceleme_alanci = false;
         payload.inceleme_dilci = false;
+      }
+      // Ensure primary team is in team list
+      if (payload.ekip_id) {
+        const eId = parseInt(payload.ekip_id);
+        if (!payload.ekip_ids.includes(eId)) {
+          payload.ekip_ids.push(eId);
+        }
       }
 
       if (editingUser) {
@@ -234,6 +247,18 @@ export default function Kullanicilar() {
                         <div className="text-xs font-black text-gray-700 uppercase tracking-wide">
                           {kullanici.rol === 'admin' ? <span className="text-purple-600">TÜM EKİPLER (ADMİN)</span> : (kullanici.ekip_adi || '-')}
                         </div>
+
+                        {/* Display multiple teams if INCELEMECI */}
+                        {kullanici.rol === 'incelemeci' && Array.isArray(kullanici.ekipler) && kullanici.ekipler.length > 1 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {kullanici.ekipler.filter(e => e.id !== kullanici.ekip_id).map(e => (
+                              <span key={e.id} className="px-2 py-0.5 bg-orange-50 text-orange-600 rounded-md text-[9px] font-bold border border-orange-100">
+                                + {e.ekip_adi}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
                         <div className="flex flex-wrap gap-1">
                           {Array.isArray(kullanici.branslar) && kullanici.branslar.map(b => (
                             <span key={b.id} className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-lg text-[10px] font-bold group-hover:bg-white transition-colors">{b.brans_adi}</span>
@@ -350,11 +375,19 @@ export default function Kullanicilar() {
 
                 {user?.rol === 'admin' && (
                   <div className="col-span-1">
-                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Bağlı Ekip</label>
+                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Bağlı Ekip (Ana)</label>
                     <select
                       className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold text-gray-700 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                       value={formData.ekip_id}
-                      onChange={(e) => setFormData({ ...formData, ekip_id: e.target.value })}
+                      onChange={(e) => {
+                        const newId = e.target.value;
+                        const eIdNum = parseInt(newId);
+                        let newEkipIds = [...(formData.ekip_ids || [])];
+                        if (eIdNum && !newEkipIds.includes(eIdNum)) {
+                          newEkipIds.push(eIdNum);
+                        }
+                        setFormData({ ...formData, ekip_id: newId, ekip_ids: newEkipIds });
+                      }}
                     >
                       <option value="">Ekip Seçin</option>
                       {Array.isArray(ekipler) && ekipler.map(e => <option key={e.id} value={e.id}>{e.ekip_adi}</option>)}
@@ -378,6 +411,42 @@ export default function Kullanicilar() {
                   </select>
                 </div>
               </div>
+
+              {/* ÇOKLU EKİP SEÇİMİ (SADECE İNCELEMECİ) */}
+              {user?.rol === 'admin' && formData.rol === 'incelemeci' && (
+                <div>
+                  <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 ml-1 flex justify-between">
+                    Yetkili Olduğu Diğer Ekipler
+                    <span className="text-blue-500">{formData.ekip_ids?.length || 0} seçili</span>
+                  </label>
+                  <div className="max-h-40 overflow-y-auto border border-gray-100 rounded-[1.5rem] p-4 grid grid-cols-2 gap-2 bg-gray-50/50">
+                    {Array.isArray(ekipler) && ekipler.map(e => (
+                      <label key={e.id} className={`flex items-center gap-3 cursor-pointer p-3 rounded-xl transition-all border ${(formData.ekip_ids || []).includes(e.id) ? 'bg-white border-blue-500 shadow-sm' : 'bg-transparent border-transparent'}`}>
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded-lg border-gray-300 text-blue-600 focus:ring-blue-500"
+                          checked={(formData.ekip_ids || []).includes(e.id)}
+                          onChange={evt => {
+                            const checked = evt.target.checked;
+                            let newIds = [...(formData.ekip_ids || [])];
+                            if (checked) {
+                              if (!newIds.includes(e.id)) newIds.push(e.id);
+                            } else {
+                              // Ana ekip seçiliyse, kaldırılmasına izin verme uyarısı yapabiliriz veya sadece kaldırmayız
+                              // Ama basitlik için kaldıralım, submit ederken ana ekip tekrar ekleniyor zaten.
+                              newIds = newIds.filter(id => id !== e.id);
+                            }
+                            setFormData({ ...formData, ekip_ids: newIds });
+                          }}
+                        />
+                        <span className={`text-xs font-black uppercase tracking-tight ${(formData.ekip_ids || []).includes(e.id) ? 'text-blue-600' : 'text-gray-400'}`}>
+                          {e.ekip_adi}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 ml-1 flex justify-between">

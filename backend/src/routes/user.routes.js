@@ -10,7 +10,7 @@ const router = express.Router();
 router.post('/admin-create', authenticate, authorize(['admin', 'koordinator']), async (req, res, next) => {
   try {
     const isKoordinator = req.user.rol === 'koordinator';
-    const { ad_soyad, email, sifre, rol, ekip_id, brans_id, inceleme_alanci, inceleme_dilci, brans_ids } = req.body;
+    const { ad_soyad, email, sifre, rol, ekip_id, brans_id, inceleme_alanci, inceleme_dilci, brans_ids, ekip_ids } = req.body;
 
     if (!ad_soyad || !email || !sifre || !rol) {
       throw new AppError('ad_soyad, email, sifre ve rol zorunludur', 400);
@@ -59,6 +59,20 @@ router.post('/admin-create', authenticate, authorize(['admin', 'koordinator']), 
             );
           }
         }
+      }
+
+      // Çoklu ekip ataması
+      const teams_to_insert = new Set();
+      if (finalEkipId) teams_to_insert.add(parseInt(finalEkipId));
+      if (ekip_ids && Array.isArray(ekip_ids)) {
+        ekip_ids.forEach(id => { if (id) teams_to_insert.add(parseInt(id)); });
+      }
+
+      for (const eId of teams_to_insert) {
+        await client.query(
+          'INSERT INTO kullanici_ekipleri (kullanici_id, ekip_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+          [userId, eId]
+        );
       }
 
       await client.query('COMMIT');
@@ -146,7 +160,14 @@ router.get('/', authenticate, authorize(['admin', 'koordinator']), async (req, r
                 JOIN branslar br ON kb.brans_id = br.id
                 WHERE kb.kullanici_id = k.id),
                '[]'
-             ) as branslar
+             ) as branslar,
+             COALESCE(
+               (SELECT json_agg(json_build_object('id', ke.ekip_id, 'ekip_adi', e2.ekip_adi))
+                FROM kullanici_ekipleri ke
+                JOIN ekipler e2 ON ke.ekip_id = e2.id
+                WHERE ke.kullanici_id = k.id),
+               '[]'
+             ) as ekipler
       FROM kullanicilar k
       LEFT JOIN ekipler e ON k.ekip_id = e.id
       LEFT JOIN branslar b ON k.brans_id = b.id
@@ -194,7 +215,14 @@ router.get('/:id', authenticate, async (req, res, next) => {
                 JOIN branslar br ON kb.brans_id = br.id
                 WHERE kb.kullanici_id = k.id),
                '[]'
-             ) as branslar
+             ) as branslar,
+             COALESCE(
+               (SELECT json_agg(json_build_object('id', ke.ekip_id, 'ekip_adi', e2.ekip_adi))
+                FROM kullanici_ekipleri ke
+                JOIN ekipler e2 ON ke.ekip_id = e2.id
+                WHERE ke.kullanici_id = k.id),
+               '[]'
+             ) as ekipler
       FROM kullanicilar k
       LEFT JOIN ekipler e ON k.ekip_id = e.id
       LEFT JOIN branslar b ON k.brans_id = b.id
@@ -229,7 +257,7 @@ router.put('/:id', authenticate, async (req, res, next) => {
       throw new AppError('Bu işlem için yetkiniz yok', 403);
     }
 
-    const { ad_soyad, email, ekip_id, brans_id, brans_ids, aktif } = req.body;
+    const { ad_soyad, email, ekip_id, brans_id, brans_ids, ekip_ids, aktif } = req.body;
 
     const client = await pool.connect();
     try {
@@ -308,6 +336,7 @@ router.put('/:id', authenticate, async (req, res, next) => {
           values.push(aktif);
         }
 
+        // Branşları güncelle
         if (brans_ids !== undefined && Array.isArray(brans_ids)) {
           await client.query('DELETE FROM kullanici_branslari WHERE kullanici_id = $1', [id]);
           for (const bId of brans_ids) {
@@ -328,6 +357,24 @@ router.put('/:id', authenticate, async (req, res, next) => {
         } else if (brans_id !== undefined) {
           updates.push(`brans_id = $${paramCount++}`);
           values.push(brans_id || null);
+        }
+
+        // Ekipleri güncelle (Çoklu ekip desteği)
+        if (ekip_ids !== undefined && Array.isArray(ekip_ids)) {
+          await client.query('DELETE FROM kullanici_ekipleri WHERE kullanici_id = $1', [id]);
+          const teams_to_insert = new Set();
+
+          const newPrimaryEkipId = (ekip_id !== undefined) ? ((ekip_id === '' || ekip_id === null) ? null : parseInt(ekip_id)) : targetUser.ekip_id;
+          if (newPrimaryEkipId) teams_to_insert.add(newPrimaryEkipId);
+
+          ekip_ids.forEach(eid => { if (eid) teams_to_insert.add(parseInt(eid)); });
+
+          for (const eId of teams_to_insert) {
+            await client.query(
+              'INSERT INTO kullanici_ekipleri (kullanici_id, ekip_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+              [id, eId]
+            );
+          }
         }
       }
 
@@ -352,13 +399,21 @@ router.put('/:id', authenticate, async (req, res, next) => {
         WHERE kb.kullanici_id = $1
       `, [id]);
 
+      const ekipResult = await client.query(`
+        SELECT ke.ekip_id as id, e.ekip_adi
+        FROM kullanici_ekipleri ke
+        JOIN ekipler e ON ke.ekip_id = e.id
+        WHERE ke.kullanici_id = $1
+      `, [id]);
+
       await client.query('COMMIT');
 
       res.json({
         success: true,
         data: {
           ...result.rows[0],
-          branslar: bransResult.rows
+          branslar: bransResult.rows,
+          ekipler: ekipResult.rows
         }
       });
     } catch (error) {
