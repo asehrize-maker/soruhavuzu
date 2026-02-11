@@ -216,7 +216,7 @@ export default function Dashboard() {
                       <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
                         {activeQuickView.type === 'soru' ? `ID: #${item.id} | ${item.brans_adi || 'Branşsız'}` :
                           activeQuickView.type === 'kullanici' ? `${item.rol?.toUpperCase()} | ${item.email}` :
-                            activeQuickView.type === 'brans' ? (item.ekip_adi || 'Ekipsiz') :
+                            activeQuickView.type === 'brans' ? (item.ekip_adi || '') :
                               `PERSONEL: ${item.kullanici_sayisi || 0} | BRANŞ: ${item.brans_sayisi || 0}`}
                       </span>
                       {activeQuickView.type === 'soru' && getDurumBadge(item.durum)}
