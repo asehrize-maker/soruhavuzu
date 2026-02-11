@@ -58,7 +58,6 @@ export default function DizgiYonetimi() {
 
       setPending(pendingList);
       setInProgress(all.filter(s => s.durum === 'dizgide'));
-      setCompleted(all.filter(s => s.durum === 'dizgi_tamam' || (s.durum === 'tamamlandi' && !s.final_png_url)));
       setSorular(all);
 
       // Eğer seçili soru yoksa veya seçili soru artık listede değilse index'i sıfırla
@@ -154,7 +153,7 @@ export default function DizgiYonetimi() {
           {hasImage && <PhotoIcon className={`w-4 h-4 ${selectedSoru?.id === soru.id ? 'text-blue-200' : 'text-gray-400'}`} />}
         </div>
 
-        <div className={`text-xs font-bold line-clamp-2 min-h-[1.5em] ${selectedSoru?.id === soru.id ? 'text-white' : 'text-gray-700'}`}>
+        <div className={`text-xs font-bold line-clamp-5 min-h-[1.5em] ${selectedSoru?.id === soru.id ? 'text-white' : 'text-gray-700'}`}>
           {plainText.trim().length > 0 ? plainText : (hasImage ? 'Görsel içerikli soru...' : 'İçerik önizlemesi yok')}
         </div>
 
@@ -241,23 +240,9 @@ export default function DizgiYonetimi() {
                 </h3>
                 <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-xl text-[10px] font-black">{inProgress.length}</span>
               </div>
-              <div className="flex flex-col gap-4 max-h-[40vh] overflow-y-auto no-scrollbar pr-2">
+              <div className="flex flex-col gap-4 overflow-y-auto no-scrollbar pr-2">
                 {inProgress.map(soru => <QuestionCard key={soru.id} soru={soru} />)}
                 {inProgress.length === 0 && <div className="p-10 text-center border-2 border-dashed border-gray-100 rounded-3xl text-gray-300 font-bold uppercase tracking-widest text-xs italic">Aktif işlem yok</div>}
-              </div>
-            </div>
-
-            {/* COLUMN: COMPLETED BUT WAITING FILE */}
-            <div className="space-y-6">
-              <div className="flex items-center justify-between px-4">
-                <h3 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <CheckCircleIcon className="w-4 h-4 text-emerald-500" strokeWidth={2.5} /> Onaya Hazır / Tamamlanan
-                </h3>
-                <span className="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-xl text-[10px] font-black">{completed.length}</span>
-              </div>
-              <div className="flex flex-col gap-4 max-h-[40vh] overflow-y-auto no-scrollbar pr-2">
-                {completed.map(soru => <QuestionCard key={soru.id} soru={soru} />)}
-                {completed.length === 0 && <div className="p-10 text-center border-2 border-dashed border-gray-100 rounded-3xl text-gray-300 font-bold uppercase tracking-widest text-xs italic">Tamamlanan iş bulunamadı</div>}
               </div>
             </div>
           </div>
