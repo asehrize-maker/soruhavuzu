@@ -442,11 +442,32 @@ router.get('/ajanda', authenticate, async (req, res, next) => {
         await ensureTables();
 
         // 1. Tüm aktif denemeleri çek (Branş filtresi ile, Tarih ASC)
+        // 1. Tüm aktif denemeleri çek (Branş filtresi ile, Tarih ASC)
         let denemeQuery = 'SELECT * FROM deneme_takvimi WHERE aktif = true';
+        const queryParams = [];
+
         if (req.user.rol !== 'admin') {
-            if (req.user.brans_id) denemeQuery += ` AND (brans_id IS NULL OR brans_id = ${req.user.brans_id})`;
-            if (req.user.ekip_id) denemeQuery += ` AND (ekip_id IS NULL OR ekip_id = ${req.user.ekip_id})`;
+            // Branş öğretmeni veya koordinatör ise
+            const conditions = [];
+
+            // Herkes genel (branşsız ve ekipsiz) görevleri görür
+            conditions.push('(brans_id IS NULL AND ekip_id IS NULL)');
+
+            // Branşı varsa, o branşa atanmışları görür
+            if (req.user.brans_id) {
+                conditions.push(`brans_id = ${parseInt(req.user.brans_id)}`);
+            }
+
+            // Ekibi varsa, o ekibe atanmışları görür
+            if (req.user.ekip_id) {
+                conditions.push(`ekip_id = ${parseInt(req.user.ekip_id)}`);
+            }
+
+            if (conditions.length > 0) {
+                denemeQuery += ` AND (${conditions.join(' OR ')})`;
+            }
         }
+
         denemeQuery += ' ORDER BY (CASE WHEN planlanan_tarih >= CURRENT_DATE THEN 0 ELSE 1 END), (CASE WHEN planlanan_tarih >= CURRENT_DATE THEN planlanan_tarih END) ASC, planlanan_tarih DESC';
 
         const denemeler = await pool.query(denemeQuery);
