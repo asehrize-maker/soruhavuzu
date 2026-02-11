@@ -98,4 +98,41 @@ function App() {
   );
 }
 
-export default App;
+// DEPLOYMENT INTERRUPTED SCREEN (Requested by User)
+// Toggle this to false tomorrow to continue work
+const SHOW_DEPLOY_INTERRUPT = true;
+
+const RootApp = () => {
+  if (SHOW_DEPLOY_INTERRUPT) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-[#0f172a] flex flex-col items-center justify-center text-white font-sans">
+        <div className="relative">
+          <div className="w-24 h-24 border-8 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-12 h-12 border-4 border-rose-500/20 border-t-rose-500 rounded-full animate-spin-slow"></div>
+          </div>
+        </div>
+        <div className="mt-12 text-center space-y-4">
+          <h1 className="text-3xl font-black uppercase tracking-[0.4em] animate-pulse">DEPLOY EDİLEMEDİ</h1>
+          <div className="h-px w-40 bg-white/10 mx-auto"></div>
+          <p className="text-gray-500 font-black uppercase tracking-widest text-[10px]">İşlem Kullanıcı Tarafından Yarda Kesildi | Render.com</p>
+          <p className="text-indigo-400/60 font-bold italic text-xs mt-8">Yarın devam edilecek...</p>
+        </div>
+
+        <style dangerouslySetInnerHTML={{
+          __html: `
+          @keyframes spin-slow {
+            from { transform: rotate(360deg); }
+            to { transform: rotate(0deg); }
+          }
+          .animate-spin-slow {
+            animation: spin-slow 3s linear infinite;
+          }
+        `}} />
+      </div>
+    );
+  }
+  return <App />;
+};
+
+export default RootApp;

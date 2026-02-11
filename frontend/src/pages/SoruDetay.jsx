@@ -1806,5 +1806,3 @@ export default function SoruDetay() {
     </div>
   );
 }
-// INTENTIONAL BUILD FAIL FOR DEPLOYMENT (REQUESTED BY USER)
-import { failDeploy } from 'non-existent-module-to-fail-build'; 
