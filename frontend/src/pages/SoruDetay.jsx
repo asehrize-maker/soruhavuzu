@@ -240,7 +240,8 @@ export default function SoruDetay() {
   const canReview = (isAdmin || branchReviewMode || (effectiveRole === 'incelemeci' && !!effectiveIncelemeTuru)) && soru?.durum !== 'tamamlandi';
 
   const [viewMode, setViewMode] = useState('auto'); // 'auto', 'text', 'image'
-  const [draggedItemIndex, setDraggedItemIndex] = useState(null);
+  const hasAlanNotes = useMemo(() => revizeNotlari.some(n => n.inceleme_turu === 'alanci'), [revizeNotlari]);
+  const hasDilNotes = useMemo(() => revizeNotlari.some(n => n.inceleme_turu === 'dilci'), [revizeNotlari]);
 
   const onDragStart = (e, index) => {
     setDraggedItemIndex(index);
@@ -1446,24 +1447,24 @@ export default function SoruDetay() {
                     <span className="text-[10px] font-bold text-gray-500 italic">{soru.dizgici_ad || 'Atanmadı'}</span>
                   </div>
 
-                  <div className={`p-4 rounded-2xl flex items-center justify-between border transition-all ${soru.onay_alanci ? 'bg-emerald-50 border-emerald-100' : (soru.durum === 'alan_incelemede' ? 'bg-orange-50 border-orange-100 ring-2 ring-orange-200 animate-pulse' : 'bg-gray-50 border-gray-100 opacity-40')}`}>
+                  <div className={`p-4 rounded-2xl flex items-center justify-between border transition-all ${soru.onay_alanci ? 'bg-emerald-50 border-emerald-100' : (soru.durum === 'alan_incelemede' || (['revize_istendi', 'revize_gerekli', 'dizgi_tamam'].includes(soru.durum) && hasAlanNotes) ? 'bg-orange-50 border-orange-100 ring-2 ring-orange-200 animate-pulse' : 'bg-gray-50 border-gray-100 opacity-40')}`}>
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${soru.onay_alanci ? 'bg-emerald-500 text-white' : (soru.durum === 'alan_incelemede' ? 'bg-orange-500 text-white' : 'bg-gray-300 text-white')}`}>
+                      <div className={`p-2 rounded-lg ${soru.onay_alanci ? 'bg-emerald-500 text-white' : (soru.durum === 'alan_incelemede' || (['revize_istendi', 'revize_gerekli', 'dizgi_tamam'].includes(soru.durum) && hasAlanNotes) ? 'bg-orange-500 text-white' : 'bg-gray-300 text-white')}`}>
                         <MagnifyingGlassPlusIcon className="w-4 h-4" />
                       </div>
-                      <span className={`text-[11px] font-black uppercase tracking-widest ${soru.onay_alanci ? 'text-emerald-700' : (soru.durum === 'alan_incelemede' ? 'text-orange-700' : 'text-gray-400')}`}>ALAN UZMANI ONAYI</span>
+                      <span className={`text-[11px] font-black uppercase tracking-widest ${soru.onay_alanci ? 'text-emerald-700' : (soru.durum === 'alan_incelemede' || (['revize_istendi', 'revize_gerekli', 'dizgi_tamam'].includes(soru.durum) && hasAlanNotes) ? 'text-orange-700' : 'text-gray-400')}`}>ALAN UZMANI ONAYI</span>
                     </div>
-                    {soru.onay_alanci ? <CheckCircleIcon className="w-5 h-5 text-emerald-500" /> : <span className="text-[9px] font-black text-gray-300">BEKLENİYOR</span>}
+                    {soru.onay_alanci ? <CheckCircleIcon className="w-5 h-5 text-emerald-500" /> : <span className="text-[9px] font-black text-gray-300">{hasAlanNotes ? 'REVİZE/BEKLİYOR' : 'BEKLENİYOR'}</span>}
                   </div>
 
-                  <div className={`p-4 rounded-2xl flex items-center justify-between border transition-all ${soru.onay_dilci ? 'bg-emerald-50 border-emerald-100' : (soru.durum === 'dil_incelemede' ? 'bg-blue-50 border-blue-100 ring-2 ring-blue-200 animate-pulse' : 'bg-gray-50 border-gray-100 opacity-40')}`}>
+                  <div className={`p-4 rounded-2xl flex items-center justify-between border transition-all ${soru.onay_dilci ? 'bg-emerald-50 border-emerald-100' : (soru.durum === 'dil_incelemede' || (['revize_istendi', 'revize_gerekli', 'dizgi_tamam'].includes(soru.durum) && hasDilNotes) ? 'bg-blue-50 border-blue-100 ring-2 ring-blue-200 animate-pulse' : 'bg-gray-50 border-gray-100 opacity-40')}`}>
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${soru.onay_dilci ? 'bg-emerald-500 text-white' : (soru.durum === 'dil_incelemede' ? 'bg-blue-500 text-white' : 'bg-gray-300 text-white')}`}>
+                      <div className={`p-2 rounded-lg ${soru.onay_dilci ? 'bg-emerald-500 text-white' : (soru.durum === 'dil_incelemede' || (['revize_istendi', 'revize_gerekli', 'dizgi_tamam'].includes(soru.durum) && hasDilNotes) ? 'bg-blue-500 text-white' : 'bg-gray-300 text-white')}`}>
                         <SparklesIcon className="w-4 h-4" />
                       </div>
-                      <span className={`text-[11px] font-black uppercase tracking-widest ${soru.onay_dilci ? 'text-emerald-700' : (soru.durum === 'dil_incelemede' ? 'text-blue-700' : 'text-gray-400')}`}>DİL UZMANI ONAYI</span>
+                      <span className={`text-[11px] font-black uppercase tracking-widest ${soru.onay_dilci ? 'text-emerald-700' : (soru.durum === 'dil_incelemede' || (['revize_istendi', 'revize_gerekli', 'dizgi_tamam'].includes(soru.durum) && hasDilNotes) ? 'text-blue-700' : 'text-gray-400')}`}>DİL UZMANI ONAYI</span>
                     </div>
-                    {soru.onay_dilci ? <CheckCircleIcon className="w-5 h-5 text-emerald-500" /> : <span className="text-[9px] font-black text-gray-300">BEKLENİYOR</span>}
+                    {soru.onay_dilci ? <CheckCircleIcon className="w-5 h-5 text-emerald-500" /> : <span className="text-[9px] font-black text-gray-300">{hasDilNotes ? 'REVİZE/BEKLİYOR' : 'BEKLENİYOR'}</span>}
                   </div>
                 </div>
               </div>
@@ -1535,23 +1536,23 @@ export default function SoruDetay() {
 
               {/* Alan İnceleme */}
               <div className="relative">
-                <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${soru.onay_alanci || ['alan_onaylandi', 'dil_incelemede', 'dil_onaylandi', 'tamamlandi'].includes(soru.durum) ? 'bg-orange-500 ring-orange-100' : (soru.durum === 'alan_incelemede' ? 'bg-orange-400 ring-orange-100 animate-pulse' : 'bg-gray-300 ring-gray-100')}`}></div>
+                <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${soru.onay_alanci || ['alan_onaylandi', 'dil_incelemede', 'dil_onaylandi', 'tamamlandi'].includes(soru.durum) || hasAlanNotes ? 'bg-orange-500 ring-orange-100' : (soru.durum === 'alan_incelemede' ? 'bg-orange-400 ring-orange-100 animate-pulse' : 'bg-gray-300 ring-gray-100')}`}></div>
                 <div className="space-y-0.5">
-                  <p className={`text-[10px] font-black uppercase tracking-widest ${soru.onay_alanci || soru.durum === 'alan_incelemede' ? 'text-orange-600' : 'text-gray-400'}`}>
-                    {soru.onay_alanci ? 'ALAN ONAYLI ✓' : (soru.durum === 'alan_incelemede' ? 'ALAN İNCELEMEDE...' : 'ALAN İNCELEME')}
+                  <p className={`text-[10px] font-black uppercase tracking-widest ${soru.onay_alanci || soru.durum === 'alan_incelemede' || hasAlanNotes ? 'text-orange-600' : 'text-gray-400'}`}>
+                    {soru.onay_alanci ? 'ALAN ONAYLI ✓' : (soru.durum === 'alan_incelemede' ? 'ALAN İNCELEMEDE...' : (hasAlanNotes ? 'ALAN REVİZE SÜRECİ' : 'ALAN İNCELEME'))}
                   </p>
-                  <p className="text-[11px] font-bold text-gray-500">{soru.onay_alanci ? 'Uzman onayı alındı' : 'Konu uzmanı kontrolü'}</p>
+                  <p className="text-[11px] font-bold text-gray-500">{soru.onay_alanci ? 'Uzman onayı alındı' : (hasAlanNotes ? 'Hata düzeltmesi bekleniyor' : 'Konu uzmanı kontrolü')}</p>
                 </div>
               </div>
 
               {/* Dil İnceleme */}
               <div className="relative">
-                <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${soru.onay_dilci || soru.durum === 'tamamlandi' ? 'bg-cyan-500 ring-cyan-100' : (soru.durum === 'dil_incelemede' ? 'bg-cyan-400 ring-cyan-100 animate-pulse' : 'bg-gray-300 ring-gray-100')}`}></div>
+                <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${soru.onay_dilci || soru.durum === 'tamamlandi' || hasDilNotes ? 'bg-cyan-500 ring-cyan-100' : (soru.durum === 'dil_incelemede' ? 'bg-cyan-400 ring-cyan-100 animate-pulse' : 'bg-gray-300 ring-gray-100')}`}></div>
                 <div className="space-y-0.5">
-                  <p className={`text-[10px] font-black uppercase tracking-widest ${soru.onay_dilci || soru.durum === 'dil_incelemede' ? 'text-cyan-600' : 'text-gray-400'}`}>
-                    {soru.onay_dilci ? 'DİL ONAYLI ✓' : (soru.durum === 'dil_incelemede' ? 'DİL İNCELEMEDE...' : 'DİL İNCELEME')}
+                  <p className={`text-[10px] font-black uppercase tracking-widest ${soru.onay_dilci || soru.durum === 'dil_incelemede' || hasDilNotes ? 'text-cyan-600' : 'text-gray-400'}`}>
+                    {soru.onay_dilci ? 'DİL ONAYLI ✓' : (soru.durum === 'dil_incelemede' ? 'DİL İNCELEMEDE...' : (hasDilNotes ? 'DİL REVİZE SÜRECİ' : 'DİL İNCELEME'))}
                   </p>
-                  <p className="text-[11px] font-bold text-gray-500">{soru.onay_dilci ? 'Dil uzmanı onayı alındı' : 'Dil ve yazım kontrolü'}</p>
+                  <p className="text-[11px] font-bold text-gray-500">{soru.onay_dilci ? 'Dil uzmanı onayı alındı' : (hasDilNotes ? 'Hata düzeltmesi bekleniyor' : 'Dil ve yazım kontrolü')}</p>
                 </div>
               </div>
 

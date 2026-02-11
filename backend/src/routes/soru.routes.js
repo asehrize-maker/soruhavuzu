@@ -676,12 +676,20 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         [yeni_durum, id]
       );
     } else if (yeni_durum === 'revize_istendi' || yeni_durum === 'revize_gerekli') {
-      // Revize istendiğinde onayları sıfırla
+      const inceleme_turu = req.body.inceleme_turu;
+
+      // %%% AKILLI ONAY SIFIRLAMA %%%
+      // Eğer alancı/admin revize istiyorsa: her şeyi sıfırla (içerik değişmiş olabilir)
+      // Eğer dilci revize istiyorsa: sadece dil onayını sıfırla, alan onayı kalsın
+      let resetSql = 'onay_dilci = false';
+      if (!inceleme_turu || inceleme_turu === 'alanci' || inceleme_turu === 'admin') {
+        resetSql = 'onay_alanci = false, onay_dilci = false';
+      }
+
       result = await pool.query(
         `UPDATE sorular SET 
            durum = $1, 
-           onay_alanci = false, 
-           onay_dilci = false, 
+           ${resetSql}, 
            guncellenme_tarihi = NOW(),
            versiyon = ${versiyonSqlSnippet}
          WHERE id = $2 RETURNING *`,
