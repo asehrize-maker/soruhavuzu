@@ -532,7 +532,13 @@ export default function SoruDetay() {
 
   const handleFinishReview = async () => {
     const hasNotes = revizeNotlari.length > 0;
-    const type = incelemeTuru || (effectiveRole === 'incelemeci' ? effectiveIncelemeTuru : 'admin');
+    let type = incelemeTuru || (effectiveRole === 'incelemeci' ? effectiveIncelemeTuru : 'admin');
+
+    // Eğer branş öğretmeni inceleme yapıyorsa alan uzmanı olarak işaretleyelim
+    if (isBranchTeacher && !incelemeTuru && effectiveRole !== 'incelemeci') {
+      type = 'alanci';
+    }
+
     if (!type) { alert('İnceleme türü belirlenemedi.'); return; }
     const nextStatus = type === 'alanci' ? 'alan_onaylandi' : 'dil_onaylandi';
     const msg = hasNotes ? `İşaretlediğiniz ${revizeNotlari.length} adet notla birlikte incelemeyi bitirmek istiyor musunuz?` : 'Soru hatasız mı? ONAYLAYIP incelemeyi bitirmek istediğinizden emin misiniz?';
