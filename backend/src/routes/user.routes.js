@@ -84,31 +84,41 @@ router.get('/authors', authenticate, async (req, res, next) => {
   try {
     const isAdmin = req.user.rol === 'admin';
     const isKoordinator = req.user.rol === 'koordinator';
-    const { ekip_id } = req.user;
+    const { ekip_id, brans_id, id } = req.user;
 
     let query = `SELECT id, ad_soyad FROM kullanicilar WHERE 1=1`;
     const params = [];
 
-    // Admin hepsini görür.
-    // Koordinatör sadece kendi ekibini görür.
-    // Diğerleri (Soru Yazarı vb.) sadece kendi ekibini görür.
-    if (!isAdmin) {
+    if (isAdmin) {
+      // Admin hepsini görür, filtreleme yok
+    } else if (isKoordinator) {
+      // Koordinatör sadece kendi ekibini görür
       if (ekip_id) {
         query += ` AND ekip_id = $1`;
         params.push(ekip_id);
-        if (!isKoordinator) {
-          if (req.user.brans_id) {
-            query += ` AND brans_id = $${params.length + 1}`;
-            params.push(req.user.brans_id);
-          }
-          // Sadece branş öğretmenlerini (soru yazarlarını) görsünler, dizgici vb. görmesinler
-          query += ` AND rol = $${params.length + 1}`;
-          params.push('soru_yazici');
+      } else {
+        query += ` AND id = $1`;
+        params.push(id);
+      }
+    } else {
+      // Normal kullanıcı (Soru Yazarı, vs.)
+      // 1. Kendi ekibini görür
+      if (ekip_id) {
+        query += ` AND ekip_id = $1`;
+        params.push(ekip_id);
+
+        // 2. SADECE soru yazarlarını görür (Dizgici, İncelemeci GÖREMEZ)
+        query += ` AND rol = 'soru_yazici'`;
+
+        // 3. Varsa kendi branşını görür
+        if (brans_id) {
+          query += ` AND brans_id = $${params.length + 1}`;
+          params.push(brans_id);
         }
       } else {
-        // Ekibi yoksa sadece kendisini görsün
+        // Ekibi yoksa sadece kendisini
         query += ` AND id = $1`;
-        params.push(req.user.id);
+        params.push(id);
       }
     }
 
