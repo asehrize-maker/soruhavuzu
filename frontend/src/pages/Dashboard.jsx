@@ -319,19 +319,24 @@ export default function Dashboard() {
     fetchConfig();
   }, []);
 
+  const [selectedGroup, setSelectedGroup] = useState(null);
+
   const { groupedTeams, teamAggregates, reviewStatsByStatus } = useMemo(() => {
     const rawData = incelemeBransCounts || [];
 
-    // Grouping for Incelemeci Dashboard (Bekleyen vs Tamamlanan)
+    // Grouping for Incelemeci Dashboard (Bekleyen vs Tamamlanan vs Revize)
     const stats = {
       bekleyen: {},
-      tamamlanan: {}
+      tamamlanan: {},
+      revize: {}
     };
 
     rawData.forEach(item => {
       const isAlanci = reviewMode === 'alanci';
       const bCount = isAlanci ? Number(item.alanci_bekleyen) : Number(item.dilci_bekleyen);
       const tCount = isAlanci ? Number(item.alanci_tamamlanan) : Number(item.dilci_tamamlanan);
+      const rCount = isAlanci ? Number(item.alanci_revize || 0) : Number(item.dilci_revize || 0);
+
       const bName = item.brans_adi;
       const cat = item.kategori || 'Belirsiz';
 
@@ -347,9 +352,14 @@ export default function Dashboard() {
         stats.tamamlanan[bName].categories[cat] = (stats.tamamlanan[bName].categories[cat] || 0) + tCount;
         stats.tamamlanan[bName].id = item.brans_id;
       }
+      if (rCount > 0) {
+        if (!stats.revize[bName]) stats.revize[bName] = { total: 0, categories: {} };
+        stats.revize[bName].total += rCount;
+        stats.revize[bName].categories[cat] = (stats.revize[bName].categories[cat] || 0) + rCount;
+        stats.revize[bName].id = item.brans_id;
+      }
     });
 
-    // Existing grouping logic for team filtering (optional, but keep for compatibility if needed elsewhere)
     const grouped = rawData.reduce((acc, item) => {
       const ekipAdi = item.ekip_adi || 'Ekipsiz Branşlar';
       if (!acc[ekipAdi]) acc[ekipAdi] = [];
