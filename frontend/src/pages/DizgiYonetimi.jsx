@@ -134,18 +134,17 @@ export default function DizgiYonetimi() {
   };
 
   const QuestionCard = ({ soru }) => {
-    // HTML etiketlerini temizle
-    const plainText = soru.soru_metni ? soru.soru_metni.replace(/<[^>]+>/g, '') : '';
     const hasImage = soru.soru_metni?.includes('<img') || soru.fotograf_url || soru.final_png_url;
 
     return (
       <div
         onClick={() => setSelectedSoru(soru)}
-        className={`p-8 rounded-[2.5rem] border-2 transition-all cursor-pointer group flex flex-col gap-6 relative overflow-hidden ${selectedSoru?.id === soru.id
+        className={`p-6 rounded-[2.5rem] border-2 transition-all cursor-pointer group flex flex-col gap-5 relative overflow-hidden ${selectedSoru?.id === soru.id
           ? 'bg-blue-600 border-blue-600 shadow-2xl shadow-blue-200 ring-4 ring-blue-500/20'
           : 'bg-white border-gray-100 hover:border-blue-400 hover:shadow-xl'
           }`}
       >
+        {/* CARD HEADER */}
         <div className="flex justify-between items-center z-10 relative">
           <div className="flex items-center gap-2">
             <div className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest ${selectedSoru?.id === soru.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'
@@ -162,12 +161,23 @@ export default function DizgiYonetimi() {
           {hasImage && <PhotoIcon className={`w-5 h-5 ${selectedSoru?.id === soru.id ? 'text-blue-200' : 'text-gray-400'}`} />}
         </div>
 
-        <div className={`text-sm font-bold line-clamp-[15] min-h-[3em] leading-relaxed ${selectedSoru?.id === soru.id ? 'text-white' : 'text-gray-700'}`}>
-          {plainText.trim().length > 0 ? plainText : (hasImage ? 'Görsel içerikli soru...' : 'İçerik önizlemesi yok')}
+        {/* MINI PREVIEW AREA */}
+        <div className={`relative rounded-2xl overflow-hidden border transition-all duration-500 ${selectedSoru?.id === soru.id ? 'bg-white border-white/10' : 'bg-gray-50/50 border-gray-100 group-hover:bg-white'}`}>
+          <div className="p-4 max-h-[220px] overflow-hidden relative">
+            <div
+              className={`text-[11px] leading-relaxed scale-[0.9] origin-top-left transition-colors ${selectedSoru?.id === soru.id ? 'text-gray-900' : 'text-gray-700 font-medium'}`}
+              dangerouslySetInnerHTML={{
+                __html: soru.soru_metni?.replace(/<img/g, '<img style="max-height:80px; width:auto; border-radius:8px; margin: 8px 0;"')
+              }}
+            />
+            {/* GRADIENT OVERLAY FOR PREVIEW CUTOFF */}
+            <div className={`absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t ${selectedSoru?.id === soru.id ? 'from-white' : 'from-gray-50/50 group-hover:from-white'}`}></div>
+          </div>
         </div>
 
-        <div className={`text-[11px] font-black uppercase tracking-widest flex items-center gap-2 ${selectedSoru?.id === soru.id ? 'text-blue-100' : 'text-gray-400'}`}>
-          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] border shadow-sm ${selectedSoru?.id === soru.id ? 'border-white/20 bg-white/10' : 'border-gray-200 bg-white'}`}>
+        {/* CARD FOOTER */}
+        <div className={`text-[10px] font-black uppercase tracking-widest flex items-center gap-2 mt-auto ${selectedSoru?.id === soru.id ? 'text-blue-100' : 'text-gray-400'}`}>
+          <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[9px] border shadow-sm ${selectedSoru?.id === soru.id ? 'border-white/20 bg-white/10' : 'border-gray-200 bg-white'}`}>
             {soru.olusturan_ad?.charAt(0)}
           </div>
           {soru.olusturan_ad}
