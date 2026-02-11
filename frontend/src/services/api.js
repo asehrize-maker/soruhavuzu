@@ -100,6 +100,7 @@ export const soruAPI = {
   }),
   delete: (id) => api.delete(`/sorular/${id}`),
   updateDurum: (id, data) => api.put(`/sorular/${id}/durum`, data),
+  geriAl: (id) => api.post(`/sorular/${id}/geri-al`),
   dizgiAl: (id) => api.post(`/sorular/${id}/dizgi-al`),
   dizgiTamamla: (id, data) => api.post(`/sorular/${id}/dizgi-tamamla`, data),
   dizgiTamamlaWithFile: (id, formData) => api.post(`/sorular/${id}/dizgi-tamamla`, formData, {

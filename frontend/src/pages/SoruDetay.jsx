@@ -39,7 +39,8 @@ import {
   MinusIcon,
   PencilIcon,
   DocumentArrowUpIcon,
-  RocketLaunchIcon
+  RocketLaunchIcon,
+  ArrowUturnLeftIcon
 } from '@heroicons/react/24/outline';
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
@@ -450,6 +451,19 @@ export default function SoruDetay() {
       if (['tamamlandi', 'dizgi_bekliyor', 'alan_incelemede', 'dil_incelemede'].includes(status)) {
         navigate(scope === 'brans' ? '/brans-havuzu' : '/sorular');
       }
+    } catch (e) {
+      const errorMsg = e.response?.data?.error || e.response?.data?.message || e.message;
+      alert('Hata: ' + errorMsg);
+    }
+  };
+
+  const handleGeriAl = async () => {
+    if (!confirm('Yaptığınız son işlemi geri almak istiyor musunuz?')) return;
+    try {
+      await soruAPI.geriAl(id);
+      await loadSoru();
+      await loadRevizeNotlari();
+      alert('İşlem başarıyla geri alındı.');
     } catch (e) {
       const errorMsg = e.response?.data?.error || e.response?.data?.message || e.message;
       alert('Hata: ' + errorMsg);
@@ -1100,6 +1114,14 @@ export default function SoruDetay() {
                 </div>
               )}
 
+              {/* GERİ AL BUTONU - TÜM ROLLER İÇİN */}
+              <button
+                onClick={handleGeriAl}
+                className="flex items-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-100 px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-sm active:scale-95"
+                title="Son yaptığınız durum değişikliğini geri alır"
+              >
+                <ArrowUturnLeftIcon className="w-5 h-5" /> GERİ AL
+              </button>
             </div>
           )}
         </div>

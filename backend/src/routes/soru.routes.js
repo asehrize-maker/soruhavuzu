@@ -760,6 +760,63 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
   }
 });
 
+// Yapılan son durum değişikliğini geri al
+router.post('/:id(\\d+)/geri-al', authenticate, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Son versiyonu bul (bu kullanıcı tarafından yapılan en son değişiklik)
+    const versionRes = await pool.query(`
+      SELECT * FROM soru_versiyonlari 
+      WHERE soru_id = $1 AND degistiren_kullanici_id = $2
+      ORDER BY degisim_tarihi DESC LIMIT 1
+    `, [id, req.user.id]);
+
+    if (versionRes.rows.length === 0) {
+      throw new AppError('Geri alınacak bir işlem bulunamadı veya bu işlem size ait değil.', 404);
+    }
+
+    const lastVersion = versionRes.rows[0];
+    const oldData = lastVersion.data;
+
+    // Soruyu eski verileriyle güncelle
+    await pool.query(`
+      UPDATE sorular SET 
+        durum = $1,
+        versiyon = $2,
+        onay_alanci = $3,
+        onay_dilci = $4,
+        final_png_url = $5,
+        final_png_public_id = $6,
+        guncellenme_tarihi = NOW()
+      WHERE id = $7
+    `, [
+      oldData.durum,
+      oldData.versiyon,
+      oldData.onay_alanci,
+      oldData.onay_dilci,
+      oldData.final_png_url,
+      oldData.final_png_public_id,
+      id
+    ]);
+
+    // Geri alınan versiyonu sil
+    await pool.query('DELETE FROM soru_versiyonlari WHERE id = $1', [lastVersion.id]);
+
+    // LOGLAMA
+    await logActivity(pool, req.user.id, 'geri_alma', `Yapılan son işlemi geri aldı. (Eski durum: ${oldData.durum})`, id);
+
+    res.json({
+      success: true,
+      message: 'İşlem başarıyla geri alındı.',
+      data: { id, yeni_durum: oldData.durum }
+    });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Dizgi için branş bazlı bekleyen soru sayıları
 router.get('/stats/dizgi-brans', authenticate, async (req, res, next) => {
   try {
