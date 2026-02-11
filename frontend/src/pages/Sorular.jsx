@@ -63,7 +63,9 @@ export default function Sorular({ scope }) {
   useEffect(() => {
     const loadAuthors = async () => {
       try {
+        setAuthors([]); // Clear previous list
         const res = await userAPI.getAuthors();
+        // Backend zaten filtreli gönderiyor, ekstra frontend filtresine gerek yok
         setAuthors(res.data.data || []);
       } catch (err) {
         console.error('Yazarlar yüklenemedi', err);
