@@ -547,6 +547,11 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
     const isAdmin = req.user.rol === 'admin';
 
     // %%% İŞ AKIŞI KISITLAMALARI (WORKFLOW VALIDATION) %%%
+    // 1. Dizgi tamamlanırken PNG kontrolü (Zorunlu - Herkes için)
+    if (yeni_durum === 'dizgi_tamam' && !soru.final_png_url) {
+      throw new AppError('Dizgi tamamlanmadan önce final PNG görseli yüklenmelidir.', 400);
+    }
+
     if (!isAdmin) {
       const isTaslakAşaması = ['beklemede', 'revize_gerekli'].includes(soru.durum);
       const hedefİncelemeVeyaTamam = [
@@ -555,23 +560,14 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         'dil_onaylandi', 'tamamlandi'
       ].includes(yeni_durum);
 
-      // 1. Yazılan soru dizgiye girmeden inceleme veya tamamlanana gidemez
+      // Yazılan soru dizgiye girmeden inceleme veya tamamlanana gidemez
       if (isTaslakAşaması && hedefİncelemeVeyaTamam) {
         throw new AppError('Soru dizgiye gönderilmeden inceleme veya tamamlama aşamasına geçemez.', 400);
       }
 
-      // 2. Dizgi tamamlanırken PNG kontrolü (Zorunlu)
-      if (yeni_durum === 'dizgi_tamam') {
-        if (!soru.final_png_url) {
-          throw new AppError('Dizgi tamamlanmadan önce final PNG görseli yüklenmelidir.', 400);
-        }
-      }
-
-      // 3. Alan ve Dil onayı olmadan tamamlanamaz
-      if (yeni_durum === 'tamamlandi') {
-        if (!soru.onay_alanci || !soru.onay_dilci) {
-          throw new AppError('Soru hem alan hem de dil onayını almadan tamamlananlara aktarılamaz.', 400);
-        }
+      // Alan ve Dil onayı olmadan tamamlanamaz
+      if (yeni_durum === 'tamamlandi' && (!soru.onay_alanci || !soru.onay_dilci)) {
+        throw new AppError('Soru hem alan hem de dil onayını almadan tamamlananlara aktarılamaz.', 400);
       }
     }
 
@@ -1201,6 +1197,13 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
       // 1. Önce mevcut hali versiyon geçmişine kaydet (Admin/Dizgici farketmeksizin)
       const currentSoruRes = await client.query('SELECT * FROM sorular WHERE id = $1', [id]);
       const currentSoru = currentSoruRes.rows[0];
+      if (!currentSoru) throw new AppError('Soru bulunamadı', 404);
+
+      // PNG Kontrolü: Ya zaten var olmalı ya da şu an yükleniyor olmalı
+      const isUploadingPng = req.files && req.files.final_png && req.files.final_png[0];
+      if (!currentSoru.final_png_url && !isUploadingPng) {
+        throw new AppError('Dizgi tamamlanmadan önce final PNG görseli yüklenmelidir.', 400);
+      }
 
       const jsonSafeSoru = JSON.stringify(currentSoru, (key, value) =>
         typeof value === 'bigint' ? value.toString() : value

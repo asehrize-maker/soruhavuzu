@@ -435,6 +435,10 @@ export default function SoruDetay() {
   const handleUpdateStatus = async (status, confirmMsg = null) => {
     if (confirmMsg && !confirm(confirmMsg)) return;
     try {
+      if (status === 'dizgi_tamam' && !soru.final_png_url) {
+        alert('Lütfen önce PNG görseli yükleyiniz. Görsel yüklenmeden dizgi tamamlanamaz.');
+        return;
+      }
       await soruAPI.updateDurum(id, { yeni_durum: status, aciklama: `Durum güncellendi: ${STATUS_LABELS[status] || status}` });
       // Durum değiştiğinde notları tazele (belki çözüldü yapılmıştır)
       await loadSoru();
