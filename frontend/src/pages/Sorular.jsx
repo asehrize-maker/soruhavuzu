@@ -677,7 +677,7 @@ export default function Sorular({ scope }) {
                                     </div>
                                   )}
                                   <div
-                                    className="text-gray-800 text-sm font-medium leading-relaxed group-hover:text-black transition-colors [&_img]:max-h-[300px] [&_img]:w-auto [&_img]:max-w-full [&_img]:object-contain [&_img]:my-4 [&_img]:rounded-xl [&_img]:shadow-md"
+                                    className="text-gray-900 text-base font-medium leading-relaxed group-hover:text-black transition-colors [&_img]:max-h-[400px] [&_img]:w-auto [&_img]:max-w-full [&_img]:object-contain [&_img]:my-6 [&_img]:rounded-2xl [&_img]:shadow-lg"
                                     dangerouslySetInnerHTML={{
                                       __html: soru.soru_metni?.replace(/src="blob:[^"]+"/g, `src="${soru.fotograf_url || ''}"`)
                                     }}

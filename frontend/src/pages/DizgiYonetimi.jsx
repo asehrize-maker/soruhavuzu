@@ -163,15 +163,15 @@ export default function DizgiYonetimi() {
 
         {/* MINI PREVIEW AREA */}
         <div className={`relative rounded-2xl overflow-hidden border transition-all duration-500 ${selectedSoru?.id === soru.id ? 'bg-white border-white/10' : 'bg-gray-50/50 border-gray-100 group-hover:bg-white'}`}>
-          <div className="p-4 max-h-[220px] overflow-hidden relative">
+          <div className="p-5 max-h-[300px] overflow-hidden relative">
             <div
-              className={`text-[11px] leading-relaxed scale-[0.9] origin-top-left transition-colors ${selectedSoru?.id === soru.id ? 'text-gray-900' : 'text-gray-700 font-medium'}`}
+              className={`text-sm leading-relaxed transition-colors ${selectedSoru?.id === soru.id ? 'text-gray-900' : 'text-gray-700 font-medium'}`}
               dangerouslySetInnerHTML={{
-                __html: soru.soru_metni?.replace(/<img/g, '<img style="max-height:80px; width:auto; border-radius:8px; margin: 8px 0;"')
+                __html: soru.soru_metni?.replace(/<img/g, '<img style="max-height:180px; width:auto; border-radius:8px; margin: 10px 0;"')
               }}
             />
             {/* GRADIENT OVERLAY FOR PREVIEW CUTOFF */}
-            <div className={`absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t ${selectedSoru?.id === soru.id ? 'from-white' : 'from-gray-50/50 group-hover:from-white'}`}></div>
+            <div className={`absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${selectedSoru?.id === soru.id ? 'from-white' : 'from-gray-50/50 group-hover:from-white'}`}></div>
           </div>
         </div>
 
