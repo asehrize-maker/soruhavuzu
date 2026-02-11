@@ -203,12 +203,11 @@ export default function SoruDetay() {
   const isTeamKoordinator = isKoordinator && (Number(user?.ekip_id) === Number(soru?.ekip_id));
 
   const hasFullAccess = isAdmin || isOwner || isBranchTeacher || isTeamKoordinator;
-  const canReview = (isAdmin || (effectiveRole === 'incelemeci' && !!effectiveIncelemeTuru)) && soru?.durum !== 'tamamlandi';
-
   const [dizgiNotu, setDizgiNotu] = useState('');
   const [editMode, setEditMode] = useState(false);
-  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [branchReviewMode, setBranchReviewMode] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [branslar, setBranslar] = useState([]);
   const [kazanims, setKazanims] = useState([]);
   const [kazanimLoading, setKazanimLoading] = useState(false);
@@ -237,6 +236,8 @@ export default function SoruDetay() {
   const [selectedAnnotation, setSelectedAnnotation] = useState(null); // { type: 'box'|'line', ...data }
   const [drawTool, setDrawTool] = useState('box'); // 'box', 'line', 'cursor'
   const [drawingShape, setDrawingShape] = useState(null); // { type, ...data }
+
+  const canReview = (isAdmin || branchReviewMode || (effectiveRole === 'incelemeci' && !!effectiveIncelemeTuru)) && soru?.durum !== 'tamamlandi';
 
   const [viewMode, setViewMode] = useState('auto'); // 'auto', 'text', 'image'
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
@@ -490,10 +491,17 @@ export default function SoruDetay() {
     setDrawingShape(null);
   };
 
+  const isDizgiStep = ['dizgi_bekliyor', 'dizgide', 'dizgi_tamam', 'revize_istendi', 'revize_gerekli', 'nceleme_bekliyor'].includes(soru?.durum);
+
   const handleAddRevizeNot = async () => {
     if (!revizeNotuInput.trim()) return;
     try {
-      const type = incelemeTuru || (effectiveRole === 'incelemeci' ? effectiveIncelemeTuru : 'admin');
+      let type = incelemeTuru || (effectiveRole === 'incelemeci' ? effectiveIncelemeTuru : 'admin');
+
+      // Eğer branş öğretmeni/yazar ise ve inceleme türü yoksa, alan uzmanı gibi değerlendirelim
+      if (isBranchTeacher && !incelemeTuru && effectiveRole !== 'incelemeci') {
+        type = 'alanci';
+      }
 
       let secilen_metin = selectedText;
       if (selectedAnnotation) {
@@ -561,6 +569,13 @@ export default function SoruDetay() {
   };
 
   const handleEditStart = () => {
+    // Soru PNG olarak dizgilenmişse ve branş öğretmeni düzenlemek istiyorsa, 
+    // yazar düzenleme modu yerine inceleme modunu açalım (revize notu ekleyebilsin)
+    if (soru.final_png_url && isBranchTeacher && !isAdmin) {
+      setBranchReviewMode(true);
+      return;
+    }
+
     setComponents(parseHtmlToComponents(soru.soru_metni, soru));
     const toScale = (value) => {
       const raw = String(value || '').toLowerCase();
@@ -991,7 +1006,7 @@ export default function SoruDetay() {
               )}
               {hasFullAccess && (
                 <div className="flex gap-2">
-                  {['beklemede', 'revize_istendi', 'revize_gerekli', 'inceleme_bekliyor', 'incelemede', 'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi'].includes(soru.durum) && <button onClick={() => handleUpdateStatus('dizgi_bekliyor', 'Dizgiye gönderilsin mi?')} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-purple-100 transition-all">🚀 DİZGİYE GÖNDER</button>}
+                  {['beklemede', 'revize_istendi', 'revize_gerekli', 'inceleme_bekliyor', 'incelemede', 'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi', 'dizgi_tamam'].includes(soru.durum) && <button onClick={() => handleUpdateStatus('dizgi_bekliyor', 'Dizgiye gönderilsin mi?')} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-purple-100 transition-all">🚀 DİZGİYE GÖNDER</button>}
                   {(soru.durum === 'dizgi_tamam' || (soru.durum === 'dil_onaylandi' && !soru.onay_alanci)) && <button onClick={() => handleUpdateStatus('alan_incelemede')} className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">🔍 ALAN İNCELEME</button>}
                   {(soru.durum === 'alan_onaylandi' || (soru.durum === 'dizgi_tamam' && soru.onay_alanci && !soru.onay_dilci)) && <button onClick={() => handleUpdateStatus('dil_incelemede')} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">🔤 DİL İNCELEME</button>}
                   {(soru.durum === 'dizgi_tamam' || (soru.durum === 'dil_onaylandi' && soru.onay_alanci)) && <button onClick={() => handleUpdateStatus('tamamlandi', 'Soruyu tamamlanan sorulara aktarmak istediğinize emin misiniz?')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-100 transition-all">✅ TAMAMLANANLARA AKTAR</button>}
@@ -1433,7 +1448,7 @@ export default function SoruDetay() {
           )}
           {/* REVISION NOTES */}
           {/* REVISION NOTES */}
-          {((!isBranchTeacher && effectiveRole !== 'dizgici') || revizeNotlari.length > 0 || ['revize_istendi', 'revize_gerekli'].includes(soru.durum)) && (
+          {((!isBranchTeacher && effectiveRole !== 'dizgici') || revizeNotlari.length > 0 || branchReviewMode || ['revize_istendi', 'revize_gerekli'].includes(soru.durum)) && (
             <div className="bg-white rounded-[3rem] p-8 shadow-xl shadow-gray-200/50 border border-gray-50 space-y-6">
               <div className="flex items-center justify-between">
                 <h4 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2 uppercase"><FlagIcon className="w-6 h-6 text-rose-500" /> Revize İmleri</h4>
@@ -1641,60 +1656,73 @@ export default function SoruDetay() {
       </div>
 
       {/* FLOATING ANNOTATION UI - CENTERED MODAL */}
-      {(selectedText || selectedAnnotation) && canReview && (
+      {(selectedText || selectedAnnotation || branchReviewMode) && canReview && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden animate-scale-up">
             <div className="p-6 bg-gray-900 text-white flex justify-between items-center px-8">
               <h5 className="font-black text-xs uppercase tracking-[0.2em] flex items-center gap-2"><PlusIcon className="w-5 h-5 text-rose-500" /> Yeni Revize Notu</h5>
-              <button onClick={() => { setSelectedText(''); setSelectedAnnotation(null); setRevizeNotuInput(''); }} className="hover:bg-white/10 p-2 rounded-xl transition-all"><XMarkIcon className="w-6 h-6" /></button>
+              <button onClick={() => { setSelectedText(''); setSelectedAnnotation(null); setRevizeNotuInput(''); setBranchReviewMode(false); }} className="hover:bg-white/10 p-2 rounded-xl transition-all"><XMarkIcon className="w-6 h-6" /></button>
             </div>
             <div className="p-8 space-y-6">
-              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-start gap-4">
-                <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100 text-indigo-500">
-                  {selectedAnnotation?.type === 'box' ? <StopIcon className="w-6 h-6" /> :
-                    selectedAnnotation?.type === 'line' ? <MinusIcon className="w-6 h-6" /> :
-                      selectedText ? <DocumentTextIcon className="w-6 h-6" /> : <XMarkIcon className="w-6 h-6" />}
+              {(!selectedText && !selectedAnnotation && branchReviewMode) ? (
+                <div className="text-center py-4 space-y-2">
+                  <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CursorArrowRaysIcon className="w-6 h-6" />
+                  </div>
+                  <p className="text-sm font-bold text-gray-800">Lütfen revize etmek istediğiniz alanı veya metni seçiniz.</p>
+                  <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Ekranda bir bölgeyi seçmeden not ekleyemezsiniz.</p>
+                  <button onClick={() => setBranchReviewMode(false)} className="mt-4 text-rose-500 text-[10px] font-black uppercase tracking-widest hover:underline">İşlemi İptal Et</button>
                 </div>
-                <div>
-                  <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">SEÇİLEN {selectedAnnotation ? 'ALAN' : 'KESİT'}</span>
-                  {selectedAnnotation ? (
-                    <p className="text-sm font-bold text-gray-800">
-                      {selectedAnnotation.type === 'box' ? 'Kutu Alanı' : 'Çizgi İşareti'}
-                    </p>
-                  ) : (
-                    <p className="text-sm font-bold text-gray-800 line-clamp-3 italic">"{selectedText}"</p>
-                  )}
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-start gap-4">
+                    <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100 text-indigo-500">
+                      {selectedAnnotation?.type === 'box' ? <StopIcon className="w-6 h-6" /> :
+                        selectedAnnotation?.type === 'line' ? <MinusIcon className="w-6 h-6" /> :
+                          selectedText ? <DocumentTextIcon className="w-6 h-6" /> : <XMarkIcon className="w-6 h-6" />}
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">SEÇİLEN {selectedAnnotation ? 'ALAN' : 'KESİT'}</span>
+                      {selectedAnnotation ? (
+                        <p className="text-sm font-bold text-gray-800">
+                          {selectedAnnotation.type === 'box' ? 'Kutu Alanı' : 'Çizgi İşareti'}
+                        </p>
+                      ) : (
+                        <p className="text-sm font-bold text-gray-800 line-clamp-3 italic">"{selectedText}"</p>
+                      )}
+                    </div>
+                  </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">NOTUNUZ</label>
-                <textarea
-                  autoFocus
-                  className="w-full bg-gray-50 border-2 border-gray-100 focus:border-indigo-600 rounded-2xl p-5 text-sm font-bold text-gray-800 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none resize-none placeholder-gray-300"
-                  rows="4"
-                  placeholder="Lütfen tespit ettiğiniz hatayı veya düzeltme isteğinizi detaylıca açıklayın..."
-                  value={revizeNotuInput}
-                  onChange={(e) => setRevizeNotuInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddRevizeNot(); } }}
-                />
-                <p className="text-[9px] text-gray-400 font-bold text-right px-1">Kaydetmek için ENTER tuşuna basabilirsiniz</p>
-              </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">NOTUNUZ</label>
+                    <textarea
+                      autoFocus
+                      className="w-full bg-gray-50 border-2 border-gray-100 focus:border-indigo-600 rounded-2xl p-5 text-sm font-bold text-gray-800 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none resize-none placeholder-gray-300"
+                      rows="4"
+                      placeholder="Lütfen tespit ettiğiniz hatayı veya düzeltme isteğinizi detaylıca açıklayın..."
+                      value={revizeNotuInput}
+                      onChange={(e) => setRevizeNotuInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddRevizeNot(); } }}
+                    />
+                    <p className="text-[9px] text-gray-400 font-bold text-right px-1">Kaydetmek için ENTER tuşuna basabilirsiniz</p>
+                  </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => { setSelectedText(''); setSelectedAnnotation(null); setRevizeNotuInput(''); }}
-                  className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
-                >
-                  İPTAL
-                </button>
-                <button
-                  onClick={handleAddRevizeNot}
-                  className="flex-[2] py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 transition-all active:scale-95 flex items-center justify-center gap-2"
-                >
-                  KAYDET
-                </button>
-              </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => { setSelectedText(''); setSelectedAnnotation(null); setRevizeNotuInput(''); setBranchReviewMode(false); }}
+                      className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
+                    >
+                      İPTAL
+                    </button>
+                    <button
+                      onClick={handleAddRevizeNot}
+                      className="flex-[2] py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 transition-all active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      KAYDET
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
