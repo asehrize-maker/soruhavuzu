@@ -1169,7 +1169,7 @@ export default function SoruDetay() {
                 <div className="flex flex-col items-center gap-6 w-full">
 
                   <div
-                    className="relative inline-block shadow-2xl rounded-sm overflow-hidden group/img select-none"
+                    className="relative inline-flex justify-center items-center shadow-2xl rounded-sm overflow-hidden group/img select-none leading-none bg-gray-900"
                     onMouseDown={handleImageMouseDown}
                     onMouseMove={handleImageMouseMove}
                     onMouseUp={handleImageMouseUp}
@@ -1178,7 +1178,7 @@ export default function SoruDetay() {
                     <img
                       src={soru.final_png_url}
                       alt="Final Dizgi"
-                      className={`max-w-full max-h-[80vh] object-contain ${canReview ? (drawTool === 'cursor' ? 'cursor-crosshair' : 'cursor-cell') : ''}`}
+                      className={`max-w-full max-h-[80vh] w-auto h-auto block object-contain ${canReview ? (drawTool === 'cursor' ? 'cursor-crosshair' : 'cursor-cell') : ''}`}
                       draggable={false}
                     />
                     {/* Markers */}
