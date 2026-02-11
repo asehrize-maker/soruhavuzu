@@ -17,7 +17,8 @@ import {
   MegaphoneIcon,
   MagnifyingGlassPlusIcon,
   SparklesIcon,
-  CursorArrowRaysIcon
+  CursorArrowRaysIcon,
+  ListBulletIcon
 } from '@heroicons/react/24/outline';
 
 const normalizeZorlukToScale = (value) => {
@@ -118,6 +119,84 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
   );
 }
 
+// --- ALT BİLEŞEN: HIZLI LİSTE GÖRÜNÜMÜ ---
+function QuickViewList({ type, title, onClose }) {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        let res;
+        if (type === 'soru') res = await soruAPI.getAll();
+        else if (type === 'kullanici') res = await userAPI.getAll();
+        else if (type === 'brans') res = await bransAPI.getAll();
+        else if (type === 'ekip') res = await soruAPI.getEkipler(); // Varsayılan ekip listesi API'si
+
+        setData(res.data.data || []);
+      } catch (err) {
+        console.error("QuickView error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [type]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden animate-zoom-in">
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+          <div>
+            <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase italic flex items-center gap-3">
+              <ListBulletIcon className="w-6 h-6 text-blue-600" /> {title}
+            </h3>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Toplam {data.length} kayıt listelendi</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors text-gray-400 hover:text-gray-900">
+            <XMarkIcon className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-3">
+          {loading ? (
+            <div className="flex justify-center p-20"><ArrowPathIcon className="w-10 h-10 text-blue-200 animate-spin" /></div>
+          ) : data.length === 0 ? (
+            <div className="text-center py-20 text-gray-400 font-bold italic">Kayıt bulunamadı.</div>
+          ) : (
+            data.map((item, idx) => (
+              <div key={item.id || idx} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between group hover:bg-white hover:border-blue-100 hover:shadow-sm transition-all">
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-black text-gray-800">
+                    {type === 'soru' ? (item.soru_metni?.replace(/<[^>]*>?/gm, '').substring(0, 100) || 'Metinsiz Soru') :
+                      type === 'kullanici' ? item.ad_soyad :
+                        type === 'brans' ? item.brans_adi :
+                          item.ekip_adi || 'İsimsiz Ekip'}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                      {type === 'soru' ? `ID: #${item.id} | ${item.brans_adi || 'Branşsız'}` :
+                        type === 'kullanici' ? `${item.rol?.toUpperCase()} | ${item.email}` :
+                          type === 'brans' ? (item.ekip_adi || 'Ekipsiz') :
+                            'Sistem Ekibi'}
+                    </span>
+                    {type === 'soru' && getDurumBadge(item.durum)}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="p-4 bg-gray-50 text-center border-t border-gray-100">
+          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em]">Düzenleme işlemleri için yan menüdeki ilgili sayfayı kullanın.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // --- MAIN COMPONENT ---
 export default function Dashboard() {
   // 1. ALL HOOKS
@@ -144,6 +223,7 @@ export default function Dashboard() {
   const [incelemeBransCounts, setIncelemeBransCounts] = useState([]);
   const [selectedBrans, setSelectedBrans] = useState(null);
   const [selectedEkip, setSelectedEkip] = useState(null);
+  const [activeQuickView, setActiveQuickView] = useState(null);
   const [panelConfig, setPanelConfig] = useState(null);
 
   // Otomatik mod tespiti (State yerine memo kullanalım)
@@ -353,27 +433,27 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Link to="/sorular" className="card bg-blue-600 text-white p-6 cursor-pointer hover:scale-105 transition shadow-lg">
+            <div onClick={() => setActiveQuickView({ type: 'soru', title: 'Tüm Sorular Listesi' })} className="card bg-blue-600 text-white p-6 cursor-pointer hover:scale-105 transition shadow-lg">
               <p className="text-blue-100 text-xs font-bold uppercase">TOPLAM SORU</p>
               <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.genel?.toplam_soru || 0}</h3>
-            </Link>
-            <Link to="/kullanicilar" className="card bg-emerald-600 text-white p-6 cursor-pointer hover:scale-105 transition shadow-lg">
+            </div>
+            <div onClick={() => setActiveQuickView({ type: 'kullanici', title: 'Kullanıcı Listesi' })} className="card bg-emerald-600 text-white p-6 cursor-pointer hover:scale-105 transition shadow-lg">
               <p className="text-emerald-100 text-xs font-bold uppercase">
                 {user?.rol === 'koordinator' ? 'EKİP PERSONELİ' : 'KULLANICILAR'}
               </p>
               <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.sistem?.toplam_kullanici || 0}</h3>
-            </Link>
-            <Link to="/branslar" className="card bg-purple-600 text-white p-6 cursor-pointer hover:scale-105 transition shadow-lg">
+            </div>
+            <div onClick={() => setActiveQuickView({ type: 'brans', title: 'Branş Listesi' })} className="card bg-purple-600 text-white p-6 cursor-pointer hover:scale-105 transition shadow-lg">
               <p className="text-purple-100 text-xs font-bold uppercase">
                 {user?.rol === 'koordinator' ? 'EKİP BRANŞLARI' : 'BRANŞLAR'}
               </p>
               <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.sistem?.toplam_brans || 0}</h3>
-            </Link>
+            </div>
             {user?.rol === 'admin' && (
-              <Link to="/ekipler" className="card bg-orange-600 text-white p-6 cursor-pointer hover:scale-105 transition shadow-lg">
+              <div onClick={() => setActiveQuickView({ type: 'ekip', title: 'Ekip Listesi' })} className="card bg-orange-600 text-white p-6 cursor-pointer hover:scale-105 transition shadow-lg">
                 <p className="text-orange-100 text-xs font-bold uppercase">EKİPLER</p>
                 <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.sistem?.toplam_ekip || 0}</h3>
-              </Link>
+              </div>
             )}
           </div>
 
@@ -716,6 +796,13 @@ export default function Dashboard() {
           </div>
         </div>
       ) : null}
+      {activeQuickView && (
+        <QuickViewList
+          type={activeQuickView.type}
+          title={activeQuickView.title}
+          onClose={() => setActiveQuickView(null)}
+        />
+      )}
     </div>
   );
 }
