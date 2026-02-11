@@ -15,6 +15,8 @@ import {
   DevicePhoneMobileIcon,
   CheckBadgeIcon,
   XMarkIcon,
+  ChevronUpIcon,
+  ChevronDownIcon,
   ArrowRightIcon,
   ArrowPathIcon
 } from '@heroicons/react/24/outline';
@@ -181,6 +183,16 @@ export default function SoruEkle() {
 
   const updateComponent = (id, updates) => setComponents(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
   const removeComponent = (id) => setComponents(prev => prev.filter(c => c.id !== id));
+
+  const moveComponent = (index, direction) => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === components.length - 1) return;
+
+    const newComponents = [...components];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    [newComponents[index], newComponents[targetIndex]] = [newComponents[targetIndex], newComponents[index]];
+    setComponents(newComponents);
+  };
 
   const execCmd = (cmd) => document.execCommand(cmd, false, null);
 
@@ -395,8 +407,25 @@ export default function SoruEkle() {
                       ) : (
                         <div className="flex items-center gap-1">
                           <button
+                            onClick={(e) => { e.stopPropagation(); moveComponent(index, 'up'); }}
+                            disabled={index === 0}
+                            className="p-1.5 bg-white/80 backdrop-blur rounded-lg shadow-sm border border-gray-100 text-gray-400 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all"
+                            title="Yukarı Taşı"
+                          >
+                            <ChevronUpIcon className="w-4 h-4" strokeWidth={3} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); moveComponent(index, 'down'); }}
+                            disabled={index === components.length - 1}
+                            className="p-1.5 bg-white/80 backdrop-blur rounded-lg shadow-sm border border-gray-100 text-gray-400 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all"
+                            title="Aşağı Taşı"
+                          >
+                            <ChevronDownIcon className="w-4 h-4" strokeWidth={3} />
+                          </button>
+                          <button
                             onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(comp.id); }}
                             className="delete-btn p-1.5 bg-white/80 backdrop-blur rounded-lg shadow-sm border border-gray-100 text-rose-300 hover:text-rose-600 active:scale-90 transition-all"
+                            title="Sil"
                           >
                             <TrashIcon className="w-4 h-4" strokeWidth={3} />
                           </button>
