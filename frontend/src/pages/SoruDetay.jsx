@@ -1168,195 +1168,192 @@ export default function SoruDetay() {
               {(viewMode === 'image' || (viewMode === 'auto' && soru.final_png_url && !editMode)) ? (
                 <div className="flex flex-col items-center gap-6 w-full">
 
-                  <div
-                    className="relative inline-block shadow-2xl rounded-sm overflow-hidden group/img select-none leading-none bg-gray-900"
-                    onMouseDown={handleImageMouseDown}
-                    onMouseMove={handleImageMouseMove}
-                    onMouseUp={handleImageMouseUp}
-                    onMouseLeave={handleImageMouseUp}
-                  >
-                    <img
-                      src={soru.final_png_url}
-                      alt="Final Dizgi"
-                      className={`max-w-full max-h-[80vh] w-auto h-auto block object-contain ${canReview ? (drawTool === 'cursor' ? 'cursor-crosshair' : 'cursor-cell') : ''}`}
-                      draggable={false}
-                    />
-                    {/* Markers */}
-                    {revizeNotlari.map((not, i) => {
-                      if (!not.secilen_metin?.startsWith('IMG##')) return null;
-                      const meta = not.secilen_metin.replace('IMG##', '');
-                      const colorClass = not.inceleme_turu === 'alanci' ? 'blue' : 'emerald';
-                      const colorHex = not.inceleme_turu === 'alanci' ? '#2563eb' : '#059669';
+                  <div className="flex justify-center w-full">
+                    <div
+                      className="relative shadow-2xl rounded-sm overflow-hidden group/img select-none leading-none bg-gray-900"
+                      style={{ display: 'inline-block', maxWidth: '100%' }}
+                      onMouseDown={handleImageMouseDown}
+                      onMouseMove={handleImageMouseMove}
+                      onMouseUp={handleImageMouseUp}
+                      onMouseLeave={handleImageMouseUp}
+                    >
+                      <img
+                        src={soru.final_png_url}
+                        alt="Final Dizgi"
+                        className={`max-w-full max-h-[80vh] w-auto h-auto block ${canReview ? (drawTool === 'cursor' ? 'cursor-crosshair' : 'cursor-cell') : ''}`}
+                        draggable={false}
+                      />
+                      {/* Markers */}
+                      {revizeNotlari.map((not, i) => {
+                        if (!not.secilen_metin?.startsWith('IMG##')) return null;
+                        const meta = not.secilen_metin.replace('IMG##', '');
+                        const colorClass = not.inceleme_turu === 'alanci' ? 'blue' : 'emerald';
+                        const colorHex = not.inceleme_turu === 'alanci' ? '#2563eb' : '#059669';
 
-                      // Parse Shape
-                      let shape = { type: 'point', x: 0, y: 0 };
-                      if (meta.startsWith('BOX:')) {
-                        const [x, y, w, h] = meta.replace('BOX:', '').split(',').map(Number);
-                        shape = { type: 'box', x, y, w, h };
-                      } else if (meta.startsWith('LINE:')) {
-                        const [x1, y1, x2, y2] = meta.replace('LINE:', '').split(',').map(Number);
-                        shape = { type: 'line', x1, y1, x2, y2 };
-                      } else if (meta.startsWith('DRAW:')) {
-                        const sets = meta.replace('DRAW:', '').split(';');
-                        const points = sets.map(s => { const [px, py] = s.split(',').map(Number); return { x: px, y: py }; });
-                        if (points.length > 0) shape = { type: 'draw', points };
-                      } else {
-                        const [x, y] = meta.split(',').map(Number);
-                        shape = { type: 'point', x, y };
-                      }
+                        // Parse Shape
+                        let shape = { type: 'point', x: 0, y: 0 };
+                        if (meta.startsWith('BOX:')) {
+                          const [x, y, w, h] = meta.replace('BOX:', '').split(',').map(Number);
+                          shape = { type: 'box', x, y, w, h };
+                        } else if (meta.startsWith('LINE:')) {
+                          const [x1, y1, x2, y2] = meta.replace('LINE:', '').split(',').map(Number);
+                          shape = { type: 'line', x1, y1, x2, y2 };
+                        } else if (meta.startsWith('DRAW:')) {
+                          const sets = meta.replace('DRAW:', '').split(';');
+                          const points = sets.map(s => { const [px, py] = s.split(',').map(Number); return { x: px, y: py }; });
+                          if (points.length > 0) shape = { type: 'draw', points };
+                        } else {
+                          const [x, y] = meta.split(',').map(Number);
+                          shape = { type: 'point', x, y };
+                        }
 
-                      return (
-                        <div key={not.id} className="absolute inset-0 pointer-events-none">
-                          {/* RENDER SHAPE */}
-                          {shape.type === 'draw' && shape.points && shape.points.length > 1 && (
-                            <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
+                        return (
+                          <div key={not.id} className="absolute inset-0 pointer-events-none">
+                            {/* RENDER SHAPE */}
+                            {shape.type === 'draw' && shape.points && shape.points.length > 1 && (
+                              <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                <polyline
+                                  points={shape.points.map(p => `${p.x},${p.y}`).join(' ')}
+                                  fill="none"
+                                  stroke={colorHex}
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  className="drop-shadow-sm"
+                                  vectorEffect="non-scaling-stroke"
+                                />
+                                {/* Label at last point */}
+                                <foreignObject x={`${shape.points[shape.points.length - 1].x}%`} y={`${shape.points[shape.points.length - 1].y}%`} width="30" height="30" style={{ overflow: 'visible' }}>
+                                  <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
+                                </foreignObject>
+                              </svg>
+                            )}
+                            {shape.type === 'box' && (
+                              <div
+                                className={`absolute border-2 border-${colorClass}-500 bg-${colorClass}-500/0 hover:bg-${colorClass}-500/10 transition-colors z-10 pointer-events-auto`}
+                                style={{ left: `${shape.x}%`, top: `${shape.y}%`, width: `${shape.w}%`, height: `${shape.h}%` }}
+                              >
+                                <div className={`absolute -top-3 -right-3 w-6 h-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[10px] font-black shadow-sm`}>{i + 1}</div>
+                              </div>
+                            )}
+                            {shape.type === 'line' && (
+                              <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                <line
+                                  x1={shape.x1} y1={shape.y1}
+                                  x2={shape.x2} y2={shape.y2}
+                                  stroke={colorHex}
+                                  strokeWidth="3"
+                                  strokeLinecap="round"
+                                  className="drop-shadow-sm"
+                                />
+                                <circle cx={shape.x2} cy={shape.y2} r="1" fill={colorHex} />
+                                {/* Label at the end */}
+                                <foreignObject x={`${shape.x2}%`} y={`${shape.y2}%`} width="30" height="30" style={{ overflow: 'visible' }}>
+                                  <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
+                                </foreignObject>
+                              </svg>
+                            )}
+                            {shape.type === 'point' && (
+                              <div
+                                className="absolute w-12 h-12 -ml-6 -mt-6 flex items-center justify-center group/marker z-10 hover:z-30 transition-all pointer-events-auto"
+                                style={{ left: `${shape.x}%`, top: `${shape.y}%` }}
+                              >
+                                <div className={`absolute inset-0 rounded-full bg-${colorClass}-400/30 mix-blend-multiply border border-${colorClass}-400/20 shadow-[0_0_10px_rgba(0,0,0,0.1)] transition-all group-hover/marker:bg-${colorClass}-400/50`}></div>
+                                <div className={`absolute inset-0 rounded-full animate-ping opacity-20 bg-${colorClass}-400`} style={{ animationDuration: '3s' }}></div>
+                                <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-full border border-white bg-${colorClass}-600 text-white shadow-md flex items-center justify-center text-[9px] font-black z-20 scale-90 group-hover/marker:scale-110 transition-transform`}>
+                                  {i + 1}
+                                </div>
+                                {/* Tooltip */}
+                                <div className="opacity-0 group-hover/marker:opacity-100 absolute bottom-full mb-3 bg-gray-900/95 backdrop-blur-md text-white text-xs p-3 rounded-2xl whitespace-nowrap shadow-2xl transition-all translate-y-2 group-hover/marker:translate-y-0 pointer-events-none z-[100] border border-white/10">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className={`w-2 h-2 rounded-full bg-${colorClass}-400`}></span>
+                                    <span className="font-black opacity-60 text-[9px] uppercase tracking-widest">{not.inceleme_turu} UZMANI</span>
+                                  </div>
+                                  <p className="font-bold leading-relaxed">{not.not_metni}</p>
+                                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900/95"></div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {/* Drawing Shape Preview */}
+                      {drawingShape && (
+                        <div className="absolute inset-0 pointer-events-none z-20">
+                          {drawingShape.type === 'pencil' && drawingShape.points.length > 1 && (
+                            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
                               <polyline
-                                points={shape.points.map(p => `${p.x},${p.y}`).join(' ')}
+                                points={drawingShape.points.map(p => `${p.x},${p.y}`).join(' ')}
                                 fill="none"
-                                stroke={colorHex}
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className="drop-shadow-sm"
+                                stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                                 vectorEffect="non-scaling-stroke"
                               />
-                              {/* Label at last point */}
-                              <foreignObject x={`${shape.points[shape.points.length - 1].x}%`} y={`${shape.points[shape.points.length - 1].y}%`} width="30" height="30" style={{ overflow: 'visible' }}>
-                                <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
-                              </foreignObject>
                             </svg>
                           )}
-                          {shape.type === 'box' && (
-                            <div
-                              className={`absolute border-2 border-${colorClass}-500 bg-${colorClass}-500/0 hover:bg-${colorClass}-500/10 transition-colors z-10 pointer-events-auto`}
-                              style={{ left: `${shape.x}%`, top: `${shape.y}%`, width: `${shape.w}%`, height: `${shape.h}%` }}
-                            >
-                              <div className={`absolute -top-3 -right-3 w-6 h-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[10px] font-black shadow-sm`}>{i + 1}</div>
-                            </div>
+                          {drawingShape.type === 'box' && (
+                            <div className="absolute border-2 border-indigo-500 bg-indigo-500/20"
+                              style={{
+                                left: `${Math.min(drawingShape.startX, drawingShape.currentX)}%`,
+                                top: `${Math.min(drawingShape.startY, drawingShape.currentY)}%`,
+                                width: `${Math.abs(drawingShape.currentX - drawingShape.startX)}%`,
+                                height: `${Math.abs(drawingShape.currentY - drawingShape.startY)}%`
+                              }}
+                            ></div>
                           )}
-                          {shape.type === 'line' && (
-                            <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
+                          {drawingShape.type === 'line' && (
+                            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
                               <line
-                                x1={`${shape.x1}%`} y1={`${shape.y1}%`}
-                                x2={`${shape.x2}%`} y2={`${shape.y2}%`}
-                                stroke={colorHex}
-                                strokeWidth="3"
-                                strokeLinecap="round"
-                                className="drop-shadow-sm"
+                                x1={drawingShape.startX} y1={drawingShape.startY}
+                                x2={drawingShape.currentX} y2={drawingShape.currentY}
+                                stroke="#6366f1" strokeWidth="3" strokeDasharray="5,5"
                               />
-                              <circle cx={`${shape.x2}%`} cy={`${shape.y2}%`} r="3" fill={colorHex} />
-                              {/* Label at the end */}
-                              <foreignObject x={`${shape.x2}%`} y={`${shape.y2}%`} width="30" height="30" style={{ overflow: 'visible' }}>
-                                <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
-                              </foreignObject>
                             </svg>
-                          )}
-                          {shape.type === 'point' && (
-                            <div
-                              className="absolute w-12 h-12 -ml-6 -mt-6 flex items-center justify-center group/marker z-10 hover:z-30 transition-all pointer-events-auto"
-                              style={{ left: `${shape.x}%`, top: `${shape.y}%` }}
-                            >
-                              <div className={`absolute inset-0 rounded-full bg-${colorClass}-400/30 mix-blend-multiply border border-${colorClass}-400/20 shadow-[0_0_10px_rgba(0,0,0,0.1)] transition-all group-hover/marker:bg-${colorClass}-400/50`}></div>
-                              <div className={`absolute inset-0 rounded-full animate-ping opacity-20 bg-${colorClass}-400`} style={{ animationDuration: '3s' }}></div>
-                              <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-full border border-white bg-${colorClass}-600 text-white shadow-md flex items-center justify-center text-[9px] font-black z-20 scale-90 group-hover/marker:scale-110 transition-transform`}>
-                                {i + 1}
-                              </div>
-                              {/* Tooltip */}
-                              <div className="opacity-0 group-hover/marker:opacity-100 absolute bottom-full mb-3 bg-gray-900/95 backdrop-blur-md text-white text-xs p-3 rounded-2xl whitespace-nowrap shadow-2xl transition-all translate-y-2 group-hover/marker:translate-y-0 pointer-events-none z-[100] border border-white/10">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className={`w-2 h-2 rounded-full bg-${colorClass}-400`}></span>
-                                  <span className="font-black opacity-60 text-[9px] uppercase tracking-widest">{not.inceleme_turu} UZMANI</span>
-                                </div>
-                                <p className="font-bold leading-relaxed">{not.not_metni}</p>
-                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900/95"></div>
-                              </div>
-                            </div>
                           )}
                         </div>
-                      );
-                    })}
+                      )}
 
-                    {/* Drawing Shape Preview */}
-                    {drawingShape && (
-                      <div className="absolute inset-0 pointer-events-none z-20">
-                        {drawingShape.type === 'pencil' && drawingShape.points.length > 1 && (
-                          <svg className="absolute inset-0 w-full h-full">
-                            <polyline
-                              points={drawingShape.points.map(p => `${p.x},${p.y}`).join(' ')}
-                              fill="none"
-                              stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                              vectorEffect="non-scaling-stroke"
-                            />
-                          </svg>
-                        )}
-                        {drawingShape.type === 'box' && (
-                          <div className="absolute border-2 border-indigo-500 bg-indigo-500/20"
-                            style={{
-                              left: `${Math.min(drawingShape.startX, drawingShape.currentX)}%`,
-                              top: `${Math.min(drawingShape.startY, drawingShape.currentY)}%`,
-                              width: `${Math.abs(drawingShape.currentX - drawingShape.startX)}%`,
-                              height: `${Math.abs(drawingShape.currentY - drawingShape.startY)}%`
-                            }}
-                          ></div>
-                        )}
-                        {drawingShape.type === 'line' && (
-                          <svg className="absolute inset-0 w-full h-full">
-                            <line
-                              x1={`${drawingShape.startX}%`} y1={`${drawingShape.startY}%`}
-                              x2={`${drawingShape.currentX}%`} y2={`${drawingShape.currentY}%`}
-                              stroke="#6366f1" strokeWidth="3" strokeDasharray="5,5"
-                            />
-                          </svg>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Active Selection */}
-                    {selectedAnnotation && (
-                      <div className="absolute inset-0 pointer-events-none z-20">
-                        {selectedAnnotation.type === 'point' && (
-                          <div className="absolute w-6 h-6 -ml-3 -mt-3 rounded-full border-2 border-white bg-rose-500 shadow-lg animate-pulse" style={{ left: `${selectedAnnotation.x}%`, top: `${selectedAnnotation.y}%` }}></div>
-                        )}
-                        {selectedAnnotation.type === 'box' && (
-                          <div className="absolute border-2 border-rose-500 bg-rose-500/20 animate-pulse"
-                            style={{ left: `${selectedAnnotation.x}%`, top: `${selectedAnnotation.y}%`, width: `${selectedAnnotation.w}%`, height: `${selectedAnnotation.h}%` }}>
-                          </div>
-                        )}
-                        {selectedAnnotation.type === 'line' && (
-                          <svg className="absolute inset-0 w-full h-full">
-                            <line
-                              x1={`${selectedAnnotation.x1}%`} y1={`${selectedAnnotation.y1}%`}
-                              x2={`${selectedAnnotation.x2}%`} y2={`${selectedAnnotation.y2}%`}
-                              stroke="#f43f5e" strokeWidth="3" className="animate-pulse"
-                            />
-                            <circle cx={`${selectedAnnotation.x2}%`} cy={`${selectedAnnotation.y2}%`} r="4" fill="#f43f5e" />
-                          </svg>
-                        )}
-                        {selectedAnnotation.type === 'draw' && (
-                          <svg className="absolute inset-0 w-full h-full">
-                            <polyline
-                              points={selectedAnnotation.points.map(p => `${p.x},${p.y}`).join(' ')}
-                              fill="none"
-                              stroke="#f43f5e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                              className="animate-pulse"
-                              vectorEffect="non-scaling-stroke"
-                            />
-                          </svg>
-                        )}
-                      </div>
-                    )}
+                      {/* Active Selection */}
+                      {selectedAnnotation && (
+                        <div className="absolute inset-0 pointer-events-none z-20">
+                          {selectedAnnotation.type === 'point' && (
+                            <div className="absolute w-6 h-6 -ml-3 -mt-3 rounded-full border-2 border-white bg-rose-500 shadow-lg animate-pulse" style={{ left: `${selectedAnnotation.x}%`, top: `${selectedAnnotation.y}%` }}></div>
+                          )}
+                          {selectedAnnotation.type === 'box' && (
+                            <div className="absolute border-2 border-rose-500 bg-rose-500/20 animate-pulse"
+                              style={{ left: `${selectedAnnotation.x}%`, top: `${selectedAnnotation.y}%`, width: `${selectedAnnotation.w}%`, height: `${selectedAnnotation.h}%` }}>
+                            </div>
+                          )}
+                          {selectedAnnotation.type === 'line' && (
+                            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                              <line
+                                x1={selectedAnnotation.x1} y1={selectedAnnotation.y1}
+                                x2={selectedAnnotation.x2} y2={selectedAnnotation.y2}
+                                stroke="#f43f5e" strokeWidth="3" className="animate-pulse"
+                              />
+                              <circle cx={`${selectedAnnotation.x2}%`} cy={`${selectedAnnotation.y2}%`} r="4" fill="#f43f5e" />
+                            </svg>
+                          )}
+                          {selectedAnnotation.type === 'draw' && (
+                            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                              <polyline
+                                points={selectedAnnotation.points.map(p => `${p.x},${p.y}`).join(' ')}
+                                fill="none"
+                                stroke="#f43f5e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                                className="animate-pulse"
+                                vectorEffect="non-scaling-stroke"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ) : (
                 <div
                   className={`bg-white shadow-2xl transition-all duration-700 relative flex flex-col group min-h-[140mm] border border-gray-100 overflow-hidden ${editMode ? 'ring-2 ring-blue-500/20' : ''} ${canReview && drawTool !== 'cursor' ? 'cursor-crosshair select-none' : ''}`}
-                  style={{
-                    width: widthMode === 'dar' && editMode ? '82.4mm' : '170mm',
-                    minWidth: '300px',
-                    padding: '10mm',
-                    paddingTop: '15mm',
-                    borderRadius: '2px'
-                  }}
+                  style={{ width: widthMode === 'dar' && editMode ? '82.4mm' : '170mm', minWidth: '300px', padding: '10mm', paddingTop: '15mm', borderRadius: '2px' }}
                   onMouseDown={handleImageMouseDown}
                   onMouseMove={handleImageMouseMove}
                   onMouseUp={handleImageMouseUp}
@@ -1364,21 +1361,13 @@ export default function SoruDetay() {
                 >
                   <div className="prose max-w-[185mm] mx-auto w-full relative z-0" style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}>
                     <div ref={soruMetniRef} className="text-gray-900 katex-left-align q-preview-container select-text" onMouseUp={handleTextSelection} />
-
-                    {/* FALLBACK GÖRSEL: HTML içinde görsel yoksa ama URL varsa göster */}
                     {soru.fotograf_url && !soru.soru_metni?.includes('<img') && (
                       <div className="mt-8 flex justify-center p-4 border rounded-xl bg-gray-50 border-gray-100">
-                        <img
-                          src={soru.fotograf_url}
-                          className="max-w-full rounded-lg shadow-sm cursor-zoom-in"
-                          onClick={(e) => window.open(e.target.src, '_blank')}
-                          alt="Soru Görseli"
-                        />
+                        <img src={soru.fotograf_url} className="max-w-full rounded-lg shadow-sm cursor-zoom-in" onClick={(e) => window.open(e.target.src, '_blank')} alt="Soru Görseli" />
                       </div>
                     )}
                   </div>
 
-                  {/* DRAWING LAYER OVER TEXT */}
                   {revizeNotlari.map((not, i) => {
                     if (!not.secilen_metin?.startsWith('IMG##')) return null;
                     const meta = not.secilen_metin.replace('IMG##', '');
@@ -1405,43 +1394,39 @@ export default function SoruDetay() {
                       <div key={not.id} className="absolute inset-0 pointer-events-none z-10">
                         {shape.type === 'draw' && shape.points && shape.points.length > 1 && (
                           <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
-                            <polyline
-                              points={shape.points.map(p => `${p.x},${p.y}`).join(' ')}
-                              fill="none"
-                              stroke={colorHex}
-                              strokeWidth="1"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="drop-shadow-sm"
-                              vectorEffect="non-scaling-stroke"
-                            />
+                            <polyline points={shape.points.map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke={colorHex} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-sm" vectorEffect="non-scaling-stroke" />
                             <foreignObject x={`${shape.points[shape.points.length - 1].x}%`} y={`${shape.points[shape.points.length - 1].y}%`} width="30" height="30" style={{ overflow: 'visible' }}>
                               <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
                             </foreignObject>
                           </svg>
                         )}
                         {shape.type === 'box' && (
-                          <div
-                            className={`absolute border-2 border-${colorClass}-500 bg-${colorClass}-500/5 transition-colors pointer-events-auto`}
-                            style={{ left: `${shape.x}%`, top: `${shape.y}%`, width: `${shape.w}%`, height: `${shape.h}%` }}
-                          >
+                          <div className={`absolute border-2 border-${colorClass}-500 bg-${colorClass}-500/5 transition-colors pointer-events-auto`} style={{ left: `${shape.x}%`, top: `${shape.y}%`, width: `${shape.w}%`, height: `${shape.h}%` }}>
                             <div className={`absolute -top-3 -right-3 w-6 h-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[10px] font-black shadow-sm`}>{i + 1}</div>
                           </div>
                         )}
                         {shape.type === 'line' && (
-                          <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                            <line
-                              x1={`${shape.x1}%`} y1={`${shape.y1}%`}
-                              x2={`${shape.x2}%`} y2={`${shape.y2}%`}
-                              stroke={colorHex}
-                              strokeWidth="3"
-                              strokeLinecap="round"
-                            />
-                            <circle cx={`${shape.x2}%`} cy={`${shape.y2}%`} r="3" fill={colorHex} />
-                            <foreignObject x={`${shape.x2}%`} y={`${shape.y2}%`} width="30" height="30" style={{ overflow: 'visible' }}>
+                          <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+                            <line x1={shape.x1} y1={shape.y1} x2={shape.x2} y2={shape.y2} stroke={colorHex} strokeWidth="3" strokeLinecap="round" />
+                            <circle cx={shape.x2} cy={shape.y2} r="1" fill={colorHex} />
+                            <foreignObject x={`${shape.x2}%`} y={`${shape.y2}%`} width="30" height="100" style={{ overflow: 'visible' }}>
                               <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
                             </foreignObject>
                           </svg>
+                        )}
+                        {shape.type === 'point' && (
+                          <div className="absolute w-12 h-12 -ml-6 -mt-6 flex items-center justify-center group/marker z-10 hover:z-30 pointer-events-auto" style={{ left: `${shape.x}%`, top: `${shape.y}%` }}>
+                            <div className={`absolute inset-0 rounded-full bg-${colorClass}-400/30 mix-blend-multiply border border-${colorClass}-400/20 shadow-[0_0_10px_rgba(0,0,0,0.1)] transition-all group-hover/marker:bg-${colorClass}-400/50`}></div>
+                            <div className={`absolute inset-0 rounded-full animate-ping opacity-20 bg-${colorClass}-400`} style={{ animationDuration: '3s' }}></div>
+                            <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-full border border-white bg-${colorClass}-600 text-white shadow-md flex items-center justify-center text-[9px] font-black z-20 scale-90 group-hover/marker:scale-110 transition-transform`}>{i + 1}</div>
+                            <div className="opacity-0 group-hover/marker:opacity-100 absolute bottom-full mb-3 bg-gray-900/95 backdrop-blur-md text-white text-xs p-3 rounded-2xl whitespace-nowrap shadow-2xl transition-all translate-y-2 group-hover/marker:translate-y-0 pointer-events-none z-[100] border border-white/10">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={`w-2 h-2 rounded-full bg-${colorClass}-400`}></span>
+                                <span className="font-black opacity-60 text-[9px] uppercase tracking-widest">{(not.inceleme_turu || '').toUpperCase()}</span>
+                              </div>
+                              <p className="font-bold leading-relaxed">{not.not_metni}</p>
+                            </div>
+                          </div>
                         )}
                       </div>
                     );
@@ -1450,33 +1435,11 @@ export default function SoruDetay() {
                   {drawingShape && (
                     <div className="absolute inset-0 pointer-events-none z-20">
                       {drawingShape.type === 'box' && (
-                        <div className="absolute border-2 border-indigo-500 bg-indigo-500/20"
-                          style={{
-                            left: `${Math.min(drawingShape.startX, drawingShape.currentX)}%`,
-                            top: `${Math.min(drawingShape.startY, drawingShape.currentY)}%`,
-                            width: `${Math.abs(drawingShape.currentX - drawingShape.startX)}%`,
-                            height: `${Math.abs(drawingShape.currentY - drawingShape.startY)}%`
-                          }}
-                        ></div>
+                        <div className="absolute border-2 border-indigo-500 bg-indigo-500/20" style={{ left: `${Math.min(drawingShape.startX, drawingShape.currentX)}%`, top: `${Math.min(drawingShape.startY, drawingShape.currentY)}%`, width: `${Math.abs(drawingShape.currentX - drawingShape.startX)}%`, height: `${Math.abs(drawingShape.currentY - drawingShape.startY)}%` }}></div>
                       )}
                       {drawingShape.type === 'line' && (
-                        <svg className="absolute inset-0 w-full h-full">
-                          <line
-                            x1={`${drawingShape.startX}%`} y1={`${drawingShape.startY}%`}
-                            x2={`${drawingShape.currentX}%`} y2={`${drawingShape.currentY}%`}
-                            stroke="#6366f1" strokeWidth="3" strokeDasharray="5,5"
-                          />
-                        </svg>
-                      )}
-                      {/* NEW PENCIL PREVIEW */}
-                      {drawingShape.type === 'pencil' && drawingShape.points && drawingShape.points.length > 0 && (
                         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                          <polyline
-                            points={drawingShape.points.map(p => `${p.x},${p.y}`).join(' ')}
-                            fill="none"
-                            stroke="#6366f1" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"
-                            vectorEffect="non-scaling-stroke"
-                          />
+                          <line x1={drawingShape.startX} y1={drawingShape.startY} x2={drawingShape.currentX} y2={drawingShape.currentY} stroke="#6366f1" strokeWidth="3" strokeDasharray="5,5" />
                         </svg>
                       )}
                     </div>
@@ -1485,111 +1448,90 @@ export default function SoruDetay() {
                   {selectedAnnotation && (
                     <div className="absolute inset-0 pointer-events-none z-20">
                       {selectedAnnotation.type === 'box' && (
-                        <div className="absolute border-2 border-rose-500 bg-rose-500/20 animate-pulse"
-                          style={{ left: `${selectedAnnotation.x}%`, top: `${selectedAnnotation.y}%`, width: `${selectedAnnotation.w}%`, height: `${selectedAnnotation.h}%` }}>
-                        </div>
+                        <div className="absolute border-2 border-rose-500 bg-rose-500/20 animate-pulse" style={{ left: `${selectedAnnotation.x}%`, top: `${selectedAnnotation.y}%`, width: `${selectedAnnotation.w}%`, height: `${selectedAnnotation.h}%` }}></div>
                       )}
                       {selectedAnnotation.type === 'line' && (
-                        <svg className="absolute inset-0 w-full h-full">
-                          <line
-                            x1={`${selectedAnnotation.x1}%`} y1={`${selectedAnnotation.y1}%`}
-                            x2={`${selectedAnnotation.x2}%`} y2={`${selectedAnnotation.y2}%`}
-                            stroke="#f43f5e" strokeWidth="3" className="animate-pulse"
-                          />
-                          <circle cx={`${selectedAnnotation.x2}%`} cy={`${selectedAnnotation.y2}%`} r="4" fill="#f43f5e" />
-                        </svg>
-                      )}
-                      {selectedAnnotation.type === 'draw' && (
                         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                          <polyline
-                            points={selectedAnnotation.points.map(p => `${p.x},${p.y}`).join(' ')}
-                            fill="none"
-                            stroke="#f43f5e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                            className="animate-pulse"
-                            vectorEffect="non-scaling-stroke"
-                          />
+                          <line x1={selectedAnnotation.x1} y1={selectedAnnotation.y1} x2={selectedAnnotation.x2} y2={selectedAnnotation.y2} stroke="#f43f5e" strokeWidth="3" />
+                          <circle cx={selectedAnnotation.x2} cy={selectedAnnotation.y2} r="1" fill="#f43f5e" />
                         </svg>
                       )}
                     </div>
                   )}
+                </div>
+              )}
 
-                  <div style={{ clear: 'both' }}></div>
+              {!editMode && (
+                <div className="p-10 bg-gray-900 border-t border-black">
+                  {branchReviewMode ? (
+                    <div className="space-y-6 animate-fade-in">
+                      <div className="bg-white/5 backdrop-blur p-1 rounded-[2.5rem] border border-white/5">
+                        <div className="bg-white p-8 rounded-[2.2rem] shadow-2xl">
+                          <div className="flex items-center justify-between mb-6">
+                            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                              <SparklesIcon className="w-4 h-4 text-amber-500" /> Soru Künyesİnİ Düzenle
+                            </h4>
+                            <button onClick={() => setBranchReviewMode(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                              <XMarkIcon className="w-5 h-5" />
+                            </button>
+                          </div>
+
+                          <MetadataForm
+                            values={editMetadata}
+                            onChange={setEditMetadata}
+                            branslar={branslar}
+                            kazanims={kazanims}
+                            kazanimLoading={kazanimLoading}
+                            allowManualKazanim={true}
+                            hideBrans={true}
+                            gridCols="grid-cols-1 md:grid-cols-4"
+                          />
+
+                          <div className="mt-8 flex justify-end gap-3">
+                            <button
+                              onClick={() => setBranchReviewMode(false)}
+                              className="px-6 py-3 bg-gray-50 text-gray-500 hover:bg-gray-100 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
+                            >
+                              VAZGEÇ
+                            </button>
+                            <button
+                              onClick={handleMetadataSave}
+                              disabled={saving}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
+                            >
+                              {saving ? <ArrowPathIcon className="w-4 h-4 animate-spin" /> : <CheckBadgeIcon className="w-4 h-4" />}
+                              KÜNYEYİ KAYDET VE KAPAT
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap items-center justify-between gap-6">
+                      <div className="flex gap-8">
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">DOĞRU CEVAP</span>
+                          <span className="text-2xl font-black text-emerald-500">{soru.dogru_cevap}</span>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">ZORLUK DÜZEYİ</span>
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map(v => (
+                              <div key={v} className={`w-4 h-1 rounded-full ${v <= parseInt(soru.zorluk_seviyesi) ? 'bg-amber-500' : 'bg-white/10'}`}></div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-4">
+                        {soru.onay_alanci && <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/5"><CheckBadgeIcon className="w-4 h-4 text-emerald-400" /><span className="text-[9px] font-black text-white/60 tracking-widest uppercase">ALAN ONAYLI</span></div>}
+                        {soru.onay_dilci && <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/5"><CheckBadgeIcon className="w-4 h-4 text-blue-400" /><span className="text-[9px] font-black text-white/60 tracking-widest uppercase">DİL ONAYLI</span></div>}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-
-            {!editMode && (
-              <div className="p-10 bg-gray-900 border-t border-black">
-                {branchReviewMode ? (
-                  <div className="space-y-6 animate-fade-in">
-                    <div className="bg-white/5 backdrop-blur p-1 rounded-[2.5rem] border border-white/5">
-                      <div className="bg-white p-8 rounded-[2.2rem] shadow-2xl">
-                        <div className="flex items-center justify-between mb-6">
-                          <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                            <SparklesIcon className="w-4 h-4 text-amber-500" /> Soru Künyesİnİ Düzenle
-                          </h4>
-                          <button onClick={() => setBranchReviewMode(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                            <XMarkIcon className="w-5 h-5" />
-                          </button>
-                        </div>
-
-                        <MetadataForm
-                          values={editMetadata}
-                          onChange={setEditMetadata}
-                          branslar={branslar}
-                          kazanims={kazanims}
-                          kazanimLoading={kazanimLoading}
-                          allowManualKazanim={true}
-                          hideBrans={true}
-                          gridCols="grid-cols-1 md:grid-cols-4"
-                        />
-
-                        <div className="mt-8 flex justify-end gap-3">
-                          <button
-                            onClick={() => setBranchReviewMode(false)}
-                            className="px-6 py-3 bg-gray-50 text-gray-500 hover:bg-gray-100 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
-                          >
-                            VAZGEÇ
-                          </button>
-                          <button
-                            onClick={handleMetadataSave}
-                            disabled={saving}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
-                          >
-                            {saving ? <ArrowPathIcon className="w-4 h-4 animate-spin" /> : <CheckBadgeIcon className="w-4 h-4" />}
-                            KÜNYEYİ KAYDET VE KAPAT
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap items-center justify-between gap-6">
-                    <div className="flex gap-8">
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">DOĞRU CEVAP</span>
-                        <span className="text-2xl font-black text-emerald-500">{soru.dogru_cevap}</span>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">ZORLUK DÜZEYİ</span>
-                        <div className="flex items-center gap-1">
-                          {[1, 2, 3, 4, 5].map(v => (
-                            <div key={v} className={`w-4 h-1 rounded-full ${v <= parseInt(soru.zorluk_seviyesi) ? 'bg-amber-500' : 'bg-white/10'}`}></div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-4">
-                      {soru.onay_alanci && <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/5"><CheckBadgeIcon className="w-4 h-4 text-emerald-400" /><span className="text-[9px] font-black text-white/60 tracking-widest uppercase">ALAN ONAYLI</span></div>}
-                      {soru.onay_dilci && <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/5"><CheckBadgeIcon className="w-4 h-4 text-blue-400" /><span className="text-[9px] font-black text-white/60 tracking-widest uppercase">DİL ONAYLI</span></div>}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
-
-
         </div>
 
         {/* SIDEBAR */}
@@ -1786,25 +1728,20 @@ export default function SoruDetay() {
                 'text-gray-700'
               }`}>{STATUS_LABELS[soru.durum] || soru.durum?.replace(/_/g, ' ')}</p>
           </div>
-
           <div className="p-5 bg-gray-50 rounded-[2rem] border border-gray-100 text-center">
             <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">OLUŞTURULMA TARİHİ</p>
-            <p className="text-xs font-black text-gray-900">{new Date(soru.olusturulma_tarihi).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+            <p className="text-xs font-black text-gray-900">{soru.olusturulma_tarihi ? new Date(soru.olusturulma_tarihi).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</p>
           </div>
+
+          {isAdmin && effectiveRole !== 'incelemeci' && (
+            <button
+              onClick={handleSil}
+              className="w-full mt-6 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 px-8 py-5 rounded-[2.5rem] font-black text-xs uppercase tracking-widest transition-all shadow-sm active:scale-95 flex items-center justify-center gap-3"
+            >
+              <TrashIcon className="w-5 h-5" /> Soruyu Sil / Kaldır
+            </button>
+          )}
         </div>
-
-        {/* DELETE DANGER ZONE */}
-        {/* DELETE DANGER ZONE */}
-        {isAdmin && effectiveRole !== 'incelemeci' && (
-          <button
-            onClick={handleSil}
-            className="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 px-8 py-5 rounded-[2.5rem] font-black text-xs uppercase tracking-widest transition-all shadow-sm active:scale-95 flex items-center justify-center gap-3"
-          >
-            <TrashIcon className="w-5 h-5" /> Soruyu Sil / Kaldır
-          </button>
-        )}
-
-
       </div>
 
       {/* FLOATING ANNOTATION UI - CENTERED MODAL */}
@@ -1816,54 +1753,52 @@ export default function SoruDetay() {
               <button onClick={() => { setSelectedText(''); setSelectedAnnotation(null); setRevizeNotuInput(''); setBranchReviewMode(false); }} className="hover:bg-white/10 p-2 rounded-xl transition-all"><XMarkIcon className="w-6 h-6" /></button>
             </div>
             <div className="p-8 space-y-6">
-              <>
-                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-start gap-4">
-                  <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100 text-indigo-500">
-                    {selectedAnnotation?.type === 'box' ? <StopIcon className="w-6 h-6" /> :
-                      selectedAnnotation?.type === 'line' ? <MinusIcon className="w-6 h-6" /> :
-                        selectedText ? <DocumentTextIcon className="w-6 h-6" /> : <XMarkIcon className="w-6 h-6" />}
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">SEÇİLEN {selectedAnnotation ? 'ALAN' : 'KESİT'}</span>
-                    {selectedAnnotation ? (
-                      <p className="text-sm font-bold text-gray-800">
-                        {selectedAnnotation.type === 'box' ? 'Kutu Alanı' : 'Çizgi İşareti'}
-                      </p>
-                    ) : (
-                      <p className="text-sm font-bold text-gray-800 line-clamp-3 italic">"{selectedText}"</p>
-                    )}
-                  </div>
+              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-start gap-4">
+                <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100 text-indigo-500">
+                  {selectedAnnotation?.type === 'box' ? <StopIcon className="w-6 h-6" /> :
+                    selectedAnnotation?.type === 'line' ? <MinusIcon className="w-6 h-6" /> :
+                      selectedText ? <DocumentTextIcon className="w-6 h-6" /> : <XMarkIcon className="w-6 h-6" />}
                 </div>
+                <div>
+                  <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">SEÇİLEN {selectedAnnotation ? 'ALAN' : 'KESİT'}</span>
+                  {selectedAnnotation ? (
+                    <p className="text-sm font-bold text-gray-800">
+                      {selectedAnnotation.type === 'box' ? 'Kutu Alanı' : 'Çizgi İşareti'}
+                    </p>
+                  ) : (
+                    <p className="text-sm font-bold text-gray-800 line-clamp-3 italic">"{selectedText}"</p>
+                  )}
+                </div>
+              </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">NOTUNUZ</label>
-                  <textarea
-                    autoFocus
-                    className="w-full bg-gray-50 border-2 border-gray-100 focus:border-indigo-600 rounded-2xl p-5 text-sm font-bold text-gray-800 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none resize-none placeholder-gray-300"
-                    rows="4"
-                    placeholder="Lütfen tespit ettiğiniz hatayı veya düzeltme isteğinizi detaylıca açıklayın..."
-                    value={revizeNotuInput}
-                    onChange={(e) => setRevizeNotuInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddRevizeNot(); } }}
-                  />
-                  <p className="text-[9px] text-gray-400 font-bold text-right px-1">Kaydetmek için ENTER tuşuna basabilirsiniz</p>
-                </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">NOTUNUZ</label>
+                <textarea
+                  autoFocus
+                  className="w-full bg-gray-50 border-2 border-gray-100 focus:border-indigo-600 rounded-2xl p-5 text-sm font-bold text-gray-800 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none resize-none placeholder-gray-300"
+                  rows="4"
+                  placeholder="Lütfen tespit ettiğiniz hatayı veya düzeltme isteğinizi detaylıca açıklayın..."
+                  value={revizeNotuInput}
+                  onChange={(e) => setRevizeNotuInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddRevizeNot(); } }}
+                />
+                <p className="text-[9px] text-gray-400 font-bold text-right px-1">Kaydetmek için ENTER tuşuna basabilirsiniz</p>
+              </div>
 
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => { setSelectedText(''); setSelectedAnnotation(null); setRevizeNotuInput(''); setBranchReviewMode(false); }}
-                    className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
-                  >
-                    İPTAL
-                  </button>
-                  <button
-                    onClick={handleAddRevizeNot}
-                    className="flex-[2] py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 transition-all active:scale-95 flex items-center justify-center gap-2"
-                  >
-                    KAYDET
-                  </button>
-                </div>
-              </>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setSelectedText(''); setSelectedAnnotation(null); setRevizeNotuInput(''); setBranchReviewMode(false); }}
+                  className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
+                >
+                  İPTAL
+                </button>
+                <button
+                  onClick={handleAddRevizeNot}
+                  className="flex-[2] py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  KAYDET
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1871,4 +1806,3 @@ export default function SoruDetay() {
     </div>
   );
 }
-
