@@ -39,6 +39,7 @@ export default function DizgiYonetimi() {
   const [showModal, setShowModal] = useState(false);
   const [showMesaj, setShowMesaj] = useState(null);
   const [revizeNotu, setRevizeNotu] = useState('');
+  const [revizeNotlari, setRevizeNotlari] = useState([]);
   const [pendingIndex, setPendingIndex] = useState(0);
   const questionRef = useRef(null);
 
@@ -46,6 +47,14 @@ export default function DizgiYonetimi() {
     loadSorular();
     loadBransCounts();
   }, []);
+
+  useEffect(() => {
+    if (selectedSoru) {
+      loadRevizeNotlari();
+    } else {
+      setRevizeNotlari([]);
+    }
+  }, [selectedSoru]);
 
   const loadSorular = async () => {
     setLoading(true);
@@ -77,6 +86,16 @@ export default function DizgiYonetimi() {
       }
     } catch (err) {
       console.error('Branş istatistikleri yüklenemedi', err);
+    }
+  };
+
+  const loadRevizeNotlari = async () => {
+    if (!selectedSoru) return;
+    try {
+      const res = await soruAPI.getRevizeNotlari(selectedSoru.id);
+      setRevizeNotlari(res.data.data || []);
+    } catch (e) {
+      console.error('Revize notları yüklenemedi');
     }
   };
 
@@ -316,8 +335,72 @@ export default function DizgiYonetimi() {
                       {selectedSoru.final_png_url ? (
                         <div className="mb-10 text-center">
                           <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4">Mevcut Dizgi Çıktısı (En Son Kaydedilen)</p>
-                          <div className="p-4 bg-white rounded-3xl shadow-md border border-emerald-100 inline-block overflow-hidden max-w-full">
-                            <img src={selectedSoru.final_png_url} className="max-w-full rounded-2xl mx-auto block" alt="Soru Dizgi Çıktısı" />
+                          <div className="relative inline-block overflow-hidden max-w-full rounded-2xl shadow-md border border-emerald-100 bg-white group/img">
+                            <img src={selectedSoru.final_png_url} className="max-w-full block" alt="Soru Dizgi Çıktısı" />
+                            {/* REVISION NOTES OVERLAY */}
+                            {revizeNotlari.map((not, i) => {
+                              if (!not.secilen_metin?.startsWith('IMG##')) return null;
+                              const meta = not.secilen_metin.replace('IMG##', '');
+                              const colorClass = not.inceleme_turu === 'alanci' ? 'blue' : 'emerald';
+                              const colorHex = not.inceleme_turu === 'alanci' ? '#2563eb' : '#059669';
+
+                              let shape = { type: 'point', x: 0, y: 0 };
+                              if (meta.startsWith('BOX:')) {
+                                const [x, y, w, h] = meta.replace('BOX:', '').split(',').map(Number);
+                                shape = { type: 'box', x, y, w, h };
+                              } else if (meta.startsWith('LINE:')) {
+                                const [x1, y1, x2, y2] = meta.replace('LINE:', '').split(',').map(Number);
+                                shape = { type: 'line', x1, y1, x2, y2 };
+                              } else if (meta.startsWith('DRAW:')) {
+                                const sets = meta.replace('DRAW:', '').split(';');
+                                const points = sets.map(s => { const [px, py] = s.split(',').map(Number); return { x: px, y: py }; });
+                                if (points.length > 0) shape = { type: 'draw', points };
+                              } else {
+                                const [x, y] = meta.split(',').map(Number);
+                                shape = { type: 'point', x, y };
+                              }
+
+                              return (
+                                <div key={not.id} className="absolute inset-0 pointer-events-none">
+                                  {shape.type === 'draw' && shape.points && shape.points.length > 1 && (
+                                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
+                                      <polyline points={shape.points.map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke={colorHex} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-sm" vectorEffect="non-scaling-stroke" />
+                                      <foreignObject x={`${shape.points[shape.points.length - 1].x}%`} y={`${shape.points[shape.points.length - 1].y}%`} width="30" height="30" style={{ overflow: 'visible' }}>
+                                        <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
+                                      </foreignObject>
+                                    </svg>
+                                  )}
+                                  {shape.type === 'box' && (
+                                    <div className={`absolute border-2 border-${colorClass}-500 bg-${colorClass}-500/10 z-10`} style={{ left: `${shape.x}%`, top: `${shape.y}%`, width: `${shape.w}%`, height: `${shape.h}%` }}>
+                                      <div className={`absolute -top-3 -right-3 w-6 h-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[10px] font-black shadow-sm`}>{i + 1}</div>
+                                    </div>
+                                  )}
+                                  {shape.type === 'line' && (
+                                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
+                                      <line x1={`${shape.x1}%`} y1={`${shape.y1}%`} x2={`${shape.x2}%`} y2={`${shape.y2}%`} stroke={colorHex} strokeWidth="3" strokeLinecap="round" className="drop-shadow-sm" />
+                                      <circle cx={`${shape.x2}%`} cy={`${shape.y2}%`} r="3" fill={colorHex} />
+                                      <foreignObject x={`${shape.x2}%`} y={`${shape.y2}%`} width="30" height="30" style={{ overflow: 'visible' }}>
+                                        <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
+                                      </foreignObject>
+                                    </svg>
+                                  )}
+                                  {shape.type === 'point' && (
+                                    <div className="absolute w-12 h-12 -ml-6 -mt-6 flex items-center justify-center group/marker z-10 hover:z-30 pointer-events-auto" style={{ left: `${shape.x}%`, top: `${shape.y}%` }}>
+                                      <div className={`absolute inset-0 rounded-full bg-${colorClass}-400/30 mix-blend-multiply border border-${colorClass}-400/20 shadow-[0_0_10px_rgba(0,0,0,0.1)] transition-all group-hover/marker:bg-${colorClass}-400/50`}></div>
+                                      <div className={`absolute inset-0 rounded-full animate-ping opacity-20 bg-${colorClass}-400`} style={{ animationDuration: '3s' }}></div>
+                                      <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-full border border-white bg-${colorClass}-600 text-white shadow-md flex items-center justify-center text-[9px] font-black z-20 scale-90 group-hover/marker:scale-110 transition-transform`}>{i + 1}</div>
+                                      <div className="opacity-0 group-hover/marker:opacity-100 absolute bottom-full mb-3 bg-gray-900/95 backdrop-blur-md text-white text-xs p-3 rounded-2xl whitespace-nowrap shadow-2xl transition-all translate-y-2 group-hover/marker:translate-y-0 pointer-events-none z-[100] border border-white/10">
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <span className={`w-2 h-2 rounded-full bg-${colorClass}-400`}></span>
+                                          <span className="font-black opacity-60 text-[9px] uppercase tracking-widest">{not.inceleme_turu} UZMANI</span>
+                                        </div>
+                                        <p className="font-bold leading-relaxed">{not.not_metni}</p>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       ) : (
