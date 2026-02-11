@@ -1052,6 +1052,12 @@ export default function SoruDetay() {
                       <MinusIcon className="w-5 h-5" strokeWidth={2.5} />
                       <span>Altını Çiz</span>
                     </button>
+                    {branchReviewMode && (
+                      <button onClick={() => setBranchReviewMode(false)} className="flex items-center gap-2 px-5 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100">
+                        <XMarkIcon className="w-5 h-5" strokeWidth={2.5} />
+                        <span>İncelemeyİ Kapat</span>
+                      </button>
+                    )}
                   </div>
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] bg-white/50 px-4 py-1.5 rounded-full border border-gray-100/50 flex items-center gap-2">
                     <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
@@ -1656,7 +1662,7 @@ export default function SoruDetay() {
       </div>
 
       {/* FLOATING ANNOTATION UI - CENTERED MODAL */}
-      {(selectedText || selectedAnnotation || branchReviewMode) && canReview && (
+      {(selectedText || selectedAnnotation) && canReview && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden animate-scale-up">
             <div className="p-6 bg-gray-900 text-white flex justify-between items-center px-8">
@@ -1664,65 +1670,54 @@ export default function SoruDetay() {
               <button onClick={() => { setSelectedText(''); setSelectedAnnotation(null); setRevizeNotuInput(''); setBranchReviewMode(false); }} className="hover:bg-white/10 p-2 rounded-xl transition-all"><XMarkIcon className="w-6 h-6" /></button>
             </div>
             <div className="p-8 space-y-6">
-              {(!selectedText && !selectedAnnotation && branchReviewMode) ? (
-                <div className="text-center py-4 space-y-2">
-                  <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CursorArrowRaysIcon className="w-6 h-6" />
+              <>
+                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-start gap-4">
+                  <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100 text-indigo-500">
+                    {selectedAnnotation?.type === 'box' ? <StopIcon className="w-6 h-6" /> :
+                      selectedAnnotation?.type === 'line' ? <MinusIcon className="w-6 h-6" /> :
+                        selectedText ? <DocumentTextIcon className="w-6 h-6" /> : <XMarkIcon className="w-6 h-6" />}
                   </div>
-                  <p className="text-sm font-bold text-gray-800">Lütfen revize etmek istediğiniz alanı veya metni seçiniz.</p>
-                  <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Ekranda bir bölgeyi seçmeden not ekleyemezsiniz.</p>
-                  <button onClick={() => setBranchReviewMode(false)} className="mt-4 text-rose-500 text-[10px] font-black uppercase tracking-widest hover:underline">İşlemi İptal Et</button>
+                  <div>
+                    <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">SEÇİLEN {selectedAnnotation ? 'ALAN' : 'KESİT'}</span>
+                    {selectedAnnotation ? (
+                      <p className="text-sm font-bold text-gray-800">
+                        {selectedAnnotation.type === 'box' ? 'Kutu Alanı' : 'Çizgi İşareti'}
+                      </p>
+                    ) : (
+                      <p className="text-sm font-bold text-gray-800 line-clamp-3 italic">"{selectedText}"</p>
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <>
-                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-start gap-4">
-                    <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100 text-indigo-500">
-                      {selectedAnnotation?.type === 'box' ? <StopIcon className="w-6 h-6" /> :
-                        selectedAnnotation?.type === 'line' ? <MinusIcon className="w-6 h-6" /> :
-                          selectedText ? <DocumentTextIcon className="w-6 h-6" /> : <XMarkIcon className="w-6 h-6" />}
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">SEÇİLEN {selectedAnnotation ? 'ALAN' : 'KESİT'}</span>
-                      {selectedAnnotation ? (
-                        <p className="text-sm font-bold text-gray-800">
-                          {selectedAnnotation.type === 'box' ? 'Kutu Alanı' : 'Çizgi İşareti'}
-                        </p>
-                      ) : (
-                        <p className="text-sm font-bold text-gray-800 line-clamp-3 italic">"{selectedText}"</p>
-                      )}
-                    </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">NOTUNUZ</label>
-                    <textarea
-                      autoFocus
-                      className="w-full bg-gray-50 border-2 border-gray-100 focus:border-indigo-600 rounded-2xl p-5 text-sm font-bold text-gray-800 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none resize-none placeholder-gray-300"
-                      rows="4"
-                      placeholder="Lütfen tespit ettiğiniz hatayı veya düzeltme isteğinizi detaylıca açıklayın..."
-                      value={revizeNotuInput}
-                      onChange={(e) => setRevizeNotuInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddRevizeNot(); } }}
-                    />
-                    <p className="text-[9px] text-gray-400 font-bold text-right px-1">Kaydetmek için ENTER tuşuna basabilirsiniz</p>
-                  </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">NOTUNUZ</label>
+                  <textarea
+                    autoFocus
+                    className="w-full bg-gray-50 border-2 border-gray-100 focus:border-indigo-600 rounded-2xl p-5 text-sm font-bold text-gray-800 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none resize-none placeholder-gray-300"
+                    rows="4"
+                    placeholder="Lütfen tespit ettiğiniz hatayı veya düzeltme isteğinizi detaylıca açıklayın..."
+                    value={revizeNotuInput}
+                    onChange={(e) => setRevizeNotuInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddRevizeNot(); } }}
+                  />
+                  <p className="text-[9px] text-gray-400 font-bold text-right px-1">Kaydetmek için ENTER tuşuna basabilirsiniz</p>
+                </div>
 
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => { setSelectedText(''); setSelectedAnnotation(null); setRevizeNotuInput(''); setBranchReviewMode(false); }}
-                      className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
-                    >
-                      İPTAL
-                    </button>
-                    <button
-                      onClick={handleAddRevizeNot}
-                      className="flex-[2] py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 transition-all active:scale-95 flex items-center justify-center gap-2"
-                    >
-                      KAYDET
-                    </button>
-                  </div>
-                </>
-              )}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => { setSelectedText(''); setSelectedAnnotation(null); setRevizeNotuInput(''); setBranchReviewMode(false); }}
+                    className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
+                  >
+                    İPTAL
+                  </button>
+                  <button
+                    onClick={handleAddRevizeNot}
+                    className="flex-[2] py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 transition-all active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    KAYDET
+                  </button>
+                </div>
+              </>
             </div>
           </div>
         </div>
