@@ -61,7 +61,8 @@ app.get('/api/health', (req, res) => {
 // Error handler
 app.use(errorHandler);
 
-// --- START SERVER LOGIC ---
+
+// --- START SERVER LOGIC (Forced Rebuild Triggered) ---
 const startServer = async () => {
   try {
     console.log('--- SUNUCU BAŞLATILIYOR (V4 - PROXY PDF MODE) ---');
