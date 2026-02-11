@@ -336,7 +336,7 @@ export default function DizgiYonetimi() {
                         <div className="mb-10 text-center">
                           <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4">Mevcut Dizgi Çıktısı (En Son Kaydedilen)</p>
                           <div className="relative inline-block shadow-2xl rounded-sm overflow-hidden group/img select-none leading-none bg-gray-900">
-                            <img src={selectedSoru.final_png_url} className="max-w-full block" alt="Soru Dizgi Çıktısı" />
+                            <img src={selectedSoru.final_png_url} className="max-w-full max-h-[80vh] w-auto h-auto block object-contain" alt="Soru Dizgi Çıktısı" />
                             {/* REVISION NOTES OVERLAY */}
                             {revizeNotlari.map((not, i) => {
                               if (!not.secilen_metin?.startsWith('IMG##')) return null;
