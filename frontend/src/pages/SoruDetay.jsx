@@ -1050,7 +1050,6 @@ export default function SoruDetay() {
         <div className="flex flex-wrap items-center gap-3">
           {effectiveRole !== 'incelemeci' && (
             <>
-              {soru.final_png_url && <a href={soru.final_png_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-100 transition-all active:scale-95"><ArrowDownTrayIcon className="w-5 h-5" /> FİNAL PNG</a>}
               <button onClick={handleCapturePNG} className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-sm active:scale-95"><CameraIcon className="w-5 h-5" /> GÖRÜNÜMÜ AL</button>
             </>
           )}
