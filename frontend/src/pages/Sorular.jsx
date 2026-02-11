@@ -629,55 +629,23 @@ export default function Sorular({ scope }) {
                         className={`group relative bg-white rounded-[2.5rem] p-8 shadow-sm hover:shadow-2xl transition-all border border-transparent ${isSelected ? 'border-blue-600 shadow-blue-100/50 ring-4 ring-blue-500/5' : 'hover:border-blue-100'
                           }`}
                       >
-                        <div className="flex flex-col lg:flex-row gap-8">
-                          {/* CONTENT AREA */}
-                          <div className="flex-1 space-y-6">
-                            <div className="flex flex-wrap items-center gap-3">
-                              <div className="flex items-center gap-2">
-                                {getDurumBadge(soru.durum)}
-                                <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 uppercase tracking-widest">{soru.brans_adi}</span>
-                              </div>
-                              {soru.kategori && (
-                                <span className="text-[10px] font-black text-purple-600 bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-100 uppercase tracking-widest">
-                                  {soru.kategori.replace('_', ' ')}
-                                </span>
-                              )}
-                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic flex items-center gap-1">
-                                <SparklesIcon className="w-3 h-3" /> VERSIYON {soru.versiyon || 1}
-                              </span>
-
-                            </div>
-
-                            {soru.kullanildi && (
-                              <div className="bg-emerald-50/80 border border-emerald-200 rounded-3xl p-5 flex items-center justify-between shadow-sm animate-fade-in group-hover:bg-white transition-colors duration-500">
-                                <div className="flex items-center gap-4">
-                                  <div className="w-10 h-10 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200">
-                                    <CheckCircleIcon className="w-6 h-6 text-white" strokeWidth={3} />
-                                  </div>
-                                  <div className="flex flex-col">
-                                    <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest leading-none mb-1">KULLANIM BİLGİSİ</span>
-                                    <span className="text-xs font-black text-emerald-900 line-clamp-1">{soru.kullanim_alani || 'Kullanım yeri belirtilmedi'}</span>
-                                  </div>
-                                </div>
-                                <span className="text-[9px] font-black text-emerald-600/40 uppercase tracking-[0.2em] italic mr-2 hidden sm:block">BU SORU SEÇİLEREK KULLANILMIŞTIR</span>
-                              </div>
-                            )}
-
+                        <div className="flex flex-col lg:flex-row gap-10">
+                          {/* LEFT SIDE: THE ACTUAL QUESTION CONTENT */}
+                          <div className="flex-1 min-w-0">
                             <div className="relative group">
                               {['tamamlandi', 'dizgi_tamam'].includes(soru.durum) && soru.final_png_url ? (
-                                <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 flex justify-center group-hover:bg-white transition-colors duration-500">
-                                  <img src={soru.final_png_url} className="max-h-56 object-contain drop-shadow-2xl rounded-xl group-hover:scale-[1.03] transition-transform duration-500" alt="Final Out" />
+                                <div className="bg-gray-50/50 p-8 rounded-[2.5rem] border border-gray-100 flex justify-center group-hover:bg-white transition-colors duration-500 shadow-inner">
+                                  <img src={soru.final_png_url} className="max-h-80 object-contain drop-shadow-2xl rounded-xl group-hover:scale-[1.02] transition-transform duration-500" alt="Final Out" />
                                 </div>
                               ) : (
-                                <div className="flex flex-col gap-3">
-                                  {/* Eğer metin içinde img etiketi yoksa ve fotoğraf varsa göster */}
+                                <div className="flex flex-col gap-5 p-2">
                                   {soru.fotograf_url && !soru.soru_metni?.includes('<img') && (
-                                    <div className="bg-gray-50/50 p-2 rounded-xl border border-gray-100 w-fit">
-                                      <img src={soru.fotograf_url} className="max-h-48 object-contain rounded-lg shadow-sm" alt="Soru Görseli" />
+                                    <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100 w-fit">
+                                      <img src={soru.fotograf_url} className="max-h-64 object-contain rounded-xl shadow-md" alt="Soru Görseli" />
                                     </div>
                                   )}
                                   <div
-                                    className={`text-gray-800 text-sm font-semibold leading-relaxed tracking-tight group-hover:text-black transition-colors [&_img]:max-h-[300px] [&_img]:w-auto [&_img]:max-w-full [&_img]:object-contain [&_img]:my-4 [&_img]:rounded-xl [&_img]:shadow-md`}
+                                    className="text-gray-900 text-base font-bold leading-relaxed tracking-tight group-hover:text-black transition-colors [&_img]:max-h-[350px] [&_img]:w-auto [&_img]:max-w-full [&_img]:object-contain [&_img]:my-6 [&_img]:rounded-2xl [&_img]:shadow-lg"
                                     dangerouslySetInnerHTML={{
                                       __html: soru.soru_metni?.replace(/src="blob:[^"]+"/g, `src="${soru.fotograf_url || ''}"`)
                                     }}
@@ -685,54 +653,92 @@ export default function Sorular({ scope }) {
                                 </div>
                               )}
                             </div>
+                          </div>
 
-                            <div className="flex flex-wrap items-center gap-6 pt-4 border-t border-gray-50">
-                              <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 bg-gray-100 rounded-xl flex items-center justify-center font-black text-xs text-gray-400">
-                                    {soru.olusturan_ad?.charAt(0)}
-                                  </div>
-                                  <div className="flex flex-col">
-                                    <span className="text-[10px] font-black text-gray-400 uppercase leading-none">Yazan</span>
-                                    <span className="text-xs font-bold text-gray-700">{soru.olusturan_ad}</span>
+                          {/* RIGHT SIDE: QUESTION INFO & METADATA */}
+                          <div className="lg:w-80 flex flex-col gap-6 lg:border-l lg:border-gray-50 lg:pl-10">
+                            {/* 1. Status & Identity */}
+                            <div className="space-y-4">
+                              <div className="flex flex-col gap-2">
+                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">DURUM VE KİMLİK</span>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {getDurumBadge(soru.durum)}
+                                  <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 font-black text-[10px] uppercase tracking-widest leading-none">
+                                    <SparklesIcon className="w-3.5 h-3.5" /> V{soru.versiyon || 1}
                                   </div>
                                 </div>
-                                {soru.dizgici_ad && (
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 bg-purple-50 rounded-xl flex items-center justify-center font-black text-xs text-purple-400">
-                                      {soru.dizgici_ad?.charAt(0)}
-                                    </div>
-                                    <div className="flex flex-col">
-                                      <span className="text-[10px] font-black text-purple-400 uppercase leading-none">Dizgi</span>
-                                      <span className="text-xs font-bold text-purple-700">{soru.dizgici_ad}</span>
-                                    </div>
-                                  </div>
-                                )}
                               </div>
 
-                              <div className="ml-auto flex items-center gap-4">
-                                {soru.fotograf_url && <div className="flex items-center gap-1 px-3 py-1.5 bg-gray-50 text-gray-500 rounded-xl border border-gray-100 font-black text-[9px] uppercase tracking-widest"><PhotoIcon className="w-4 h-4" /> GÖRSEL</div>}
-                                <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{new Date(soru.olusturulma_tarihi).toLocaleDateString('tr-TR')}</span>
+                              <div className="flex flex-col gap-2">
+                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">KATEGORİ VE BRANŞ</span>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 uppercase tracking-widest">{soru.brans_adi}</span>
+                                  {soru.kategori && (
+                                    <span className="text-[10px] font-black text-purple-600 bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-100 uppercase tracking-widest">
+                                      {soru.kategori.replace('_', ' ')}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
 
-                            {/* STATUS TRACKER */}
-                            {soru.durum !== 'tamamlandi' && (
-                              <div className="flex flex-col gap-3 mt-4 p-4 bg-gray-50/50 rounded-[1.5rem] border border-gray-100 transition-colors group-hover:bg-white">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">BULUNDUĞU AŞAMA:</span>
-                                    {getDurumBadge(soru.durum)}
+                            {/* 2. Personnel */}
+                            <div className="space-y-4">
+                              <div className="flex flex-col gap-3">
+                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">SORUMLULAR</span>
+                                <div className="grid grid-cols-1 gap-2">
+                                  <div className="flex items-center gap-3 p-3 bg-gray-50/50 rounded-2xl border border-gray-100 group-hover:bg-white transition-colors">
+                                    <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center font-black text-xs">
+                                      {soru.olusturan_ad?.charAt(0)}
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="text-[9px] font-black text-gray-400 uppercase leading-none mb-1">YAZAR</span>
+                                      <span className="text-xs font-black text-gray-700">{soru.olusturan_ad}</span>
+                                    </div>
                                   </div>
+                                  {soru.dizgici_ad && (
+                                    <div className="flex items-center gap-3 p-3 bg-purple-50/30 rounded-2xl border border-purple-50 group-hover:bg-white transition-colors">
+                                      <div className="w-8 h-8 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center font-black text-xs">
+                                        {soru.dizgici_ad?.charAt(0)}
+                                      </div>
+                                      <div className="flex flex-col">
+                                        <span className="text-[9px] font-black text-purple-400 uppercase leading-none mb-1">DİZGİCİ</span>
+                                        <span className="text-xs font-black text-purple-900">{soru.dizgici_ad}</span>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
+                              </div>
+                            </div>
+
+                            {/* 3. Usage & Date */}
+                            {soru.kullanildi && (
+                              <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-2">
                                 <div className="flex items-center gap-2">
-                                  <div className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 ${soru.onay_alanci ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-50 text-gray-300 border border-gray-100'
-                                    }`}>
-                                    {soru.onay_alanci ? <CheckCircleIcon className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-current opacity-20" />} ALAN KONTROLÜ
+                                  <CheckCircleIcon className="w-4 h-4 text-emerald-500" strokeWidth={3} />
+                                  <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">KULLANILDI</span>
+                                </div>
+                                <p className="text-[11px] font-bold text-emerald-900 leading-tight">{soru.kullanim_alani || 'Kullanım yeri belirtilmedi'}</p>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between text-[10px] font-black text-gray-300 uppercase tracking-widest px-1">
+                              <span>OLUŞTURULMA</span>
+                              <span>{new Date(soru.olusturulma_tarihi).toLocaleDateString('tr-TR')}</span>
+                            </div>
+
+                            {/* 4. Status Tracker */}
+                            {soru.durum !== 'tamamlandi' && (
+                              <div className="space-y-3 pt-4 border-t border-gray-50">
+                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block text-center">ONAY SÜREÇLERİ</span>
+                                <div className="flex flex-col gap-2">
+                                  <div className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-between ${soru.onay_alanci ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-sm' : 'bg-gray-50 text-gray-300 border border-gray-100'}`}>
+                                    <span>ALAN KONTROLÜ</span>
+                                    {soru.onay_alanci ? <CheckCircleIcon className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-current opacity-20" />}
                                   </div>
-                                  <div className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 ${soru.onay_dilci ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-50 text-gray-300 border border-gray-100'
-                                    }`}>
-                                    {soru.onay_dilci ? <CheckCircleIcon className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-current opacity-20" />} DİL KONTROLÜ
+                                  <div className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-between ${soru.onay_dilci ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-sm' : 'bg-gray-50 text-gray-300 border border-gray-100'}`}>
+                                    <span>DİL KONTROLÜ</span>
+                                    {soru.onay_dilci ? <CheckCircleIcon className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-current opacity-20" />}
                                   </div>
                                 </div>
                               </div>
