@@ -1464,24 +1464,23 @@ export default function SoruDetay() {
               <div className="space-y-4 max-h-[500px] overflow-y-auto no-scrollbar pr-1">
                 {revizeNotlari.map((not, i) => {
                   const colorClass = not.inceleme_turu === 'alanci' ? 'blue' : 'emerald';
-
                   return (
                     <div key={not.id} className="group p-4 bg-gray-50 rounded-[1.5rem] border border-gray-100 flex items-start gap-4 hover:bg-white hover:shadow-lg transition-all relative">
                       <div className={`w-8 h-8 shrink-0 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-xs font-black shadow-lg shadow-${colorClass}-100`}>
                         {i + 1}
                       </div>
-
                       <div className="flex-1">
-                        <p className="text-xs font-black text-gray-900 leading-relaxed font-sans">{not.not_metni}</p>
+                        <p className="text-xs font-black text-gray-900 leading-relaxed font-sans">{not.not_metni || not.secilen_metin}</p>
                       </div>
-
                       {(isAdmin || user?.id === not.kullanici_id) && (
                         <button onClick={() => handleDeleteRevizeNot(not.id)} className="shrink-0 p-1.5 bg-white text-gray-300 hover:text-rose-500 rounded-lg transition-colors border border-gray-100 active:scale-95">
                           <XMarkIcon className="w-4 h-4" strokeWidth={3} />
                         </button>
                       )}
                     </div>
-                { revizeNotlari.length === 0 && <div className="py-10 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest opacity-60 italic">HATA İŞARETLENMEDİ.</div> }
+                  );
+                })}
+                {revizeNotlari.length === 0 && <div className="py-10 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest opacity-60 italic">HATA İŞARETLENMEDİ.</div>}
               </div>
             </div>
           )}
