@@ -658,26 +658,26 @@ export default function Sorular({ scope }) {
                     return (
                       <div
                         key={soru.id}
-                        className={`group relative bg-white rounded-[2.5rem] p-8 shadow-sm hover:shadow-2xl transition-all border border-transparent ${isSelected ? 'border-blue-600 shadow-blue-100/50 ring-4 ring-blue-500/5' : 'hover:border-blue-100'
+                        className={`group relative bg-white rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all border border-gray-100 ${isSelected ? 'border-indigo-400 ring-2 ring-indigo-50' : 'hover:border-indigo-200'
                           }`}
                       >
-                        <div className="flex flex-col lg:flex-row gap-10">
+                        <div className="flex flex-col lg:flex-row gap-6">
                           {/* LEFT SIDE: THE ACTUAL QUESTION CONTENT */}
                           <div className="flex-1 min-w-0">
-                            <div className="relative group">
+                            <div className="relative group h-full">
                               {['tamamlandi', 'dizgi_tamam'].includes(soru.durum) && soru.final_png_url ? (
-                                <div className="bg-gray-50/50 p-8 rounded-[2.5rem] border border-gray-100 flex justify-center group-hover:bg-white transition-colors duration-500 shadow-inner">
-                                  <img src={soru.final_png_url} className="max-h-80 object-contain drop-shadow-2xl rounded-xl group-hover:scale-[1.02] transition-transform duration-500" alt="Final Out" />
+                                <div className="bg-slate-50 rounded-2xl border border-slate-100 flex justify-center items-center p-4 h-full min-h-[200px] group-hover:bg-white transition-colors duration-500">
+                                  <img src={soru.final_png_url} className="max-h-72 object-contain drop-shadow-lg rounded-lg" alt="Final Out" />
                                 </div>
                               ) : (
-                                <div className="flex flex-col gap-5 p-2">
+                                <div className="flex flex-col gap-4">
                                   {soru.fotograf_url && !soru.soru_metni?.includes('<img') && (
-                                    <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100 w-fit">
-                                      <img src={soru.fotograf_url} className="max-h-64 object-contain rounded-xl shadow-md" alt="Soru Görseli" />
+                                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 w-fit">
+                                      <img src={soru.fotograf_url} className="max-h-56 object-contain rounded-lg shadow-sm" alt="Soru Görseli" />
                                     </div>
                                   )}
                                   <div
-                                    className="text-gray-900 text-base font-bold leading-relaxed tracking-tight group-hover:text-black transition-colors [&_img]:max-h-[350px] [&_img]:w-auto [&_img]:max-w-full [&_img]:object-contain [&_img]:my-6 [&_img]:rounded-2xl [&_img]:shadow-lg"
+                                    className="text-gray-800 text-sm font-medium leading-relaxed group-hover:text-black transition-colors [&_img]:max-h-[300px] [&_img]:w-auto [&_img]:max-w-full [&_img]:object-contain [&_img]:my-4 [&_img]:rounded-xl [&_img]:shadow-md"
                                     dangerouslySetInnerHTML={{
                                       __html: soru.soru_metni?.replace(/src="blob:[^"]+"/g, `src="${soru.fotograf_url || ''}"`)
                                     }}
@@ -688,25 +688,25 @@ export default function Sorular({ scope }) {
                           </div>
 
                           {/* RIGHT SIDE: QUESTION INFO & METADATA */}
-                          <div className="lg:w-80 flex flex-col gap-6 lg:border-l lg:border-gray-50 lg:pl-10">
+                          <div className="lg:w-72 flex flex-col gap-5 lg:border-l lg:border-gray-50 lg:pl-6 bg-gray-50/30 rounded-2xl p-4 lg:p-0 lg:bg-transparent lg:rounded-none">
                             {/* 1. Status & Identity */}
-                            <div className="space-y-4">
-                              <div className="flex flex-col gap-2">
-                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">DURUM VE KİMLİK</span>
+                            <div className="space-y-3">
+                              <div className="flex flex-col gap-1.5">
+                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">DURUM</span>
                                 <div className="flex flex-wrap items-center gap-2">
                                   {getDurumBadge(soru.durum)}
-                                  <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 font-black text-[10px] uppercase tracking-widest leading-none">
-                                    <SparklesIcon className="w-3.5 h-3.5" /> V{soru.versiyon || 1}
-                                  </div>
+                                  <span className="flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-100 font-bold text-[9px]">
+                                    v{soru.versiyon || 1}
+                                  </span>
                                 </div>
                               </div>
 
-                              <div className="flex flex-col gap-2">
-                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">KATEGORİ VE BRANŞ</span>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 uppercase tracking-widest">{soru.brans_adi}</span>
+                              <div className="flex flex-col gap-1.5">
+                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">BRANŞ</span>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className="text-[9px] font-black text-slate-600 bg-slate-100 px-2.5 py-1.5 rounded-lg border border-slate-200 uppercase tracking-wide truncate max-w-full">{soru.brans_adi}</span>
                                   {soru.kategori && (
-                                    <span className="text-[10px] font-black text-purple-600 bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-100 uppercase tracking-widest">
+                                    <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-100 uppercase tracking-wide">
                                       {soru.kategori.replace('_', ' ')}
                                     </span>
                                   )}
@@ -715,27 +715,27 @@ export default function Sorular({ scope }) {
                             </div>
 
                             {/* 2. Personnel */}
-                            <div className="space-y-4">
-                              <div className="flex flex-col gap-3">
-                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">SORUMLULAR</span>
-                                <div className="grid grid-cols-1 gap-2">
-                                  <div className="flex items-center gap-3 p-3 bg-gray-50/50 rounded-2xl border border-gray-100 group-hover:bg-white transition-colors">
-                                    <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center font-black text-xs">
+                            <div className="space-y-3">
+                              <div className="flex flex-col gap-2">
+                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">KATKIDA BULUNANLAR</span>
+                                <div className="flex flex-col gap-2">
+                                  <div className="flex items-center gap-2.5 p-2 bg-white rounded-xl border border-gray-100 shadow-sm">
+                                    <div className="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center font-black text-[10px]">
                                       {soru.olusturan_ad?.charAt(0)}
                                     </div>
                                     <div className="flex flex-col">
-                                      <span className="text-[9px] font-black text-gray-400 uppercase leading-none mb-1">YAZAR</span>
-                                      <span className="text-xs font-black text-gray-700">{soru.olusturan_ad}</span>
+                                      <span className="text-[8px] font-black text-gray-400 uppercase leading-none mb-0.5">YAZAR</span>
+                                      <span className="text-[10px] font-bold text-gray-700 truncate max-w-[140px]">{soru.olusturan_ad}</span>
                                     </div>
                                   </div>
                                   {soru.dizgici_ad && (
-                                    <div className="flex items-center gap-3 p-3 bg-purple-50/30 rounded-2xl border border-purple-50 group-hover:bg-white transition-colors">
-                                      <div className="w-8 h-8 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center font-black text-xs">
+                                    <div className="flex items-center gap-2.5 p-2 bg-white rounded-xl border border-gray-100 shadow-sm">
+                                      <div className="w-6 h-6 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center font-black text-[10px]">
                                         {soru.dizgici_ad?.charAt(0)}
                                       </div>
                                       <div className="flex flex-col">
-                                        <span className="text-[9px] font-black text-purple-400 uppercase leading-none mb-1">DİZGİCİ</span>
-                                        <span className="text-xs font-black text-purple-900">{soru.dizgici_ad}</span>
+                                        <span className="text-[8px] font-black text-purple-400 uppercase leading-none mb-0.5">DİZGİCİ</span>
+                                        <span className="text-[10px] font-bold text-purple-900 truncate max-w-[140px]">{soru.dizgici_ad}</span>
                                       </div>
                                     </div>
                                   )}
@@ -744,62 +744,49 @@ export default function Sorular({ scope }) {
                             </div>
 
                             {/* 3. Usage & Date */}
-                            {soru.kullanildi && (
-                              <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <CheckCircleIcon className="w-4 h-4 text-emerald-500" strokeWidth={3} />
-                                  <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">KULLANILDI</span>
-                                </div>
-                                <p className="text-[11px] font-bold text-emerald-900 leading-tight">{soru.kullanim_alani || 'Kullanım yeri belirtilmedi'}</p>
-                              </div>
-                            )}
-
-                            <div className="flex items-center justify-between text-[10px] font-black text-gray-300 uppercase tracking-widest px-1">
-                              <span>OLUŞTURULMA</span>
+                            <div className="flex items-center justify-between text-[9px] font-bold text-gray-300 uppercase tracking-widest pl-1 mt-auto">
                               <span>{new Date(soru.olusturulma_tarihi).toLocaleDateString('tr-TR')}</span>
                             </div>
 
                             {/* 4. Status Tracker */}
                             {soru.durum !== 'tamamlandi' && (
-                              <div className="space-y-3 pt-4 border-t border-gray-50">
-                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block text-center">ONAY SÜREÇLERİ</span>
-                                <div className="flex flex-col gap-2">
-                                  <div className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-between ${soru.onay_alanci ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-sm' : 'bg-gray-50 text-gray-300 border border-gray-100'}`}>
-                                    <span>ALAN KONTROLÜ</span>
-                                    {soru.onay_alanci ? <CheckCircleIcon className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-current opacity-20" />}
+                              <div className="space-y-2 pt-3 border-t border-dashed border-gray-200">
+                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block text-center">ONAYLAR</span>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className={`px-2 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-wide flex items-center justify-center gap-1 ${soru.onay_alanci ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-50 text-gray-300 border border-gray-100'}`}>
+                                    <span>ALAN</span>
+                                    {soru.onay_alanci && <CheckCircleIcon className="w-3 h-3" />}
                                   </div>
-                                  <div className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-between ${soru.onay_dilci ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-sm' : 'bg-gray-50 text-gray-300 border border-gray-100'}`}>
-                                    <span>DİL KONTROLÜ</span>
-                                    {soru.onay_dilci ? <CheckCircleIcon className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-current opacity-20" />}
+                                  <div className={`px-2 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-wide flex items-center justify-center gap-1 ${soru.onay_dilci ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-50 text-gray-300 border border-gray-100'}`}>
+                                    <span>DİL</span>
+                                    {soru.onay_dilci && <CheckCircleIcon className="w-3 h-3" />}
                                   </div>
                                 </div>
                               </div>
                             )}
                           </div>
 
-                          {/* ACTIONS - NOW ON RIGHT */}
-                          <div className="flex lg:flex-col items-center justify-between lg:justify-start gap-4 lg:w-16">
+                          {/* ACTIONS - Compact */}
+                          <div className="flex lg:flex-col items-center lg:items-end gap-3 lg:w-14 shrink-0 border-t lg:border-t-0 pt-4 lg:pt-0 border-gray-100 mt-2 lg:mt-0">
                             <div
                               onClick={() => {
                                 if (isSelected) setSelectedQuestions(selectedQuestions.filter(id => id !== soru.id));
                                 else setSelectedQuestions([...selectedQuestions, soru.id]);
                               }}
-                              className={`w-14 h-14 rounded-2xl flex items-center justify-center cursor-pointer transition-all shadow-md active:scale-95 ${isSelected ? 'bg-blue-600 text-white shadow-blue-300' : 'bg-white border-2 border-blue-100 text-blue-400 hover:border-blue-600 hover:text-blue-600'
+                              className={`w-12 h-12 rounded-xl flex items-center justify-center cursor-pointer transition-all shadow-sm active:scale-95 ${isSelected ? 'bg-indigo-600 text-white shadow-indigo-200 scale-105' : 'bg-white border-2 border-slate-100 text-slate-300 hover:border-indigo-500 hover:text-indigo-500'
                                 }`}
                               title="Seç"
                             >
-                              {isSelected ? <CheckCircleIcon className="w-8 h-8" strokeWidth={2.5} /> : <div className="text-sm font-black uppercase tracking-tighter">SEC</div>}
+                              {isSelected ? <CheckCircleIcon className="w-7 h-7" strokeWidth={2.5} /> : <div className="text-xs font-black">SEÇ</div>}
                             </div>
 
-                            <div className="flex flex-row lg:flex-col gap-3">
-                              <button onClick={() => handleSil(soru.id)} className="p-4 bg-white border-2 border-rose-100 text-rose-400 hover:bg-rose-500 hover:text-white hover:border-rose-500 rounded-2xl transition-all shadow-sm active:scale-95" title="Sil">
-                                <TrashIcon className="w-6 h-6" strokeWidth={2.5} />
-                              </button>
+                            <button onClick={() => handleSil(soru.id)} className="w-10 h-10 flex items-center justify-center bg-white border border-rose-100 text-rose-300 hover:bg-rose-500 hover:text-white hover:border-rose-500 rounded-xl transition-all shadow-sm active:scale-95" title="Sil">
+                              <TrashIcon className="w-5 h-5" strokeWidth={2} />
+                            </button>
 
-                              <Link to={`/sorular/${soru.id}${scope ? `?scope=${scope}` : ''}`} className="p-4 bg-blue-600 text-white rounded-2xl transition-all shadow-xl shadow-blue-200 hover:scale-105 hover:bg-blue-700 active:scale-95 flex items-center justify-center" title="Detay">
-                                <ChevronRightIcon className="w-8 h-8" strokeWidth={3} />
-                              </Link>
-                            </div>
+                            <Link to={`/sorular/${soru.id}${scope ? `?scope=${scope}` : ''}`} className="w-12 h-12 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl transition-all hover:bg-indigo-600 hover:text-white hover:shadow-lg hover:shadow-indigo-200 active:scale-95 flex items-center justify-center" title="Detay">
+                              <ChevronRightIcon className="w-6 h-6" strokeWidth={3} />
+                            </Link>
                           </div>
                         </div>
                       </div>
