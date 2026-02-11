@@ -1529,7 +1529,7 @@ export default function SoruDetay() {
             <div className="bg-white rounded-[3rem] p-8 shadow-xl shadow-gray-200/50 border border-gray-50 space-y-6">
               <div className="flex items-center justify-between">
                 <h4 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2 uppercase">
-                  <RocketLaunchIcon className="w-6 h-6 text-indigo-500" /> Süreç Takİbİ
+                  <RocketLaunchIcon className="w-6 h-6 text-indigo-500" /> Süreç Takİbi
                 </h4>
               </div>
               <div className="space-y-4">
@@ -1549,24 +1549,24 @@ export default function SoruDetay() {
                     <span className="text-[10px] font-bold text-gray-500 italic">{soru.dizgici_ad || 'Atanmadı'}</span>
                   </div>
 
-                  <div className={`p-4 rounded-2xl flex items-center justify-between border transition-all ${soru.onay_alanci ? 'bg-emerald-50 border-emerald-100' : (soru.durum === 'alan_incelemede' || (['revize_istendi', 'revize_gerekli', 'dizgi_tamam'].includes(soru.durum) && hasAlanNotes) ? 'bg-orange-50 border-orange-100 ring-2 ring-orange-200 animate-pulse' : 'bg-gray-50 border-gray-100 opacity-40')}`}>
+                  <div className={`p-4 rounded-2xl flex items-center justify-between border transition-all ${soru.onay_alanci && !['alan_incelemede', 'revize_istendi'].includes(soru.durum) ? 'bg-emerald-50 border-emerald-100' : (soru.durum === 'alan_incelemede' ? 'bg-orange-50 border-orange-100 ring-2 ring-orange-200 animate-pulse' : 'bg-gray-50 border-gray-100 opacity-40')}`}>
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${soru.onay_alanci ? 'bg-emerald-500 text-white' : (soru.durum === 'alan_incelemede' || (['revize_istendi', 'revize_gerekli', 'dizgi_tamam'].includes(soru.durum) && hasAlanNotes) ? 'bg-orange-500 text-white' : 'bg-gray-300 text-white')}`}>
+                      <div className={`p-2 rounded-lg ${soru.onay_alanci && !['alan_incelemede', 'revize_istendi'].includes(soru.durum) ? 'bg-emerald-500 text-white' : (soru.durum === 'alan_incelemede' ? 'bg-orange-500 text-white' : 'bg-gray-300 text-white')}`}>
                         <MagnifyingGlassPlusIcon className="w-4 h-4" />
                       </div>
-                      <span className={`text-[11px] font-black uppercase tracking-widest ${soru.onay_alanci ? 'text-emerald-700' : (soru.durum === 'alan_incelemede' || (['revize_istendi', 'revize_gerekli', 'dizgi_tamam'].includes(soru.durum) && hasAlanNotes) ? 'text-orange-700' : 'text-gray-400')}`}>ALAN UZMANI ONAYI</span>
+                      <span className={`text-[11px] font-black uppercase tracking-widest ${soru.onay_alanci && !['alan_incelemede', 'revize_istendi'].includes(soru.durum) ? 'text-emerald-700' : (soru.durum === 'alan_incelemede' ? 'text-orange-700' : 'text-gray-400')}`}>ALAN UZMANI ONAYI</span>
                     </div>
-                    {soru.onay_alanci ? <CheckCircleIcon className="w-5 h-5 text-emerald-500" /> : <span className="text-[9px] font-black text-gray-300">{hasAlanNotes ? 'REVİZE/BEKLİYOR' : 'BEKLENİYOR'}</span>}
+                    {soru.onay_alanci && !['alan_incelemede', 'revize_istendi'].includes(soru.durum) ? <CheckCircleIcon className="w-5 h-5 text-emerald-500" /> : <span className="text-[9px] font-black text-gray-300">{soru.durum === 'alan_incelemede' ? 'İNCELENİYOR' : 'BEKLENİYOR'}</span>}
                   </div>
 
-                  <div className={`p-4 rounded-2xl flex items-center justify-between border transition-all ${soru.onay_dilci ? 'bg-emerald-50 border-emerald-100' : (soru.durum === 'dil_incelemede' || (['revize_istendi', 'revize_gerekli', 'dizgi_tamam'].includes(soru.durum) && hasDilNotes) ? 'bg-blue-50 border-blue-100 ring-2 ring-blue-200 animate-pulse' : 'bg-gray-50 border-gray-100 opacity-40')}`}>
+                  <div className={`p-4 rounded-2xl flex items-center justify-between border transition-all ${soru.onay_dilci && !['dil_incelemede', 'revize_istendi'].includes(soru.durum) ? 'bg-emerald-50 border-emerald-100' : (soru.durum === 'dil_incelemede' ? 'bg-blue-50 border-blue-100 ring-2 ring-blue-200 animate-pulse' : 'bg-gray-50 border-gray-100 opacity-40')}`}>
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${soru.onay_dilci ? 'bg-emerald-500 text-white' : (soru.durum === 'dil_incelemede' || (['revize_istendi', 'revize_gerekli', 'dizgi_tamam'].includes(soru.durum) && hasDilNotes) ? 'bg-blue-500 text-white' : 'bg-gray-300 text-white')}`}>
+                      <div className={`p-2 rounded-lg ${soru.onay_dilci && !['dil_incelemede', 'revize_istendi'].includes(soru.durum) ? 'bg-emerald-500 text-white' : (soru.durum === 'dil_incelemede' ? 'bg-blue-500 text-white' : 'bg-gray-300 text-white')}`}>
                         <SparklesIcon className="w-4 h-4" />
                       </div>
-                      <span className={`text-[11px] font-black uppercase tracking-widest ${soru.onay_dilci ? 'text-emerald-700' : (soru.durum === 'dil_incelemede' || (['revize_istendi', 'revize_gerekli', 'dizgi_tamam'].includes(soru.durum) && hasDilNotes) ? 'text-blue-700' : 'text-gray-400')}`}>DİL UZMANI ONAYI</span>
+                      <span className={`text-[11px] font-black uppercase tracking-widest ${soru.onay_dilci && !['dil_incelemede', 'revize_istendi'].includes(soru.durum) ? 'text-emerald-700' : (soru.durum === 'dil_incelemede' ? 'text-blue-700' : 'text-gray-400')}`}>DİL UZMANI ONAYI</span>
                     </div>
-                    {soru.onay_dilci ? <CheckCircleIcon className="w-5 h-5 text-emerald-500" /> : <span className="text-[9px] font-black text-gray-300">{hasDilNotes ? 'REVİZE/BEKLİYOR' : 'BEKLENİYOR'}</span>}
+                    {soru.onay_dilci && !['dil_incelemede', 'revize_istendi'].includes(soru.durum) ? <CheckCircleIcon className="w-5 h-5 text-emerald-500" /> : <span className="text-[9px] font-black text-gray-300">{soru.durum === 'dil_incelemede' ? 'İNCELENİYOR' : 'BEKLENİYOR'}</span>}
                   </div>
                 </div>
               </div>
@@ -1609,175 +1609,196 @@ export default function SoruDetay() {
           <div className="bg-white rounded-[3rem] p-8 shadow-xl shadow-gray-200/50 border border-gray-50 space-y-6">
             <h4 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2 uppercase"><ClockIcon className="w-6 h-6 text-amber-500" /> Soru Yaşam Döngüsü</h4>
             <div className="space-y-4 border-l-2 border-dashed border-gray-200 ml-4 pl-6 pb-2 relative">
-              {/* Oluşturuldu */}
-              <div className="relative">
-                <div className="absolute left-[-30px] w-3 h-3 bg-emerald-500 rounded-full ring-4 ring-emerald-100"></div>
-                <div className="space-y-0.5">
-                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">OLUŞTURULDU</p>
-                  <p className="text-[11px] font-bold text-gray-500">{soru.olusturan_ad} tarafından taslak hazırlandı</p>
-                </div>
-              </div>
+              {/* Step calculation to fix "current stage" visual */}
+              {(() => {
+                const s = soru.durum;
+                const pastStages = [];
+                let currentIdx = 1;
 
-              {/* Dizgi Bekliyor */}
-              <div className="relative">
-                <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${['dizgi_bekliyor', 'dizgide', 'dizgi_tamam', 'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi', 'tamamlandi'].includes(soru.durum) ? 'bg-purple-500 ring-purple-100' : 'bg-gray-300 ring-gray-100'}`}></div>
-                <div className="space-y-0.5">
-                  <p className={`text-[10px] font-black uppercase tracking-widest ${['dizgi_bekliyor', 'dizgide', 'dizgi_tamam', 'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi', 'tamamlandi'].includes(soru.durum) ? 'text-purple-600' : 'text-gray-400'}`}>DİZGİYE GÖNDERİLDİ</p>
-                  <p className="text-[11px] font-bold text-gray-500">{soru.durum === 'dizgi_bekliyor' ? 'Dizgici ataması bekleniyor' : (soru.dizgici_ad ? `${soru.dizgici_ad} işliyor` : 'Dizgi sürecinde')}</p>
-                </div>
-              </div>
+                if (s === 'tamamlandi') currentIdx = 6;
+                else if (['dil_incelemede', 'dil_onaylandi'].includes(s)) currentIdx = 5;
+                else if (['alan_incelemede', 'alan_onaylandi'].includes(s)) currentIdx = 4;
+                else if (s === 'dizgi_tamam') currentIdx = 3;
+                else if (['dizgi_bekliyor', 'dizgide', 'revize_istendi', 'inceleme_bekliyor', 'incelemede'].includes(s)) currentIdx = 2;
+                else currentIdx = 1; // beklemede, revize_gerekli
 
-              {/* Dizgi Tamamlandı */}
-              <div className="relative">
-                <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${['dizgi_tamam', 'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi', 'tamamlandi'].includes(soru.durum) ? 'bg-blue-500 ring-blue-100' : 'bg-gray-300 ring-gray-100'}`}></div>
-                <div className="space-y-0.5">
-                  <p className={`text-[10px] font-black uppercase tracking-widest ${['dizgi_tamam', 'alan_incelemede', 'alan_onaylandi', 'dil_incelemede', 'dil_onaylandi', 'tamamlandi'].includes(soru.durum) ? 'text-blue-600' : 'text-gray-400'}`}>DİZGİ TAMAMLANDI</p>
-                  <p className="text-[11px] font-bold text-gray-500">Final görsel hazır</p>
-                </div>
-              </div>
+                // Define which stages are considered "Past" based on current status
+                // If we regression, past stages are lost
+                const isPast = (idx) => idx < currentIdx;
+                const isCurrent = (idx) => idx === currentIdx;
 
-              {/* Alan İnceleme */}
-              <div className="relative">
-                <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${soru.onay_alanci || ['alan_onaylandi', 'dil_incelemede', 'dil_onaylandi', 'tamamlandi'].includes(soru.durum) || hasAlanNotes ? 'bg-orange-500 ring-orange-100' : (soru.durum === 'alan_incelemede' ? 'bg-orange-400 ring-orange-100 animate-pulse' : 'bg-gray-300 ring-gray-100')}`}></div>
-                <div className="space-y-0.5">
-                  <p className={`text-[10px] font-black uppercase tracking-widest ${soru.onay_alanci || soru.durum === 'alan_incelemede' || hasAlanNotes ? 'text-orange-600' : 'text-gray-400'}`}>
-                    {soru.onay_alanci ? 'ALAN ONAYLI ✓' : (soru.durum === 'alan_incelemede' ? 'ALAN İNCELEMEDE...' : (hasAlanNotes ? 'ALAN REVİZE SÜRECİ' : 'ALAN İNCELEME'))}
-                  </p>
-                  <p className="text-[11px] font-bold text-gray-500">{soru.onay_alanci ? 'Uzman onayı alındı' : (hasAlanNotes ? 'Hata düzeltmesi bekleniyor' : 'Konu uzmanı kontrolü')}</p>
-                </div>
-              </div>
+                return (
+                  <>
+                    {/* Oluşturuldu */}
+                    <div className="relative">
+                      <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${isCurrent(1) ? 'bg-emerald-400 ring-emerald-100 animate-pulse' : 'bg-emerald-500 ring-emerald-100'}`}></div>
+                      <div className="space-y-0.5">
+                        <p className={`text-[10px] font-black uppercase tracking-widest ${1 <= currentIdx ? 'text-emerald-500' : 'text-emerald-600'}`}>OLUŞTURULDU {isCurrent(1) && '📍'}</p>
+                        <p className="text-[11px] font-bold text-gray-500">{soru.olusturan_ad} tarafından taslak hazırlandı</p>
+                      </div>
+                    </div>
 
-              {/* Dil İnceleme */}
-              <div className="relative">
-                <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${soru.onay_dilci || soru.durum === 'tamamlandi' || hasDilNotes ? 'bg-cyan-500 ring-cyan-100' : (soru.durum === 'dil_incelemede' ? 'bg-cyan-400 ring-cyan-100 animate-pulse' : 'bg-gray-300 ring-gray-100')}`}></div>
-                <div className="space-y-0.5">
-                  <p className={`text-[10px] font-black uppercase tracking-widest ${soru.onay_dilci || soru.durum === 'dil_incelemede' || hasDilNotes ? 'text-cyan-600' : 'text-gray-400'}`}>
-                    {soru.onay_dilci ? 'DİL ONAYLI ✓' : (soru.durum === 'dil_incelemede' ? 'DİL İNCELEMEDE...' : (hasDilNotes ? 'DİL REVİZE SÜRECİ' : 'DİL İNCELEME'))}
-                  </p>
-                  <p className="text-[11px] font-bold text-gray-500">{soru.onay_dilci ? 'Dil uzmanı onayı alındı' : (hasDilNotes ? 'Hata düzeltmesi bekleniyor' : 'Dil ve yazım kontrolü')}</p>
-                </div>
-              </div>
+                    {/* Dizgi Bekliyor */}
+                    <div className="relative">
+                      <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${isPast(2) ? 'bg-purple-500 ring-purple-100' : (isCurrent(2) ? 'bg-purple-400 ring-purple-100 animate-pulse' : 'bg-gray-300 ring-gray-100')}`}></div>
+                      <div className="space-y-0.5">
+                        <p className={`text-[10px] font-black uppercase tracking-widest ${2 <= currentIdx ? 'text-purple-600' : 'text-gray-400'}`}>DİZGİ SÜRECİ {isCurrent(2) && '📍'}</p>
+                        <p className="text-[11px] font-bold text-gray-500">{s === 'revize_istendi' ? 'Revize için dizgi biriminde' : (soru.dizgici_ad ? `${soru.dizgici_ad} işliyor` : 'Dizgi sürecinde')}</p>
+                      </div>
+                    </div>
 
-              {/* Tamamlandı */}
-              <div className="relative">
-                <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${soru.durum === 'tamamlandi' ? 'bg-emerald-500 ring-emerald-100' : 'bg-gray-300 ring-gray-100'}`}></div>
-                <div className="space-y-0.5">
-                  <p className={`text-[10px] font-black uppercase tracking-widest ${soru.durum === 'tamamlandi' ? 'text-emerald-600' : 'text-gray-400'}`}>
-                    {soru.durum === 'tamamlandi' ? 'TAMAMLANDI ✓' : 'İŞLEMDE'}
-                  </p>
-                  <p className="text-[11px] font-bold text-gray-500">{soru.durum === 'tamamlandi' ? 'Tüm süreçler tamamlandı' : 'Son aşama'}</p>
-                </div>
-              </div>
+                    {/* Dizgi Tamamlandı */}
+                    <div className="relative">
+                      <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${isPast(3) ? 'bg-blue-500 ring-blue-100' : (isCurrent(3) ? 'bg-blue-400 ring-blue-100 animate-pulse' : 'bg-gray-300 ring-gray-100')}`}></div>
+                      <div className="space-y-0.5">
+                        <p className={`text-[10px] font-black uppercase tracking-widest ${3 <= currentIdx ? 'text-blue-600' : 'text-gray-400'}`}>DİZGİ TAMAMLANDI {isCurrent(3) && '📍'}</p>
+                        <p className="text-[11px] font-bold text-gray-500">{3 <= currentIdx ? 'Final görsel hazır' : 'Dizginin bitmesi bekleniyor'}</p>
+                      </div>
+                    </div>
 
-              {/* Revize durumu göster */}
-              {['revize_istendi', 'revize_gerekli'].includes(soru.durum) && (
-                <div className="relative mt-4 pt-4 border-t border-dashed border-rose-200">
-                  <div className="absolute left-[-30px] w-3 h-3 bg-rose-500 rounded-full ring-4 ring-rose-100 animate-pulse"></div>
-                  <div className="space-y-0.5">
-                    <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest">⚠️ REVİZE GEREKLİ</p>
-                    <p className="text-[11px] font-bold text-gray-500">Düzeltme yapılması bekleniyor</p>
-                  </div>
-                </div>
-              )}
+                    {/* Alan İnceleme */}
+                    <div className="relative">
+                      <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${isPast(4) ? 'bg-orange-500 ring-orange-100' : (isCurrent(4) ? 'bg-orange-400 ring-orange-100 animate-pulse' : 'bg-gray-300 ring-gray-100')}`}></div>
+                      <div className="space-y-0.5">
+                        <p className={`text-[10px] font-black uppercase tracking-widest ${4 <= currentIdx ? 'text-orange-600' : 'text-gray-400'}`}>
+                          ALAN İNCELEME {isCurrent(4) && '📍'}
+                        </p>
+                        <p className="text-[11px] font-bold text-gray-500">{soru.onay_alanci && !isCurrent(4) ? 'Uzman onayı alındı' : 'Konu uzmanı kontrolü'}</p>
+                      </div>
+                    </div>
+
+                    {/* Dil İnceleme */}
+                    <div className="relative">
+                      <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${isPast(5) ? 'bg-cyan-500 ring-cyan-100' : (isCurrent(5) ? 'bg-cyan-400 ring-cyan-100 animate-pulse' : 'bg-gray-300 ring-gray-100')}`}></div>
+                      <div className="space-y-0.5">
+                        <p className={`text-[10px] font-black uppercase tracking-widest ${5 <= currentIdx ? 'text-cyan-600' : 'text-gray-400'}`}>
+                          DİL İNCELEME {isCurrent(5) && '📍'}
+                        </p>
+                        <p className="text-[11px] font-bold text-gray-500">{soru.onay_dilci && !isCurrent(5) ? 'Dil uzmanı onayı alındı' : 'Dil ve yazım kontrolü'}</p>
+                      </div>
+                    </div>
+
+                    {/* Tamamlandı */}
+                    <div className="relative">
+                      <div className={`absolute left-[-30px] w-3 h-3 rounded-full ring-4 ${isCurrent(6) ? 'bg-emerald-500 ring-emerald-100 animate-pulse' : 'bg-gray-300 ring-gray-100'}`}></div>
+                      <div className="space-y-0.5">
+                        <p className={`text-[10px] font-black uppercase tracking-widest ${isCurrent(6) ? 'text-emerald-600' : 'text-gray-400'}`}>
+                          TAMAMLANDI {isCurrent(6) && '📍'}
+                        </p>
+                        <p className="text-[11px] font-bold text-gray-500">{isCurrent(6) ? 'Tüm süreçler tamamlandı' : 'Havuz kaydı bekleniyor'}</p>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
 
-            {/* Mevcut Durum Kartı */}
-            <div className={`p-5 rounded-[2rem] border text-center ${soru.durum === 'tamamlandi' ? 'bg-emerald-50 border-emerald-100' :
-              ['revize_istendi', 'revize_gerekli'].includes(soru.durum) ? 'bg-rose-50 border-rose-100' :
-                'bg-gray-50 border-gray-100'
-              }`}>
-              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">GÜNCEL DURUM</p>
-              <p className={`text-sm font-black uppercase tracking-wide ${soru.durum === 'tamamlandi' ? 'text-emerald-700' :
-                ['revize_istendi', 'revize_gerekli'].includes(soru.durum) ? 'text-rose-700' :
-                  'text-gray-700'
-                }`}>{STATUS_LABELS[soru.durum] || soru.durum?.replace(/_/g, ' ')}</p>
-            </div>
-
-            <div className="p-5 bg-gray-50 rounded-[2rem] border border-gray-100 text-center">
-              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">OLUŞTURULMA TARİHİ</p>
-              <p className="text-xs font-black text-gray-900">{new Date(soru.olusturulma_tarihi).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-            </div>
+            {/* Revize durumu göster */}
+            {['revize_istendi', 'revize_gerekli'].includes(soru.durum) && (
+              <div className="relative mt-4 pt-4 border-t border-dashed border-rose-200">
+                <div className="absolute left-[-30px] w-3 h-3 bg-rose-500 rounded-full ring-4 ring-rose-100 animate-pulse"></div>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest">⚠️ REVİZE GEREKLİ</p>
+                  <p className="text-[11px] font-bold text-gray-500">Düzeltme yapılması bekleniyor</p>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* DELETE DANGER ZONE */}
-          {/* DELETE DANGER ZONE */}
-          {hasFullAccess && effectiveRole !== 'incelemeci' && (
-            <button
-              onClick={handleSil}
-              className="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 px-8 py-5 rounded-[2.5rem] font-black text-xs uppercase tracking-widest transition-all shadow-sm active:scale-95 flex items-center justify-center gap-3"
-            >
-              <TrashIcon className="w-5 h-5" /> Soruyu Sil / Kaldır
-            </button>
-          )}
+          {/* Mevcut Durum Kartı */}
+          <div className={`p-5 rounded-[2rem] border text-center ${soru.durum === 'tamamlandi' ? 'bg-emerald-50 border-emerald-100' :
+            ['revize_istendi', 'revize_gerekli'].includes(soru.durum) ? 'bg-rose-50 border-rose-100' :
+              'bg-gray-50 border-gray-100'
+            }`}>
+            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">GÜNCEL DURUM</p>
+            <p className={`text-sm font-black uppercase tracking-wide ${soru.durum === 'tamamlandi' ? 'text-emerald-700' :
+              ['revize_istendi', 'revize_gerekli'].includes(soru.durum) ? 'text-rose-700' :
+                'text-gray-700'
+              }`}>{STATUS_LABELS[soru.durum] || soru.durum?.replace(/_/g, ' ')}</p>
+          </div>
 
-
+          <div className="p-5 bg-gray-50 rounded-[2rem] border border-gray-100 text-center">
+            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">OLUŞTURULMA TARİHİ</p>
+            <p className="text-xs font-black text-gray-900">{new Date(soru.olusturulma_tarihi).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+          </div>
         </div>
+
+        {/* DELETE DANGER ZONE */}
+        {/* DELETE DANGER ZONE */}
+        {hasFullAccess && effectiveRole !== 'incelemeci' && (
+          <button
+            onClick={handleSil}
+            className="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 px-8 py-5 rounded-[2.5rem] font-black text-xs uppercase tracking-widest transition-all shadow-sm active:scale-95 flex items-center justify-center gap-3"
+          >
+            <TrashIcon className="w-5 h-5" /> Soruyu Sil / Kaldır
+          </button>
+        )}
+
+
       </div>
 
       {/* FLOATING ANNOTATION UI - CENTERED MODAL */}
-      {
-        (selectedText || selectedAnnotation) && canReview && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-            <div className="w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden animate-scale-up">
-              <div className="p-6 bg-gray-900 text-white flex justify-between items-center px-8">
-                <h5 className="font-black text-xs uppercase tracking-[0.2em] flex items-center gap-2"><PlusIcon className="w-5 h-5 text-rose-500" /> Yeni Revize Notu</h5>
-                <button onClick={() => { setSelectedText(''); setSelectedAnnotation(null); setRevizeNotuInput(''); setBranchReviewMode(false); }} className="hover:bg-white/10 p-2 rounded-xl transition-all"><XMarkIcon className="w-6 h-6" /></button>
-              </div>
-              <div className="p-8 space-y-6">
-                <>
-                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-start gap-4">
-                    <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100 text-indigo-500">
-                      {selectedAnnotation?.type === 'box' ? <StopIcon className="w-6 h-6" /> :
-                        selectedAnnotation?.type === 'line' ? <MinusIcon className="w-6 h-6" /> :
-                          selectedText ? <DocumentTextIcon className="w-6 h-6" /> : <XMarkIcon className="w-6 h-6" />}
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">SEÇİLEN {selectedAnnotation ? 'ALAN' : 'KESİT'}</span>
-                      {selectedAnnotation ? (
-                        <p className="text-sm font-bold text-gray-800">
-                          {selectedAnnotation.type === 'box' ? 'Kutu Alanı' : 'Çizgi İşareti'}
-                        </p>
-                      ) : (
-                        <p className="text-sm font-bold text-gray-800 line-clamp-3 italic">"{selectedText}"</p>
-                      )}
-                    </div>
+      {(selectedText || selectedAnnotation) && canReview && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden animate-scale-up">
+            <div className="p-6 bg-gray-900 text-white flex justify-between items-center px-8">
+              <h5 className="font-black text-xs uppercase tracking-[0.2em] flex items-center gap-2"><PlusIcon className="w-5 h-5 text-rose-500" /> Yeni Revize Notu</h5>
+              <button onClick={() => { setSelectedText(''); setSelectedAnnotation(null); setRevizeNotuInput(''); setBranchReviewMode(false); }} className="hover:bg-white/10 p-2 rounded-xl transition-all"><XMarkIcon className="w-6 h-6" /></button>
+            </div>
+            <div className="p-8 space-y-6">
+              <>
+                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-start gap-4">
+                  <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100 text-indigo-500">
+                    {selectedAnnotation?.type === 'box' ? <StopIcon className="w-6 h-6" /> :
+                      selectedAnnotation?.type === 'line' ? <MinusIcon className="w-6 h-6" /> :
+                        selectedText ? <DocumentTextIcon className="w-6 h-6" /> : <XMarkIcon className="w-6 h-6" />}
                   </div>
+                  <div>
+                    <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">SEÇİLEN {selectedAnnotation ? 'ALAN' : 'KESİT'}</span>
+                    {selectedAnnotation ? (
+                      <p className="text-sm font-bold text-gray-800">
+                        {selectedAnnotation.type === 'box' ? 'Kutu Alanı' : 'Çizgi İşareti'}
+                      </p>
+                    ) : (
+                      <p className="text-sm font-bold text-gray-800 line-clamp-3 italic">"{selectedText}"</p>
+                    )}
+                  </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">NOTUNUZ</label>
-                    <textarea
-                      autoFocus
-                      className="w-full bg-gray-50 border-2 border-gray-100 focus:border-indigo-600 rounded-2xl p-5 text-sm font-bold text-gray-800 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none resize-none placeholder-gray-300"
-                      rows="4"
-                      placeholder="Lütfen tespit ettiğiniz hatayı veya düzeltme isteğinizi detaylıca açıklayın..."
-                      value={revizeNotuInput}
-                      onChange={(e) => setRevizeNotuInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddRevizeNot(); } }}
-                    />
-                    <p className="text-[9px] text-gray-400 font-bold text-right px-1">Kaydetmek için ENTER tuşuna basabilirsiniz</p>
-                  </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">NOTUNUZ</label>
+                  <textarea
+                    autoFocus
+                    className="w-full bg-gray-50 border-2 border-gray-100 focus:border-indigo-600 rounded-2xl p-5 text-sm font-bold text-gray-800 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none resize-none placeholder-gray-300"
+                    rows="4"
+                    placeholder="Lütfen tespit ettiğiniz hatayı veya düzeltme isteğinizi detaylıca açıklayın..."
+                    value={revizeNotuInput}
+                    onChange={(e) => setRevizeNotuInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddRevizeNot(); } }}
+                  />
+                  <p className="text-[9px] text-gray-400 font-bold text-right px-1">Kaydetmek için ENTER tuşuna basabilirsiniz</p>
+                </div>
 
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => { setSelectedText(''); setSelectedAnnotation(null); setRevizeNotuInput(''); setBranchReviewMode(false); }}
-                      className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
-                    >
-                      İPTAL
-                    </button>
-                    <button
-                      onClick={handleAddRevizeNot}
-                      className="flex-[2] py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 transition-all active:scale-95 flex items-center justify-center gap-2"
-                    >
-                      KAYDET
-                    </button>
-                  </div>
-                </>
-              </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => { setSelectedText(''); setSelectedAnnotation(null); setRevizeNotuInput(''); setBranchReviewMode(false); }}
+                    className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
+                  >
+                    İPTAL
+                  </button>
+                  <button
+                    onClick={handleAddRevizeNot}
+                    className="flex-[2] py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 transition-all active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    KAYDET
+                  </button>
+                </div>
+              </>
             </div>
           </div>
-        )
-      }
-    </div >
+        </div>
+      )}
+    </div>
   );
 }
 
