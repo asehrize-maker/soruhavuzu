@@ -335,7 +335,7 @@ export default function DizgiYonetimi() {
                       {selectedSoru.final_png_url ? (
                         <div className="mb-10 text-center">
                           <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4">Mevcut Dizgi Çıktısı (En Son Kaydedilen)</p>
-                          <div className="relative inline-block overflow-hidden max-w-full rounded-2xl shadow-md border border-emerald-100 bg-white group/img">
+                          <div className="relative inline-block shadow-2xl rounded-sm overflow-hidden group/img select-none leading-none bg-gray-900">
                             <img src={selectedSoru.final_png_url} className="max-w-full block" alt="Soru Dizgi Çıktısı" />
                             {/* REVISION NOTES OVERLAY */}
                             {revizeNotlari.map((not, i) => {
