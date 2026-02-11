@@ -1169,7 +1169,7 @@ export default function SoruDetay() {
                 <div className="flex flex-col items-center gap-6 w-full">
 
                   <div
-                    className="relative inline-flex justify-center items-center shadow-2xl rounded-sm overflow-hidden group/img select-none leading-none bg-gray-900"
+                    className="relative inline-block shadow-2xl rounded-sm overflow-hidden group/img select-none leading-none bg-gray-900"
                     onMouseDown={handleImageMouseDown}
                     onMouseMove={handleImageMouseMove}
                     onMouseUp={handleImageMouseUp}
