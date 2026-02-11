@@ -142,7 +142,7 @@ export default function Raporlar() {
       <div className="bg-white p-10 rounded-[3rem] shadow-xl shadow-gray-200/50 border border-gray-50 space-y-8 animate-scale-up">
         <div className="flex items-center gap-3 border-b border-gray-50 pb-6">
           <CalendarDaysIcon className="w-6 h-6 text-indigo-500" />
-          <h2 className="text-xl font-black text-gray-900 tracking-tight uppercase">Rapor Konfigürasyonu</h2>
+          <h2 className="text-xl font-black text-gray-900 tracking-tight uppercase">Rapor Filtreleme</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
