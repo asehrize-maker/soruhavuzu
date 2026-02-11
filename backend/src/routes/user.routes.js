@@ -160,14 +160,7 @@ router.get('/', authenticate, authorize(['admin', 'koordinator']), async (req, r
                 JOIN branslar br ON kb.brans_id = br.id
                 WHERE kb.kullanici_id = k.id),
                '[]'
-             ) as branslar,
-             COALESCE(
-               (SELECT json_agg(json_build_object('id', ke.ekip_id, 'ekip_adi', e2.ekip_adi))
-                FROM kullanici_ekipleri ke
-                JOIN ekipler e2 ON ke.ekip_id = e2.id
-                WHERE ke.kullanici_id = k.id),
-               '[]'
-             ) as ekipler
+             ) as branslar
       FROM kullanicilar k
       LEFT JOIN ekipler e ON k.ekip_id = e.id
       LEFT JOIN branslar b ON k.brans_id = b.id
@@ -215,14 +208,7 @@ router.get('/:id', authenticate, async (req, res, next) => {
                 JOIN branslar br ON kb.brans_id = br.id
                 WHERE kb.kullanici_id = k.id),
                '[]'
-             ) as branslar,
-             COALESCE(
-               (SELECT json_agg(json_build_object('id', ke.ekip_id, 'ekip_adi', e2.ekip_adi))
-                FROM kullanici_ekipleri ke
-                JOIN ekipler e2 ON ke.ekip_id = e2.id
-                WHERE ke.kullanici_id = k.id),
-               '[]'
-             ) as ekipler
+             ) as branslar
       FROM kullanicilar k
       LEFT JOIN ekipler e ON k.ekip_id = e.id
       LEFT JOIN branslar b ON k.brans_id = b.id
@@ -359,6 +345,7 @@ router.put('/:id', authenticate, async (req, res, next) => {
           values.push(brans_id || null);
         }
 
+        /*
         // Ekipleri güncelle (Çoklu ekip desteği)
         if (ekip_ids !== undefined && Array.isArray(ekip_ids)) {
           await client.query('DELETE FROM kullanici_ekipleri WHERE kullanici_id = $1', [id]);
@@ -376,6 +363,7 @@ router.put('/:id', authenticate, async (req, res, next) => {
             );
           }
         }
+        */
       }
 
       let result;
@@ -399,12 +387,14 @@ router.put('/:id', authenticate, async (req, res, next) => {
         WHERE kb.kullanici_id = $1
       `, [id]);
 
+      /*
       const ekipResult = await client.query(`
         SELECT ke.ekip_id as id, e.ekip_adi
         FROM kullanici_ekipleri ke
         JOIN ekipler e ON ke.ekip_id = e.id
         WHERE ke.kullanici_id = $1
       `, [id]);
+      */
 
       await client.query('COMMIT');
 
@@ -412,8 +402,7 @@ router.put('/:id', authenticate, async (req, res, next) => {
         success: true,
         data: {
           ...result.rows[0],
-          branslar: bransResult.rows,
-          ekipler: ekipResult.rows
+          branslar: bransResult.rows
         }
       });
     } catch (error) {
