@@ -1351,7 +1351,8 @@ export default function SoruDetay() {
                 <div
                   className={`bg-white shadow-2xl transition-all duration-700 relative flex flex-col group min-h-[140mm] border border-gray-100 overflow-hidden ${editMode ? 'ring-2 ring-blue-500/20' : ''} ${canReview && drawTool !== 'cursor' ? 'cursor-crosshair select-none' : ''}`}
                   style={{
-                    width: widthMode === 'dar' && editMode ? '82.4mm' : (soru.soru_metni?.includes('width: 169') && !editMode ? '169.6mm' : (editMode ? '169.6mm' : '82.4mm')),
+                    width: widthMode === 'dar' && editMode ? '82.4mm' : '170mm',
+                    minWidth: '300px',
                     padding: '10mm',
                     paddingTop: '15mm',
                     borderRadius: '2px'
