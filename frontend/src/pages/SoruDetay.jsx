@@ -1392,6 +1392,10 @@ export default function SoruDetay() {
                     } else if (meta.startsWith('LINE:')) {
                       const [x1, y1, x2, y2] = meta.replace('LINE:', '').split(',').map(Number);
                       shape = { type: 'line', x1, y1, x2, y2 };
+                    } else if (meta.startsWith('DRAW:')) {
+                      const sets = meta.replace('DRAW:', '').split(';');
+                      const points = sets.map(s => { const [px, py] = s.split(',').map(Number); return { x: px, y: py }; });
+                      if (points.length > 0) shape = { type: 'draw', points };
                     } else {
                       const [x, y] = meta.split(',').map(Number);
                       shape = { type: 'point', x, y };
@@ -1399,6 +1403,23 @@ export default function SoruDetay() {
 
                     return (
                       <div key={not.id} className="absolute inset-0 pointer-events-none z-10">
+                        {shape.type === 'draw' && shape.points && shape.points.length > 1 && (
+                          <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
+                            <polyline
+                              points={shape.points.map(p => `${p.x},${p.y}`).join(' ')}
+                              fill="none"
+                              stroke={colorHex}
+                              strokeWidth="1"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="drop-shadow-sm"
+                              vectorEffect="non-scaling-stroke"
+                            />
+                            <foreignObject x={`${shape.points[shape.points.length - 1].x}%`} y={`${shape.points[shape.points.length - 1].y}%`} width="30" height="30" style={{ overflow: 'visible' }}>
+                              <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
+                            </foreignObject>
+                          </svg>
+                        )}
                         {shape.type === 'box' && (
                           <div
                             className={`absolute border-2 border-${colorClass}-500 bg-${colorClass}-500/5 transition-colors pointer-events-auto`}
@@ -1447,6 +1468,17 @@ export default function SoruDetay() {
                           />
                         </svg>
                       )}
+                      {/* NEW PENCIL PREVIEW */}
+                      {drawingShape.type === 'pencil' && drawingShape.points && drawingShape.points.length > 0 && (
+                        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                          <polyline
+                            points={drawingShape.points.map(p => `${p.x},${p.y}`).join(' ')}
+                            fill="none"
+                            stroke="#6366f1" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"
+                            vectorEffect="non-scaling-stroke"
+                          />
+                        </svg>
+                      )}
                     </div>
                   )}
 
@@ -1465,6 +1497,17 @@ export default function SoruDetay() {
                             stroke="#f43f5e" strokeWidth="3" className="animate-pulse"
                           />
                           <circle cx={`${selectedAnnotation.x2}%`} cy={`${selectedAnnotation.y2}%`} r="4" fill="#f43f5e" />
+                        </svg>
+                      )}
+                      {selectedAnnotation.type === 'draw' && (
+                        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                          <polyline
+                            points={selectedAnnotation.points.map(p => `${p.x},${p.y}`).join(' ')}
+                            fill="none"
+                            stroke="#f43f5e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                            className="animate-pulse"
+                            vectorEffect="non-scaling-stroke"
+                          />
                         </svg>
                       )}
                     </div>
