@@ -96,9 +96,13 @@ router.get('/authors', authenticate, async (req, res, next) => {
       if (ekip_id) {
         query += ` AND ekip_id = $1`;
         params.push(ekip_id);
-        if (!isKoordinator && req.user.brans_id) {
-          query += ` AND brans_id = $${params.length + 1}`;
-          params.push(req.user.brans_id);
+        if (!isKoordinator) {
+          if (req.user.brans_id) {
+            query += ` AND brans_id = $${params.length + 1}`;
+            params.push(req.user.brans_id);
+          }
+          // Sadece branş öğretmenlerini (soru yazarlarını) görsünler, dizgici vb. görmesinler
+          query += ` AND rol = 'soru_yazici'`;
         }
       } else {
         // Ekibi yoksa sadece kendisini görsün
