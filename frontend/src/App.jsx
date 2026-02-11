@@ -19,7 +19,6 @@ import Ajanda from './pages/Ajanda';
 import Settings from './pages/Settings';
 import TestBuilder from './pages/TestBuilder';
 import Denemeler from './pages/Denemeler';
-import QuickList from './pages/QuickList';
 import Layout from './components/Layout';
 
 function PrivateRoute({ children }) {
@@ -99,13 +98,6 @@ function App() {
           </AdminRoute>
         } />
       </Route>
-
-      {/* Ayrı pencerede açılan hızlı listeler */}
-      <Route path="/quick-list/:type" element={
-        <PrivateRoute>
-          <QuickList />
-        </PrivateRoute>
-      } />
     </Routes>
   );
 }
