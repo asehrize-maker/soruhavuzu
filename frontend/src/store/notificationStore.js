@@ -1,27 +1,17 @@
 import { create } from 'zustand';
+import toast from 'react-hot-toast';
 
-const useNotificationStore = create((set, get) => ({
-    message: null,
-    type: 'success', // 'success' | 'error'
-    isVisible: false,
-    timerId: null,
-
-    showNotification: (message, type = 'success', duration = 3000) => {
-        const { timerId } = get();
-        if (timerId) clearTimeout(timerId);
-
-        const newTimerId = setTimeout(() => {
-            set({ isVisible: false, timerId: null });
-        }, duration);
-
-        set({ message, type, isVisible: true, timerId: newTimerId });
+const useNotificationStore = create((set) => ({
+    showNotification: (message, type = 'success') => {
+        if (type === 'success') toast.success(message);
+        else if (type === 'error') toast.error(message);
+        else toast(message);
     },
-
-    hideNotification: () => {
-        const { timerId } = get();
-        if (timerId) clearTimeout(timerId);
-        set({ isVisible: false, timerId: null });
-    }
+    hideNotification: () => toast.dismiss(),
+    // Keep dummy state properties to prevent crashes in components that might destructure them
+    message: null,
+    type: 'success',
+    isVisible: false,
 }));
 
 export default useNotificationStore;
