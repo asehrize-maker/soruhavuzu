@@ -1489,7 +1489,7 @@ export default function SoruDetay() {
                       <div className="flex-1">
                         <p className="text-xs font-black text-gray-900 leading-relaxed font-sans">{not.not_metni || not.secilen_metin}</p>
                       </div>
-                      {(isAdmin || user?.id === not.kullanici_id) && (
+                      {(hasFullAccess || user?.id === not.kullanici_id) && (
                         <button onClick={() => handleDeleteRevizeNot(not.id)} className="shrink-0 p-1.5 bg-white text-gray-300 hover:text-rose-500 rounded-lg transition-colors border border-gray-100 active:scale-95">
                           <XMarkIcon className="w-4 h-4" strokeWidth={3} />
                         </button>

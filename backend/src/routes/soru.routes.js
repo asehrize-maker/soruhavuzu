@@ -2109,7 +2109,58 @@ router.get('/:id/revize-notlari', authenticate, async (req, res, next) => {
 
 router.delete('/:id/revize-not/:notId', authenticate, async (req, res, next) => {
   try {
-    await pool.query('DELETE FROM soru_revize_notlari WHERE id=$1', [req.params.notId]);
+    const { id, notId } = req.params;
+
+    // Admin ise direkt silebilir
+    if (req.user.rol === 'admin') {
+      await pool.query('DELETE FROM soru_revize_notlari WHERE id = $1', [notId]);
+      return res.json({ success: true, message: 'Not silindi' });
+    }
+
+    // Notu getir (sahibi mi kontrolü için)
+    const notRes = await pool.query('SELECT kullanici_id FROM soru_revize_notlari WHERE id = $1', [notId]);
+    if (notRes.rows.length === 0) throw new AppError('Not bulunamadı', 404);
+    const revizeNotu = notRes.rows[0];
+
+    // Kendisi oluşturduysa silebilir
+    if (Number(req.user.id) === Number(revizeNotu.kullanici_id)) {
+      await pool.query('DELETE FROM soru_revize_notlari WHERE id = $1', [notId]);
+      return res.json({ success: true, message: 'Not silindi' });
+    }
+
+    // Soruyu ve branş bilgisini al (yetki kontrolü için)
+    const soruRes = await pool.query(`
+      SELECT s.brans_id, s.olusturan_kullanici_id, b.ekip_id as brans_ekip_id, k.ekip_id as yazar_ekip_id
+      FROM sorular s
+      LEFT JOIN branslar b ON s.brans_id = b.id
+      LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
+      WHERE s.id = $1
+    `, [id]);
+
+    if (soruRes.rows.length === 0) throw new AppError('Soru bulunamadı', 404);
+    const soru = soruRes.rows[0];
+    const soruEkipId = soru.brans_ekip_id || soru.yazar_ekip_id;
+
+    // Branş yetkisi kontrolü
+    let hasPermission = false;
+    const authBrans = await pool.query(`
+      SELECT 1 FROM kullanici_branslari WHERE kullanici_id = $1::integer AND brans_id = $2::integer
+      UNION
+      SELECT 1 FROM kullanicilar WHERE id = $3::integer AND brans_id = $4::integer
+    `, [Number(req.user.id), Number(soru.brans_id), Number(req.user.id), Number(soru.brans_id)]);
+
+    if (authBrans.rows.length > 0) hasPermission = true;
+
+    // Koordinatör kendi ekibindeki branşlar için de yetkilidir
+    if (!hasPermission && req.user.rol === 'koordinator' && Number(req.user.ekip_id) === Number(soruEkipId)) {
+      hasPermission = true;
+    }
+
+    if (!hasPermission) {
+      throw new AppError('Bu notu silme yetkiniz yok', 403);
+    }
+
+    await pool.query('DELETE FROM soru_revize_notlari WHERE id = $1', [notId]);
     res.json({ success: true, message: 'Not silindi' });
   } catch (err) { next(err); }
 });
