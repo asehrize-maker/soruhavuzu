@@ -353,11 +353,30 @@ router.get('/', authenticate, async (req, res, next) => {
         query += ` FROM deneme_takvimi d WHERE d.aktif = true`;
 
         // Branş veya Ekip filtresi: Eğer kullanıcı admin değilse filtrele
-        if (!isAdmin) {
-            if (isKoordinator) {
-                query += ` AND (d.ekip_id IS NULL OR d.ekip_id = $${params.length})`;
-            } else if (req.user.brans_id) {
-                query += ` AND (d.brans_id IS NULL OR d.brans_id = $${params.length})`;
+        if (req.user.rol !== 'admin') {
+            const conditions = [];
+
+            // 1. Genel Görevler (Branş ve Ekip yok)
+            conditions.push('(d.brans_id IS NULL AND d.ekip_id IS NULL)');
+
+            // 2. Branş Görevleri (Kullanıcının branşı ile eşleşen)
+            if (req.user.brans_id) {
+                conditions.push(`d.brans_id = ${parseInt(req.user.brans_id)}`);
+            }
+
+            // 3. Ekip Görevleri (Kullanıcının ekibi ile eşleşen - Branş farketmeksizin ekibe atanmışsa)
+            if (req.user.ekip_id) {
+                conditions.push(`d.ekip_id = ${parseInt(req.user.ekip_id)}`);
+            }
+
+            // Eğer koordinatör ise kendi ekibinin tüm işlerini görsün
+            if (isKoordinator && req.user.ekip_id) {
+                conditions.push(`d.ekip_id = ${parseInt(req.user.ekip_id)}`);
+            }
+
+            if (conditions.length > 0) {
+                // OR mantığı ile birleştir
+                query += ` AND (${conditions.map(c => `(${c})`).join(' OR ')})`;
             }
         }
 
