@@ -102,7 +102,8 @@ router.get('/authors', authenticate, async (req, res, next) => {
             params.push(req.user.brans_id);
           }
           // Sadece branş öğretmenlerini (soru yazarlarını) görsünler, dizgici vb. görmesinler
-          query += ` AND rol = 'soru_yazici'`;
+          query += ` AND rol = $${params.length + 1}`;
+          params.push('soru_yazici');
         }
       } else {
         // Ekibi yoksa sadece kendisini görsün
