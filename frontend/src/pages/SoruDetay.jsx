@@ -1052,11 +1052,6 @@ export default function SoruDetay() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {effectiveRole !== 'incelemeci' && (
-            <>
-              <button onClick={handleCapturePNG} className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-sm active:scale-95"><CameraIcon className="w-5 h-5" /> GÖRÜNÜMÜ AL</button>
-            </>
-          )}
 
           {!editMode && (
             <div className="flex flex-wrap items-center gap-2">

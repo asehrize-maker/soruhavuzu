@@ -337,7 +337,7 @@ export default function DizgiYonetimi() {
                       {/* FILE ACTIONS */}
                       <div className="flex flex-col sm:flex-row gap-4">
                         <button onClick={handleCapturePNG} className="flex-1 flex items-center justify-center gap-3 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.1em] transition-all shadow-sm active:scale-95">
-                          <PhotoIcon className="w-6 h-6" /> PNG ÇIKTISI AL (AUTO)
+                          <PhotoIcon className="w-6 h-6" /> GÖRÜNÜMÜ AL (AUTO)
                         </button>
 
                         <label className="flex-1 flex items-center justify-center gap-3 bg-purple-600 hover:bg-purple-700 text-white py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.1em] transition-all shadow-lg shadow-purple-100 active:scale-95 cursor-pointer">
