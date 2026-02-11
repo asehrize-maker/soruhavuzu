@@ -691,17 +691,25 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         `UPDATE sorular SET 
            durum = $1, 
            ${resetSql}, 
+           final_png_url = NULL,
+           final_png_public_id = NULL,
            guncellenme_tarihi = NOW(),
            versiyon = ${versiyonSqlSnippet}
          WHERE id = $2 RETURNING *`,
         [yeni_durum, id]
       );
     } else {
-      // Diğer durumlar (dizgi_bekliyor, bekleyim, incelemede vb.)
-      // Mevcut onayları koru (eğer vardıysa)
+      // Diğer durumlar (dizgi_bekliyor, bekleme, incelemede vb.)
+      // Eğer dizgiye gönderiliyorsa PNG'yi temizle
+      let pngReset = '';
+      if (yeni_durum === 'dizgi_bekliyor') {
+        pngReset = ', final_png_url = NULL, final_png_public_id = NULL';
+      }
+
       result = await pool.query(
         `UPDATE sorular SET 
-           durum = $1, 
+           durum = $1 
+           ${pngReset},
            guncellenme_tarihi = NOW(),
            versiyon = ${versiyonSqlSnippet}
          WHERE id = $2 RETURNING *`,
@@ -1153,7 +1161,8 @@ router.post('/:id(\\d+)/dizgi-al', authenticate, authorize('dizgici', 'admin'), 
 
     const result = await pool.query(
       `UPDATE sorular 
-        SET durum = 'dizgide', dizgici_id = $1, guncellenme_tarihi = CURRENT_TIMESTAMP
+        SET durum = 'dizgide', dizgici_id = $1, guncellenme_tarihi = CURRENT_TIMESTAMP, 
+            final_png_url = NULL, final_png_public_id = NULL
         WHERE id = $2 AND (durum = 'dizgi_bekliyor' OR durum = 'beklemede' OR durum = 'revize_istendi')
         RETURNING * `,
       [req.user.id, id]

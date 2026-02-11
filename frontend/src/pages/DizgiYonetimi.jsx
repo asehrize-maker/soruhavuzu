@@ -96,7 +96,8 @@ export default function DizgiYonetimi() {
     }
   };
 
-  const handleDurumGuncelle = async (soruId, durum) => {
+  const handleDurumGuncelle = async (soruId, durum, confirmMsg = null) => {
+    if (confirmMsg && !confirm(confirmMsg)) return;
     try {
       const data = { yeni_durum: durum };
       if (durum === 'revize_gerekli' && revizeNotu) {
@@ -331,9 +332,20 @@ export default function DizgiYonetimi() {
                     </div>
                   </div>
 
-                  {/* ACTIONS FOR POST-COMPLETION */}
-                  {(selectedSoru.durum === 'tamamlandi' || selectedSoru.durum === 'dizgi_tamam') && (
+                  {/* ACTIONS FOR POST-COMPLETION OR IN PROGRESS */}
+                  {(selectedSoru.durum === 'tamamlandi' || selectedSoru.durum === 'dizgi_tamam' || selectedSoru.durum === 'dizgide') && (
                     <div className="flex flex-col gap-4 pt-4">
+                      {selectedSoru.durum === 'dizgide' && (
+                        <button
+                          onClick={() => handleDurumGuncelle(selectedSoru.id, 'dizgi_tamam', 'Dizgiyi tamamlayıp soru yazarının onayına sunmak istediğinize emin misiniz?')}
+                          disabled={!selectedSoru.final_png_url}
+                          className={`w-full py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.1em] transition-all shadow-lg flex items-center justify-center gap-3 ${!selectedSoru.final_png_url ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-100 active:scale-95'}`}
+                        >
+                          <CheckCircleIcon className="w-6 h-6" />
+                          {!selectedSoru.final_png_url ? 'ÖNCE PNG YÜKLEYİNİZ' : 'DİZGİYİ TAMAMLA VE GÖNDER'}
+                        </button>
+                      )}
+
                       {/* FILE ACTIONS */}
                       <div className="flex flex-col sm:flex-row gap-4">
                         <button onClick={handleCapturePNG} className="flex-1 flex items-center justify-center gap-3 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.1em] transition-all shadow-sm active:scale-95">
@@ -342,23 +354,23 @@ export default function DizgiYonetimi() {
 
                         <label className="flex-1 flex items-center justify-center gap-3 bg-purple-600 hover:bg-purple-700 text-white py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.1em] transition-all shadow-lg shadow-purple-100 active:scale-95 cursor-pointer">
                           <DocumentArrowUpIcon className="w-6 h-6" /> MANUEL DOSYA YÜKLE
-                          <input type="file" className="hidden" accept="image/*,application/pdf" onChange={async (e) => {
+                          <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
                             const file = e.target.files[0];
                             if (!file) return;
-                            if (!confirm("Seçilen dosya yüklenecek ve soru güncellenecek. Emin misiniz?")) { e.target.value = null; return; }
+                            if (!confirm("Seçilen dosya Final PNG olarak yüklenecek. Emin misiniz?")) { e.target.value = null; return; }
                             const fd = new FormData();
                             fd.append('final_png', file);
                             try {
                               await soruAPI.uploadFinal(selectedSoru.id, fd);
-                              alert('Dosya yüklendi ve havuza aktarıldı');
+                              alert('Dosya yüklendi.');
+                              // Refresh individual question state to show Finish button
+                              const updatedSoru = await soruAPI.getById(selectedSoru.id);
+                              setSelectedSoru(updatedSoru.data.data);
                               await loadSorular();
-                              loadBransCounts();
                             } catch (err) { alert(err.response?.data?.error || 'Dosya yüklenemedi'); }
                           }} />
                         </label>
                       </div>
-
-
                     </div>
                   )}
 
