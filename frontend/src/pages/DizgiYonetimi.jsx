@@ -333,10 +333,10 @@ export default function DizgiYonetimi() {
                     <div className="p-10 bg-gray-50/50 rounded-[2.5rem] border border-gray-100 shadow-inner min-h-[15rem] relative" ref={questionRef}>
                       {/* ÖNCE FİNAL PNG'Yİ GÖSTER (EĞER VARSA LATEST STATE ODUR) */}
                       {selectedSoru.final_png_url ? (
-                        <div className="mb-10 flex justify-center w-full">
-                          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4">Mevcut Dizgi Çıktısı (En Son Kaydedilen)</p>
+                        <div className="flex flex-col items-center gap-6 w-full mb-10">
+                          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Mevcut Dizgi Çıktısı (En Son Kaydedilen)</p>
                           <div className="relative inline-block shadow-2xl rounded-sm overflow-hidden group/img select-none leading-none bg-gray-900">
-                            <img src={selectedSoru.final_png_url} className="max-w-full max-h-[80vh] w-auto h-auto block object-contain" alt="Soru Dizgi Çıktısı" />
+                            <img src={selectedSoru.final_png_url} className="max-w-full max-h-[80vh] w-auto h-auto block object-contain" draggable={false} alt="Soru Dizgi Çıktısı" />
                             {/* REVISION NOTES OVERLAY */}
                             {revizeNotlari.map((not, i) => {
                               if (!not.secilen_metin?.startsWith('IMG##')) return null;
@@ -345,25 +345,30 @@ export default function DizgiYonetimi() {
                               const colorHex = not.inceleme_turu === 'alanci' ? '#2563eb' : '#059669';
 
                               let shape = { type: 'point', x: 0, y: 0 };
+                              const parseCoords = (s) => s.split(',').map(v => parseFloat(v.trim()));
+
                               if (meta.startsWith('BOX:')) {
-                                const [x, y, w, h] = meta.replace('BOX:', '').split(',').map(Number);
+                                const [x, y, w, h] = parseCoords(meta.replace('BOX:', ''));
                                 shape = { type: 'box', x, y, w, h };
                               } else if (meta.startsWith('LINE:')) {
-                                const [x1, y1, x2, y2] = meta.replace('LINE:', '').split(',').map(Number);
+                                const [x1, y1, x2, y2] = parseCoords(meta.replace('LINE:', ''));
                                 shape = { type: 'line', x1, y1, x2, y2 };
                               } else if (meta.startsWith('DRAW:')) {
                                 const sets = meta.replace('DRAW:', '').split(';');
-                                const points = sets.map(s => { const [px, py] = s.split(',').map(Number); return { x: px, y: py }; });
+                                const points = sets.map(s => {
+                                  const [px, py] = parseCoords(s);
+                                  return { x: px, y: py };
+                                });
                                 if (points.length > 0) shape = { type: 'draw', points };
                               } else {
-                                const [x, y] = meta.split(',').map(Number);
+                                const [x, y] = parseCoords(meta);
                                 shape = { type: 'point', x, y };
                               }
 
                               return (
                                 <div key={not.id} className="absolute inset-0 pointer-events-none">
                                   {shape.type === 'draw' && shape.points && shape.points.length > 1 && (
-                                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
+                                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
                                       <polyline points={shape.points.map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke={colorHex} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-sm" vectorEffect="non-scaling-stroke" />
                                       <foreignObject x={`${shape.points[shape.points.length - 1].x}%`} y={`${shape.points[shape.points.length - 1].y}%`} width="30" height="30" style={{ overflow: 'visible' }}>
                                         <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
@@ -376,9 +381,9 @@ export default function DizgiYonetimi() {
                                     </div>
                                   )}
                                   {shape.type === 'line' && (
-                                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
-                                      <line x1={`${shape.x1}%`} y1={`${shape.y1}%`} x2={`${shape.x2}%`} y2={`${shape.y2}%`} stroke={colorHex} strokeWidth="3" strokeLinecap="round" className="drop-shadow-sm" />
-                                      <circle cx={`${shape.x2}%`} cy={`${shape.y2}%`} r="3" fill={colorHex} />
+                                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                      <line x1={shape.x1} y1={shape.y1} x2={shape.x2} y2={shape.y2} stroke={colorHex} strokeWidth="3" strokeLinecap="round" className="drop-shadow-sm" />
+                                      <circle cx={shape.x2} cy={shape.y2} r="1" fill={colorHex} />
                                       <foreignObject x={`${shape.x2}%`} y={`${shape.y2}%`} width="30" height="30" style={{ overflow: 'visible' }}>
                                         <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
                                       </foreignObject>
