@@ -87,11 +87,7 @@ function App() {
             <Logs />
           </AdminRoute>
         } />
-        <Route path="ajanda" element={
-          <ManagementRoute>
-            <Ajanda />
-          </ManagementRoute>
-        } />
+        <Route path="ajanda" element={<Ajanda />} />
         <Route path="settings" element={
           <AdminRoute>
             <Settings />
