@@ -321,11 +321,16 @@ export default function DizgiYonetimi() {
                           </div>
                         </div>
                       ) : (
-                        <div className="text-gray-900 prose prose-xl max-w-none font-medium leading-relaxed [&_img]:hidden" dangerouslySetInnerHTML={{ __html: selectedSoru.soru_metni }} />
+                        <div
+                          className="text-gray-900 prose prose-xl max-w-none font-medium leading-relaxed [&_img]:max-h-[500px] [&_img]:w-auto [&_img]:max-w-full [&_img]:object-contain [&_img]:my-8 [&_img]:rounded-3xl [&_img]:shadow-xl [&_img]:mx-auto"
+                          dangerouslySetInnerHTML={{
+                            __html: selectedSoru.soru_metni?.replace(/src="blob:[^"]+"/g, `src="${selectedSoru.fotograf_url || ''}"`)
+                          }}
+                        />
                       )}
 
-                      {/* ORİJİNAL DRAFT GÖRSELİ (EĞER VARSA) */}
-                      {selectedSoru.fotograf_url && (
+                      {/* ORİJİNAL DRAFT GÖRSELİ (SADECE METİN İÇİNDE YOKSA FALLBACK OLARAK) */}
+                      {selectedSoru.fotograf_url && !selectedSoru.soru_metni?.includes('<img') && (
                         <div className="mt-10 p-4 bg-white rounded-3xl shadow-sm border border-gray-100 inline-block overflow-hidden max-w-full">
                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 text-center">Orijinal Taslak Görseli</p>
                           <img src={selectedSoru.fotograf_url} className="max-w-full rounded-2xl mx-auto block opacity-60 hover:opacity-100 transition-opacity" alt="Soru Taslak Görseli" />
