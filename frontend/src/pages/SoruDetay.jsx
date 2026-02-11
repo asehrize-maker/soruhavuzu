@@ -213,6 +213,7 @@ export default function SoruDetay() {
   const [kazanimLoading, setKazanimLoading] = useState(false);
 
   const [components, setComponents] = useState([]);
+  const [draggedItemIndex, setDraggedItemIndex] = useState(null);
   const [widthMode, setWidthMode] = useState('dar');
   const [editMetadata, setEditMetadata] = useState({ zorluk: '3', dogruCevap: '', brans_id: '', kazanim: '' });
 
@@ -492,7 +493,7 @@ export default function SoruDetay() {
     setDrawingShape(null);
   };
 
-  const isDizgiStep = ['dizgi_bekliyor', 'dizgide', 'dizgi_tamam', 'revize_istendi', 'revize_gerekli', 'nceleme_bekliyor'].includes(soru?.durum);
+  const isDizgiStep = ['dizgi_bekliyor', 'dizgide', 'dizgi_tamam', 'revize_istendi', 'revize_gerekli', 'inceleme_bekliyor'].includes(soru?.durum);
 
   const handleAddRevizeNot = async () => {
     if (!revizeNotuInput.trim()) return;
