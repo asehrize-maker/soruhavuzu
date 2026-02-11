@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { denemeAPI, bransAPI } from '../services/api';
 import useAuthStore from '../store/authStore';
 import {
@@ -13,7 +13,8 @@ import {
     ChevronRightIcon,
     PlusIcon,
     MapPinIcon,
-    SparklesIcon
+    SparklesIcon,
+    CloudArrowUpIcon
 } from '@heroicons/react/24/outline';
 
 const DAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
@@ -37,6 +38,10 @@ export default function Ajanda() {
     const [events, setEvents] = useState([]);
     const [branslar, setBranslar] = useState([]);
     const [ekipler, setEkipler] = useState([]);
+
+    // Upload State
+    const fileInputRef = useRef(null);
+    const [uploadingEventId, setUploadingEventId] = useState(null);
 
     // Calendar State
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -85,6 +90,38 @@ export default function Ajanda() {
         }
     };
 
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file || !uploadingEventId) return;
+
+        if (file.type !== 'application/pdf') {
+            alert('Sadece PDF dosyaları yüklenebilir.');
+            return;
+        }
+
+        const confirmMsg = "Dosyayı yüklemek istediğinize emin misiniz? Varsa eski dosyanın üzerine yazılacaktır.";
+        if (!window.confirm(confirmMsg)) {
+            e.target.value = null;
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const formData = new FormData();
+            formData.append('pdf_dosya', file);
+            await denemeAPI.upload(uploadingEventId, formData);
+            alert('Dosya başarıyla yüklendi.');
+            fetchAll();
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('Yükleme başarısız: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setLoading(false);
+            setUploadingEventId(null);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
     // Calendar Helpers
     const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
     const getFirstDayOfMonth = (year, month) => {
@@ -126,6 +163,8 @@ export default function Ajanda() {
 
     return (
         <div className="max-w-[1600px] mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 animate-fade-in pb-20 p-4">
+            <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".pdf" className="hidden" />
+
             {/* LEFT SIDE - CALENDAR & MAIN PLAN (COL 1-9) */}
             <div className="md:col-span-9 space-y-8">
                 <div className="flex flex-col xl:flex-row gap-8 items-start">
@@ -258,6 +297,19 @@ export default function Ajanda() {
                                                     )}
                                                 </div>
                                             </div>
+
+                                            {/* UPLOAD BUTTON FOR BRANCH TEACHERS */}
+                                            {!isManagement && (
+                                                <button
+                                                    onClick={() => {
+                                                        setUploadingEventId(event.id);
+                                                        if (fileInputRef.current) fileInputRef.current.click();
+                                                    }}
+                                                    className="shrink-0 px-4 py-3 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                                                >
+                                                    <CloudArrowUpIcon className="w-4 h-4" /> DOSYA YÜKLE
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
