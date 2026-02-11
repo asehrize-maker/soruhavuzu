@@ -31,6 +31,7 @@ import { addKategoriColumn } from './migrations/031_add_kategori_column.js';
 import createDenemelerTables from './migrations/032_add_denemeler.js';
 import { addGorevTipiToDenemeler } from './migrations/033_add_gorev_tipi.js';
 import { addKullanimAlanlari } from './migrations/034_add_kullanim_alanlari.js';
+import { addKullaniciEkipleri } from './migrations/027_add_kullanici_ekipleri.js';
 
 // En güncel durum listesi (workflow v2 + dizgi tamam)
 const ALLOWED_DURUMLAR = [
