@@ -235,7 +235,7 @@ export default function SoruDetay() {
 
   // Annotation State
   const [selectedAnnotation, setSelectedAnnotation] = useState(null); // { type: 'box'|'line', ...data }
-  const [drawTool, setDrawTool] = useState('box'); // 'box', 'line'
+  const [drawTool, setDrawTool] = useState('box'); // 'box', 'line', 'cursor'
   const [drawingShape, setDrawingShape] = useState(null); // { type, ...data }
 
   const [viewMode, setViewMode] = useState('auto'); // 'auto', 'text', 'image'
@@ -446,7 +446,7 @@ export default function SoruDetay() {
   };
 
   const handleImageMouseDown = (e) => {
-    if (!canReview) return;
+    if (!canReview || drawTool === 'cursor') return;
     e.preventDefault();
 
     const rect = e.currentTarget.getBoundingClientRect();
@@ -1021,27 +1021,32 @@ export default function SoruDetay() {
 
 
 
-            <div className="p-12 xl:p-16 flex justify-center bg-gray-50/20 min-h-[600px]">
+            <div className="p-12 xl:p-16 flex flex-col items-center bg-gray-50/20 min-h-[600px] gap-8">
+              {canReview && !editMode && (
+                <div className="flex flex-col items-center gap-3 animate-fade-in-down z-20 sticky top-4">
+                  <div className="bg-white/90 backdrop-blur-md p-1.5 rounded-2xl shadow-2xl shadow-blue-900/5 border border-white flex gap-2">
+                    <button onClick={() => setDrawTool('cursor')} className={`flex items-center gap-2 px-5 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${drawTool === 'cursor' ? 'bg-gray-800 text-white shadow-lg ring-4 ring-gray-500/20' : 'bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-900'}`}>
+                      <CursorArrowRaysIcon className="w-5 h-5" strokeWidth={2.5} />
+                      <span>Metİn Seç</span>
+                    </button>
+                    <button onClick={() => setDrawTool('box')} className={`flex items-center gap-2 px-5 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${drawTool === 'box' ? 'bg-blue-600 text-white shadow-lg ring-4 ring-blue-500/20' : 'bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-900'}`}>
+                      <StopIcon className="w-5 h-5" strokeWidth={2.5} />
+                      <span>Kutu Seçimi</span>
+                    </button>
+                    <button onClick={() => setDrawTool('line')} className={`flex items-center gap-2 px-5 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${drawTool === 'line' ? 'bg-blue-600 text-white shadow-lg ring-4 ring-blue-500/20' : 'bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-900'}`}>
+                      <MinusIcon className="w-5 h-5" strokeWidth={2.5} />
+                      <span>Altını Çiz</span>
+                    </button>
+                  </div>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] bg-white/50 px-4 py-1.5 rounded-full border border-gray-100/50 flex items-center gap-2">
+                    <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                    {drawTool === 'cursor' ? 'Not eklemek için metin seçin' : 'İnceleme yapmak için sürükleyerek alan seçin'}
+                  </p>
+                </div>
+              )}
+
               {(viewMode === 'image' || (viewMode === 'auto' && soru.final_png_url && !editMode)) ? (
                 <div className="flex flex-col items-center gap-6 w-full">
-                  {canReview && (
-                    <div className="flex flex-col items-center gap-3 animate-fade-in-down z-20">
-                      <div className="bg-white/90 backdrop-blur-md p-1.5 rounded-2xl shadow-2xl shadow-blue-900/5 border border-white flex gap-2">
-                        <button onClick={() => setDrawTool('box')} className={`flex items-center gap-2 px-5 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${drawTool === 'box' ? 'bg-blue-600 text-white shadow-lg ring-4 ring-blue-500/20' : 'bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-900'}`}>
-                          <StopIcon className="w-5 h-5" strokeWidth={2.5} />
-                          <span>Kutu Seçimi</span>
-                        </button>
-                        <button onClick={() => setDrawTool('line')} className={`flex items-center gap-2 px-5 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${drawTool === 'line' ? 'bg-blue-600 text-white shadow-lg ring-4 ring-blue-500/20' : 'bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-900'}`}>
-                          <MinusIcon className="w-5 h-5" strokeWidth={2.5} />
-                          <span>Altını Çiz</span>
-                        </button>
-                      </div>
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] bg-white/50 px-4 py-1.5 rounded-full border border-gray-100/50 flex items-center gap-2">
-                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-                        İnceleme yapmak için araç seçiniz
-                      </p>
-                    </div>
-                  )}
 
                   <div
                     className="relative inline-block shadow-2xl rounded-sm overflow-hidden group/img select-none"
@@ -1224,15 +1229,19 @@ export default function SoruDetay() {
                 </div>
               ) : (
                 <div
-                  className={`bg-white shadow-2xl transition-all duration-700 relative flex flex-col group min-h-[140mm] border border-gray-100 ${editMode ? 'ring-2 ring-blue-500/20' : ''}`}
+                  className={`bg-white shadow-2xl transition-all duration-700 relative flex flex-col group min-h-[140mm] border border-gray-100 overflow-hidden ${editMode ? 'ring-2 ring-blue-500/20' : ''} ${canReview && drawTool !== 'cursor' ? 'cursor-crosshair select-none' : ''}`}
                   style={{
                     width: widthMode === 'dar' && editMode ? '82.4mm' : (soru.soru_metni?.includes('width: 169') && !editMode ? '169.6mm' : (editMode ? '169.6mm' : '82.4mm')),
                     padding: '10mm',
                     paddingTop: '15mm',
                     borderRadius: '2px'
                   }}
+                  onMouseDown={handleImageMouseDown}
+                  onMouseMove={handleImageMouseMove}
+                  onMouseUp={handleImageMouseUp}
+                  onMouseLeave={handleImageMouseUp}
                 >
-                  <div className="prose max-w-[185mm] mx-auto w-full" style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}>
+                  <div className="prose max-w-[185mm] mx-auto w-full relative z-0" style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}>
                     <div ref={soruMetniRef} className="text-gray-900 katex-left-align q-preview-container select-text" onMouseUp={handleTextSelection} />
 
                     {/* FALLBACK GÖRSEL: HTML içinde görsel yoksa ama URL varsa göster */}
@@ -1247,6 +1256,99 @@ export default function SoruDetay() {
                       </div>
                     )}
                   </div>
+
+                  {/* DRAWING LAYER OVER TEXT */}
+                  {revizeNotlari.map((not, i) => {
+                    if (!not.secilen_metin?.startsWith('IMG##')) return null;
+                    const meta = not.secilen_metin.replace('IMG##', '');
+                    const colorClass = not.inceleme_turu === 'alanci' ? 'blue' : 'emerald';
+                    const colorHex = not.inceleme_turu === 'alanci' ? '#2563eb' : '#059669';
+
+                    let shape = { type: 'point', x: 0, y: 0 };
+                    if (meta.startsWith('BOX:')) {
+                      const [x, y, w, h] = meta.replace('BOX:', '').split(',').map(Number);
+                      shape = { type: 'box', x, y, w, h };
+                    } else if (meta.startsWith('LINE:')) {
+                      const [x1, y1, x2, y2] = meta.replace('LINE:', '').split(',').map(Number);
+                      shape = { type: 'line', x1, y1, x2, y2 };
+                    } else {
+                      const [x, y] = meta.split(',').map(Number);
+                      shape = { type: 'point', x, y };
+                    }
+
+                    return (
+                      <div key={not.id} className="absolute inset-0 pointer-events-none z-10">
+                        {shape.type === 'box' && (
+                          <div
+                            className={`absolute border-2 border-${colorClass}-500 bg-${colorClass}-500/5 transition-colors pointer-events-auto`}
+                            style={{ left: `${shape.x}%`, top: `${shape.y}%`, width: `${shape.w}%`, height: `${shape.h}%` }}
+                          >
+                            <div className={`absolute -top-3 -right-3 w-6 h-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[10px] font-black shadow-sm`}>{i + 1}</div>
+                          </div>
+                        )}
+                        {shape.type === 'line' && (
+                          <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                            <line
+                              x1={`${shape.x1}%`} y1={`${shape.y1}%`}
+                              x2={`${shape.x2}%`} y2={`${shape.y2}%`}
+                              stroke={colorHex}
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                            />
+                            <circle cx={`${shape.x2}%`} cy={`${shape.y2}%`} r="3" fill={colorHex} />
+                            <foreignObject x={`${shape.x2}%`} y={`${shape.y2}%`} width="30" height="30" style={{ overflow: 'visible' }}>
+                              <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
+                            </foreignObject>
+                          </svg>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {drawingShape && (
+                    <div className="absolute inset-0 pointer-events-none z-20">
+                      {drawingShape.type === 'box' && (
+                        <div className="absolute border-2 border-indigo-500 bg-indigo-500/20"
+                          style={{
+                            left: `${Math.min(drawingShape.startX, drawingShape.currentX)}%`,
+                            top: `${Math.min(drawingShape.startY, drawingShape.currentY)}%`,
+                            width: `${Math.abs(drawingShape.currentX - drawingShape.startX)}%`,
+                            height: `${Math.abs(drawingShape.currentY - drawingShape.startY)}%`
+                          }}
+                        ></div>
+                      )}
+                      {drawingShape.type === 'line' && (
+                        <svg className="absolute inset-0 w-full h-full">
+                          <line
+                            x1={`${drawingShape.startX}%`} y1={`${drawingShape.startY}%`}
+                            x2={`${drawingShape.currentX}%`} y2={`${drawingShape.currentY}%`}
+                            stroke="#6366f1" strokeWidth="3" strokeDasharray="5,5"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                  )}
+
+                  {selectedAnnotation && (
+                    <div className="absolute inset-0 pointer-events-none z-20">
+                      {selectedAnnotation.type === 'box' && (
+                        <div className="absolute border-2 border-rose-500 bg-rose-500/20 animate-pulse"
+                          style={{ left: `${selectedAnnotation.x}%`, top: `${selectedAnnotation.y}%`, width: `${selectedAnnotation.w}%`, height: `${selectedAnnotation.h}%` }}>
+                        </div>
+                      )}
+                      {selectedAnnotation.type === 'line' && (
+                        <svg className="absolute inset-0 w-full h-full">
+                          <line
+                            x1={`${selectedAnnotation.x1}%`} y1={`${selectedAnnotation.y1}%`}
+                            x2={`${selectedAnnotation.x2}%`} y2={`${selectedAnnotation.y2}%`}
+                            stroke="#f43f5e" strokeWidth="3" className="animate-pulse"
+                          />
+                          <circle cx={`${selectedAnnotation.x2}%`} cy={`${selectedAnnotation.y2}%`} r="4" fill="#f43f5e" />
+                        </svg>
+                      )}
+                    </div>
+                  )}
+
                   <div style={{ clear: 'both' }}></div>
                 </div>
               )}
