@@ -68,9 +68,6 @@ export default function Settings() {
                     </div>
                     <p className="text-gray-500 font-medium">Sistem çekirdek ayarlarını, görünüm ve güvenlik tercihlerini buradan yapılandırın.</p>
                 </div>
-                <div className="flex bg-gray-100 p-1 rounded-2xl border border-gray-200 shadow-sm">
-                    <div className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400">Genel Konfigürasyon</div>
-                </div>
             </div>
 
             {loading ? (
