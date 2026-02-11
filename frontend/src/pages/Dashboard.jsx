@@ -35,7 +35,7 @@ const normalizeZorlukToScale = (value) => {
 
 
 // --- ALT BİLEŞEN: İNCELEME LİSTESİ ---
-function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
+function IncelemeListesi({ bransId, bransAdi, reviewMode, filterGroup = 'bekleyen' }) {
   const [sorular, setSorular] = useState([]);
   const [listLoading, setListLoading] = useState(true);
   const { user: authUser } = useAuthStore();
@@ -48,15 +48,43 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
         const allQuestions = response.data.data || [];
         const filtered = allQuestions.filter(s => {
           if (bransId && parseInt(s.brans_id) !== parseInt(bransId)) return false;
-          if (reviewMode === 'alanci') return ['alan_incelemede', 'inceleme_bekliyor', 'incelemede', 'revize_istendi'].includes(s.durum);
-          if (reviewMode === 'dilci') return ['dil_incelemede', 'inceleme_bekliyor', 'incelemede', 'revize_istendi'].includes(s.durum);
-          return true;
+
+          const isAlanci = reviewMode === 'alanci';
+          const sentRevision = ['revize_istendi', 'revize_gerekli'].includes(s.durum);
+          const isPending = ['alan_incelemede', 'dil_incelemede', 'inceleme_bekliyor', 'incelemede'].includes(s.durum);
+
+          // REVİZE İSTENENLER (Geri gönderdiklerim veya düzeltme bekleyenler)
+          if (filterGroup === 'revize') {
+            // Durum revize ise ve onayım yoksa (yani süreç devam ediyorsa veya revizeyi ben istediysem)
+            // Backend mantığına göre: revize durumunda ve onayı yoksa bu listeye düşer.
+            if (sentRevision) {
+              if (isAlanci && !s.onay_alanci) return true;
+              if (!isAlanci && !s.onay_dilci) return true;
+            }
+            return false;
+          }
+
+          // TAMAMLANANLAR (Onay verdiğim sorular)
+          if (filterGroup === 'tamamlanan') {
+            if (isAlanci && s.onay_alanci) return true;
+            if (!isAlanci && s.onay_dilci) return true;
+            return false;
+          }
+
+          // BEKLEYENLER (Default)
+          // Onayım yoksa VE revize durumunda değilse
+          if (isPending) {
+            if (isAlanci && !s.onay_alanci) return true;
+            if (!isAlanci && !s.onay_dilci) return true;
+          }
+
+          return false;
         });
         setSorular(filtered);
       } catch (err) { } finally { setListLoading(false); }
     };
     fetchSorular();
-  }, [bransId, reviewMode, authUser]);
+  }, [bransId, reviewMode, filterGroup, authUser]);
 
   if (listLoading) return <div className="flex justify-center p-20"><ArrowPathIcon className="w-10 h-10 text-blue-200 animate-spin" /></div>;
 
@@ -613,6 +641,7 @@ export default function Dashboard() {
                     bransId={selectedBrans?.id}
                     bransAdi={selectedBrans?.brans_adi}
                     reviewMode={reviewMode}
+                    filterGroup={selectedGroup || 'bekleyen'}
                   />
                 </div>
               </div>
@@ -637,36 +666,31 @@ export default function Dashboard() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* SECTION: BEKLEYENLER */}
               <div className="space-y-6">
                 <div className="flex items-center justify-between px-2">
-                  <h2 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3 uppercase italic">
-                    <ClockIcon className="w-7 h-7 text-amber-500" /> İnceleme Bekleyenler
+                  <h2 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2 uppercase italic">
+                    <ClockIcon className="w-6 h-6 text-amber-500" /> İnceleme Bekleyenler
                   </h2>
-                  <span className="bg-amber-50 text-amber-600 px-4 py-1.5 rounded-full font-black text-xs border border-amber-100">
-                    {Object.values(reviewStatsByStatus.bekleyen).reduce((sum, b) => sum + b.total, 0)} Soru
-                  </span>
                 </div>
 
                 <div className="space-y-4">
                   {Object.entries(reviewStatsByStatus.bekleyen).map(([bName, data]) => (
                     <div
                       key={bName}
-                      onClick={() => setSelectedBrans({ id: data.id, brans_adi: bName })}
-                      className="group p-6 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all cursor-pointer relative overflow-hidden"
+                      onClick={() => { setSelectedGroup('bekleyen'); setSelectedBrans({ id: data.id, brans_adi: bName }); }}
+                      className="group p-6 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl hover:bg-amber-50/50 hover:border-amber-200 transition-all cursor-pointer relative overflow-hidden"
                     >
-                      <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-10 transition-opacity"><ArrowPathIcon className="w-20 h-20 animate-spin-slow" /></div>
                       <div className="flex justify-between items-start mb-4">
-                        <h4 className="text-lg font-black text-gray-800">{bName}</h4>
-                        <div className="bg-blue-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center font-black shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform">
+                        <h4 className="text-lg font-black text-gray-800 line-clamp-1">{bName}</h4>
+                        <div className="bg-amber-500 text-white w-8 h-8 rounded-xl flex items-center justify-center font-black shadow-lg shadow-amber-500/20 group-hover:scale-110 transition-transform text-sm">
                           {data.total}
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {Object.entries(data.categories).map(([cat, count]) => (
-                          <span key={cat} className="px-3 py-1 bg-gray-50 text-[10px] font-black text-gray-500 rounded-xl border border-gray-100 group-hover:bg-blue-50 group-hover:border-blue-100 group-hover:text-blue-600 transition-colors uppercase tracking-widest leading-none flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 bg-current rounded-full opacity-40"></span>
+                          <span key={cat} className="px-2 py-1 bg-gray-50 text-[9px] font-black text-gray-500 rounded-lg border border-gray-100 group-hover:bg-white group-hover:text-amber-600 transition-colors uppercase tracking-widest leading-none">
                             {cat}: {count}
                           </span>
                         ))}
@@ -674,9 +698,48 @@ export default function Dashboard() {
                     </div>
                   ))}
                   {Object.keys(reviewStatsByStatus.bekleyen).length === 0 && (
-                    <div className="p-12 text-center bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-100">
-                      <CheckCircleIcon className="w-12 h-12 text-green-300 mx-auto mb-2" />
-                      <p className="text-gray-400 font-black text-[10px] uppercase tracking-widest">Harika! Bekleyen inceleme yok.</p>
+                    <div className="p-8 text-center bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-100 opacity-60">
+                      <CheckCircleIcon className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                      <p className="text-gray-400 font-bold text-[10px] uppercase tracking-widest">Bekleyen yok</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* SECTION: REVIZE ISTENENLER (NEW) */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between px-2">
+                  <h2 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2 uppercase italic">
+                    <ArrowPathIcon className="w-6 h-6 text-blue-500" /> Revize İstenenler
+                  </h2>
+                </div>
+
+                <div className="space-y-4">
+                  {Object.entries(reviewStatsByStatus.revize).map(([bName, data]) => (
+                    <div
+                      key={bName}
+                      onClick={() => { setSelectedGroup('revize'); setSelectedBrans({ id: data.id, brans_adi: bName }); }}
+                      className="group p-6 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl hover:bg-blue-50/50 hover:border-blue-200 transition-all cursor-pointer relative overflow-hidden"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <h4 className="text-lg font-black text-gray-800 line-clamp-1">{bName}</h4>
+                        <div className="bg-blue-500 text-white w-8 h-8 rounded-xl flex items-center justify-center font-black shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform text-sm">
+                          {data.total}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(data.categories).map(([cat, count]) => (
+                          <span key={cat} className="px-2 py-1 bg-gray-50 text-[9px] font-black text-gray-500 rounded-lg border border-gray-100 group-hover:bg-white group-hover:text-blue-600 transition-colors uppercase tracking-widest leading-none">
+                            {cat}: {count}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {Object.keys(reviewStatsByStatus.revize).length === 0 && (
+                    <div className="p-8 text-center bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-100 opacity-60">
+                      <CheckCircleIcon className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                      <p className="text-gray-400 font-bold text-[10px] uppercase tracking-widest">Revize yok</p>
                     </div>
                   )}
                 </div>
@@ -685,29 +748,27 @@ export default function Dashboard() {
               {/* SECTION: TAMAMLANANLAR */}
               <div className="space-y-6">
                 <div className="flex items-center justify-between px-2">
-                  <h2 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3 uppercase italic">
-                    <CheckCircleIcon className="w-7 h-7 text-emerald-500" /> İncelemesi Yapılanlar
+                  <h2 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2 uppercase italic">
+                    <CheckCircleIcon className="w-6 h-6 text-emerald-500" /> İncelemesi Yapılanlar
                   </h2>
-                  <span className="bg-emerald-50 text-emerald-600 px-4 py-1.5 rounded-full font-black text-xs border border-emerald-100">
-                    {Object.values(reviewStatsByStatus.tamamlanan).reduce((sum, b) => sum + b.total, 0)} Soru
-                  </span>
                 </div>
 
                 <div className="space-y-4">
                   {Object.entries(reviewStatsByStatus.tamamlanan).map(([bName, data]) => (
                     <div
                       key={bName}
-                      className="group p-6 bg-white/60 backdrop-blur-sm rounded-[2rem] border border-gray-100 opacity-80 hover:opacity-100 transition-all hover:bg-white"
+                      onClick={() => { setSelectedGroup('tamamlanan'); setSelectedBrans({ id: data.id, brans_adi: bName }); }}
+                      className="group p-6 bg-white/60 backdrop-blur-sm rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl hover:bg-emerald-50/50 hover:border-emerald-200 hover:opacity-100 opacity-80 transition-all cursor-pointer relative overflow-hidden"
                     >
                       <div className="flex justify-between items-start mb-4">
-                        <h4 className="text-lg font-black text-gray-400 group-hover:text-gray-800 transition-colors">{bName}</h4>
-                        <div className="bg-emerald-50 text-emerald-600 w-10 h-10 rounded-2xl flex items-center justify-center font-black">
+                        <h4 className="text-lg font-black text-gray-800 line-clamp-1">{bName}</h4>
+                        <div className="bg-emerald-500 text-white w-8 h-8 rounded-xl flex items-center justify-center font-black shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform text-sm">
                           {data.total}
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {Object.entries(data.categories).map(([cat, count]) => (
-                          <span key={cat} className="px-3 py-1 bg-white text-[10px] font-black text-gray-400 rounded-xl border border-gray-100 uppercase tracking-widest leading-none flex items-center gap-1.5">
+                          <span key={cat} className="px-2 py-1 bg-white text-[9px] font-black text-gray-400 rounded-lg border border-gray-100 group-hover:text-emerald-600 transition-colors uppercase tracking-widest leading-none">
                             {cat}: {count}
                           </span>
                         ))}
@@ -715,8 +776,8 @@ export default function Dashboard() {
                     </div>
                   ))}
                   {Object.keys(reviewStatsByStatus.tamamlanan).length === 0 && (
-                    <div className="p-12 text-center bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-100">
-                      <p className="text-gray-400 font-black text-[10px] uppercase tracking-widest italic opacity-50">HENÜZ ONAYLANAN SORU YOK.</p>
+                    <div className="p-8 text-center bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-100 opacity-60">
+                      <p className="text-gray-400 font-bold text-[10px] uppercase tracking-widest">Tamamlanan yok</p>
                     </div>
                   )}
                 </div>

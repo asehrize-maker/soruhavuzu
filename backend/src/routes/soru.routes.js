@@ -2075,9 +2075,11 @@ router.get('/stats/inceleme-detayli', authenticate, async (req, res, next) => {
       b.id as brans_id,
       b.brans_adi,
       s.kategori,
-      COUNT(s.id) FILTER(WHERE s.durum IN('inceleme_bekliyor', 'incelemede', 'revize_istendi', 'alan_incelemede', 'dil_incelemede') AND s.onay_alanci = false) as alanci_bekleyen,
+      COUNT(s.id) FILTER(WHERE s.durum IN('inceleme_bekliyor', 'incelemede', 'alan_incelemede', 'dil_incelemede') AND s.onay_alanci = false) as alanci_bekleyen,
+      COUNT(s.id) FILTER(WHERE s.durum IN('revize_istendi', 'revize_gerekli') AND s.onay_alanci = false) as alanci_revize,
       COUNT(s.id) FILTER(WHERE s.onay_alanci = true) as alanci_tamamlanan,
-      COUNT(s.id) FILTER(WHERE s.durum IN('inceleme_bekliyor', 'incelemede', 'revize_istendi', 'alan_incelemede', 'dil_incelemede') AND s.onay_dilci = false) as dilci_bekleyen,
+      COUNT(s.id) FILTER(WHERE s.durum IN('inceleme_bekliyor', 'incelemede', 'alan_incelemede', 'dil_incelemede') AND s.onay_dilci = false) as dilci_bekleyen,
+      COUNT(s.id) FILTER(WHERE s.durum IN('revize_istendi', 'revize_gerekli') AND s.onay_dilci = false) as dilci_revize,
       COUNT(s.id) FILTER(WHERE s.onay_dilci = true) as dilci_tamamlanan,
       COUNT(s.id) as kategori_toplam
     FROM sorular s
