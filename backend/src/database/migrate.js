@@ -259,6 +259,7 @@ const createTables = async () => {
     await createDenemelerTables(client);
     await addGorevTipiToDenemeler(client);
     await addKullanimAlanlari(client);
+    await addKullaniciEkipleri(client);
 
   } catch (error) {
     await client.query('ROLLBACK');
