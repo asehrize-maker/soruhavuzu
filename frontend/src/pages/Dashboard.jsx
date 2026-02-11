@@ -482,7 +482,7 @@ export default function Dashboard() {
                 <p className="text-2xl font-black text-orange-700">{detayliStats?.genel?.dizgi || 0}</p>
               </Link>
               <Link to="/brans-havuzu?durum=dizgi_sonrasi&scope=brans" className="p-4 bg-yellow-50 rounded-xl border border-yellow-200 hover:border-yellow-400 transition group cursor-pointer">
-                <p className="text-xs font-bold text-yellow-600 uppercase">DİZGİ SONRASI</p>
+                <p className="text-xs font-bold text-yellow-600 uppercase">TAMAMLANMAYAN</p>
                 <p className="text-2xl font-black text-yellow-700">{detayliStats?.genel?.dizgi_sonrasi || 0}</p>
               </Link>
               <Link to="/dashboard?mode=alanci" className="p-4 bg-blue-50 rounded-xl border border-blue-200 hover:border-blue-400 transition group">
@@ -515,7 +515,7 @@ export default function Dashboard() {
                     <th className="px-4 py-3 text-center">Toplam</th>
                     <th className="px-4 py-3 text-center text-gray-400 uppercase">Taslak</th>
                     <th className="px-3 py-3 text-center text-orange-600">DİZGİ</th>
-                    <th className="px-3 py-3 text-center text-yellow-600">DİZGİ SONRASI</th>
+                    <th className="px-3 py-3 text-center text-yellow-600">TAMAMLANMAYAN</th>
                     <th className="px-3 py-3 text-center text-blue-600">ALAN İNCELEME</th>
                     <th className="px-4 py-3 text-center text-purple-600 uppercase">Dil İncele</th>
                     <th className="px-4 py-3 rounded-r-lg text-center text-green-700 uppercase">Tamamlanan</th>
@@ -747,7 +747,7 @@ export default function Dashboard() {
               </Link>
 
               <Link to="/brans-havuzu?durum=dizgi_sonrasi" className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100 shadow-sm hover:shadow-md transition text-center group">
-                <p className="text-emerald-600 text-[10px] font-bold uppercase tracking-widest">DİZGİ SONRASI</p>
+                <p className="text-emerald-600 text-[10px] font-bold uppercase tracking-widest">TAMAMLANMAYAN</p>
                 <h3 className="text-3xl font-black text-emerald-700 mt-1">{stats?.dizgi_tamam || 0}</h3>
                 <p className="text-[10px] text-emerald-500 mt-1 font-bold">Onay Bekleyenler &rarr;</p>
               </Link>
