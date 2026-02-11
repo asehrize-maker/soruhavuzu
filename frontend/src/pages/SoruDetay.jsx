@@ -238,7 +238,11 @@ export default function SoruDetay() {
   const [drawTool, setDrawTool] = useState('box'); // 'box', 'line', 'cursor'
   const [drawingShape, setDrawingShape] = useState(null); // { type, ...data }
 
-  const canReview = (isAdmin || branchReviewMode || (effectiveRole === 'incelemeci' && !!effectiveIncelemeTuru)) && soru?.durum !== 'tamamlandi';
+  const canReview = (
+    isAdmin ||
+    branchReviewMode ||
+    (effectiveRole === 'incelemeci' && !!effectiveIncelemeTuru && (effectiveIncelemeTuru !== 'dilci' || (soru?.onay_alanci || soru?.durum === 'alan_onaylandi')))
+  ) && soru?.durum !== 'tamamlandi';
 
   const [viewMode, setViewMode] = useState('auto'); // 'auto', 'text', 'image'
   const hasAlanNotes = useMemo(() => revizeNotlari.some(n => n.inceleme_turu === 'alanci'), [revizeNotlari]);
@@ -1071,7 +1075,7 @@ export default function SoruDetay() {
                     <button onClick={() => handleUpdateStatus('alan_incelemede')} className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">🔍 ALAN İNCELEME</button>
                   )}
 
-                  {(soru.durum === 'alan_onaylandi' || (soru.durum === 'dizgi_tamam' && !soru.onay_dilci)) && !soru.onay_dilci && (
+                  {soru.durum === 'alan_onaylandi' && !soru.onay_dilci && (
                     <button onClick={() => handleUpdateStatus('dil_incelemede')} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">🔤 DİL İNCELEME</button>
                   )}
 
