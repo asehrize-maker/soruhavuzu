@@ -1729,7 +1729,7 @@ export default function SoruDetay() {
 
         {/* DELETE DANGER ZONE */}
         {/* DELETE DANGER ZONE */}
-        {hasFullAccess && effectiveRole !== 'incelemeci' && (
+        {isAdmin && effectiveRole !== 'incelemeci' && (
           <button
             onClick={handleSil}
             className="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 px-8 py-5 rounded-[2.5rem] font-black text-xs uppercase tracking-widest transition-all shadow-sm active:scale-95 flex items-center justify-center gap-3"
