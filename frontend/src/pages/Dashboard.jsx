@@ -144,7 +144,6 @@ export default function Dashboard() {
   const [incelemeBransCounts, setIncelemeBransCounts] = useState([]);
   const [selectedBrans, setSelectedBrans] = useState(null);
   const [selectedEkip, setSelectedEkip] = useState(null);
-  const [selectedStat, setSelectedStat] = useState(null);
   const [panelConfig, setPanelConfig] = useState(null);
 
   // Otomatik mod tespiti (State yerine memo kullanalım)
@@ -354,27 +353,27 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div onClick={() => setSelectedStat({ key: 'toplam_soru', title: 'Toplam Soru' })} className="card bg-blue-600 text-white p-6 cursor-pointer hover:scale-105 transition shadow-lg">
+            <Link to="/sorular" className="card bg-blue-600 text-white p-6 cursor-pointer hover:scale-105 transition shadow-lg">
               <p className="text-blue-100 text-xs font-bold uppercase">TOPLAM SORU</p>
               <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.genel?.toplam_soru || 0}</h3>
-            </div>
-            <div className="card bg-emerald-600 text-white p-6 shadow-lg">
+            </Link>
+            <Link to="/kullanicilar" className="card bg-emerald-600 text-white p-6 cursor-pointer hover:scale-105 transition shadow-lg">
               <p className="text-emerald-100 text-xs font-bold uppercase">
                 {user?.rol === 'koordinator' ? 'EKİP PERSONELİ' : 'KULLANICILAR'}
               </p>
               <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.sistem?.toplam_kullanici || 0}</h3>
-            </div>
-            <div className="card bg-purple-600 text-white p-6 shadow-lg">
+            </Link>
+            <Link to="/branslar" className="card bg-purple-600 text-white p-6 cursor-pointer hover:scale-105 transition shadow-lg">
               <p className="text-purple-100 text-xs font-bold uppercase">
                 {user?.rol === 'koordinator' ? 'EKİP BRANŞLARI' : 'BRANŞLAR'}
               </p>
               <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.sistem?.toplam_brans || 0}</h3>
-            </div>
+            </Link>
             {user?.rol === 'admin' && (
-              <div className="card bg-orange-600 text-white p-6 shadow-lg">
+              <Link to="/ekipler" className="card bg-orange-600 text-white p-6 cursor-pointer hover:scale-105 transition shadow-lg">
                 <p className="text-orange-100 text-xs font-bold uppercase">EKİPLER</p>
                 <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.sistem?.toplam_ekip || 0}</h3>
-              </div>
+              </Link>
             )}
           </div>
 
