@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { soruAPI, bransAPI } from '../services/api';
 import useAuthStore from '../store/authStore';
+import useNotificationStore from '../store/notificationStore';
 import {
   PhotoIcon,
   DocumentTextIcon,
@@ -28,6 +29,7 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 
 export default function SoruEkle() {
   const user = useAuthStore((state) => state.user);
+  const { showNotification } = useNotificationStore();
   const navigate = useNavigate();
   const [branslar, setBranslar] = useState([]);
   const [kazanims, setKazanims] = useState([]);
@@ -203,9 +205,18 @@ export default function SoruEkle() {
   };
 
   const handleSave = async () => {
-    if (components.length === 0) return alert("Soru içeriği boş!");
-    if (!metadata.dogruCevap) return alert("Lütfen doğru cevabı seçiniz.");
-    if (!metadata.brans_id) return alert("Lütfen branş seçiniz!");
+    if (components.length === 0) {
+      showNotification('Soru içeriği boş!', 'error');
+      return;
+    }
+    if (!metadata.dogruCevap) {
+      showNotification('Lütfen doğru cevabı seçiniz.', 'error');
+      return;
+    }
+    if (!metadata.brans_id) {
+      showNotification('Lütfen branş seçiniz!', 'error');
+      return;
+    }
 
     try {
       const formData = new FormData();
@@ -246,8 +257,12 @@ export default function SoruEkle() {
       if (firstImage) { formData.append('fotograf', firstImage.file); formData.append('fotograf_konumu', 'ust'); }
       ['a', 'b', 'c', 'd', 'e'].forEach(opt => formData.append(`secenek_${opt}`, ''));
       await soruAPI.create(formData);
+      showNotification('Soru başarıyla oluşturuldu ve sisteme kaydedildi.', 'success');
       navigate('/brans-havuzu');
-    } catch (error) { alert("Hata: " + error.message); }
+    } catch (error) {
+      console.error(error);
+      showNotification('Hata: ' + (error.response?.data?.error || error.message), 'error');
+    }
   };
 
   const RibbonButton = ({ cmd, label, icon }) => (

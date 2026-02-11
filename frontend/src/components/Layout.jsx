@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { kullaniciMesajAPI, bildirimAPI, soruAPI, authAPI } from '../services/api';
+import NotificationBar from './NotificationBar';
 
 export default function Layout() {
 
@@ -186,6 +187,7 @@ export default function Layout() {
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
+      <NotificationBar />
       <aside className="w-64 bg-[#1e293b] text-white flex flex-col flex-shrink-0 shadow-xl relative z-20">
         <div className="p-6 flex flex-col items-center border-b border-gray-700 bg-[#0f172a]">
           <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-3 shadow-lg">SH</div>
