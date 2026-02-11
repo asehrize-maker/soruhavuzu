@@ -589,19 +589,29 @@ export default function SoruDetay() {
 
   const handleEditStart = () => {
     // Soru PNG olarak dizgilenmişse ve branş öğretmeni düzenlemek istiyorsa, 
-    // yazar düzenleme modu yerine inceleme modunu açalım (revize notu ekleyebilsin)
-    if (soru.final_png_url && isBranchTeacher && !isAdmin) {
-      setBranchReviewMode(true);
-      return;
-    }
-
-    setComponents(parseHtmlToComponents(soru.soru_metni, soru));
+    // yazar düzenleme modu yerine inceleme modunu açalım (revize notu ekleyebilsin ve künye düzeltebilsin)
     const toScale = (value) => {
       const raw = String(value || '').toLowerCase();
       const num = parseInt(raw, 10);
       if (!Number.isNaN(num)) return String(Math.min(Math.max(num, 1), 5));
       return '3';
     };
+
+    if (soru.final_png_url && isBranchTeacher && !isAdmin) {
+      setEditMetadata({
+        zorluk: toScale(soru.zorluk_seviyesi),
+        dogruCevap: soru.dogru_cevap || '',
+        brans_id: soru.brans_id || '',
+        kazanim: soru.kazanim || '',
+        kategori: soru.kategori || 'deneme',
+        kullanildi: soru.kullanildi || false,
+        kullanim_alani: soru.kullanim_alani || ''
+      });
+      setBranchReviewMode(true);
+      return;
+    }
+
+    setComponents(parseHtmlToComponents(soru.soru_metni, soru));
     setEditMetadata({
       zorluk: toScale(soru.zorluk_seviyesi),
       dogruCevap: soru.dogru_cevap || '',
@@ -612,6 +622,36 @@ export default function SoruDetay() {
       kullanim_alani: soru.kullanim_alani || ''
     });
     setEditMode(true);
+  };
+
+  const handleMetadataSave = async () => {
+    try {
+      setSaving(true);
+      const formData = new FormData();
+      formData.append('soru_metni', soru.soru_metni);
+      formData.append('dogru_cevap', editMetadata.dogruCevap);
+      formData.append('kazanim', editMetadata.kazanim || 'Genel');
+      formData.append('zorluk_seviyesi', editMetadata.zorluk);
+      formData.append('kategori', editMetadata.kategori || 'deneme');
+      formData.append('increment_version', 'false');
+
+      // Backend requirements
+      formData.append('secenek_a', soru.secenek_a || '');
+      formData.append('secenek_b', soru.secenek_b || '');
+      formData.append('secenek_c', soru.secenek_c || '');
+      formData.append('secenek_d', soru.secenek_d || '');
+      formData.append('secenek_e', soru.secenek_e || '');
+      formData.append('fotograf_konumu', soru.fotograf_konumu || 'ust');
+
+      await soruAPI.update(id, formData);
+      alert('Künye başarıyla güncellendi.');
+      loadSoru();
+      setBranchReviewMode(false);
+    } catch (error) {
+      alert('Hata: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleEditSave = async () => {
@@ -1406,25 +1446,72 @@ export default function SoruDetay() {
             </div>
 
             {!editMode && (
-              <div className="p-10 bg-gray-900 border-t border-black flex flex-wrap items-center justify-between gap-6">
-                <div className="flex gap-8">
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">DOĞRU CEVAP</span>
-                    <span className="text-2xl font-black text-emerald-500">{soru.dogru_cevap}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">ZORLUK DÜZEYİ</span>
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map(v => (
-                        <div key={v} className={`w-4 h-1 rounded-full ${v <= parseInt(soru.zorluk_seviyesi) ? 'bg-amber-500' : 'bg-white/10'}`}></div>
-                      ))}
+              <div className="p-10 bg-gray-900 border-t border-black">
+                {branchReviewMode ? (
+                  <div className="space-y-6 animate-fade-in">
+                    <div className="bg-white/5 backdrop-blur p-1 rounded-[2.5rem] border border-white/5">
+                      <div className="bg-white p-8 rounded-[2.2rem] shadow-2xl">
+                        <div className="flex items-center justify-between mb-6">
+                          <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                            <SparklesIcon className="w-4 h-4 text-amber-500" /> Soru Künyesİnİ Düzenle
+                          </h4>
+                          <button onClick={() => setBranchReviewMode(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                            <XMarkIcon className="w-5 h-5" />
+                          </button>
+                        </div>
+
+                        <MetadataForm
+                          values={editMetadata}
+                          onChange={setEditMetadata}
+                          branslar={branslar}
+                          kazanims={kazanims}
+                          kazanimLoading={kazanimLoading}
+                          allowManualKazanim={true}
+                          hideBrans={true}
+                          gridCols="grid-cols-1 md:grid-cols-4"
+                        />
+
+                        <div className="mt-8 flex justify-end gap-3">
+                          <button
+                            onClick={() => setBranchReviewMode(false)}
+                            className="px-6 py-3 bg-gray-50 text-gray-500 hover:bg-gray-100 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
+                          >
+                            VAZGEÇ
+                          </button>
+                          <button
+                            onClick={handleMetadataSave}
+                            disabled={saving}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
+                          >
+                            {saving ? <ArrowPathIcon className="w-4 h-4 animate-spin" /> : <CheckBadgeIcon className="w-4 h-4" />}
+                            KÜNYEYİ KAYDET VE KAPAT
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex gap-4">
-                  {soru.onay_alanci && <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/5"><CheckBadgeIcon className="w-4 h-4 text-emerald-400" /><span className="text-[9px] font-black text-white/60 tracking-widest uppercase">ALAN ONAYLI</span></div>}
-                  {soru.onay_dilci && <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/5"><CheckBadgeIcon className="w-4 h-4 text-blue-400" /><span className="text-[9px] font-black text-white/60 tracking-widest uppercase">DİL ONAYLI</span></div>}
-                </div>
+                ) : (
+                  <div className="flex flex-wrap items-center justify-between gap-6">
+                    <div className="flex gap-8">
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">DOĞRU CEVAP</span>
+                        <span className="text-2xl font-black text-emerald-500">{soru.dogru_cevap}</span>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">ZORLUK DÜZEYİ</span>
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map(v => (
+                            <div key={v} className={`w-4 h-1 rounded-full ${v <= parseInt(soru.zorluk_seviyesi) ? 'bg-amber-500' : 'bg-white/10'}`}></div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-4">
+                      {soru.onay_alanci && <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/5"><CheckBadgeIcon className="w-4 h-4 text-emerald-400" /><span className="text-[9px] font-black text-white/60 tracking-widest uppercase">ALAN ONAYLI</span></div>}
+                      {soru.onay_dilci && <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/5"><CheckBadgeIcon className="w-4 h-4 text-blue-400" /><span className="text-[9px] font-black text-white/60 tracking-widest uppercase">DİL ONAYLI</span></div>}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
