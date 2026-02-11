@@ -667,9 +667,7 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
 
     // 2. VERİTABANI GÜNCELLEME
     let result;
-    const versiyonSqlSnippet = yeni_durum === 'dizgi_tamam'
-      ? 'COALESCE(versiyon, 1) + 1'
-      : 'COALESCE(versiyon, 1)';
+    const versiyonSqlSnippet = 'COALESCE(versiyon, 1)'; // Versiyon artık sadece dizgici PNG yükleyince/tamamlayınca artacak
 
     if (yeni_durum === 'alan_onaylandi' || yeni_durum === 'dil_onaylandi') {
       const field = yeni_durum === 'alan_onaylandi' ? 'onay_alanci' : 'onay_dilci';
@@ -2231,7 +2229,7 @@ router.post('/bulk-usage', authenticate, async (req, res, next) => {
                kullanildi = $1, 
                kullanim_alani = $2,
                guncellenme_tarihi = CURRENT_TIMESTAMP,
-               versiyon = COALESCE(versiyon, 1) + 1
+               versiyon = COALESCE(versiyon, 1)
                WHERE id = $3`,
               [kullanildi === true || kullanildi === 'true', kullanim_alani || null, id]
             );
