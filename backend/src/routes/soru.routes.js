@@ -663,7 +663,14 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
 
     // 2. VERİTABANI GÜNCELLEME
     let result;
-    const versiyonSqlSnippet = 'COALESCE(versiyon, 1)'; // Versiyon artık sadece dizgici PNG yükleyince/tamamlayınca artacak
+    let versiyonSqlSnippet = 'COALESCE(versiyon, 1)';
+    // Eğer dizgiye tekrar gönderiliyorsa (ilk kez değil) versiyonu artır
+    if (yeni_durum === 'dizgi_bekliyor') {
+      const reDizgiStates = ['revize_istendi', 'revize_gerekli', 'dizgi_tamam', 'dizgide'];
+      if (reDizgiStates.includes(soru.durum)) {
+        versiyonSqlSnippet = 'COALESCE(versiyon, 1) + 1';
+      }
+    }
 
     if (yeni_durum === 'alan_onaylandi' || yeni_durum === 'dil_onaylandi') {
       const field = yeni_durum === 'alan_onaylandi' ? 'onay_alanci' : 'onay_dilci';
@@ -1236,7 +1243,7 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
            SET durum = 'dizgi_tamam',
             guncellenme_tarihi = CURRENT_TIMESTAMP,
             dizgi_tamamlanma_tarihi = CURRENT_TIMESTAMP,
-            versiyon = COALESCE(versiyon, 1) + 1
+            versiyon = COALESCE(versiyon, 1)
            ${whereClause}
            RETURNING * `,
           queryParams
@@ -1250,7 +1257,7 @@ router.post('/:id(\\d+)/dizgi-tamamla', [
           `UPDATE sorular 
            SET durum = 'dizgi_tamam',
             guncellenme_tarihi = CURRENT_TIMESTAMP,
-            versiyon = COALESCE(versiyon, 1) + 1
+            versiyon = COALESCE(versiyon, 1)
            ${whereClause}
            RETURNING * `,
           queryParams
