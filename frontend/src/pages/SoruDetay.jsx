@@ -1465,89 +1465,23 @@ export default function SoruDetay() {
                 {revizeNotlari.map((not, i) => {
                   const colorClass = not.inceleme_turu === 'alanci' ? 'blue' : 'emerald';
 
-                  // Extract coordinates for preview
-                  let previewStyle = {};
-                  if (not.secilen_metin?.startsWith('IMG##')) {
-                    const meta = not.secilen_metin.replace('IMG##', '');
-                    let px, py, pw, ph;
-                    if (meta.startsWith('BOX:')) {
-                      [px, py, pw, ph] = meta.replace('BOX:', '').split(',').map(Number);
-                    } else if (meta.startsWith('LINE:')) {
-                      const [lx1, ly1, lx2, ly2] = meta.replace('LINE:', '').split(',').map(Number);
-                      px = Math.min(lx1, lx2); py = Math.min(ly1, ly2);
-                      pw = Math.max(Math.abs(lx2 - lx1), 5); ph = Math.max(Math.abs(ly2 - ly1), 5);
-                    } else {
-                      const coords = meta.replace('POINT:', '').split(',').map(Number);
-                      px = coords[0] - 10; py = coords[1] - 10; pw = 20; ph = 20;
-                    }
-
-                    const zoom = 100 / Math.max(pw, ph, 10);
-                    previewStyle = {
-                      width: `${zoom * 100}%`,
-                      left: '50%',
-                      top: '50%',
-                      transform: `translate(-${px + pw / 2}%, -${py + ph / 2}%)`,
-                      position: 'absolute',
-                      maxWidth: 'none'
-                    };
-                  }
-
                   return (
-                    <div key={not.id} className="group p-5 bg-gray-50 rounded-[1.5rem] border border-gray-100 space-y-4 relative hover:bg-white hover:shadow-lg transition-all">
-                      <div className="flex justify-between items-start">
-                        <div className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border ${not.inceleme_turu === 'alanci' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
-                          {not.inceleme_turu === 'alanci' ? 'ALAN UZMANI' : 'DİL UZMANI'}
-                        </div>
-                        {(isAdmin || user?.id === not.kullanici_id) && (
-                          <button onClick={() => handleDeleteRevizeNot(not.id)} className="p-1.5 bg-white text-gray-300 hover:text-rose-500 rounded-lg transition-colors border border-gray-100 active:scale-95">
-                            <XMarkIcon className="w-4 h-4" strokeWidth={3} />
-                          </button>
-                        )}
+                    <div key={not.id} className="group p-4 bg-gray-50 rounded-[1.5rem] border border-gray-100 flex items-start gap-4 hover:bg-white hover:shadow-lg transition-all relative">
+                      <div className={`w-8 h-8 shrink-0 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-xs font-black shadow-lg shadow-${colorClass}-100`}>
+                        {i + 1}
                       </div>
 
-                      {not.secilen_metin?.startsWith('IMG##') ? (
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
-                            <div className={`w-8 h-8 shrink-0 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-xs font-black shadow-lg shadow-${colorClass}-100`}>
-                              {i + 1}
-                            </div>
-                            <div>
-                              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">GÖRSEL ÜZERİNDE</p>
-                              <p className="text-[10px] font-black text-gray-700 uppercase tracking-tight">
-                                {not.secilen_metin.includes('BOX:') ? 'ALAN KUTUCUĞU' :
-                                  not.secilen_metin.includes('LINE:') ? 'ALT ÇİZGİ' : 'İŞARETLEME'}
-                              </p>
-                            </div>
-                          </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-black text-gray-900 leading-relaxed font-sans">{not.not_metni}</p>
+                      </div>
 
-                          {/* Cropped Preview */}
-                          <div className="relative h-48 w-full rounded-2xl overflow-hidden border border-gray-100 bg-white group/preview">
-                            <img
-                              src={soru.final_png_url}
-                              className="absolute pointer-events-none"
-                              style={previewStyle}
-                              alt="Crop"
-                            />
-                            <div className="absolute inset-0 ring-1 ring-inset ring-black/5 pointer-events-none"></div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-1.5">
-                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">SEÇİLEN METİN</span>
-                          <p className="text-[11px] font-bold text-gray-400 italic bg-white/50 p-2 rounded-xl border border-gray-50 line-clamp-2">"{not.secilen_metin}"</p>
-                        </div>
+                      {(isAdmin || user?.id === not.kullanici_id) && (
+                        <button onClick={() => handleDeleteRevizeNot(not.id)} className="shrink-0 p-1.5 bg-white text-gray-300 hover:text-rose-500 rounded-lg transition-colors border border-gray-100 active:scale-95">
+                          <XMarkIcon className="w-4 h-4" strokeWidth={3} />
+                        </button>
                       )}
-
-                      <div className="space-y-2">
-                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">REVİZE NOTU</span>
-                        <p className="text-xs font-black text-gray-900 leading-relaxed font-sans bg-white p-4 rounded-xl border border-gray-50 shadow-inner group-hover:border-blue-50 transition-colors">{not.not_metni}</p>
-                      </div>
-
-                      <div className={`absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:scale-110 transition-transform text-${colorClass}-600`}><FlagIcon className="w-12 h-12" /></div>
                     </div>
-                  );
-                })}
-                {revizeNotlari.length === 0 && <div className="py-10 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest opacity-60 italic">HATA İŞARETLENMEDİ.</div>}
+                { revizeNotlari.length === 0 && <div className="py-10 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest opacity-60 italic">HATA İŞARETLENMEDİ.</div> }
               </div>
             </div>
           )}
@@ -1662,67 +1596,69 @@ export default function SoruDetay() {
       </div>
 
       {/* FLOATING ANNOTATION UI - CENTERED MODAL */}
-      {(selectedText || selectedAnnotation) && canReview && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden animate-scale-up">
-            <div className="p-6 bg-gray-900 text-white flex justify-between items-center px-8">
-              <h5 className="font-black text-xs uppercase tracking-[0.2em] flex items-center gap-2"><PlusIcon className="w-5 h-5 text-rose-500" /> Yeni Revize Notu</h5>
-              <button onClick={() => { setSelectedText(''); setSelectedAnnotation(null); setRevizeNotuInput(''); setBranchReviewMode(false); }} className="hover:bg-white/10 p-2 rounded-xl transition-all"><XMarkIcon className="w-6 h-6" /></button>
-            </div>
-            <div className="p-8 space-y-6">
-              <>
-                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-start gap-4">
-                  <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100 text-indigo-500">
-                    {selectedAnnotation?.type === 'box' ? <StopIcon className="w-6 h-6" /> :
-                      selectedAnnotation?.type === 'line' ? <MinusIcon className="w-6 h-6" /> :
-                        selectedText ? <DocumentTextIcon className="w-6 h-6" /> : <XMarkIcon className="w-6 h-6" />}
+      {
+        (selectedText || selectedAnnotation) && canReview && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden animate-scale-up">
+              <div className="p-6 bg-gray-900 text-white flex justify-between items-center px-8">
+                <h5 className="font-black text-xs uppercase tracking-[0.2em] flex items-center gap-2"><PlusIcon className="w-5 h-5 text-rose-500" /> Yeni Revize Notu</h5>
+                <button onClick={() => { setSelectedText(''); setSelectedAnnotation(null); setRevizeNotuInput(''); setBranchReviewMode(false); }} className="hover:bg-white/10 p-2 rounded-xl transition-all"><XMarkIcon className="w-6 h-6" /></button>
+              </div>
+              <div className="p-8 space-y-6">
+                <>
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-start gap-4">
+                    <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100 text-indigo-500">
+                      {selectedAnnotation?.type === 'box' ? <StopIcon className="w-6 h-6" /> :
+                        selectedAnnotation?.type === 'line' ? <MinusIcon className="w-6 h-6" /> :
+                          selectedText ? <DocumentTextIcon className="w-6 h-6" /> : <XMarkIcon className="w-6 h-6" />}
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">SEÇİLEN {selectedAnnotation ? 'ALAN' : 'KESİT'}</span>
+                      {selectedAnnotation ? (
+                        <p className="text-sm font-bold text-gray-800">
+                          {selectedAnnotation.type === 'box' ? 'Kutu Alanı' : 'Çizgi İşareti'}
+                        </p>
+                      ) : (
+                        <p className="text-sm font-bold text-gray-800 line-clamp-3 italic">"{selectedText}"</p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">SEÇİLEN {selectedAnnotation ? 'ALAN' : 'KESİT'}</span>
-                    {selectedAnnotation ? (
-                      <p className="text-sm font-bold text-gray-800">
-                        {selectedAnnotation.type === 'box' ? 'Kutu Alanı' : 'Çizgi İşareti'}
-                      </p>
-                    ) : (
-                      <p className="text-sm font-bold text-gray-800 line-clamp-3 italic">"{selectedText}"</p>
-                    )}
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">NOTUNUZ</label>
+                    <textarea
+                      autoFocus
+                      className="w-full bg-gray-50 border-2 border-gray-100 focus:border-indigo-600 rounded-2xl p-5 text-sm font-bold text-gray-800 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none resize-none placeholder-gray-300"
+                      rows="4"
+                      placeholder="Lütfen tespit ettiğiniz hatayı veya düzeltme isteğinizi detaylıca açıklayın..."
+                      value={revizeNotuInput}
+                      onChange={(e) => setRevizeNotuInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddRevizeNot(); } }}
+                    />
+                    <p className="text-[9px] text-gray-400 font-bold text-right px-1">Kaydetmek için ENTER tuşuna basabilirsiniz</p>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">NOTUNUZ</label>
-                  <textarea
-                    autoFocus
-                    className="w-full bg-gray-50 border-2 border-gray-100 focus:border-indigo-600 rounded-2xl p-5 text-sm font-bold text-gray-800 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none resize-none placeholder-gray-300"
-                    rows="4"
-                    placeholder="Lütfen tespit ettiğiniz hatayı veya düzeltme isteğinizi detaylıca açıklayın..."
-                    value={revizeNotuInput}
-                    onChange={(e) => setRevizeNotuInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddRevizeNot(); } }}
-                  />
-                  <p className="text-[9px] text-gray-400 font-bold text-right px-1">Kaydetmek için ENTER tuşuna basabilirsiniz</p>
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => { setSelectedText(''); setSelectedAnnotation(null); setRevizeNotuInput(''); setBranchReviewMode(false); }}
-                    className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
-                  >
-                    İPTAL
-                  </button>
-                  <button
-                    onClick={handleAddRevizeNot}
-                    className="flex-[2] py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 transition-all active:scale-95 flex items-center justify-center gap-2"
-                  >
-                    KAYDET
-                  </button>
-                </div>
-              </>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => { setSelectedText(''); setSelectedAnnotation(null); setRevizeNotuInput(''); setBranchReviewMode(false); }}
+                      className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
+                    >
+                      İPTAL
+                    </button>
+                    <button
+                      onClick={handleAddRevizeNot}
+                      className="flex-[2] py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 transition-all active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      KAYDET
+                    </button>
+                  </div>
+                </>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 }
 
