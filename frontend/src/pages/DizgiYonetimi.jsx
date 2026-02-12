@@ -219,30 +219,37 @@ export default function DizgiYonetimi() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-10 animate-fade-in pb-20">
-      {/* CUSTOM CONFIRM BAR */}
+      {/* CUSTOM CONFIRM MODAL */}
       {confirmData && (
-        <div className="fixed top-0 left-0 right-0 z-[500] animate-in slide-in-from-top duration-300">
-          <div className="bg-emerald-600 border-b border-emerald-500 shadow-2xl px-6 py-4">
-            <div className="max-w-7xl mx-auto flex items-center justify-between gap-6">
-              <div className="flex items-center gap-4 text-white">
-                <div className="p-2 bg-white/20 rounded-xl">
-                  <InformationCircleIcon className="w-6 h-6" />
+        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden animate-scale-up">
+            <div className="p-6 bg-emerald-600 text-white flex justify-between items-center px-8">
+              <h5 className="font-black text-xs uppercase tracking-[0.2em] flex items-center gap-2">
+                <InformationCircleIcon className="w-5 h-5" /> İşlem Onayı
+              </h5>
+              <button onClick={() => setConfirmData(null)} className="hover:bg-white/10 p-2 rounded-xl transition-all">
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-10 space-y-8">
+              <div className="flex flex-col items-center gap-4 text-center">
+                <div className="p-4 bg-emerald-50 rounded-full text-emerald-600">
+                  <InformationCircleIcon className="w-10 h-10" strokeWidth={2} />
                 </div>
-                <div className="space-y-0.5">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 leading-none">İŞLEM ONAYI</p>
-                  <p className="text-sm font-black tracking-tight">{confirmData.message}</p>
-                </div>
+                <p className="text-base font-bold text-gray-700 leading-relaxed">
+                  {confirmData.message}
+                </p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex gap-3">
                 <button
                   onClick={() => setConfirmData(null)}
-                  className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
+                  className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
                 >
-                  VAZGEÇ
+                  İPTAL
                 </button>
                 <button
                   onClick={confirmData.action}
-                  className="px-10 py-3 bg-white text-emerald-600 hover:bg-emerald-50 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-black/10 transition-all active:scale-95"
+                  className="flex-[2] py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-emerald-100 transition-all active:scale-95"
                 >
                   ONAYLA VE GÖNDER
                 </button>
