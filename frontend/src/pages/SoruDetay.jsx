@@ -1214,7 +1214,7 @@ export default function SoruDetay() {
                   onClick={handleFinishReview}
                   className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 transition-all active:scale-95"
                 >
-                  {revizeNotlari.filter(n => !n.cozuldu && n.inceleme_turu === (isAdmin ? 'alanci' : (isActuallyAlanci ? 'alanci' : 'dilci'))).length > 0
+                  {revizeNotlari.filter(n => !n.cozuldu && n.inceleme_turu === (isAdmin ? (effectiveIncelemeTuru || 'alanci') : (effectiveIncelemeTuru || 'dilci'))).length > 0
                     ? "🚩 REVİZE TALEBİNİ BRANŞA GÖNDER"
                     : "🚩 İNCELEMEYİ SONLANDIR (ONAYLA)"}
                 </button>
