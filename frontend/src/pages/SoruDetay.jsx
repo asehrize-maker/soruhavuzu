@@ -378,11 +378,11 @@ export default function SoruDetay() {
     } finally { setLoading(false); }
   };
 
-  const handleSil = async () => {
-    if (!confirmData) {
+  const handleSil = async (bypassConfirm = false) => {
+    if (!confirmData && !bypassConfirm) {
       setConfirmData({
         message: 'Bu soruyu havuzdan tamamen silmek istediğinize emin misiniz?',
-        action: () => handleSil()
+        action: () => handleSil(true)
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
@@ -439,11 +439,11 @@ export default function SoruDetay() {
 
 
 
-  const handleDeleteRevizeNot = async (notId) => {
-    if (!confirmData) {
+  const handleDeleteRevizeNot = async (notId, bypassConfirm = false) => {
+    if (!confirmData && !bypassConfirm) {
       setConfirmData({
         message: 'Notu silmek istiyor musunuz?',
-        action: () => handleDeleteRevizeNot(notId)
+        action: () => handleDeleteRevizeNot(notId, true)
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
@@ -483,11 +483,11 @@ export default function SoruDetay() {
     }
   };
 
-  const handleGeriAl = async () => {
-    if (!confirmData) {
+  const handleGeriAl = async (bypassConfirm = false) => {
+    if (!confirmData && !bypassConfirm) {
       setConfirmData({
         message: 'Yaptığınız son işlemi geri almak istiyor musunuz?',
-        action: () => handleGeriAl()
+        action: () => handleGeriAl(true)
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
@@ -588,7 +588,7 @@ export default function SoruDetay() {
     } catch (e) { alert('Not eklenemedi'); }
   };
 
-  const handleFinishReview = async () => {
+  const handleFinishReview = async (bypassConfirm = false) => {
     const hasNotes = revizeNotlari.length > 0;
     let type = incelemeTuru || (effectiveRole === 'incelemeci' ? effectiveIncelemeTuru : 'admin');
 
@@ -599,18 +599,16 @@ export default function SoruDetay() {
 
     if (!type) { alert('İnceleme türü belirlenemedi.'); return; }
 
-    // ÖNEMLİ: Eğer not girişi yapılmışsa, durum 'revize_istendi' olmalı (Hata var demek)
-    // Eğer not yoksa, türüne göre onaylanmış aşamaya geçmeli
     const nextStatus = hasNotes ? 'revize_istendi' : (type === 'alanci' ? 'alan_onaylandi' : 'dil_onaylandi');
 
     const msg = hasNotes
       ? `İşaretlediğiniz ${revizeNotlari.length} adet notla birlikte incelemeyi bitirip REVİZE İSTEMEK istiyor musunuz?`
       : 'Soru hatasız mı? ONAYLAYIP incelemeyi bitirmek istediğinizden emin misiniz?';
 
-    if (!confirmData) {
+    if (!confirmData && !bypassConfirm) {
       setConfirmData({
         message: msg,
-        action: () => handleFinishReview()
+        action: () => handleFinishReview(true)
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
