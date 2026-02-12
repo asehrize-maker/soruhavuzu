@@ -186,7 +186,8 @@ export default function DizgiYonetimi() {
             <div
               className={`text-sm leading-relaxed transition-colors ${selectedSoru?.id === soru.id ? 'text-gray-900' : 'text-gray-700 font-medium'}`}
               dangerouslySetInnerHTML={{
-                __html: soru.soru_metni?.replace(/<img/g, '<img style="max-height:180px; width:auto; border-radius:8px; margin: 10px 0;"')
+                __html: soru.soru_metni?.replace(/src="blob:[^"]+"/g, `src="${soru.fotograf_url || ''}"`)
+                  .replace(/<img/g, '<img style="max-height:180px; width:auto; border-radius:8px; margin: 10px 0;"')
               }}
             />
             {/* GRADIENT OVERLAY FOR PREVIEW CUTOFF */}
@@ -371,7 +372,7 @@ export default function DizgiYonetimi() {
                                     {shape.type === 'draw' && shape.points && shape.points.length > 1 && (
                                       <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
                                         <polyline points={shape.points.map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke={colorHex} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-sm" vectorEffect="non-scaling-stroke" />
-                                        <foreignObject x={`${shape.points[shape.points.length - 1].x}%`} y={`${shape.points[shape.points.length - 1].y}%`} width="30" height="30" style={{ overflow: 'visible' }}>
+                                        <foreignObject x={shape.points[shape.points.length - 1].x} y={shape.points[shape.points.length - 1].y} width="30" height="30" style={{ overflow: 'visible' }}>
                                           <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
                                         </foreignObject>
                                       </svg>
@@ -385,7 +386,7 @@ export default function DizgiYonetimi() {
                                       <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
                                         <line x1={shape.x1} y1={shape.y1} x2={shape.x2} y2={shape.y2} stroke={colorHex} strokeWidth="3" strokeLinecap="round" className="drop-shadow-sm" />
                                         <circle cx={shape.x2} cy={shape.y2} r="1" fill={colorHex} />
-                                        <foreignObject x={`${shape.x2}%`} y={`${shape.y2}%`} width="30" height="30" style={{ overflow: 'visible' }}>
+                                        <foreignObject x={shape.x2} y={shape.y2} width="30" height="30" style={{ overflow: 'visible' }}>
                                           <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
                                         </foreignObject>
                                       </svg>
@@ -411,12 +412,76 @@ export default function DizgiYonetimi() {
                           </div>
                         </div>
                       ) : (
-                        <div
-                          className="text-gray-900 prose prose-xl max-w-none font-medium leading-relaxed [&_img]:max-h-[500px] [&_img]:w-auto [&_img]:max-w-full [&_img]:my-8 [&_img]:rounded-3xl [&_img]:shadow-xl [&_img]:mx-auto"
-                          dangerouslySetInnerHTML={{
-                            __html: selectedSoru.soru_metni?.replace(/src="blob:[^"]+"/g, `src="${selectedSoru.fotograf_url || ''}"`)
-                          }}
-                        />
+                        <div className="relative overflow-hidden bg-white border border-gray-100 shadow-inner" style={{ width: '170mm', minHeight: '140mm', padding: '10mm', paddingTop: '15mm', margin: '0 auto' }}>
+                          <div
+                            className="text-gray-900 prose prose-xl max-w-none font-medium leading-relaxed [&_img]:max-h-[500px] [&_img]:w-auto [&_img]:max-w-full [&_img]:my-8 [&_img]:rounded-3xl [&_img]:shadow-xl [&_img]:mx-auto"
+                            dangerouslySetInnerHTML={{
+                              __html: selectedSoru.soru_metni?.replace(/src="blob:[^"]+"/g, `src="${selectedSoru.fotograf_url || ''}"`)
+                            }}
+                          />
+                          {/* REVISION NOTES OVERLAY FOR ORIGINAL CONTENT */}
+                          {revizeNotlari.map((not, i) => {
+                            if (!not.secilen_metin?.startsWith('IMG##')) return null;
+                            const meta = not.secilen_metin.replace('IMG##', '');
+                            const colorClass = not.inceleme_turu === 'alanci' ? 'blue' : 'emerald';
+                            const colorHex = not.inceleme_turu === 'alanci' ? '#2563eb' : '#059669';
+
+                            let shape = { type: 'point', x: 0, y: 0 };
+                            const parseCoords = (s) => s.split(',').map(v => parseFloat(v.trim()));
+
+                            if (meta.startsWith('BOX:')) {
+                              const [x, y, w, h] = parseCoords(meta.replace('BOX:', ''));
+                              shape = { type: 'box', x, y, w, h };
+                            } else if (meta.startsWith('LINE:')) {
+                              const [x1, y1, x2, y2] = parseCoords(meta.replace('LINE:', ''));
+                              shape = { type: 'line', x1, y1, x2, y2 };
+                            } else if (meta.startsWith('DRAW:')) {
+                              const sets = meta.replace('DRAW:', '').split(';');
+                              const points = sets.map(s => {
+                                const [px, py] = parseCoords(s);
+                                return { x: px, y: py };
+                              });
+                              if (points.length > 0) shape = { type: 'draw', points };
+                            } else {
+                              const [x, y] = parseCoords(meta);
+                              shape = { type: 'point', x, y };
+                            }
+
+                            return (
+                              <div key={not.id} className="absolute inset-0 pointer-events-none">
+                                {shape.type === 'draw' && shape.points && shape.points.length > 1 && (
+                                  <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                    <polyline points={shape.points.map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke={colorHex} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-sm" vectorEffect="non-scaling-stroke" />
+                                    <foreignObject x={shape.points[shape.points.length - 1].x} y={shape.points[shape.points.length - 1].y} width="30" height="30" style={{ overflow: 'visible' }}>
+                                      <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
+                                    </foreignObject>
+                                  </svg>
+                                )}
+                                {shape.type === 'box' && (
+                                  <div className={`absolute border-2 border-${colorClass}-500 bg-${colorClass}-500/10 z-10`} style={{ left: `${shape.x}%`, top: `${shape.y}%`, width: `${shape.w}%`, height: `${shape.h}%` }}>
+                                    <div className={`absolute -top-3 -right-3 w-6 h-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[10px] font-black shadow-sm`}>{i + 1}</div>
+                                  </div>
+                                )}
+                                {shape.type === 'line' && (
+                                  <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                    <line x1={shape.x1} y1={shape.y1} x2={shape.x2} y2={shape.y2} stroke={colorHex} strokeWidth="3" strokeLinecap="round" className="drop-shadow-sm" />
+                                    <circle cx={shape.x2} cy={shape.y2} r="1" fill={colorHex} />
+                                    <foreignObject x={shape.x2} y={shape.y2} width="30" height="30" style={{ overflow: 'visible' }}>
+                                      <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
+                                    </foreignObject>
+                                  </svg>
+                                )}
+                                {shape.type === 'point' && (
+                                  <div className="absolute w-12 h-12 -ml-6 -mt-6 flex items-center justify-center group/marker z-10 hover:z-30 pointer-events-auto" style={{ left: `${shape.x}%`, top: `${shape.y}%` }}>
+                                    <div className={`absolute inset-0 rounded-full bg-${colorClass}-400/30 mix-blend-multiply border border-${colorClass}-400/20 shadow-[0_0_10px_rgba(0,0,0,0.1)] transition-all group-hover/marker:bg-${colorClass}-400/50`}></div>
+                                    <div className={`absolute inset-0 rounded-full animate-ping opacity-20 bg-${colorClass}-400`} style={{ animationDuration: '3s' }}></div>
+                                    <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-full border border-white bg-${colorClass}-600 text-white shadow-md flex items-center justify-center text-[9px] font-black z-20 scale-90 group-hover/marker:scale-110 transition-transform`}>{i + 1}</div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       )}
 
                       {/* ORİJİNAL DRAFT GÖRSELİ (SADECE METİN İÇİNDE YOKSA FALLBACK OLARAK) */}

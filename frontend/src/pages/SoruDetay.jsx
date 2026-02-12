@@ -1331,7 +1331,7 @@ export default function SoruDetay() {
                                 x2={selectedAnnotation.x2} y2={selectedAnnotation.y2}
                                 stroke="#f43f5e" strokeWidth="3" className="animate-pulse"
                               />
-                              <circle cx={`${selectedAnnotation.x2}%`} cy={`${selectedAnnotation.y2}%`} r="4" fill="#f43f5e" />
+                              <circle cx={selectedAnnotation.x2} cy={selectedAnnotation.y2} r="4" fill="#f43f5e" />
                             </svg>
                           )}
                           {selectedAnnotation.type === 'draw' && (
@@ -1395,7 +1395,7 @@ export default function SoruDetay() {
                         {shape.type === 'draw' && shape.points && shape.points.length > 1 && (
                           <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
                             <polyline points={shape.points.map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke={colorHex} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-sm" vectorEffect="non-scaling-stroke" />
-                            <foreignObject x={`${shape.points[shape.points.length - 1].x}%`} y={`${shape.points[shape.points.length - 1].y}%`} width="30" height="30" style={{ overflow: 'visible' }}>
+                            <foreignObject x={shape.points[shape.points.length - 1].x} y={shape.points[shape.points.length - 1].y} width="30" height="30" style={{ overflow: 'visible' }}>
                               <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
                             </foreignObject>
                           </svg>
@@ -1409,7 +1409,7 @@ export default function SoruDetay() {
                           <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
                             <line x1={shape.x1} y1={shape.y1} x2={shape.x2} y2={shape.y2} stroke={colorHex} strokeWidth="3" strokeLinecap="round" />
                             <circle cx={shape.x2} cy={shape.y2} r="1" fill={colorHex} />
-                            <foreignObject x={`${shape.x2}%`} y={`${shape.y2}%`} width="30" height="100" style={{ overflow: 'visible' }}>
+                            <foreignObject x={shape.x2} y={shape.y2} width="30" height="100" style={{ overflow: 'visible' }}>
                               <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
                             </foreignObject>
                           </svg>
