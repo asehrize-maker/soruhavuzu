@@ -40,7 +40,8 @@ import {
   PencilIcon,
   DocumentArrowUpIcon,
   RocketLaunchIcon,
-  ArrowUturnLeftIcon
+  ArrowUturnLeftIcon,
+  InformationCircleIcon
 } from '@heroicons/react/24/outline';
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
@@ -212,6 +213,7 @@ export default function SoruDetay() {
   const [branslar, setBranslar] = useState([]);
   const [kazanims, setKazanims] = useState([]);
   const [kazanimLoading, setKazanimLoading] = useState(false);
+  const [confirmData, setConfirmData] = useState(null); // { message, action }
 
   const [components, setComponents] = useState([]);
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
@@ -377,7 +379,15 @@ export default function SoruDetay() {
   };
 
   const handleSil = async () => {
-    if (!confirm('Bu soruyu havuzdan tamamen silmek istediğinize emin misiniz?')) return;
+    if (!confirmData) {
+      setConfirmData({
+        message: 'Bu soruyu havuzdan tamamen silmek istediğinize emin misiniz?',
+        action: () => handleSil()
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    setConfirmData(null);
     try {
       await soruAPI.delete(id);
       navigate(scope === 'brans' ? '/brans-havuzu' : '/sorular');
@@ -430,7 +440,15 @@ export default function SoruDetay() {
 
 
   const handleDeleteRevizeNot = async (notId) => {
-    if (!confirm('Notu silmek istiyor musunuz?')) return;
+    if (!confirmData) {
+      setConfirmData({
+        message: 'Notu silmek istiyor musunuz?',
+        action: () => handleDeleteRevizeNot(notId)
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    setConfirmData(null);
     try {
       await soruAPI.deleteRevizeNot(id, notId);
       loadRevizeNotlari();
@@ -438,7 +456,15 @@ export default function SoruDetay() {
   };
 
   const handleUpdateStatus = async (status, confirmMsg = null) => {
-    if (confirmMsg && !confirm(confirmMsg)) return;
+    if (confirmMsg && !confirmData) {
+      setConfirmData({
+        message: confirmMsg,
+        action: () => handleUpdateStatus(status)
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    setConfirmData(null);
     try {
       if (status === 'dizgi_tamam' && !soru.final_png_url) {
         alert('Lütfen önce PNG görseli yükleyiniz. Görsel yüklenmeden dizgi tamamlanamaz.');
@@ -1052,6 +1078,38 @@ export default function SoruDetay() {
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-10 animate-fade-in pb-32">
+      {/* CUSTOM CONFIRM BAR */}
+      {confirmData && (
+        <div className="fixed top-0 left-0 right-0 z-[500] animate-in slide-in-from-top duration-300">
+          <div className="bg-emerald-600 border-b border-emerald-500 shadow-2xl px-6 py-4">
+            <div className="max-w-[1400px] mx-auto flex items-center justify-between gap-6">
+              <div className="flex items-center gap-4 text-white">
+                <div className="p-2 bg-white/20 rounded-xl">
+                  <InformationCircleIcon className="w-6 h-6" />
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 leading-none">İŞLEM ONAYI</p>
+                  <p className="text-sm font-black tracking-tight">{confirmData.message}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setConfirmData(null)}
+                  className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
+                >
+                  VAZGEÇ
+                </button>
+                <button
+                  onClick={confirmData.action}
+                  className="px-10 py-3 bg-white text-emerald-600 hover:bg-emerald-50 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-black/10 transition-all active:scale-95"
+                >
+                  ONAYLA VE GÖNDER
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* HEADER STRIP */}
       <div className="bg-white rounded-[3.5rem] p-10 shadow-xl shadow-gray-200/50 border border-gray-50 flex flex-col xl:flex-row xl:items-center justify-between gap-8">
         <div className="flex items-center gap-6">

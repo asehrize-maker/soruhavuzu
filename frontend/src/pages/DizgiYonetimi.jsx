@@ -20,7 +20,8 @@ import {
   BeakerIcon,
   SparklesIcon,
   ChevronLeftIcon,
-  ChevronRightIcon as ChevronRightOutline
+  ChevronRightIcon as ChevronRightOutline,
+  InformationCircleIcon
 } from '@heroicons/react/24/outline';
 
 export default function DizgiYonetimi() {
@@ -41,6 +42,7 @@ export default function DizgiYonetimi() {
   const [revizeNotu, setRevizeNotu] = useState('');
   const [revizeNotlari, setRevizeNotlari] = useState([]);
   const [pendingIndex, setPendingIndex] = useState(0);
+  const [confirmData, setConfirmData] = useState(null); // { message, action }
   const questionRef = useRef(null);
 
   useEffect(() => {
@@ -116,7 +118,16 @@ export default function DizgiYonetimi() {
   };
 
   const handleDurumGuncelle = async (soruId, durum, confirmMsg = null) => {
-    if (confirmMsg && !confirm(confirmMsg)) return;
+    if (confirmMsg && !confirmData) {
+      setConfirmData({
+        message: confirmMsg,
+        action: () => handleDurumGuncelle(soruId, durum)
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    setConfirmData(null);
     try {
       const data = { yeni_durum: durum };
       if (durum === 'revize_gerekli' && revizeNotu) {
@@ -208,6 +219,38 @@ export default function DizgiYonetimi() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-10 animate-fade-in pb-20">
+      {/* CUSTOM CONFIRM BAR */}
+      {confirmData && (
+        <div className="fixed top-0 left-0 right-0 z-[500] animate-in slide-in-from-top duration-300">
+          <div className="bg-emerald-600 border-b border-emerald-500 shadow-2xl px-6 py-4">
+            <div className="max-w-7xl mx-auto flex items-center justify-between gap-6">
+              <div className="flex items-center gap-4 text-white">
+                <div className="p-2 bg-white/20 rounded-xl">
+                  <InformationCircleIcon className="w-6 h-6" />
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 leading-none">İŞLEM ONAYI</p>
+                  <p className="text-sm font-black tracking-tight">{confirmData.message}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setConfirmData(null)}
+                  className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
+                >
+                  VAZGEÇ
+                </button>
+                <button
+                  onClick={confirmData.action}
+                  className="px-10 py-3 bg-white text-emerald-600 hover:bg-emerald-50 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-black/10 transition-all active:scale-95"
+                >
+                  ONAYLA VE GÖNDER
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4">
         <div>
