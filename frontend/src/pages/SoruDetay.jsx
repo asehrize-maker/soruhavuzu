@@ -1352,15 +1352,22 @@ export default function SoruDetay() {
                 </div>
               ) : (
                 <div
-                  className={`bg-white shadow-2xl transition-all duration-700 relative flex flex-col group min-h-[140mm] border border-gray-100 overflow-hidden ${editMode ? 'ring-2 ring-blue-500/20' : ''} ${canReview && drawTool !== 'cursor' ? 'cursor-crosshair select-none' : ''}`}
-                  style={{ width: widthMode === 'dar' && editMode ? '82.4mm' : '170mm', minWidth: '300px', padding: '10mm', paddingTop: '15mm', borderRadius: '2px' }}
+                  className={`bg-white shadow-2xl relative flex flex-col group min-h-[140mm] border border-gray-100 overflow-hidden ${editMode ? 'ring-2 ring-blue-500/20' : ''} ${canReview && drawTool !== 'cursor' ? 'cursor-crosshair select-none' : ''}`}
+                  style={{
+                    width: widthMode === 'dar' && editMode ? '82.4mm' : '170mm',
+                    minWidth: '300px',
+                    padding: '10mm',
+                    paddingTop: '15mm',
+                    borderRadius: '2px',
+                    transition: (canReview || editMode) ? 'none' : 'all 0.5s ease'
+                  }}
                   onMouseDown={handleImageMouseDown}
                   onMouseMove={handleImageMouseMove}
                   onMouseUp={handleImageMouseUp}
                   onMouseLeave={handleImageMouseUp}
                 >
-                  <div className="prose max-w-[185mm] mx-auto w-full relative z-0" style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}>
-                    <div ref={soruMetniRef} className="text-gray-900 katex-left-align q-preview-container select-text" onMouseUp={handleTextSelection} />
+                  <div className="prose max-w-none w-full relative z-0" style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}>
+                    <div ref={soruMetniRef} className="text-gray-900 katex-left-align q-preview-container select-text [&_img]:w-full [&_img]:max-w-full [&_img]:block [&_img]:my-5" onMouseUp={handleTextSelection} />
                     {soru.fotograf_url && !soru.soru_metni?.includes('<img') && (
                       <div className="mt-8 flex justify-center p-4 border rounded-xl bg-gray-50 border-gray-100">
                         <img src={soru.fotograf_url} className="max-w-full rounded-lg shadow-sm cursor-zoom-in" onClick={(e) => window.open(e.target.src, '_blank')} alt="Soru Görseli" />

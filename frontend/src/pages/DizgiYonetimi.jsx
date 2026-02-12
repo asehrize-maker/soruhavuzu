@@ -413,12 +413,14 @@ export default function DizgiYonetimi() {
                         </div>
                       ) : (
                         <div className="relative overflow-hidden bg-white border border-gray-100 shadow-inner" style={{ width: '170mm', minHeight: '140mm', padding: '10mm', paddingTop: '15mm', margin: '0 auto' }}>
-                          <div
-                            className="text-gray-900 prose prose-xl max-w-none font-medium leading-relaxed [&_img]:max-h-[500px] [&_img]:w-auto [&_img]:max-w-full [&_img]:my-8 [&_img]:rounded-3xl [&_img]:shadow-xl [&_img]:mx-auto"
-                            dangerouslySetInnerHTML={{
-                              __html: selectedSoru.soru_metni?.replace(/src="blob:[^"]+"/g, `src="${selectedSoru.fotograf_url || ''}"`)
-                            }}
-                          />
+                          <div className="prose max-w-none w-full relative z-0" style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}>
+                            <div
+                              className="text-gray-900 katex-left-align q-preview-container [&_img]:w-full [&_img]:max-w-full [&_img]:block [&_img]:my-5 font-medium leading-relaxed"
+                              dangerouslySetInnerHTML={{
+                                __html: selectedSoru.soru_metni?.replace(/src="blob:[^"]+"/g, `src="${selectedSoru.fotograf_url || ''}"`)
+                              }}
+                            />
+                          </div>
                           {/* REVISION NOTES OVERLAY FOR ORIGINAL CONTENT */}
                           {revizeNotlari.map((not, i) => {
                             if (!not.secilen_metin?.startsWith('IMG##')) return null;
