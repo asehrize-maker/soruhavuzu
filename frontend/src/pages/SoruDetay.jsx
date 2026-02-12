@@ -139,24 +139,27 @@ const parseHtmlToComponents = (html, soru = null) => {
   // (Özellikle sadece metin içeren veya boş HTML'li PNG soruları için)
   const containsImage = result.some(c => c.type === 'image' || (c.type === 'text' && c.content?.includes('<img')));
 
-  if (result.length === 0 && soru?.fotograf_url) {
-    result.push({
-      id: generateId(),
-      type: 'image',
-      content: soru.fotograf_url,
-      width: 100,
-      height: 'auto',
-      align: 'center'
-    });
-  } else if (result.length > 0 && !containsImage && soru?.fotograf_url) {
-    result.unshift({
-      id: generateId(),
-      type: 'image',
-      content: soru.fotograf_url,
-      width: 100,
-      height: 'auto',
-      align: 'center'
-    });
+  // FİNAL PNG VARSA, TASLAK FOTOĞRAFINI GÖRSEL OLARAK HİÇ EKLEME (Kullanıcı kafası karışıklığı için)
+  if (!soru?.final_png_url) {
+    if (result.length === 0 && soru?.fotograf_url) {
+      result.push({
+        id: generateId(),
+        type: 'image',
+        content: soru.fotograf_url,
+        width: 100,
+        height: 'auto',
+        align: 'center'
+      });
+    } else if (result.length > 0 && !containsImage && soru?.fotograf_url) {
+      result.unshift({
+        id: generateId(),
+        type: 'image',
+        content: soru.fotograf_url,
+        width: 100,
+        height: 'auto',
+        align: 'center'
+      });
+    }
   }
 
   return result;
@@ -276,6 +279,13 @@ export default function SoruDetay() {
     loadRevizeNotlari();
     loadBranslar();
   }, [id]);
+
+  // PNG yüklendiğinde otomatik olarak görsel moduna geç
+  useEffect(() => {
+    if (soru?.final_png_url) {
+      setViewMode('image');
+    }
+  }, [soru?.final_png_url]);
 
   useEffect(() => {
     const loadKazanims = async () => {
@@ -985,97 +995,115 @@ export default function SoruDetay() {
 
           {/* CENTER EDITOR */}
           <div className="lg:col-span-6 flex flex-col items-center gap-6">
-            <div className="bg-gray-800 p-2 rounded-2xl shadow-xl flex items-center gap-1 border border-white/5 mx-auto sticky top-24 z-40">
-              <RibbonButton cmd="bold" label="B" />
-              <RibbonButton cmd="italic" label="I" />
-              <RibbonButton cmd="underline" label="U" />
-              <div className="w-px h-6 bg-white/10 mx-2"></div>
-              <RibbonButton cmd="superscript" label="x²" />
-              <RibbonButton cmd="subscript" label="x₂" />
-              <div className="w-px h-6 bg-white/10 mx-2"></div>
-              <button onMouseDown={(e) => { e.preventDefault(); execCmd('insertUnorderedList'); }} className="p-2 hover:bg-white/10 rounded-xl transition"><QueueListIcon className="w-5 h-5 text-gray-400" /></button>
-            </div>
-
-            <div className="relative group/canvas perspective-1000 w-full flex justify-center">
-              <div
-                className="bg-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-700 relative flex flex-col group min-h-[140mm] border border-gray-100"
-                style={{
-                  width: widthMode === 'dar' ? '82.4mm' : '169.6mm',
-                  padding: '1mm 1mm 1mm 6mm',
-                  paddingTop: '1mm',
-                  borderRadius: '2px'
-                }}
-              >
-                <div
-                  className="space-y-0 relative"
-                  style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}
-                  onClick={(e) => {
-                    if (!e.target.closest('.delete-btn')) setConfirmDeleteId(null);
-                  }}
-                >
-                  {components.map((comp, index) => (
-                    <div
-                      key={comp.id}
-                      className={`relative group/item rounded p-0 pt-2 transition-all duration-300 ${draggedItemIndex === index ? 'opacity-30 scale-95' : 'hover:bg-blue-50/10'} ${confirmDeleteId === comp.id ? 'ring-2 ring-rose-500 bg-rose-50/50' : ''}`}
-                      style={{
-                        float: comp.float || 'none',
-                        width: comp.width && comp.subtype === 'secenek' ? `${comp.width}%` : 'auto',
-                        marginRight: comp.float === 'left' ? '2%' : '1%'
-                      }}
-                      draggable="true"
-                      onDragStart={(e) => onDragStart(e, index)}
-                      onDragOver={(e) => onDragOver(e, index)}
-                      onDragEnd={onDragEnd}
-                    >
-                      {/* TOOLBAR - Top Right */}
-                      <div className={`absolute top-0 right-1 flex items-center gap-1 transition-all z-[60] pt-1 ${confirmDeleteId === comp.id ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100'}`}>
-                        {confirmDeleteId === comp.id ? (
-                          <div className="flex items-center gap-1 bg-rose-600 rounded-xl px-2 py-1 shadow-lg border border-rose-700 animate-fade-in text-white">
-                            <span className="text-[9px] font-black uppercase tracking-tighter mr-1">SİLİNSİN Mİ?</span>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); removeComponent(comp.id); setConfirmDeleteId(null); }}
-                              className="delete-btn p-1.5 hover:bg-white/20 rounded-lg transition-all active:scale-90"
-                            >
-                              <CheckBadgeIcon className="w-4 h-4" strokeWidth={3} />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
-                              className="delete-btn p-1.5 hover:bg-white/20 rounded-lg transition-all active:scale-90"
-                            >
-                              <XMarkIcon className="w-4 h-4" strokeWidth={3} />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1">
-                            <div title="Sürükle" className="p-1.5 bg-white/80 backdrop-blur rounded-lg shadow-sm border border-gray-100 text-gray-300 hover:text-blue-500 cursor-grab active:cursor-grabbing"><Bars4Icon className="w-4 h-4" strokeWidth={3} /></div>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(comp.id); }}
-                              className="delete-btn p-1.5 bg-white/80 backdrop-blur rounded-lg shadow-sm border border-gray-100 text-rose-300 hover:text-rose-600 active:scale-90 transition-all"
-                            >
-                              <TrashIcon className="w-4 h-4" strokeWidth={3} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      {comp.type === 'text' ? (
-                        <EditableBlock
-                          initialHtml={comp.content}
-                          onChange={(html) => updateComponent(comp.id, { content: html })}
-                          label={comp.label}
-                          hangingIndent={comp.subtype === 'secenek'}
-                          className={comp.subtype === 'koku' ? 'font-bold' : ''}
-                        />
-                      ) : (
-                        <ResizableImage src={comp.content} width={comp.width} height={comp.height} align={comp.align} onUpdate={(updates) => updateComponent(comp.id, updates)} onDelete={() => removeComponent(comp.id)} />
-                      )}
-                      {comp.float === 'none' && <div style={{ clear: 'both' }}></div>}
-                    </div>
-                  ))}
-                  <div style={{ clear: 'both' }}></div>
+            {soru.final_png_url ? (
+              <div className="flex flex-col items-center gap-4 w-full">
+                <div className="bg-emerald-50 text-emerald-700 px-6 py-3 rounded-2xl border border-emerald-100 font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
+                  <CheckBadgeIcon className="w-5 h-5" /> DİZGİSİ TAMAMLANMIŞ GÖRSEL ÜSTÜNDEN ÇALIŞILIYOR
                 </div>
+                <div className="bg-white p-4 rounded-2xl shadow-2xl border border-gray-100 max-w-full">
+                  <img src={soru.final_png_url} className="max-w-full rounded-lg shadow-sm" alt="Final Out" />
+                </div>
+                {isAdmin && (
+                  <button onClick={() => { if (confirm('Taslak metne geri dönüp dizgi görselini iptal etmek istiyor musunuz?')) { setSoru({ ...soru, final_png_url: null }); } }} className="text-gray-400 hover:text-rose-600 font-black text-[9px] uppercase tracking-widest transition-all">
+                    TASLAK METNİ DÜZENLE (GÖRSELİ SİLMEZ)
+                  </button>
+                )}
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="bg-gray-800 p-2 rounded-2xl shadow-xl flex items-center gap-1 border border-white/5 mx-auto sticky top-24 z-40">
+                  <RibbonButton cmd="bold" label="B" />
+                  <RibbonButton cmd="italic" label="I" />
+                  <RibbonButton cmd="underline" label="U" />
+                  <div className="w-px h-6 bg-white/10 mx-2"></div>
+                  <RibbonButton cmd="superscript" label="x²" />
+                  <RibbonButton cmd="subscript" label="x₂" />
+                  <div className="w-px h-6 bg-white/10 mx-2"></div>
+                  <button onMouseDown={(e) => { e.preventDefault(); execCmd('insertUnorderedList'); }} className="p-2 hover:bg-white/10 rounded-xl transition"><QueueListIcon className="w-5 h-5 text-gray-400" /></button>
+                </div>
+
+                <div className="relative group/canvas perspective-1000 w-full flex justify-center">
+                  <div
+                    className="bg-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-700 relative flex flex-col group min-h-[140mm] border border-gray-100"
+                    style={{
+                      width: widthMode === 'dar' ? '82.4mm' : '169.6mm',
+                      padding: '1mm 1mm 1mm 6mm',
+                      paddingTop: '1mm',
+                      borderRadius: '2px'
+                    }}
+                  >
+                    <div
+                      className="space-y-0 relative"
+                      style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}
+                      onClick={(e) => {
+                        if (!e.target.closest('.delete-btn')) setConfirmDeleteId(null);
+                      }}
+                    >
+                      {components.map((comp, index) => (
+                        <div
+                          key={comp.id}
+                          className={`relative group/item rounded p-0 pt-2 transition-all duration-300 ${draggedItemIndex === index ? 'opacity-30 scale-95' : 'hover:bg-blue-50/10'} ${confirmDeleteId === comp.id ? 'ring-2 ring-rose-500 bg-rose-50/50' : ''}`}
+                          style={{
+                            float: comp.float || 'none',
+                            width: comp.width && comp.subtype === 'secenek' ? `${comp.width}%` : 'auto',
+                            marginRight: comp.float === 'left' ? '2%' : '1%'
+                          }}
+                          draggable="true"
+                          onDragStart={(e) => onDragStart(e, index)}
+                          onDragOver={(e) => onDragOver(e, index)}
+                          onDragEnd={onDragEnd}
+                        >
+                          {/* TOOLBAR - Top Right */}
+                          <div className={`absolute top-0 right-1 flex items-center gap-1 transition-all z-[60] pt-1 ${confirmDeleteId === comp.id ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100'}`}>
+                            {confirmDeleteId === comp.id ? (
+                              <div className="flex items-center gap-1 bg-rose-600 rounded-xl px-2 py-1 shadow-lg border border-rose-700 animate-fade-in text-white">
+                                <span className="text-[9px] font-black uppercase tracking-tighter mr-1">SİLİNSİN Mİ?</span>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); removeComponent(comp.id); setConfirmDeleteId(null); }}
+                                  className="delete-btn p-1.5 hover:bg-white/20 rounded-lg transition-all active:scale-90"
+                                >
+                                  <CheckBadgeIcon className="w-4 h-4" strokeWidth={3} />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
+                                  className="delete-btn p-1.5 hover:bg-white/20 rounded-lg transition-all active:scale-90"
+                                >
+                                  <XMarkIcon className="w-4 h-4" strokeWidth={3} />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <div title="Sürükle" className="p-1.5 bg-white/80 backdrop-blur rounded-lg shadow-sm border border-gray-100 text-gray-300 hover:text-blue-500 cursor-grab active:cursor-grabbing"><Bars4Icon className="w-4 h-4" strokeWidth={3} /></div>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(comp.id); }}
+                                  className="delete-btn p-1.5 bg-white/80 backdrop-blur rounded-lg shadow-sm border border-gray-100 text-rose-300 hover:text-rose-600 active:scale-90 transition-all"
+                                >
+                                  <TrashIcon className="w-4 h-4" strokeWidth={3} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          {comp.type === 'text' ? (
+                            <EditableBlock
+                              initialHtml={comp.content}
+                              onChange={(html) => updateComponent(comp.id, { content: html })}
+                              label={comp.label}
+                              hangingIndent={comp.subtype === 'secenek'}
+                              className={comp.subtype === 'koku' ? 'font-bold' : ''}
+                            />
+                          ) : (
+                            <ResizableImage src={comp.content} width={comp.width} height={comp.height} align={comp.align} onUpdate={(updates) => updateComponent(comp.id, updates)} onDelete={() => removeComponent(comp.id)} />
+                          )}
+                          {comp.float === 'none' && <div style={{ clear: 'both' }}></div>}
+                        </div>
+                      ))}
+                      <div style={{ clear: 'both' }}></div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* RIGHT METADATA PANEL */}
