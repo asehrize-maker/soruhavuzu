@@ -194,13 +194,19 @@ export default function DizgiYonetimi() {
         {/* MINI PREVIEW AREA */}
         <div className={`relative rounded-2xl overflow-hidden border transition-all duration-500 ${selectedSoru?.id === soru.id ? 'bg-white border-white/10' : 'bg-gray-50/50 border-gray-100 group-hover:bg-white'}`}>
           <div className="p-5 max-h-[300px] overflow-hidden relative">
-            <div
-              className={`text-sm leading-relaxed transition-colors ${selectedSoru?.id === soru.id ? 'text-gray-900' : 'text-gray-700 font-medium'}`}
-              dangerouslySetInnerHTML={{
-                __html: soru.soru_metni?.replace(/src="blob:[^"]+"/g, `src="${soru.fotograf_url || ''}"`)
-                  .replace(/<img/g, '<img style="max-height:180px; width:auto; border-radius:8px; margin: 10px 0;"')
-              }}
-            />
+            {soru.final_png_url ? (
+              <div className="flex justify-center">
+                <img src={soru.final_png_url} className="max-h-[180px] w-auto rounded-lg shadow-sm" alt="Dizgi Önizleme" />
+              </div>
+            ) : (
+              <div
+                className={`text-sm leading-relaxed transition-colors ${selectedSoru?.id === soru.id ? 'text-gray-900' : 'text-gray-700 font-medium'}`}
+                dangerouslySetInnerHTML={{
+                  __html: soru.soru_metni?.replace(/src="blob:[^"]+"/g, `src="${soru.fotograf_url || ''}"`)
+                    .replace(/<img/g, '<img style="max-height:180px; width:auto; border-radius:8px; margin: 10px 0;"')
+                }}
+              />
+            )}
             {/* GRADIENT OVERLAY FOR PREVIEW CUTOFF */}
             <div className={`absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${selectedSoru?.id === soru.id ? 'from-white' : 'from-gray-50/50 group-hover:from-white'}`}></div>
           </div>

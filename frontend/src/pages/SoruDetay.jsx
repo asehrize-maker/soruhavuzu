@@ -137,6 +137,8 @@ const parseHtmlToComponents = (html, soru = null) => {
 
   // Eğer HTML işlendi ama hiç resim bulunamadıysa ve sorunun ana fotoğrafı varsa
   // (Özellikle sadece metin içeren veya boş HTML'li PNG soruları için)
+  const containsImage = result.some(c => c.type === 'image' || (c.type === 'text' && c.content?.includes('<img')));
+
   if (result.length === 0 && soru?.fotograf_url) {
     result.push({
       id: generateId(),
@@ -146,7 +148,7 @@ const parseHtmlToComponents = (html, soru = null) => {
       height: 'auto',
       align: 'center'
     });
-  } else if (result.length > 0 && !result.some(c => c.type === 'image') && soru?.fotograf_url) {
+  } else if (result.length > 0 && !containsImage && soru?.fotograf_url) {
     result.unshift({
       id: generateId(),
       type: 'image',

@@ -665,7 +665,7 @@ export default function Sorular({ scope }) {
                           {/* LEFT SIDE: THE ACTUAL QUESTION CONTENT */}
                           <div className="flex-1 min-w-0">
                             <div className="relative group h-full">
-                              {['tamamlandi', 'dizgi_tamam'].includes(soru.durum) && soru.final_png_url ? (
+                              {soru.final_png_url ? (
                                 <div className="bg-slate-50 rounded-2xl border border-slate-100 flex justify-center items-center p-4 h-full min-h-[200px] group-hover:bg-white transition-colors duration-500">
                                   <img src={soru.final_png_url} className="max-h-72 object-contain drop-shadow-lg rounded-lg" alt="Final Out" />
                                 </div>
