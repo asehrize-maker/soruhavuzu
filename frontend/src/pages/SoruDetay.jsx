@@ -455,11 +455,11 @@ export default function SoruDetay() {
     } catch (e) { }
   };
 
-  const handleUpdateStatus = async (status, confirmMsg = null) => {
-    if (confirmMsg && !confirmData) {
+  const handleUpdateStatus = async (status, confirmMsg = null, bypassConfirm = false) => {
+    if (confirmMsg && !confirmData && !bypassConfirm) {
       setConfirmData({
         message: confirmMsg,
-        action: () => handleUpdateStatus(status)
+        action: () => handleUpdateStatus(status, null, true)
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
@@ -467,7 +467,10 @@ export default function SoruDetay() {
     setConfirmData(null);
     try {
       if (status === 'dizgi_tamam' && !soru.final_png_url) {
-        alert('Lütfen önce PNG görseli yükleyiniz. Görsel yüklenmeden dizgi tamamlanamaz.');
+        setConfirmData({
+          message: 'Lütfen önce PNG görseli yükleyiniz. Görsel yüklenmeden dizgi tamamlanamaz.',
+          error: true
+        });
         return;
       }
       await soruAPI.updateDurum(id, { yeni_durum: status, aciklama: `Durum güncellendi: ${STATUS_LABELS[status] || status}` });
@@ -479,7 +482,7 @@ export default function SoruDetay() {
       }
     } catch (e) {
       const errorMsg = e.response?.data?.error || e.response?.data?.message || e.message;
-      alert('Hata: ' + errorMsg);
+      setConfirmData({ message: 'Hata: ' + errorMsg, error: true });
     }
   };
 
@@ -497,10 +500,12 @@ export default function SoruDetay() {
       await soruAPI.geriAl(id);
       await loadSoru();
       await loadRevizeNotlari();
-      alert('İşlem başarıyla geri alındı.');
+      // Silme mesajı yerine başarı modalı da gösterebiliriz ama kullanıcı genelde aksiyonun yapıldığını görmek ister
+      // Şimdilik alert yerine hiçbir şey demiyoruz (UI zaten değişecek) veya küçük bir modal:
+      setConfirmData({ message: 'İşlem başarıyla geri alındı.', success: true });
     } catch (e) {
       const errorMsg = e.response?.data?.error || e.response?.data?.message || e.message;
-      alert('Hata: ' + errorMsg);
+      setConfirmData({ message: 'Hata: ' + errorMsg, error: true });
     }
   };
 
@@ -1105,9 +1110,9 @@ export default function SoruDetay() {
       {confirmData && (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden animate-scale-up">
-            <div className="p-6 bg-emerald-600 text-white flex justify-between items-center px-8">
+            <div className={`p-6 ${confirmData.error ? 'bg-rose-600' : confirmData.success ? 'bg-emerald-600' : 'bg-emerald-600'} text-white flex justify-between items-center px-8`}>
               <h5 className="font-black text-xs uppercase tracking-[0.2em] flex items-center gap-2">
-                <InformationCircleIcon className="w-5 h-5" /> İşlem Onayı
+                <InformationCircleIcon className="w-5 h-5" /> {confirmData.error ? 'HATA' : confirmData.success ? 'BAŞARILI' : 'İşlem Onayı'}
               </h5>
               <button onClick={() => setConfirmData(null)} className="hover:bg-white/10 p-2 rounded-xl transition-all">
                 <XMarkIcon className="w-6 h-6" />
@@ -1115,7 +1120,7 @@ export default function SoruDetay() {
             </div>
             <div className="p-10 space-y-8">
               <div className="flex flex-col items-center gap-4 text-center">
-                <div className="p-4 bg-emerald-50 rounded-full text-emerald-600">
+                <div className={`p-4 ${confirmData.error ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'} rounded-full`}>
                   <InformationCircleIcon className="w-10 h-10" strokeWidth={2} />
                 </div>
                 <p className="text-base font-bold text-gray-700 leading-relaxed">
@@ -1123,18 +1128,29 @@ export default function SoruDetay() {
                 </p>
               </div>
               <div className="flex gap-3">
-                <button
-                  onClick={() => setConfirmData(null)}
-                  className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
-                >
-                  İPTAL
-                </button>
-                <button
-                  onClick={confirmData.action}
-                  className="flex-[2] py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-emerald-100 transition-all active:scale-95"
-                >
-                  ONAYLA VE GÖNDER
-                </button>
+                {(!confirmData.error && !confirmData.success) ? (
+                  <>
+                    <button
+                      onClick={() => setConfirmData(null)}
+                      className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
+                    >
+                      İPTAL
+                    </button>
+                    <button
+                      onClick={confirmData.action}
+                      className="flex-[2] py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-emerald-100 transition-all active:scale-95"
+                    >
+                      ONAYLA VE GÖNDER
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setConfirmData(null)}
+                    className={`w-full py-4 ${confirmData.error ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl`}
+                  >
+                    KAPAT
+                  </button>
+                )}
               </div>
             </div>
           </div>
