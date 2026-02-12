@@ -494,13 +494,6 @@ export default function DizgiYonetimi() {
                         </div>
                       )}
 
-                      {/* EĞER FİNAL PNG VARSA METNİ ALTTA REFERANS OLARAK GÖSTERELİM */}
-                      {selectedSoru.final_png_url && (
-                        <div className="mt-10 pt-10 border-t border-gray-100">
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 text-center italic">Soru İçerik Metni (Referans)</p>
-                          <div className="text-gray-500 prose prose-lg max-w-none font-medium leading-relaxed opacity-50 font-sans" dangerouslySetInnerHTML={{ __html: selectedSoru.soru_metni }} />
-                        </div>
-                      )}
                     </div>
                   </div>
 
