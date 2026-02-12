@@ -464,16 +464,16 @@ router.post('/', [
         latex_kodu, kazanim, olusturan_kullanici_id, 
         dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
         secenek_a, secenek_b, secenek_c, secenek_d, secenek_e, dogru_cevap, fotograf_konumu,
-        durum, kategori, kullanildi, kullanim_alani
+        durum, kategori, kullanildi, kullanim_alani, versiyon
       ) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23) RETURNING *`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24) RETURNING *`,
       [
         soru_metni, fotograf_url, fotograf_public_id, normalizedZorluk, brans_id,
         latex_kodu || null, kazanim || null, req.user.id,
         dosya_url, dosya_public_id, dosya_adi, dosya_boyutu,
         secenek_a || null, secenek_b || null, secenek_c || null, secenek_d || null, secenek_e || null, dogru_cevap || null, fotograf_konumu || 'ust',
         durum || 'beklemede', kategori || 'deneme',
-        kullanildi === 'true' || kullanildi === true, kullanim_alani || null
+        kullanildi === 'true' || kullanildi === true, kullanim_alani || null, 0
       ]
     );
 
@@ -663,15 +663,8 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
 
     // 2. VERİTABANI GÜNCELLEME
     let result;
-    let versiyonSqlSnippet = 'COALESCE(versiyon, 1)';
-    // Eğer dizgiye tekrar gönderiliyorsa (ilk kez değil) versiyonu artır
-    // Eğer dizgiye tekrar gönderiliyorsa (ilk kez değil) veya incelemeden geri dönüyorsa versiyonu artır
-    if (yeni_durum === 'dizgi_bekliyor') {
-      const reDizgiStates = ['revize_istendi', 'revize_gerekli', 'dizgi_tamam', 'dizgide', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam'];
-      if (reDizgiStates.includes(soru.durum)) {
-        versiyonSqlSnippet = 'COALESCE(versiyon, 1) + 1';
-      }
-    }
+    // Versiyon artık sadece dizgi dönüşünde (PNG yüklendiğinde) artacak.
+    let versiyonSqlSnippet = 'COALESCE(versiyon, 0)';
 
     if (yeni_durum === 'alan_onaylandi' || yeni_durum === 'dil_onaylandi' || yeni_durum === 'dil_incelemede' || yeni_durum === 'tamamlandi') {
       let setSql = '';
@@ -1092,7 +1085,7 @@ router.put('/:id/final-upload', [authenticate, upload.single('final_png')], asyn
         SET final_png_url = $1, final_png_public_id = $2,
             dizgici_id = COALESCE(dizgici_id, $3),
             guncellenme_tarihi = CURRENT_TIMESTAMP,
-            versiyon = COALESCE(versiyon, 1) + 1
+            versiyon = COALESCE(versiyon, 0) + 1
         WHERE id = $4 
         RETURNING *
       `;
