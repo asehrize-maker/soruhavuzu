@@ -1209,7 +1209,7 @@ export default function SoruDetay() {
 
           {!editMode && (
             <div className="flex flex-wrap items-center gap-2">
-              {canReview && soru.durum !== 'tamamlandi' && (
+              {canReview && !isBranchTeacher && soru.durum !== 'tamamlandi' && (
                 <button onClick={handleFinishReview} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 transition-all active:scale-95">🚩 İNCELEMEYİ SONLANDIR</button>
               )}
               {canEdit && (
