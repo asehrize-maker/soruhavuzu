@@ -236,7 +236,7 @@ export default function Layout() {
             </div>
             {actualRole === 'admin' && (
               <div className="mt-3">
-                <label className="block text-[11px] font-semibold text-gray-400 mb-1">Görünüm Değiştir</label>
+                <label className="block text-[11px] font-semibold text-gray-400 mb-1">Rol Seç</label>
                 <select
                   className="w-full bg-[#0f172a] border border-gray-600 text-gray-200 text-xs rounded-md px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={effectiveRole || 'admin'}
