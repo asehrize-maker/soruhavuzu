@@ -484,7 +484,15 @@ export default function SoruDetay() {
   };
 
   const handleGeriAl = async () => {
-    if (!confirm('Yaptığınız son işlemi geri almak istiyor musunuz?')) return;
+    if (!confirmData) {
+      setConfirmData({
+        message: 'Yaptığınız son işlemi geri almak istiyor musunuz?',
+        action: () => handleGeriAl()
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    setConfirmData(null);
     try {
       await soruAPI.geriAl(id);
       await loadSoru();
@@ -599,7 +607,16 @@ export default function SoruDetay() {
       ? `İşaretlediğiniz ${revizeNotlari.length} adet notla birlikte incelemeyi bitirip REVİZE İSTEMEK istiyor musunuz?`
       : 'Soru hatasız mı? ONAYLAYIP incelemeyi bitirmek istediğinizden emin misiniz?';
 
-    if (!confirm(msg)) return;
+    if (!confirmData) {
+      setConfirmData({
+        message: msg,
+        action: () => handleFinishReview()
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    setConfirmData(null);
     try {
       await soruAPI.updateDurum(id, {
         yeni_durum: nextStatus,
