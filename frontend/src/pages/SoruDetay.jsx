@@ -1245,7 +1245,7 @@ export default function SoruDetay() {
                     <button onClick={() => handleUpdateStatus('dil_incelemede')} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">🔤 DİL İNCELEME</button>
                   )}
 
-                  {soru.onay_alanci && soru.onay_dilci && ['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam'].includes(soru.durum) && (
+                  {soru.onay_alanci && soru.onay_dilci && soru.final_png_url && ['dizgi_tamam', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam'].includes(soru.durum) && (
                     <button onClick={() => handleUpdateStatus('tamamlandi', 'Soruyu tamamlanan sorulara aktarmak istediğinize emin misiniz?')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-100 transition-all">✅ TAMAMLANANLARA AKTAR</button>
                   )}
                 </div>

@@ -578,9 +578,9 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
         throw new AppError('Soru dizgiye gönderilmeden inceleme veya tamamlama aşamasına geçemez.', 400);
       }
 
-      // Alan ve Dil onayı olmadan tamamlanamaz
-      if (yeni_durum === 'tamamlandi' && (!soru.onay_alanci || !soru.onay_dilci)) {
-        throw new AppError('Soru hem alan hem de dil onayını almadan tamamlananlara aktarılamaz.', 400);
+      // Alan ve Dil onayı ve PNG olmadan tamamlanamaz
+      if (yeni_durum === 'tamamlandi' && (!soru.onay_alanci || !soru.onay_dilci || !soru.final_png_url)) {
+        throw new AppError('Soru hem alan hem de dil onayını almalı ve dizgi görseli (PNG) yüklenmiş olmalıdır.', 400);
       }
     }
 
