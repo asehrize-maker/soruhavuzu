@@ -633,21 +633,29 @@ export default function SoruDetay() {
   };
 
   const finalFileInputRef = useRef(null);
-  const handleFinalUpload = async (e) => {
+  const handleFinalUpload = async (e, bypassConfirm = false) => {
     const file = e.target.files[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) return alert('Lütfen geçerli bir resim dosyası seçin.');
-    if (confirm("Seçilen görsel DİZGİ SONUCU olarak yüklenecek. Onaylıyor musunuz?")) {
-      try {
-        const formData = new FormData();
-        formData.append('final_png', file);
-        // Önce local olarak notları temizle (görsel değişeceği için)
-        setRevizeNotlari([]);
-        await soruAPI.uploadFinal(id, formData);
-        await loadSoru();
-        await loadRevizeNotlari();
-      } catch (err) { alert('Yükleme başarısız: ' + (err.response?.data?.error || err.message)); }
+    if (!confirmData && !bypassConfirm) {
+      setConfirmData({
+        message: "Seçilen görsel DİZGİ SONUCU olarak yüklenecek. Onaylıyor musunuz?",
+        action: () => handleFinalUpload(e, true)
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
     }
+
+    setConfirmData(null);
+    try {
+      const formData = new FormData();
+      formData.append('final_png', file);
+      // Önce local olarak notları temizle (görsel değişeceği için)
+      setRevizeNotlari([]);
+      await soruAPI.uploadFinal(id, formData);
+      await loadSoru();
+      await loadRevizeNotlari();
+    } catch (err) { alert('Yükleme başarısız: ' + (err.response?.data?.error || err.message)); }
   };
 
   const handleEditStart = () => {

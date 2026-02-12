@@ -117,11 +117,11 @@ export default function DizgiYonetimi() {
     }
   };
 
-  const handleDurumGuncelle = async (soruId, durum, confirmMsg = null) => {
-    if (confirmMsg && !confirmData) {
+  const handleDurumGuncelle = async (soruId, durum, confirmMsg = null, bypassConfirm = false) => {
+    if (confirmMsg && !confirmData && !bypassConfirm) {
       setConfirmData({
         message: confirmMsg,
-        action: () => handleDurumGuncelle(soruId, durum)
+        action: () => handleDurumGuncelle(soruId, durum, null, true)
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
