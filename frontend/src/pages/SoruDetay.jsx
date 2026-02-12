@@ -1210,7 +1210,14 @@ export default function SoruDetay() {
           {!editMode && (
             <div className="flex flex-wrap items-center gap-2">
               {canReview && !isBranchTeacher && soru.durum !== 'tamamlandi' && (
-                <button onClick={handleFinishReview} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 transition-all active:scale-95">🚩 İNCELEMEYİ SONLANDIR</button>
+                <button
+                  onClick={handleFinishReview}
+                  className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 transition-all active:scale-95"
+                >
+                  {revizeNotlari.filter(n => !n.cozuldu && n.inceleme_turu === (isAdmin ? 'alanci' : (isActuallyAlanci ? 'alanci' : 'dilci'))).length > 0
+                    ? "🚩 REVİZE TALEBİNİ BRANŞA GÖNDER"
+                    : "🚩 İNCELEMEYİ SONLANDIR (ONAYLA)"}
+                </button>
               )}
               {canEdit && (
                 <button onClick={handleEditStart} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 transition-all active:scale-95"><PencilIcon className="w-5 h-5" /> DÜZENLE</button>

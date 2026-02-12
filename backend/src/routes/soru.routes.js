@@ -145,7 +145,9 @@ router.get('/', authenticate, async (req, res, next) => {
              b.brans_adi, b.ekip_id as brans_ekip_id,
              e.ekip_adi,
              k.ad_soyad as olusturan_ad,
-             d.ad_soyad as dizgici_ad
+             d.ad_soyad as dizgici_ad,
+             (SELECT COUNT(*) FROM soru_revize_notlari rn WHERE rn.soru_id = s.id AND rn.cozuldu = false AND rn.inceleme_turu = 'alanci') as alanci_not_sayisi,
+             (SELECT COUNT(*) FROM soru_revize_notlari rn WHERE rn.soru_id = s.id AND rn.cozuldu = false AND rn.inceleme_turu = 'dilci') as dilci_not_sayisi
       FROM sorular s
       LEFT JOIN branslar b ON s.brans_id = b.id
       LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
@@ -2058,6 +2060,18 @@ router.get('/stats/inceleme-detayli', authenticate, async (req, res, next) => {
     }
 
     const query = `
+    WITH alanci_notlar AS (
+      SELECT soru_id, COUNT(*) as sayi 
+      FROM soru_revize_notlari 
+      WHERE cozuldu = false AND inceleme_turu = 'alanci'
+      GROUP BY soru_id
+    ),
+    dilci_notlar AS (
+      SELECT soru_id, COUNT(*) as sayi 
+      FROM soru_revize_notlari 
+      WHERE cozuldu = false AND inceleme_turu = 'dilci'
+      GROUP BY soru_id
+    )
     SELECT
       COALESCE(e.id, 0) as ekip_id,
       COALESCE(e.ekip_adi, 'Genel / Paylaşımlı') as ekip_adi,
@@ -2065,19 +2079,21 @@ router.get('/stats/inceleme-detayli', authenticate, async (req, res, next) => {
       b.brans_adi,
       s.kategori,
       COUNT(s.id) FILTER(WHERE s.durum IN('inceleme_bekliyor', 'incelemede', 'alan_incelemede', 'dil_incelemede') AND s.onay_alanci = false) as alanci_bekleyen,
-      COUNT(s.id) FILTER(WHERE s.durum IN('revize_istendi', 'revize_gerekli') AND s.onay_alanci = false) as alanci_revize,
-      COUNT(s.id) FILTER(WHERE s.onay_alanci = true) as alanci_tamamlanan,
+      COUNT(s.id) FILTER(WHERE (s.durum IN('revize_istendi', 'revize_gerekli') AND s.onay_alanci = false) OR (s.durum = 'alan_onaylandi' AND COALESCE(an.sayi, 0) > 0)) as alanci_revize,
+      COUNT(s.id) FILTER(WHERE s.onay_alanci = true AND COALESCE(an.sayi, 0) = 0) as alanci_tamamlanan,
       COUNT(s.id) FILTER(WHERE s.durum IN('inceleme_bekliyor', 'incelemede', 'alan_incelemede', 'dil_incelemede') AND s.onay_dilci = false) as dilci_bekleyen,
-      COUNT(s.id) FILTER(WHERE s.durum IN('revize_istendi', 'revize_gerekli') AND s.onay_dilci = false) as dilci_revize,
-      COUNT(s.id) FILTER(WHERE s.onay_dilci = true) as dilci_tamamlanan,
+      COUNT(s.id) FILTER(WHERE (s.durum IN('revize_istendi', 'revize_gerekli') AND s.onay_dilci = false) OR (s.durum = 'dil_onaylandi' AND COALESCE(dn.sayi, 0) > 0)) as dilci_revize,
+      COUNT(s.id) FILTER(WHERE s.onay_dilci = true AND COALESCE(dn.sayi, 0) = 0) as dilci_tamamlanan,
       COUNT(s.id) as kategori_toplam
     FROM sorular s
     JOIN branslar b ON s.brans_id = b.id
     LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
     LEFT JOIN ekipler e ON k.ekip_id = e.id
+    LEFT JOIN alanci_notlar an ON s.id = an.soru_id
+    LEFT JOIN dilci_notlar dn ON s.id = dn.soru_id
     WHERE 1=1
       ${req.user.rol !== 'admin' ? `AND (b.ekip_id = ${req.user.ekip_id || -1} OR k.ekip_id = ${req.user.ekip_id || -1})` : ''}
-    GROUP BY e.id, e.ekip_adi, b.id, b.brans_adi, s.kategori
+    GROUP BY e.id, e.ekip_adi, b.id, b.brans_adi, s.kategori, an.sayi, dn.sayi
     ORDER BY b.brans_adi, s.kategori
     `;
 

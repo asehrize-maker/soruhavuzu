@@ -55,19 +55,27 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode, filterGroup = 'bekleye
 
           // REVİZE İSTENENLER (Geri gönderdiklerim veya düzeltme bekleyenler)
           if (filterGroup === 'revize') {
-            // Durum revize ise ve onayım yoksa (yani süreç devam ediyorsa veya revizeyi ben istediysem)
-            // Backend mantığına göre: revize durumunda ve onayı yoksa bu listeye düşer.
+            const hasNotes = isAlanci ? (Number(s.alanci_not_sayisi) > 0) : (Number(s.dilci_not_sayisi) > 0);
+
+            // Standart revize durumu
             if (sentRevision) {
               if (isAlanci && !s.onay_alanci) return true;
               if (!isAlanci && !s.onay_dilci) return true;
             }
-            return false;
+
+            // Alan/Dil onaylı ama notu var (Branşta düzeltme bekliyor)
+            const isApprovedButHasNotes = (isAlanci && s.durum === 'alan_onaylandi' && hasNotes) ||
+              (!isAlanci && s.durum === 'dil_onaylandi' && hasNotes);
+
+            return isApprovedButHasNotes;
           }
 
-          // TAMAMLANANLAR (Onay verdiğim sorular)
+          // TAMAMLANANLAR (Onay verdiğim ve notu olmayan sorular)
           if (filterGroup === 'tamamlanan') {
-            if (isAlanci && s.onay_alanci) return true;
-            if (!isAlanci && s.onay_dilci) return true;
+            const hasNotes = isAlanci ? (Number(s.alanci_not_sayisi) > 0) : (Number(s.dilci_not_sayisi) > 0);
+
+            if (isAlanci && s.onay_alanci && !hasNotes) return true;
+            if (!isAlanci && s.onay_dilci && !hasNotes) return true;
             return false;
           }
 
