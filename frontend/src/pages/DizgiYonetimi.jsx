@@ -486,8 +486,8 @@ export default function DizgiYonetimi() {
                         </div>
                       )}
 
-                      {/* ORİJİNAL DRAFT GÖRSELİ (SADECE METİN İÇİNDE YOKSA FALLBACK OLARAK) */}
-                      {selectedSoru.fotograf_url && !selectedSoru.soru_metni?.includes('<img') && (
+                      {/* ORİJİNAL DRAFT GÖRSELİ (SADECE METİN İÇİNDE YOKSA FALLBACK OLARAK VE FİNAL PNG YOKSA) */}
+                      {selectedSoru.fotograf_url && !selectedSoru.final_png_url && !selectedSoru.soru_metni?.includes('<img') && (
                         <div className="mt-10 p-4 bg-white rounded-3xl shadow-sm border border-gray-100 inline-block overflow-hidden max-w-full">
                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 text-center">Orijinal Taslak Görseli</p>
                           <img src={selectedSoru.fotograf_url} className="max-w-full rounded-2xl mx-auto block opacity-60 hover:opacity-100 transition-opacity" alt="Soru Taslak Görseli" />

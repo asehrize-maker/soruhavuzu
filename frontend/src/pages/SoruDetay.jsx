@@ -1223,7 +1223,7 @@ export default function SoruDetay() {
                                   vectorEffect="non-scaling-stroke"
                                 />
                                 {/* Label at last point */}
-                                <foreignObject x={`${shape.points[shape.points.length - 1].x}%`} y={`${shape.points[shape.points.length - 1].y}%`} width="30" height="30" style={{ overflow: 'visible' }}>
+                                <foreignObject x={shape.points[shape.points.length - 1].x} y={shape.points[shape.points.length - 1].y} width="30" height="30" style={{ overflow: 'visible' }}>
                                   <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
                                 </foreignObject>
                               </svg>
@@ -1248,7 +1248,7 @@ export default function SoruDetay() {
                                 />
                                 <circle cx={shape.x2} cy={shape.y2} r="1" fill={colorHex} />
                                 {/* Label at the end */}
-                                <foreignObject x={`${shape.x2}%`} y={`${shape.y2}%`} width="30" height="30" style={{ overflow: 'visible' }}>
+                                <foreignObject x={shape.x2} y={shape.y2} width="30" height="30" style={{ overflow: 'visible' }}>
                                   <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
                                 </foreignObject>
                               </svg>
@@ -1368,7 +1368,7 @@ export default function SoruDetay() {
                 >
                   <div className="prose max-w-none w-full relative z-0" style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}>
                     <div ref={soruMetniRef} className="text-gray-900 katex-left-align q-preview-container select-text [&_img]:w-full [&_img]:max-w-full [&_img]:block [&_img]:my-5" onMouseUp={handleTextSelection} />
-                    {soru.fotograf_url && !soru.soru_metni?.includes('<img') && (
+                    {soru.fotograf_url && !soru.final_png_url && !soru.soru_metni?.includes('<img') && (
                       <div className="mt-8 flex justify-center p-4 border rounded-xl bg-gray-50 border-gray-100">
                         <img src={soru.fotograf_url} className="max-w-full rounded-lg shadow-sm cursor-zoom-in" onClick={(e) => window.open(e.target.src, '_blank')} alt="Soru Görseli" />
                       </div>
