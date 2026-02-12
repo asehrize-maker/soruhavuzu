@@ -550,8 +550,19 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
 
     // %%% İŞ AKIŞI KISITLAMALARI (WORKFLOW VALIDATION) %%%
     // 1. Dizgi tamamlanırken PNG kontrolü (Zorunlu - Herkes için)
-    if (yeni_durum === 'dizgi_tamam' && !soru.final_png_url) {
-      throw new AppError('Dizgi tamamlanmadan önce final PNG görseli yüklenmelidir.', 400);
+    if (yeni_durum === 'dizgi_tamam') {
+      if (!soru.final_png_url) {
+        throw new AppError('Dizgi tamamlanmadan önce final PNG görseli yüklenmelidir.', 400);
+      }
+
+      // Çözülmemiş revize notu varsa bitiremez (Yeni PNG yüklenmesi tüm notları çözer)
+      const unresolvedNotes = await pool.query(
+        'SELECT COUNT(*) FROM soru_revize_notlari WHERE soru_id = $1 AND cozuldu = false',
+        [id]
+      );
+      if (parseInt(unresolvedNotes.rows[0].count) > 0) {
+        throw new AppError('Çözülmemiş revize notları varken dizgi tamamlanamaz. Lütfen düzeltmeleri yapıp yeni PNG yükleyiniz.', 400);
+      }
     }
 
     if (!isAdmin) {

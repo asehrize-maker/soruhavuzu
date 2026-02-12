@@ -478,12 +478,21 @@ export default function SoruDetay() {
     }
     setConfirmData(null);
     try {
-      if (status === 'dizgi_tamam' && !soru.final_png_url) {
-        setConfirmData({
-          message: 'Lütfen önce PNG görseli yükleyiniz. Görsel yüklenmeden dizgi tamamlanamaz.',
-          error: true
-        });
-        return;
+      if (status === 'dizgi_tamam') {
+        if (!soru.final_png_url) {
+          setConfirmData({
+            message: 'Lütfen önce PNG görseli yükleyiniz. Görsel yüklenmeden dizgi tamamlanamaz.',
+            error: true
+          });
+          return;
+        }
+        if (revizeNotlari.some(n => !n.cozuldu)) {
+          setConfirmData({
+            message: 'Çözülmemiş revize notları varken dizgi tamamlanamaz. Lütfen yeni PNG yükleyerek notları çözüme kavuşturun.',
+            error: true
+          });
+          return;
+        }
       }
       await soruAPI.updateDurum(id, { yeni_durum: status, aciklama: `Durum güncellendi: ${STATUS_LABELS[status] || status}` });
       // Durum değiştiğinde notları tazele (belki çözüldü yapılmıştır)
@@ -1246,14 +1255,24 @@ export default function SoruDetay() {
                 <div className="flex gap-2">
                   <input type="file" ref={finalFileInputRef} className="hidden" accept="image/*" onChange={handleFinalUpload} />
                   <button onClick={() => finalFileInputRef.current.click()} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2"><PhotoIcon className="w-5 h-5" /> PNG YÜKLE</button>
-                  <button
-                    onClick={() => handleUpdateStatus('dizgi_tamam', 'Dizgiyi tamamlayıp soru yazarının onayına sunmak istediğinize emin misiniz?')}
-                    className={`px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl flex items-center gap-2 ${!soru.final_png_url ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-100 active:scale-95'}`}
-                    disabled={!soru.final_png_url}
-                  >
-                    <CheckCircleIcon className="w-5 h-5" />
-                    {!soru.final_png_url ? 'ÖNCE PNG YÜKLEYİNİZ' : 'DİZGİYİ TAMAMLA VE GÖNDER'}
-                  </button>
+                  {(() => {
+                    const hasUnresolvedNotes = revizeNotlari.some(n => !n.cozuldu);
+                    const isBtnDisabled = !soru.final_png_url || hasUnresolvedNotes;
+                    const btnLabel = !soru.final_png_url
+                      ? 'ÖNCE PNG YÜKLEYİNİZ'
+                      : (hasUnresolvedNotes ? 'ÖNCE TÜM DÜZELTMELERİ YAPIP PNG YÜKLEYİNİZ' : 'DİZGİYİ TAMAMLA VE GÖNDER');
+
+                    return (
+                      <button
+                        onClick={() => handleUpdateStatus('dizgi_tamam', 'Dizgiyi tamamlayıp soru yazarının onayına sunmak istediğinize emin misiniz?')}
+                        className={`px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl flex items-center gap-2 ${isBtnDisabled ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-100 active:scale-95'}`}
+                        disabled={isBtnDisabled}
+                      >
+                        <CheckCircleIcon className="w-5 h-5" />
+                        {btnLabel}
+                      </button>
+                    );
+                  })()}
                 </div>
               )}
 
