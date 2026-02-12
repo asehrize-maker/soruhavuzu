@@ -665,32 +665,38 @@ router.put('/:id(\\d+)/durum', authenticate, async (req, res, next) => {
     let result;
     let versiyonSqlSnippet = 'COALESCE(versiyon, 1)';
     // Eğer dizgiye tekrar gönderiliyorsa (ilk kez değil) versiyonu artır
+    // Eğer dizgiye tekrar gönderiliyorsa (ilk kez değil) veya incelemeden geri dönüyorsa versiyonu artır
     if (yeni_durum === 'dizgi_bekliyor') {
-      const reDizgiStates = ['revize_istendi', 'revize_gerekli', 'dizgi_tamam', 'dizgide'];
+      const reDizgiStates = ['revize_istendi', 'revize_gerekli', 'dizgi_tamam', 'dizgide', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam'];
       if (reDizgiStates.includes(soru.durum)) {
         versiyonSqlSnippet = 'COALESCE(versiyon, 1) + 1';
       }
     }
 
-    if (yeni_durum === 'alan_onaylandi' || yeni_durum === 'dil_onaylandi') {
-      const field = yeni_durum === 'alan_onaylandi' ? 'onay_alanci' : 'onay_dilci';
+    if (yeni_durum === 'alan_onaylandi' || yeni_durum === 'dil_onaylandi' || yeni_durum === 'dil_incelemede' || yeni_durum === 'tamamlandi') {
+      let setSql = '';
+      if (yeni_durum === 'alan_onaylandi') setSql = 'onay_alanci = true';
+      else if (yeni_durum === 'dil_onaylandi') setSql = 'onay_dilci = true';
+      else if (yeni_durum === 'dil_incelemede') setSql = 'onay_alanci = true';
+      else if (yeni_durum === 'tamamlandi') setSql = 'onay_alanci = true, onay_dilci = true';
+
       result = await pool.query(
         `UPDATE sorular SET 
            durum = $1, 
-           ${field} = true, 
+           ${setSql}, 
            guncellenme_tarihi = NOW(),
            versiyon = ${versiyonSqlSnippet}
          WHERE id = $2 RETURNING *`,
         [yeni_durum, id]
       );
-    } else if (yeni_durum === 'revize_istendi' || yeni_durum === 'revize_gerekli') {
+    } else if (yeni_durum === 'revize_istendi' || yeni_durum === 'revize_gerekli' || yeni_durum === 'dizgi_bekliyor') {
       const inceleme_turu = req.body.inceleme_turu;
 
       // %%% AKILLI ONAY SIFIRLAMA %%%
-      // Eğer alancı/admin revize istiyorsa: her şeyi sıfırla (içerik değişmiş olabilir)
-      // Eğer dilci revize istiyorsa: sadece dil onayını sıfırla, alan onayı kalsın
+      // Dizgiye geri gönderiliyorsa veya Alan/Admin revize istiyorsa: her şeyi sıfırla
+      // Eğer sadece dilci revize istiyorsa: sadece dil onayını sıfırla
       let resetSql = 'onay_dilci = false';
-      if (!inceleme_turu || inceleme_turu === 'alanci' || inceleme_turu === 'admin') {
+      if (yeni_durum === 'dizgi_bekliyor' || !inceleme_turu || inceleme_turu === 'alanci' || inceleme_turu === 'admin') {
         resetSql = 'onay_alanci = false, onay_dilci = false';
       }
 
@@ -1573,13 +1579,13 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
       query = `
         SELECT
           COUNT(*) as toplam,
-          COUNT(*) FILTER(WHERE durum = 'beklemede') as beklemede,
-          COUNT(*) FILTER(WHERE durum IN ('inceleme_bekliyor', 'alan_incelemede', 'dil_incelemede', 'incelemede')) as inceleme_bekliyor,
-          COUNT(*) FILTER(WHERE durum = 'dizgi_bekliyor') as dizgi_bekliyor,
-          COUNT(*) FILTER(WHERE durum = 'dizgide') as dizgide,
-          COUNT(*) FILTER(WHERE durum IN ('dizgi_tamam', 'inceleme_tamam', 'alan_onaylandi', 'dil_onaylandi')) as dizgi_tamam,
-          COUNT(*) FILTER(WHERE durum = 'tamamlandi') as tamamlandi,
-          COUNT(*) FILTER(WHERE durum IN ('revize_gerekli', 'revize_istendi')) as revize_gerekli
+          COUNT(CASE WHEN durum = 'beklemede' OR durum = 'revize_gerekli' THEN 1 END) as beklemede,
+          COUNT(CASE WHEN durum IN ('inceleme_bekliyor', 'alan_incelemede', 'dil_incelemede', 'incelemede', 'dizgi_tamam', 'inceleme_tamam', 'alan_onaylandi', 'dil_onaylandi', 'revize_istendi') THEN 1 END) as dizgi_tamam,
+          COUNT(CASE WHEN durum IN ('inceleme_bekliyor', 'alan_incelemede', 'dil_incelemede', 'incelemede') THEN 1 END) as inceleme_bekliyor,
+          COUNT(CASE WHEN durum = 'dizgi_bekliyor' THEN 1 END) as dizgi_bekliyor,
+          COUNT(CASE WHEN durum = 'dizgide' OR durum = 'revize_istendi' THEN 1 END) as dizgide,
+          COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlandi,
+          COUNT(CASE WHEN durum IN ('revize_gerekli', 'revize_istendi') THEN 1 END) as revize_gerekli
         FROM sorular s
         ${isActuallyAdmin ? '' : `WHERE s.brans_id IN (
           SELECT brans_id FROM kullanici_branslari WHERE kullanici_id = $1::integer
@@ -1633,13 +1639,13 @@ router.get('/stats/genel', authenticate, async (req, res, next) => {
       query = `
       SELECT
         COUNT(*) as toplam,
-        COUNT(*) FILTER(WHERE durum = 'beklemede') as beklemede,
-        COUNT(*) FILTER(WHERE durum IN ('inceleme_bekliyor', 'incelemede', 'alan_incelemede', 'dil_incelemede', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam')) as inceleme_bekliyor,
-        COUNT(*) FILTER(WHERE durum IN ('dizgi_bekliyor', 'dizgide')) as dizgi_bekliyor,
-        COUNT(*) FILTER(WHERE durum IN ('dizgi_tamam', 'revize_istendi', 'revize_gerekli', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam')) as dizgi_sonrasi,
-        COUNT(*) FILTER(WHERE durum = 'dizgide') as dizgide,
-        COUNT(*) FILTER(WHERE durum = 'tamamlandi') as tamamlandi,
-        COUNT(*) FILTER(WHERE durum = 'revize_gerekli' OR durum = 'revize_istendi') as revize_gerekli
+        COUNT(CASE WHEN durum = 'beklemede' THEN 1 END) as beklemede,
+        COUNT(CASE WHEN durum IN ('inceleme_bekliyor', 'incelemede', 'alan_incelemede', 'dil_incelemede', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam') THEN 1 END) as inceleme_bekliyor,
+        COUNT(CASE WHEN durum IN ('dizgi_bekliyor', 'dizgide', 'revize_istendi') THEN 1 END) as dizgi_bekliyor,
+        COUNT(CASE WHEN durum IN ('dizgi_tamam', 'revize_istendi', 'revize_gerekli', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam', 'alan_incelemede', 'dil_incelemede', 'incelemede') THEN 1 END) as dizgi_sonrasi,
+        COUNT(CASE WHEN durum = 'dizgide' OR durum = 'revize_istendi' THEN 1 END) as dizgide,
+        COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlandi,
+        COUNT(CASE WHEN durum = 'revize_gerekli' OR durum = 'revize_istendi') THEN 1 END) as revize_gerekli
       FROM sorular
       `;
     }
@@ -1694,7 +1700,7 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
           COUNT(*) as toplam_soru,
           COUNT(CASE WHEN durum = 'beklemede' THEN 1 END) as taslak,
           COUNT(CASE WHEN durum IN ('dizgi_bekliyor', 'dizgide') THEN 1 END) as dizgi,
-          COUNT(CASE WHEN durum IN ('dizgi_tamam', 'revize_istendi', 'revize_gerekli', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam') THEN 1 END) as dizgi_sonrasi,
+          COUNT(CASE WHEN durum IN ('dizgi_tamam', 'revize_istendi', 'revize_gerekli', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam', 'alan_incelemede', 'dil_incelemede', 'incelemede', 'inceleme_bekliyor') THEN 1 END) as dizgi_sonrasi,
           COUNT(CASE WHEN durum IN ('alan_incelemede', 'alan_onaylandi', 'inceleme_bekliyor', 'incelemede') AND onay_alanci = false THEN 1 END) as alan_inceleme,
           COUNT(CASE WHEN durum IN ('dil_incelemede', 'dil_onaylandi', 'inceleme_bekliyor', 'incelemede') AND onay_dilci = false THEN 1 END) as dil_inceleme,
           COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlandi,
@@ -1711,7 +1717,7 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
           COUNT(*) as toplam_soru,
           COUNT(CASE WHEN durum = 'beklemede' THEN 1 END) as taslak,
           COUNT(CASE WHEN durum IN ('dizgi_bekliyor', 'dizgide') THEN 1 END) as dizgi,
-          COUNT(CASE WHEN durum IN ('dizgi_tamam', 'revize_istendi', 'revize_gerekli', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam') THEN 1 END) as dizgi_sonrasi,
+          COUNT(CASE WHEN durum IN ('dizgi_tamam', 'revize_istendi', 'revize_gerekli', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam', 'alan_incelemede', 'dil_incelemede', 'incelemede', 'inceleme_bekliyor') THEN 1 END) as dizgi_sonrasi,
           COUNT(CASE WHEN durum IN ('alan_incelemede', 'alan_onaylandi', 'inceleme_bekliyor', 'incelemede') AND onay_alanci = false THEN 1 END) as alan_inceleme,
           COUNT(CASE WHEN durum IN ('dil_incelemede', 'dil_onaylandi', 'inceleme_bekliyor', 'incelemede') AND onay_dilci = false THEN 1 END) as dil_inceleme,
           COUNT(CASE WHEN durum = 'tamamlandi' THEN 1 END) as tamamlandi,
@@ -1761,7 +1767,7 @@ router.get('/stats/detayli', authenticate, async (req, res, next) => {
         COUNT(s.id) as soru_sayisi,
         COUNT(CASE WHEN s.durum = 'beklemede' THEN 1 END) as taslak,
         COUNT(CASE WHEN s.durum IN ('dizgi_bekliyor', 'dizgide') THEN 1 END) as dizgi,
-        COUNT(CASE WHEN s.durum IN ('dizgi_tamam', 'revize_istendi', 'revize_gerekli', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam') THEN 1 END) as dizgi_sonrasi,
+        COUNT(CASE WHEN s.durum IN ('dizgi_tamam', 'revize_istendi', 'revize_gerekli', 'alan_onaylandi', 'dil_onaylandi', 'inceleme_tamam', 'alan_incelemede', 'dil_incelemede', 'incelemede') THEN 1 END) as dizgi_sonrasi,
         COUNT(CASE WHEN s.durum IN ('alan_incelemede', 'alan_onaylandi', 'inceleme_bekliyor', 'incelemede') AND s.onay_alanci = false THEN 1 END) as alan_inceleme,
         COUNT(CASE WHEN s.durum IN ('dil_incelemede', 'dil_onaylandi', 'inceleme_bekliyor', 'incelemede') AND s.onay_dilci = false THEN 1 END) as dil_inceleme,
         COUNT(CASE WHEN s.durum = 'tamamlandi' THEN 1 END) as tamamlandi

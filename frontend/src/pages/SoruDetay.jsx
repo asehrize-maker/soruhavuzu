@@ -616,10 +616,12 @@ export default function SoruDetay() {
 
     if (!type) { alert('İnceleme türü belirlenemedi.'); return; }
 
-    const nextStatus = hasNotes ? 'revize_istendi' : (type === 'alanci' ? 'alan_onaylandi' : 'dil_onaylandi');
+    // Kullanıcı silsilesine göre: İncelemeci bitirince her durumda branşa (onaylı duruma) düşer.
+    // Branş öğretmeni notları görür ve dizgiye gönderip göndermeyeceğine kendisi karar verir.
+    const nextStatus = type === 'alanci' ? 'alan_onaylandi' : 'dil_onaylandi';
 
     const msg = hasNotes
-      ? `İşaretlediğiniz ${revizeNotlari.length} adet notla birlikte incelemeyi bitirip REVİZE İSTEMEK istiyor musunuz?`
+      ? `İşaretlediğiniz ${revizeNotlari.length} adet notla birlikte incelemeyi bitirip BRANŞ ONAYINA göndermek istiyor musunuz?`
       : 'Soru hatasız mı? ONAYLAYIP incelemeyi bitirmek istediğinizden emin misiniz?';
 
     if (!confirmData && !bypassConfirm) {
@@ -1223,7 +1225,7 @@ export default function SoruDetay() {
                     <button onClick={() => handleUpdateStatus('alan_incelemede')} className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">🔍 ALAN İNCELEME</button>
                   )}
 
-                  {soru.durum === 'alan_onaylandi' && !soru.onay_dilci && (
+                  {['alan_onaylandi', 'dizgi_tamam'].includes(soru.durum) && !soru.onay_dilci && (
                     <button onClick={() => handleUpdateStatus('dil_incelemede')} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">🔤 DİL İNCELEME</button>
                   )}
 
