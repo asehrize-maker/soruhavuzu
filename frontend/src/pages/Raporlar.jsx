@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { soruAPI } from '../services/api';
+import useAuthStore from '../store/authStore';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import {
@@ -22,6 +23,8 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function Raporlar() {
+  const { user } = useAuthStore();
+  const isAdmin = user?.rol === 'admin';
   const [loading, setLoading] = useState(false);
   const [raporTipi, setRaporTipi] = useState('haftalik');
   const [baslangic, setBaslangic] = useState('');
@@ -121,23 +124,25 @@ export default function Raporlar() {
             <DocumentChartBarIcon className="w-12 h-12 text-indigo-600" strokeWidth={2.5} />
             <h1 className="text-4xl font-black text-gray-900 tracking-tight">Analiz ve Raporlar</h1>
           </div>
-          <p className="text-gray-500 font-medium">Sistemin performansını ölçün, verimlilik raporları oluşturun ve veritabanı yedeği alın.</p>
+          <p className="text-gray-500 font-medium">Sistemin performansını ölçün ve verimlilik raporları oluşturun{isAdmin ? ' ve veritabanı yedeği alın.' : '.'}</p>
         </div>
-        <button
-          onClick={downloadYedek}
-          disabled={yedekLoading}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl px-8 py-4 font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-emerald-100 flex items-center gap-2 active:scale-95"
-        >
-          {yedekLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin" /> : <ArrowDownTrayIcon className="w-5 h-5" />}
-          TAM YEDEK İNDİR (JSON)
-        </button>
+        {isAdmin && (
+          <button
+            onClick={downloadYedek}
+            disabled={yedekLoading}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl px-8 py-4 font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-emerald-100 flex items-center gap-2 active:scale-95"
+          >
+            {yedekLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin" /> : <ArrowDownTrayIcon className="w-5 h-5" />}
+            TAM YEDEK İNDİR (JSON)
+          </button>
+        )}
       </div>
 
       {/* FILTERS CARD */}
       <div className="bg-white p-10 rounded-[3rem] shadow-xl shadow-gray-200/50 border border-gray-50 space-y-8 animate-scale-up">
         <div className="flex items-center gap-3 border-b border-gray-50 pb-6">
           <CalendarDaysIcon className="w-6 h-6 text-indigo-500" />
-          <h2 className="text-xl font-black text-gray-900 tracking-tight uppercase">Rapor Konfigürasyonu</h2>
+          <h2 className="text-xl font-black text-gray-900 tracking-tight uppercase">Rapor Filtreleme</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -234,11 +239,11 @@ export default function Raporlar() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+          <div className="grid grid-cols-1 gap-10">
             {/* BRANCH PERFORMANCE */}
             <div className="bg-white rounded-[3rem] shadow-xl shadow-gray-200/50 border border-gray-50 overflow-hidden">
               <div className="p-8 border-b border-gray-50 bg-gray-50/30 flex justify-between items-center">
-                <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3"><AcademicCapIcon className="w-6 h-6 text-blue-500" /> Branş Bazlı Verimlilik</h3>
+                <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3"><AcademicCapIcon className="w-6 h-6 text-blue-500" /> Branş Bazlı Soru Sayısı</h3>
                 {raporData && <button onClick={exportToPDF} className="p-3 bg-white border border-gray-100 rounded-2xl hover:bg-gray-50 transition-colors shadow-sm"><ArrowDownTrayIcon className="w-5 h-5 text-gray-400" /></button>}
               </div>
               <div className="overflow-x-auto">
@@ -247,7 +252,6 @@ export default function Raporlar() {
                     <tr>
                       <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Branş</th>
                       <th className="px-4 py-5 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Toplam</th>
-                      <th className="px-4 py-5 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Başarı %</th>
                       <th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Ort. Süre</th>
                     </tr>
                   </thead>
@@ -259,9 +263,6 @@ export default function Raporlar() {
                           <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{brans.ekip_adi || 'Genel'}</div>
                         </td>
                         <td className="px-4 py-5 text-center text-sm font-black text-gray-700">{brans.toplam_soru || 0}</td>
-                        <td className="px-4 py-5 text-center">
-                          <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl border border-emerald-100">%{calculatePercentage(brans.tamamlanan, brans.toplam_soru)}</span>
-                        </td>
                         <td className="px-8 py-5 text-right text-xs font-bold text-gray-500 italic">
                           {brans.ortalama_sure_saat ? `${brans.ortalama_sure_saat} Saat` : '-'}
                         </td>
@@ -271,49 +272,9 @@ export default function Raporlar() {
                 </table>
               </div>
             </div>
-
-            {/* PERSONNEL PERFORMANCE */}
-            <div className="bg-white rounded-[3rem] shadow-xl shadow-gray-200/50 border border-gray-50 overflow-hidden">
-              <div className="p-8 border-b border-gray-50 bg-gray-50/30 flex justify-between items-center">
-                <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3"><UserGroupIcon className="w-6 h-6 text-indigo-500" /> Personel Skor Tablosu</h3>
-                <div className="px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black tracking-widest">TOP 10</div>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-50">
-                  <thead className="bg-gray-50/50">
-                    <tr>
-                      <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Personel</th>
-                      <th className="px-4 py-5 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Üretim</th>
-                      <th className="px-4 py-5 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Kalite %</th>
-                      <th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">İşlem</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {raporData.kullanicilar.slice(0, 10).map((k, i) => (
-                      <tr key={i} className="hover:bg-indigo-50/20 transition-colors group">
-                        <td className="px-8 py-5 whitespace-nowrap">
-                          <div className="text-sm font-black text-gray-900">{k.ad_soyad}</div>
-                          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{k.brans_adi}</div>
-                        </td>
-                        <td className="px-4 py-5 text-center text-sm font-black text-gray-700">{k.olusturulan_soru || 0}</td>
-                        <td className="px-4 py-5 text-center">
-                          <div className="flex flex-col items-center">
-                            <span className="text-[11px] font-black text-gray-900">%{k.basari_orani || 0}</span>
-                            <div className="w-12 h-1 bg-gray-100 rounded-full mt-1 overflow-hidden"><div className={`h-full ${k.basari_orani >= 80 ? 'bg-emerald-500' : k.basari_orani >= 50 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: `${k.basari_orani}%` }}></div></div>
-                          </div>
-                        </td>
-                        <td className="px-8 py-5 text-right">
-                          <div className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100 opacity-0 group-hover:opacity-100 transition-opacity">PROBİS SKOR</div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+          <div className="grid grid-cols-1 gap-10">
             {/* CONTENT ANALYTICS */}
             <div className="bg-white p-10 rounded-[3rem] shadow-xl shadow-gray-200/50 border border-gray-50">
               <h3 className="text-xl font-black text-gray-900 tracking-tight mb-8 flex items-center gap-3"><SparklesIcon className="w-6 h-6 text-amber-500" /> İçerik Analitiği</h3>
@@ -328,45 +289,6 @@ export default function Raporlar() {
                   <span className="text-3xl font-black text-gray-900">{raporData.genel.latexli || 0}</span>
                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1">LaTeX Formül</span>
                 </div>
-              </div>
-            </div>
-
-            {/* TYPESETTER PERFORMANCE */}
-            <div className="bg-white rounded-[3rem] shadow-xl shadow-gray-200/50 border border-gray-50 overflow-hidden">
-              <div className="p-8 border-b border-gray-50 bg-gray-50/30 flex justify-between items-center">
-                <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3"><ClockIcon className="w-6 h-6 text-rose-500" /> Dizgi Kalite Kontrol</h3>
-                <div className="px-4 py-1.5 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-black tracking-widest">DİZGİ VERİMLİLİĞİ</div>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-50">
-                  <thead className="bg-gray-50/50">
-                    <tr>
-                      <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Dizgici</th>
-                      <th className="px-4 py-5 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Teslimat</th>
-                      <th className="px-4 py-5 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Hata Oranı</th>
-                      <th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Süre</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {raporData.dizgiciler.slice(0, 10).map((d, i) => (
-                      <tr key={i} className="hover:bg-rose-50/20 transition-colors group">
-                        <td className="px-8 py-5 whitespace-nowrap">
-                          <div className="text-sm font-black text-gray-900">{d.ad_soyad}</div>
-                          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{d.brans_adi}</div>
-                        </td>
-                        <td className="px-4 py-5 text-center text-sm font-black text-gray-700">{d.tamamlanan_soru || 0}</td>
-                        <td className="px-4 py-5 text-center">
-                          <span className={`text-[10px] font-black px-3 py-1.5 rounded-xl border ${d.reddedilen > 0 ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
-                            {d.reddedilen || 0} HATA
-                          </span>
-                        </td>
-                        <td className="px-8 py-5 text-right text-xs font-bold text-gray-500 italic">
-                          {d.ortalama_sure_saat ? `${d.ortalama_sure_saat}s` : '-'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
               </div>
             </div>
           </div>

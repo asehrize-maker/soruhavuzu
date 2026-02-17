@@ -11,7 +11,6 @@ import {
   Squares2X2Icon,
   ArrowPathIcon,
   ChevronRightIcon,
-  UserPlusIcon,
   CloudArrowUpIcon
 } from '@heroicons/react/24/outline';
 
@@ -28,8 +27,7 @@ export default function Ekipler() {
     aciklama: '',
   });
 
-  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
-  const [selectedUserToAdd, setSelectedUserToAdd] = useState('');
+
 
   useEffect(() => {
     loadData();
@@ -120,28 +118,14 @@ export default function Ekipler() {
     }
   };
 
-  const handleAddMemberToTeam = async (e) => {
-    e.preventDefault();
-    if (!selectedUserToAdd || !selectedTeam) return;
-    try {
-      await userAPI.update(selectedUserToAdd, { ekip_id: selectedTeam.id });
-      await refreshUsers();
-      setShowAddMemberModal(false);
-      setSelectedUserToAdd('');
-    } catch (error) {
-      alert('Ekleme başarısız: ' + (error.response?.data?.error || error.message));
-    }
-  };
+
 
   const getTeamUsers = (teamId) => {
     if (!users) return [];
     return users.filter(u => u.ekip_id === teamId);
   };
 
-  const getAvailableUsers = () => {
-    if (!users) return [];
-    return users.filter(u => u.ekip_id !== selectedTeam?.id).sort((a, b) => a.ad_soyad.localeCompare(b.ad_soyad));
-  };
+
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-12">
@@ -152,7 +136,7 @@ export default function Ekipler() {
             <UserGroupIcon className="w-12 h-12 text-blue-600" strokeWidth={2} />
             Ekip Yönetimi
           </h1>
-          <p className="mt-2 text-gray-500 font-medium">Branşları ve personelleri gruplandırmak için ekipler oluşturun.</p>
+          <p className="mt-2 text-gray-500 font-medium">Branşları ve personeli gruplandırmak için ekipler oluşturun.</p>
         </div>
         <button
           onClick={openNewModal}
@@ -213,7 +197,7 @@ export default function Ekipler() {
                   </div>
                   <div className="space-y-1 text-right">
                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] flex items-center gap-1 justify-end">
-                      <UsersIcon className="w-3 h-3" /> Personeller
+                      <UsersIcon className="w-3 h-3" /> Personel
                     </span>
                     <span className="font-black text-2xl text-gray-800">{ekip.kullanici_sayisi || 0}</span>
                   </div>
@@ -244,13 +228,7 @@ export default function Ekipler() {
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <button
-                  onClick={() => setShowAddMemberModal(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-lg hover:shadow-blue-200 active:scale-95 flex items-center gap-2"
-                >
-                  <UserPlusIcon className="w-5 h-5" />
-                  Üye Ekle
-                </button>
+
                 <button
                   onClick={() => setShowDetailModal(false)}
                   className="p-3 hover:bg-white rounded-2xl transition"
@@ -347,37 +325,7 @@ export default function Ekipler() {
         </div>
       )}
 
-      {/* Add Member Modal */}
-      {showAddMemberModal && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl animate-scale-up">
-            <h3 className="text-2xl font-black text-gray-900 tracking-tight mb-8">Ekibe Üye Dahil Et</h3>
-            <form onSubmit={handleAddMemberToTeam} className="space-y-6">
-              <div>
-                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Personel Seçin</label>
-                <select
-                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold text-gray-700 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                  value={selectedUserToAdd}
-                  onChange={e => setSelectedUserToAdd(e.target.value)}
-                  required
-                >
-                  <option value="">Seçiniz...</option>
-                  {getAvailableUsers().map(u => (
-                    <option key={u.id} value={u.id}>
-                      {u.ad_soyad} ({u.ekip_adi ? `Aktif: ${u.ekip_adi}` : 'EKİPSİZ'})
-                    </option>
-                  ))}
-                </select>
 
-              </div>
-              <div className="flex gap-4">
-                <button type="button" onClick={() => setShowAddMemberModal(false)} className="flex-1 px-4 py-4 bg-gray-100 text-gray-500 rounded-2xl text-[10px] font-black uppercase tracking-widest">İptal</button>
-                <button type="submit" className="flex-1 bg-blue-600 text-white rounded-2xl py-4 font-black text-sm uppercase tracking-widest shadow-lg shadow-blue-200">EKLE</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* CRUD Modal */}
       {showModal && (

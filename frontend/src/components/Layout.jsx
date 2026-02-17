@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { kullaniciMesajAPI, bildirimAPI, soruAPI, authAPI } from '../services/api';
+import { Toaster } from 'react-hot-toast';
 
 export default function Layout() {
 
@@ -113,25 +114,17 @@ export default function Layout() {
     { path: '/', label: user?.rol === 'admin' ? 'Genel Bakış' : 'Ana Sayfa', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
   ];
 
-  if (effectiveRole === 'admin' || effectiveRole === 'soru_yazici') {
+  if (['admin', 'koordinator', 'soru_yazici'].includes(effectiveRole)) {
     menuItems.push(
       { path: '/sorular', label: 'Tamamlanan Sorular', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
       { path: '/brans-havuzu', label: 'Tamamlanmayan Sorular', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' }
     );
   }
 
-  if (effectiveRole === 'admin') {
+  if (actualRole === 'admin' || actualRole === 'koordinator') {
     menuItems.push(
       { path: '/sorular?takip=1', label: 'Bekleyen İş Takibi', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' }
     );
-  }
-
-  if (['admin', 'koordinator', 'soru_yazici'].includes(effectiveRole)) {
-    menuItems.push({
-      path: '/denemeler',
-      label: 'Görevler',
-      icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
-    });
   }
 
   menuItems.push(
@@ -158,15 +151,24 @@ export default function Layout() {
     }
   }
 
+  if (actualRole === 'admin' || actualRole === 'koordinator') {
+    menuItems.push(
+      { path: '/kullanicilar', label: 'Kullanıcılar', icon: 'M12 12a4 4 0 100-8 4 4 0 000 8zm-7 8v-1a5 5 0 015-5h2a5 5 0 015 5v1H5z' },
+      { path: '/duyurular', label: 'Duyurular', icon: 'M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z' },
+      { path: '/raporlar', label: 'Raporlar', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' }
+    );
+  }
+
+  // Ajanda: Admin, Koordinator ve Soru Yazıcı görebilir (Görevler)
+  if (['admin', 'koordinator', 'soru_yazici'].includes(actualRole)) {
+    menuItems.push({ path: '/ajanda', label: 'Ajanda', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' });
+  }
+
   if (actualRole === 'admin') {
     menuItems.push(
       { path: '/ekipler', label: 'Ekipler', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
-      { path: '/branslar', label: 'Branşlar', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
-      { path: '/kullanicilar', label: 'Kullanıcılar', icon: 'M12 12a4 4 0 100-8 4 4 0 000 8zm-7 8v-1a5 5 0 015-5h2a5 5 0 015 5v1H5z' },
-      { path: '/duyurular', label: 'Duyurular', icon: 'M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z' },
-      { path: '/raporlar', label: 'Raporlar', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+      { path: '/branslar', label: 'Branşlar', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
       { path: '/logs', label: 'Sistem Logları', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-      { path: '/ajanda', label: 'Ajanda', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
       { path: '/settings', label: 'Site Ayarları', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' }
     );
   }
@@ -181,6 +183,7 @@ export default function Layout() {
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
+      <Toaster position="top-center" reverseOrder={false} />
       <aside className="w-64 bg-[#1e293b] text-white flex flex-col flex-shrink-0 shadow-xl relative z-20">
         <div className="p-6 flex flex-col items-center border-b border-gray-700 bg-[#0f172a]">
           <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-3 shadow-lg">SH</div>
@@ -216,11 +219,11 @@ export default function Layout() {
                   MÜFETTİŞ (TÜM EKİPLER)
                 </div>
               ) : user?.ekip_adi ? (
-                <div className="text-[10px] text-gray-400 font-bold uppercase flex items-center gap-1 mt-1">
+                <div className="text-[10px] text-blue-400 font-bold uppercase flex items-center gap-1 mt-1">
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
-                  {user.ekip_adi}
+                  {user.ekip_adi} EKİBİ
                 </div>
               ) : (actualRole !== 'admin' && (
                 <div className="text-[10px] text-red-400 font-bold uppercase flex items-center gap-1 mt-1">
@@ -233,7 +236,7 @@ export default function Layout() {
             </div>
             {actualRole === 'admin' && (
               <div className="mt-3">
-                <label className="block text-[11px] font-semibold text-gray-400 mb-1">Görünüm Değiştir</label>
+                <label className="block text-[11px] font-semibold text-gray-400 mb-1">Rol Seç</label>
                 <select
                   className="w-full bg-[#0f172a] border border-gray-600 text-gray-200 text-xs rounded-md px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={effectiveRole || 'admin'}
@@ -251,7 +254,7 @@ export default function Layout() {
                 </select>
               </div>
             )}
-            {user?.brans_adi && <p className="text-xs text-gray-400 mt-1">{user.brans_adi}</p>}
+            {user?.brans_adi && (actualRole !== 'admin' && actualRole !== 'koordinator') && <p className="text-xs text-gray-400 mt-1">{user.brans_adi}</p>}
           </div>
         </div>
         <nav className="flex-1 overflow-y-auto py-4 space-y-1 px-3 custom-scrollbar">
@@ -293,8 +296,13 @@ export default function Layout() {
               {showBildirimPanel && (
                 <div className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden origin-top-right transform transition-all">
                   <div className="px-5 py-4 bg-gray-50/50 border-b border-gray-100 flex justify-between items-center backdrop-blur-sm">
-                    <h3 className="font-semibold text-gray-800">Bildirimler</h3>
-                    {okunmamisBildirimSayisi > 0 && <button onClick={handleTumunuOkunduIsaretle} className="text-xs font-medium text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded-md transition-colors">Tümünü Okundu İşaretle</button>}
+                    <h3 className="text-xl font-black text-gray-900 tracking-tight">Bildirimler</h3>
+                    <button
+                      onClick={handleTumunuOkunduIsaretle}
+                      className="text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-widest bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      Tümünü Okundu Olarak İşaretle
+                    </button>
                   </div>
                   <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
                     {bildirimLoading ? <div className="p-8 text-center text-gray-500"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div></div> : bildirimler.length === 0 ? <div className="p-12 text-center text-gray-400"><div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3"><svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg></div><p className="text-gray-500 font-medium">Bildiriminiz bulunmuyor</p></div> : bildirimler.map((bildirim) => (

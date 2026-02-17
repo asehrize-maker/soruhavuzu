@@ -19,12 +19,14 @@ export default function Denemeler() {
     const canCreatePlan = effectiveRole === 'admin';
 
     const [denemeler, setDenemeler] = useState([]);
+    const [branslar, setBranslar] = useState([]);
+    const [ekipler, setEkipler] = useState([]);
     const [loading, setLoading] = useState(true);
     const [createLoading, setCreateLoading] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
 
     // Create Form
-    const [newPlan, setNewPlan] = useState({ ad: '', planlanan_tarih: '', aciklama: '', gorev_tipi: 'deneme' });
+    const [newPlan, setNewPlan] = useState({ ad: '', planlanan_tarih: '', aciklama: '', gorev_tipi: 'deneme', brans_id: '', ekip_id: '' });
 
     // Upload State
     const [uploadingId, setUploadingId] = useState(null);
@@ -46,6 +48,20 @@ export default function Denemeler() {
 
     useEffect(() => {
         fetchDenemeler();
+        const loadInitialData = async () => {
+            try {
+                const { bransAPI, ekipAPI } = await import('../services/api');
+                const [bransRes, ekipRes] = await Promise.all([
+                    bransAPI.getAll(),
+                    ekipAPI.getAll()
+                ]);
+                setBranslar(bransRes.data.data || []);
+                setEkipler(ekipRes.data.data || []);
+            } catch (error) {
+                console.error('Veriler yüklenemedi:', error);
+            }
+        };
+        loadInitialData();
     }, []);
 
     const handleCreate = async (e) => {
@@ -54,7 +70,7 @@ export default function Denemeler() {
         try {
             await denemeAPI.createPlan(newPlan);
             setShowCreateModal(false);
-            setNewPlan({ ad: '', planlanan_tarih: '', aciklama: '', gorev_tipi: 'deneme' });
+            setNewPlan({ ad: '', planlanan_tarih: '', aciklama: '', gorev_tipi: 'deneme', brans_id: '', ekip_id: '' });
             alert('Görev planı başarıyla oluşturuldu.');
             fetchDenemeler();
         } catch (error) {
@@ -186,6 +202,11 @@ export default function Denemeler() {
                                         <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${getGorevTipiColor(deneme.gorev_tipi)}`}>
                                             {getGorevTipiLabel(deneme.gorev_tipi)}
                                         </span>
+                                        {deneme.brans_id && (
+                                            <span className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                                {branslar.find(b => b.id === deneme.brans_id)?.brans_adi || 'Özel Branş'}
+                                            </span>
+                                        )}
                                     </div>
                                     <p className="text-sm text-gray-500">{deneme.aciklama}</p>
                                     <div className="flex items-center gap-4 text-xs font-bold text-gray-400">
@@ -199,7 +220,7 @@ export default function Denemeler() {
                                                     onClick={() => handlePlanDelete(deneme.id, deneme.ad)}
                                                     className="flex items-center gap-1 text-rose-500 hover:text-rose-600 transition-colors uppercase tracking-widest text-[9px] font-black"
                                                 >
-                                                    <TrashIcon className="w-3.5 h-3.5" /> PLANI SİL
+                                                    <TrashIcon className="w-3.5 h-3.5" /> GÖREVİ KALDIR
                                                 </button>
                                             </>
                                         )}
@@ -230,7 +251,7 @@ export default function Denemeler() {
                                             <button
                                                 onClick={() => handleDeleteUpload(deneme.my_upload_id)}
                                                 className="p-3 bg-rose-50 text-rose-600 rounded-xl border border-rose-100 hover:bg-rose-100 transition-all"
-                                                title="Yüklemeyi Sil"
+                                                title="Dosyayı Sil"
                                             >
                                                 <TrashIcon className="w-4 h-4" />
                                             </button>
@@ -246,9 +267,9 @@ export default function Denemeler() {
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="px-2 py-2 text-indigo-600 text-[9px] font-black hover:bg-indigo-100 transition-all flex items-center gap-1"
-                                                        title={`${up.brans_adi} yüklemesi - Gör`}
+                                                        title={`${up.brans_adi} (${up.yukleyen_ad}) yüklemesi - Gör`}
                                                     >
-                                                        <EyeIcon className="w-3 h-3" /> {up.brans_adi}
+                                                        <EyeIcon className="w-3 h-3" /> {up.brans_adi} - {up.yukleyen_ad}
                                                     </a>
                                                     <a
                                                         href={getProxyUrl(up.id, 'download')}
@@ -315,6 +336,32 @@ export default function Denemeler() {
                                     <option value="deneme">Deneme Sınavı</option>
                                     <option value="fasikul">Fasikül Yüklemesi</option>
                                     <option value="yaprak_test">Yaprak Test Yüklemesi</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Atanacak Branş (Opsiyonel)</label>
+                                <select
+                                    value={newPlan.brans_id}
+                                    onChange={e => setNewPlan({ ...newPlan, brans_id: e.target.value })}
+                                    className="w-full bg-gray-50 border border-gray-100 p-4 rounded-xl font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
+                                >
+                                    <option value="">TÜM BRANŞLAR</option>
+                                    {branslar.map(b => (
+                                        <option key={b.id} value={b.id}>{b.brans_adi}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Atanacak Ekip (Opsiyonel)</label>
+                                <select
+                                    value={newPlan.ekip_id}
+                                    onChange={e => setNewPlan({ ...newPlan, ekip_id: e.target.value })}
+                                    className="w-full bg-gray-50 border border-gray-100 p-4 rounded-xl font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
+                                >
+                                    <option value="">TÜM EKİPLER</option>
+                                    {ekipler.map(e => (
+                                        <option key={e.id} value={e.id}>{e.ekip_adi}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="space-y-2">

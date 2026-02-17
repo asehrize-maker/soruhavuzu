@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useOutletContext, Link } from 'react-router-dom';
+import { useOutletContext, Link, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import { soruAPI, bransAPI, userAPI, authAPI } from '../services/api';
+import { soruAPI, bransAPI, userAPI, authAPI, ekipAPI } from '../services/api';
+import { translateKey, getDurumBadge } from '../utils/helpers';
 import {
   ArrowPathIcon,
   ChartBarIcon,
@@ -13,7 +14,11 @@ import {
   PencilSquareIcon,
   InformationCircleIcon,
   XMarkIcon,
-  MegaphoneIcon
+  MegaphoneIcon,
+  MagnifyingGlassPlusIcon,
+  SparklesIcon,
+  CursorArrowRaysIcon,
+  ListBulletIcon
 } from '@heroicons/react/24/outline';
 
 const normalizeZorlukToScale = (value) => {
@@ -30,76 +35,118 @@ const normalizeZorlukToScale = (value) => {
 
 
 // --- ALT BİLEŞEN: İNCELEME LİSTESİ ---
-function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
+function IncelemeListesi({ bransId, bransAdi, reviewMode, filterGroup = 'bekleyen' }) {
   const [sorular, setSorular] = useState([]);
   const [listLoading, setListLoading] = useState(true);
-  const [error, setError] = useState(null);
   const { user: authUser } = useAuthStore();
 
   useEffect(() => {
     const fetchSorular = async () => {
-      if (!bransId) return;
       setListLoading(true);
-      setError(null);
       try {
         const response = await soruAPI.getAll();
         const allQuestions = response.data.data || [];
-
         const filtered = allQuestions.filter(s => {
-          if (parseInt(s.brans_id) !== parseInt(bransId)) return false;
+          if (bransId && parseInt(s.brans_id) !== parseInt(bransId)) return false;
 
-          if (reviewMode === 'alanci') return ['alan_incelemede', 'inceleme_bekliyor', 'incelemede'].includes(s.durum);
-          if (reviewMode === 'dilci') return ['dil_incelemede', 'inceleme_bekliyor', 'incelemede'].includes(s.durum);
+          const isAlanci = reviewMode === 'alanci';
+          const sentRevision = ['revize_istendi', 'revize_gerekli'].includes(s.durum);
+          const isPending = ['alan_incelemede', 'dil_incelemede', 'inceleme_bekliyor', 'incelemede'].includes(s.durum);
 
-          return ['alan_incelemede', 'dil_incelemede', 'inceleme_bekliyor', 'incelemede'].includes(s.durum);
+          // REVİZE İSTENENLER (Geri gönderdiklerim veya düzeltme bekleyenler)
+          if (filterGroup === 'revize') {
+            const hasNotes = isAlanci ? (Number(s.alanci_not_sayisi) > 0) : (Number(s.dilci_not_sayisi) > 0);
+
+            // Standart revize durumu
+            if (sentRevision) {
+              if (isAlanci && !s.onay_alanci) return true;
+              if (!isAlanci && !s.onay_dilci) return true;
+            }
+
+            // Alan/Dil onaylı ama notu var (Branşta düzeltme bekliyor)
+            const isApprovedButHasNotes = (isAlanci && s.durum === 'alan_onaylandi' && hasNotes) ||
+              (!isAlanci && s.durum === 'dil_onaylandi' && hasNotes);
+
+            return isApprovedButHasNotes;
+          }
+
+          // TAMAMLANANLAR (Onay verdiğim ve notu olmayan sorular)
+          if (filterGroup === 'tamamlanan') {
+            const hasNotes = isAlanci ? (Number(s.alanci_not_sayisi) > 0) : (Number(s.dilci_not_sayisi) > 0);
+
+            if (isAlanci && s.onay_alanci && !hasNotes) return true;
+            if (!isAlanci && s.onay_dilci && !hasNotes) return true;
+            return false;
+          }
+
+          // BEKLEYENLER (Default)
+          // Onayım yoksa VE revize durumunda değilse
+          if (isPending) {
+            if (isAlanci && !s.onay_alanci) return true;
+            if (!isAlanci && !s.onay_dilci) return true;
+          }
+
+          return false;
         });
         setSorular(filtered);
-      } catch (err) {
-        setError("Sorular yüklenemedi: " + err.message);
-      } finally {
-        setListLoading(false);
-      }
+      } catch (err) { } finally { setListLoading(false); }
     };
     fetchSorular();
-  }, [bransId, reviewMode, authUser]);
+  }, [bransId, reviewMode, filterGroup, authUser]);
 
-  if (error) return <div className="p-4 bg-red-50 text-red-700 rounded-lg">{error}</div>;
-  if (listLoading) return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>;
+  if (listLoading) return <div className="flex justify-center p-20"><ArrowPathIcon className="w-10 h-10 text-blue-200 animate-spin" /></div>;
 
   return (
-    <div className="mt-8 animate-fade-in">
-      <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-        <DocumentTextIcon className="w-6 h-6 text-blue-600" />
-        {bransAdi} - İnceleme Bekleyen Sorular
-      </h3>
+    <div className="animate-fade-in space-y-6">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+          <DocumentTextIcon className="w-6 h-6 text-blue-600" /> {bransAdi || 'Tüm Sorular'}
+        </h3>
+        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{sorular.length} Soru Bulundu</span>
+      </div>
+
       {sorular.length === 0 ? (
-        <div className="p-8 bg-gray-50 rounded-xl text-center text-gray-500 border border-gray-200">
-          <BookOpenIcon className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-          <p>Bu branşta şu an incelenecek soru bulunmuyor.</p>
+        <div className="p-12 text-center bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-100">
+          <BookOpenIcon className="w-12 h-12 text-gray-200 mx-auto mb-2" />
+          <p className="text-gray-400 font-black text-[10px] uppercase tracking-widest">İncelenecek soru kalmadı!</p>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 gap-4 overflow-y-auto px-1">
           {sorular.map(soru => {
             const zorluk = normalizeZorlukToScale(soru.zorluk_seviyesi);
+            const isPng = soru.soru_metni?.includes('<img');
+
             return (
-              <div key={soru.id} className="card bg-white p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition flex justify-between items-start group">
-                <div className="flex gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <span className={`px-2 py-0.5 text-xs rounded-full font-bold uppercase tracking-wide ${zorluk === 1 ? 'bg-green-100 text-green-700' :
-                        zorluk === 2 ? 'bg-green-50 text-green-600' :
-                          zorluk === 3 ? 'bg-yellow-100 text-yellow-700' :
-                            zorluk === 4 ? 'bg-orange-100 text-orange-700' :
-                              zorluk === 5 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'
-                        }`}>
-                        {['ÇOK KOLAY', 'KOLAY', 'ORTA', 'ZOR', 'ÇOK ZOR'][(zorluk || 0) - 1] || 'BELİRSİZ'}
-                      </span>
-                    </div>
-                    <div className="text-gray-900 font-medium line-clamp-2 text-sm" dangerouslySetInnerHTML={{ __html: soru.soru_metni?.substring(0, 150) }} />
-                  </div>
+              <Link
+                key={soru.id}
+                to={`/sorular/${soru.id}?incelemeTuru=${reviewMode}`}
+                className="group flex flex-col gap-4 p-5 bg-white rounded-[2rem] border border-gray-100 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/5 transition-all relative overflow-hidden"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-2 py-0.5 bg-gray-900 text-white text-[8px] font-black uppercase tracking-widest rounded-md">#{soru.id}</span>
+                  {!bransAdi && (
+                    <span className="px-2 py-0.5 bg-purple-50 text-purple-600 text-[8px] font-black uppercase tracking-widest rounded-md max-w-[120px] truncate">
+                      {soru.brans_adi}
+                    </span>
+                  )}
+                  <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[8px] font-black uppercase tracking-widest rounded-md">{soru.kategori || 'GENEL'}</span>
+                  <span className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-widest rounded-md ${zorluk > 3 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+                    }`}>
+                    {zorluk > 3 ? 'ZOR' : 'NORMAL'}
+                  </span>
+                  {getDurumBadge(soru.durum)}
                 </div>
-                <Link to={`/sorular/${soru.id}?incelemeTuru=${reviewMode}`} className="btn btn-primary btn-sm">Gör & İncele</Link>
-              </div>
+
+                <div
+                  className="text-gray-600 text-xs font-semibold line-clamp-2 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: isPng ? "<i>🖼️ Görsel İçerikli Soru</i>" : (soru.soru_metni?.replace(/<[^>]*>?/gm, '').substring(0, 150) || 'Metinsiz') }}
+                />
+
+                <div className="pt-3 border-t border-gray-50 flex items-center justify-between mt-auto">
+                  <span className="text-[9px] font-bold text-gray-400 italic">Yazar: {soru.olusturan_ad || 'Bilinmiyor'}</span>
+                  <ArrowPathIcon className="w-3 h-3 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </Link>
             );
           })}
         </div>
@@ -111,6 +158,10 @@ function IncelemeListesi({ bransId, bransAdi, reviewMode }) {
 // --- MAIN COMPONENT ---
 export default function Dashboard() {
   // 1. ALL HOOKS
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const urlMode = searchParams.get('mode');
+
   const { user } = useAuthStore();
   const outletContext = useOutletContext();
   const effectiveRoleFromContext = outletContext?.effectiveRole;
@@ -130,25 +181,107 @@ export default function Dashboard() {
   const [incelemeBransCounts, setIncelemeBransCounts] = useState([]);
   const [selectedBrans, setSelectedBrans] = useState(null);
   const [selectedEkip, setSelectedEkip] = useState(null);
-  const [selectedStat, setSelectedStat] = useState(null);
+  const [activeQuickView, setActiveQuickView] = useState(null);
   const [panelConfig, setPanelConfig] = useState(null);
 
-  // URL'den inceleme modunu al (alanci/dilci)
-  const getReviewModeFromUrl = () => {
-    const params = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
-    const mode = params.get('mode');
-    if (mode === 'alanci' || mode === 'dilci') return mode;
+  // --- ALT BİLEŞEN: HIZLI LİSTE PANELİ (INLINE) ---
+  const QuickViewPanel = () => {
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Otomatik mod seçimi (Eğer sadece bir yetkisi varsa ve URL boşsa)
+    useEffect(() => {
+      if (!activeQuickView) return;
+      const fetchData = async () => {
+        setLoading(true);
+        try {
+          let res;
+          if (activeQuickView.type === 'soru') res = await soruAPI.getAll();
+          else if (activeQuickView.type === 'kullanici') res = await userAPI.getAll();
+          else if (activeQuickView.type === 'brans') res = await bransAPI.getAll();
+          else if (activeQuickView.type === 'ekip') res = await ekipAPI.getAll();
+
+          setData(res.data.data || []);
+        } catch (err) {
+          console.error("QuickView error:", err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchData();
+    }, [activeQuickView]);
+
+    if (!activeQuickView) return null;
+
+    return (
+      <div className="bg-white rounded-[2.5rem] border-2 border-blue-50 shadow-xl shadow-blue-500/5 overflow-hidden animate-slide-down">
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+          <div>
+            <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase italic flex items-center gap-3">
+              <ListBulletIcon className="w-6 h-6 text-blue-600" /> {activeQuickView.title}
+            </h3>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Sistemde kayıtlı tüm veriler aşağıda listelenmiştir</p>
+          </div>
+          <button
+            onClick={() => setActiveQuickView(null)}
+            className="p-3 bg-white hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-2xl transition-all border border-gray-100 font-bold text-[10px] flex items-center gap-2 uppercase tracking-widest"
+          >
+            Paneli Kapat <XMarkIcon className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="p-6 max-h-[500px] overflow-y-auto space-y-3 custom-scrollbar">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center p-12 gap-3">
+              <ArrowPathIcon className="w-10 h-10 text-blue-500 animate-spin" />
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Veriler çekiliyor...</p>
+            </div>
+          ) : data.length === 0 ? (
+            <div className="text-center py-12 text-gray-400 font-black text-[10px] uppercase tracking-widest italic opacity-50">Henüz veri bulunmuyor.</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {data.map((item, idx) => (
+                <div key={item.id || idx} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between group hover:bg-white hover:border-blue-200 hover:shadow-md transition-all">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-black text-gray-800 line-clamp-1">
+                      {activeQuickView.type === 'soru' ? (item.soru_metni?.replace(/<[^>]*>?/gm, '').substring(0, 80) || 'Metinsiz Soru') :
+                        activeQuickView.type === 'kullanici' ? item.ad_soyad :
+                          activeQuickView.type === 'brans' ? item.brans_adi :
+                            item.ekip_adi || 'İsimsiz Ekip'}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                        {activeQuickView.type === 'soru' ? `ID: #${item.id} | ${item.brans_adi || 'Branşsız'}` :
+                          activeQuickView.type === 'kullanici' ? `${item.rol?.toUpperCase()} | ${item.email}` :
+                            activeQuickView.type === 'brans' ? (item.ekip_adi || '') :
+                              `PERSONEL: ${item.kullanici_sayisi || 0} | BRANŞ: ${item.brans_sayisi || 0}`}
+                      </span>
+                      {activeQuickView.type === 'soru' && getDurumBadge(item.durum)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="p-4 bg-blue-50/50 text-center border-t border-blue-100 flex items-center justify-center gap-3">
+          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
+          <p className="text-[9px] font-black text-blue-600/60 uppercase tracking-[0.2em]">Özet Görünüm (Detaylı işlemler için yan menüdeki ilgili sayfaları kullanın)</p>
+        </div>
+      </div>
+    );
+  };
+
+  // Otomatik mod tespiti (State yerine memo kullanalım)
+  const reviewMode = useMemo(() => {
     if (rawRole === 'alan_incelemeci') return 'alanci';
     if (rawRole === 'dil_incelemeci') return 'dilci';
     if (user?.inceleme_alanci && !user?.inceleme_dilci) return 'alanci';
     if (!user?.inceleme_alanci && user?.inceleme_dilci) return 'dilci';
-
+    // Admin veya belirsiz için varsayılan
+    if (user?.rol === 'admin') return 'alanci';
     return null;
-  };
-
-  const [reviewMode, setReviewMode] = useState(getReviewModeFromUrl);
+  }, [rawRole, user]);
 
   const isActualAdmin = user?.rol === 'admin';
   const canAlanInceleme = isActualAdmin || !!user?.inceleme_alanci || rawRole === 'alan_incelemeci' || rawRole === 'incelemeci';
@@ -158,7 +291,7 @@ export default function Dashboard() {
     if (!activeRole) return;
     setLoading(true);
     try {
-      if (activeRole === 'admin') {
+      if (activeRole === 'admin' || activeRole === 'koordinator') {
         const res = await soruAPI.getDetayliStats();
         if (res.data.success) setDetayliStats(res.data.data);
       } else {
@@ -180,8 +313,11 @@ export default function Dashboard() {
     }
   }, [activeRole]);
 
+  // Dashboard verilerini yenile
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Config yükle
   useEffect(() => {
-    fetchData();
     const fetchConfig = async () => {
       try {
         const res = await authAPI.getConfig();
@@ -189,19 +325,50 @@ export default function Dashboard() {
       } catch (err) { console.warn("Config load error", err); }
     };
     fetchConfig();
-  }, [fetchData]);
+  }, []);
 
-  // URL değişikliklerini dinle
-  useEffect(() => {
-    const handleLocationChange = () => setReviewMode(getReviewModeFromUrl());
-    window.addEventListener('popstate', handleLocationChange);
-    // React Router location değişimi için
-    setReviewMode(getReviewModeFromUrl());
-    return () => window.removeEventListener('popstate', handleLocationChange);
-  }, [window.location.hash, window.location.search]);
+  const [selectedGroup, setSelectedGroup] = useState(null);
 
-  const { groupedTeams, teamAggregates } = useMemo(() => {
-    const grouped = (incelemeBransCounts || []).reduce((acc, item) => {
+  const { groupedTeams, teamAggregates, reviewStatsByStatus } = useMemo(() => {
+    const rawData = incelemeBransCounts || [];
+
+    // Grouping for Incelemeci Dashboard (Bekleyen vs Tamamlanan vs Revize)
+    const stats = {
+      bekleyen: {},
+      tamamlanan: {},
+      revize: {}
+    };
+
+    rawData.forEach(item => {
+      const isAlanci = reviewMode === 'alanci';
+      const bCount = isAlanci ? Number(item.alanci_bekleyen) : Number(item.dilci_bekleyen);
+      const tCount = isAlanci ? Number(item.alanci_tamamlanan) : Number(item.dilci_tamamlanan);
+      const rCount = isAlanci ? Number(item.alanci_revize || 0) : Number(item.dilci_revize || 0);
+
+      const bName = item.brans_adi;
+      const cat = item.kategori || 'Belirsiz';
+
+      if (bCount > 0) {
+        if (!stats.bekleyen[bName]) stats.bekleyen[bName] = { total: 0, categories: {} };
+        stats.bekleyen[bName].total += bCount;
+        stats.bekleyen[bName].categories[cat] = (stats.bekleyen[bName].categories[cat] || 0) + bCount;
+        stats.bekleyen[bName].id = item.brans_id;
+      }
+      if (tCount > 0) {
+        if (!stats.tamamlanan[bName]) stats.tamamlanan[bName] = { total: 0, categories: {} };
+        stats.tamamlanan[bName].total += tCount;
+        stats.tamamlanan[bName].categories[cat] = (stats.tamamlanan[bName].categories[cat] || 0) + tCount;
+        stats.tamamlanan[bName].id = item.brans_id;
+      }
+      if (rCount > 0) {
+        if (!stats.revize[bName]) stats.revize[bName] = { total: 0, categories: {} };
+        stats.revize[bName].total += rCount;
+        stats.revize[bName].categories[cat] = (stats.revize[bName].categories[cat] || 0) + rCount;
+        stats.revize[bName].id = item.brans_id;
+      }
+    });
+
+    const grouped = rawData.reduce((acc, item) => {
       const ekipAdi = item.ekip_adi || 'Ekipsiz Branşlar';
       if (!acc[ekipAdi]) acc[ekipAdi] = [];
       acc[ekipAdi].push(item);
@@ -215,7 +382,7 @@ export default function Dashboard() {
       return { ekipAdi, totalPending, items };
     });
 
-    return { groupedTeams: grouped, teamAggregates: aggregates };
+    return { groupedTeams: grouped, teamAggregates: aggregates, reviewStatsByStatus: stats };
   }, [incelemeBransCounts, reviewMode]);
 
   const [expandedBranch, setExpandedBranch] = useState(null);
@@ -232,18 +399,18 @@ export default function Dashboard() {
           brans_adi: item.brans_adi,
           teams: [],
           total: {
-            soru: 0, beklemede: 0, incelemede: 0, revize: 0,
-            dizgide: 0, onay: 0, tamamlandi: 0
+            soru: 0, taslak: 0, dizgi: 0, dizgi_sonrasi: 0, alan_inceleme: 0,
+            dil_inceleme: 0, tamamlandi: 0
           }
         };
       }
       groups[id].teams.push(item);
       groups[id].total.soru += Number(item.soru_sayisi || 0);
-      groups[id].total.beklemede += Number(item.beklemede || 0);
-      groups[id].total.incelemede += Number(item.incelemede || 0);
-      groups[id].total.revize += Number(item.revize || 0);
-      groups[id].total.dizgide += Number(item.dizgide || 0);
-      groups[id].total.onay += Number(item.onay_bekleyen || 0);
+      groups[id].total.taslak += Number(item.taslak || 0);
+      groups[id].total.dizgi += Number(item.dizgi || 0);
+      groups[id].total.dizgi_sonrasi += Number(item.dizgi_sonrasi || 0);
+      groups[id].total.alan_inceleme += Number(item.alan_inceleme || 0);
+      groups[id].total.dil_inceleme += Number(item.dil_inceleme || 0);
       groups[id].total.tamamlandi += Number(item.tamamlandi || 0);
     });
 
@@ -310,55 +477,70 @@ export default function Dashboard() {
         </div>
       )}
 
-      {activeRole === 'admin' ? (
+      {(activeRole === 'admin' || activeRole === 'koordinator') ? (
         <div className="space-y-8 animate-fade-in">
           <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-gray-800">Yönetim Paneli</h1>
+            <h1 className="text-3xl font-bold text-gray-800">
+              {user?.rol === 'koordinator' ? 'Ekip Yönetim Paneli' : 'Sistem Yönetim Paneli'}
+            </h1>
             <span className="px-4 py-2 bg-gray-100 text-gray-600 rounded-full text-sm font-semibold">
               {new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div onClick={() => setSelectedStat({ key: 'toplam_soru', title: 'Toplam Soru' })} className="card bg-blue-600 text-white p-6 cursor-pointer hover:scale-105 transition shadow-lg">
+            <div onClick={() => setActiveQuickView(activeQuickView?.type === 'soru' ? null : { type: 'soru', title: 'Tüm Sorular Listesi' })} className={`card p-6 cursor-pointer hover:scale-105 transition shadow-lg ${activeQuickView?.type === 'soru' ? 'bg-blue-800 ring-4 ring-blue-500/30' : 'bg-blue-600'} text-white`}>
               <p className="text-blue-100 text-xs font-bold uppercase">TOPLAM SORU</p>
               <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.genel?.toplam_soru || 0}</h3>
             </div>
-            <div className="card bg-emerald-600 text-white p-6 shadow-lg">
-              <p className="text-emerald-100 text-xs font-bold uppercase">KULLANICILAR</p>
+            <div onClick={() => setActiveQuickView(activeQuickView?.type === 'kullanici' ? null : { type: 'kullanici', title: 'Kullanıcı Listesi' })} className={`card p-6 cursor-pointer hover:scale-105 transition shadow-lg ${activeQuickView?.type === 'kullanici' ? 'bg-emerald-800 ring-4 ring-emerald-500/30' : 'bg-emerald-600'} text-white`}>
+              <p className="text-emerald-100 text-xs font-bold uppercase">
+                {user?.rol === 'koordinator' ? 'EKİP PERSONELİ' : 'KULLANICILAR'}
+              </p>
               <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.sistem?.toplam_kullanici || 0}</h3>
             </div>
-            <div className="card bg-purple-600 text-white p-6 shadow-lg">
-              <p className="text-purple-100 text-xs font-bold uppercase">BRANŞLAR</p>
-              <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.branslar?.length || 0}</h3>
+            <div onClick={() => setActiveQuickView(activeQuickView?.type === 'brans' ? null : { type: 'brans', title: 'Branş Listesi' })} className={`card p-6 cursor-pointer hover:scale-105 transition shadow-lg ${activeQuickView?.type === 'brans' ? 'bg-purple-800 ring-4 ring-purple-500/30' : 'bg-purple-600'} text-white`}>
+              <p className="text-purple-100 text-xs font-bold uppercase">
+                {user?.rol === 'koordinator' ? 'EKİP BRANŞLARI' : 'BRANŞLAR'}
+              </p>
+              <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.sistem?.toplam_brans || 0}</h3>
             </div>
-            <div className="card bg-orange-600 text-white p-6 shadow-lg">
-              <p className="text-orange-100 text-xs font-bold uppercase">EKİPLER</p>
-              <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.sistem?.toplam_ekip || 0}</h3>
-            </div>
+            {user?.rol === 'admin' && (
+              <div onClick={() => setActiveQuickView(activeQuickView?.type === 'ekip' ? null : { type: 'ekip', title: 'Ekip Listesi' })} className={`card p-6 cursor-pointer hover:scale-105 transition shadow-lg ${activeQuickView?.type === 'ekip' ? 'bg-orange-800 ring-4 ring-orange-500/30' : 'bg-orange-600'} text-white`}>
+                <p className="text-orange-100 text-xs font-bold uppercase">EKİPLER</p>
+                <h3 className="text-4xl font-extrabold mt-2">{detayliStats?.sistem?.toplam_ekip || 0}</h3>
+              </div>
+            )}
           </div>
+
+          {/* HIZLI LİSTE PANELİ BURADA GÖRÜNECEK */}
+          <QuickViewPanel />
 
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">📊 İş Akış Özeti</h2>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
-              <Link to="/brans-havuzu?tab=taslaklar&durum=beklemede" className="p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-300 transition group">
-                <p className="text-xs font-bold text-gray-400 group-hover:text-blue-500 transition">TASLAK</p>
-                <p className="text-2xl font-black text-gray-700">{detayliStats?.genel?.beklemede || 0}</p>
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-center">
+              <Link to="/brans-havuzu?tab=taslaklar" className="p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-300 transition group">
+                <p className="text-xs font-bold text-gray-400 group-hover:text-blue-500 transition uppercase">TASLAK</p>
+                <p className="text-2xl font-black text-gray-700">{detayliStats?.genel?.taslak || 0}</p>
               </Link>
-              <Link to="/brans-havuzu?tab=taslaklar" className="p-4 bg-yellow-50 rounded-xl border border-yellow-200 hover:border-yellow-400 transition group">
-                <p className="text-xs font-bold text-yellow-600">İNCELEME</p>
-                <p className="text-2xl font-black text-yellow-700">{(parseInt(detayliStats?.genel?.inceleme_bekliyor) || 0) + (parseInt(detayliStats?.genel?.incelemede) || 0)}</p>
+              <Link to="/dizgi-yonetimi" className="p-4 bg-orange-50 rounded-xl border border-orange-200 hover:border-orange-400 transition group">
+                <p className="text-xs font-bold text-orange-600 uppercase">DİZGİ</p>
+                <p className="text-2xl font-black text-orange-700">{detayliStats?.genel?.dizgi || 0}</p>
               </Link>
-              <Link to="/brans-havuzu?tab=taslaklar&durum=revize_istendi" className="p-4 bg-red-50 rounded-xl border border-red-200 hover:border-red-400 transition group">
-                <p className="text-xs font-bold text-red-600">REVİZE</p>
-                <p className="text-2xl font-black text-red-700">{detayliStats?.genel?.revize_istendi || 0}</p>
+              <Link to="/brans-havuzu?durum=dizgi_sonrasi&scope=brans" className="p-4 bg-yellow-50 rounded-xl border border-yellow-200 hover:border-yellow-400 transition group cursor-pointer">
+                <p className="text-xs font-bold text-yellow-600 uppercase">TAMAMLANMAYAN</p>
+                <p className="text-2xl font-black text-yellow-700">{detayliStats?.genel?.dizgi_sonrasi || 0}</p>
               </Link>
-              <Link to="/brans-havuzu?tab=taslaklar&durum=dizgi_bekliyor" className="p-4 bg-orange-50 rounded-xl border border-orange-200 hover:border-orange-400 transition group">
-                <p className="text-xs font-bold text-orange-600">DİZGİ</p>
-                <p className="text-2xl font-black text-orange-700">{(parseInt(detayliStats?.genel?.dizgi_bekliyor) || 0) + (parseInt(detayliStats?.genel?.dizgide) || 0)}</p>
+              <Link to="/dashboard?mode=alanci" className="p-4 bg-blue-50 rounded-xl border border-blue-200 hover:border-blue-400 transition group">
+                <p className="text-xs font-bold text-blue-600 uppercase">ALAN İNCELEME</p>
+                <p className="text-2xl font-black text-blue-700">{detayliStats?.genel?.alan_inceleme || 0}</p>
+              </Link>
+              <Link to="/dashboard?mode=dilci" className="p-4 bg-purple-50 rounded-xl border border-purple-200 hover:border-purple-400 transition group">
+                <p className="text-xs font-bold text-purple-600 uppercase">DİL İNCELEME</p>
+                <p className="text-2xl font-black text-purple-700">{detayliStats?.genel?.dil_inceleme || 0}</p>
               </Link>
               <Link to="/sorular?durum=tamamlandi" className="p-4 bg-green-50 rounded-xl border border-green-200 hover:border-green-400 transition group">
-                <p className="text-xs font-bold text-green-600">TAMAMLANAN</p>
+                <p className="text-xs font-bold text-green-600 uppercase">TAMAMLANAN</p>
                 <p className="text-2xl font-black text-green-700">{detayliStats?.genel?.tamamlandi || 0}</p>
               </Link>
             </div>
@@ -377,12 +559,12 @@ export default function Dashboard() {
                   <tr>
                     <th className="px-4 py-3 rounded-l-lg cursor-help" title="Alt ekipleri görmek için branş ismine tıklayın">Branş (Detay)</th>
                     <th className="px-4 py-3 text-center">Toplam</th>
-                    <th className="px-4 py-3 text-center text-gray-400">Taslak</th>
-                    <th className="px-4 py-3 text-center text-blue-600">İnceleme</th>
-                    <th className="px-4 py-3 text-center text-red-600">Revize</th>
-                    <th className="px-4 py-3 text-center text-orange-600">Dizgi</th>
-                    <th className="px-4 py-3 text-center text-emerald-600">Onay</th>
-                    <th className="px-4 py-3 rounded-r-lg text-center text-green-700">Tamamlanan</th>
+                    <th className="px-4 py-3 text-center text-gray-400 uppercase">Taslak</th>
+                    <th className="px-3 py-3 text-center text-orange-600">DİZGİ</th>
+                    <th className="px-3 py-3 text-center text-yellow-600">TAMAMLANMAYAN</th>
+                    <th className="px-3 py-3 text-center text-blue-600">ALAN İNCELEME</th>
+                    <th className="px-4 py-3 text-center text-purple-600 uppercase">Dil İncele</th>
+                    <th className="px-4 py-3 rounded-r-lg text-center text-green-700 uppercase">Tamamlanan</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -398,11 +580,11 @@ export default function Dashboard() {
                           {group.brans_adi}
                         </td>
                         <td className="px-4 py-3 text-center font-bold bg-gray-50/50">{group.total.soru}</td>
-                        <td className="px-4 py-3 text-center text-gray-400">{group.total.beklemede || '-'}</td>
-                        <td className="px-4 py-3 text-center text-blue-600 font-medium">{group.total.incelemede || '-'}</td>
-                        <td className="px-4 py-3 text-center text-red-600 font-medium">{group.total.revize || '-'}</td>
-                        <td className="px-4 py-3 text-center text-orange-600 font-medium">{group.total.dizgide || '-'}</td>
-                        <td className="px-4 py-3 text-center text-emerald-600 font-medium">{group.total.onay || '-'}</td>
+                        <td className="px-4 py-3 text-center text-gray-400">{group.total.taslak || '-'}</td>
+                        <td className="px-4 py-3 text-center text-orange-600 font-medium">{group.total.dizgi || '-'}</td>
+                        <td className="px-4 py-3 text-center text-yellow-600 font-medium">{group.total.dizgi_sonrasi || '-'}</td>
+                        <td className="px-4 py-3 text-center text-blue-600 font-medium">{group.total.alan_inceleme || '-'}</td>
+                        <td className="px-4 py-3 text-center text-purple-600 font-medium">{group.total.dil_inceleme || '-'}</td>
                         <td className="px-4 py-3 text-center text-green-700 font-bold bg-green-50/30">{group.total.tamamlandi || '-'}</td>
                       </tr>
                       {expandedBranch === group.id && (
@@ -412,11 +594,11 @@ export default function Dashboard() {
                               <span>↳</span> {team.ekip_adi}
                             </td>
                             <td className="px-4 py-2 text-center text-gray-500">{team.soru_sayisi}</td>
-                            <td className="px-4 py-2 text-center text-gray-400 opacity-70">{team.beklemede || '-'}</td>
-                            <td className="px-4 py-2 text-center text-blue-500 opacity-70">{team.incelemede || '-'}</td>
-                            <td className="px-4 py-2 text-center text-red-500 opacity-70">{team.revize || '-'}</td>
-                            <td className="px-4 py-2 text-center text-orange-500 opacity-70">{team.dizgide || '-'}</td>
-                            <td className="px-4 py-2 text-center text-emerald-500 opacity-70">{team.onay_bekleyen || '-'}</td>
+                            <td className="px-4 py-2 text-center text-gray-400 opacity-70">{team.taslak || '-'}</td>
+                            <td className="px-4 py-2 text-center text-orange-500 opacity-70">{team.dizgi || '-'}</td>
+                            <td className="px-4 py-2 text-center text-yellow-500 opacity-70">{team.dizgi_sonrasi || '-'}</td>
+                            <td className="px-4 py-2 text-center text-blue-500 opacity-70">{team.alan_inceleme || '-'}</td>
+                            <td className="px-4 py-2 text-center text-purple-500 opacity-70">{team.dil_inceleme || '-'}</td>
                             <td className="px-4 py-2 text-center text-green-600 opacity-70">{team.tamamlandi || '-'}</td>
                           </tr>
                         ))
@@ -436,95 +618,225 @@ export default function Dashboard() {
 
         </div>
       ) : activeRole === 'incelemeci' ? (
-        reviewMode ? (
-          <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
-              <h1 className="text-2xl font-bold">{reviewMode === 'alanci' ? 'Alan İnceleme' : 'Dil İnceleme'} Branş Seçimi</h1>
-              {selectedEkip && <button onClick={() => { setSelectedEkip(null); setSelectedBrans(null); }} className="text-blue-600 font-bold hover:underline">&larr; Tüm Ekipler</button>}
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border min-h-[400px]">
-              {selectedBrans ? (
-                <IncelemeListesi bransId={selectedBrans.id} bransAdi={selectedBrans.brans_adi} reviewMode={reviewMode} />
-              ) : selectedEkip ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {(groupedTeams[selectedEkip] || []).filter(i => (reviewMode === 'alanci' ? i.alanci_bekleyen : i.dilci_bekleyen) > 0).map(brans => (
-                    <button key={brans.brans_id} onClick={() => setSelectedBrans({ id: brans.brans_id, brans_adi: brans.brans_adi })} className="p-6 bg-gray-50 rounded-xl border hover:border-blue-500 transition">
-                      <div className="font-bold text-gray-800">{brans.brans_adi}</div>
-                      <div className="mt-2 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full inline-block">{(reviewMode === 'alanci' ? brans.alanci_bekleyen : brans.dilci_bekleyen)} Soru</div>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {teamAggregates.filter(a => a.totalPending > 0).map(agg => (
-                    <button key={agg.ekipAdi} onClick={() => setSelectedEkip(agg.ekipAdi)} className="p-6 bg-white border rounded-xl hover:shadow-lg transition text-left flex justify-between items-center">
-                      <div>
-                        <h3 className="font-bold text-gray-800 text-lg">{agg.ekipAdi}</h3>
-                        <p className="text-xs text-gray-500">{agg.items.length} Branş</p>
-                      </div>
-                      <span className="text-2xl font-black text-blue-600">{agg.totalPending}</span>
-                    </button>
-                  ))}
-                  {teamAggregates.filter(a => a.totalPending > 0).length === 0 && <div className="col-span-full text-center py-12 text-gray-400 font-bold">Harika! İncelenecek soru bulunmuyor.</div>}
-                </div>
-              )}
+        <div className="space-y-8 animate-fade-in">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+              <h1 className="text-4xl font-black text-gray-900 tracking-tight">
+                {reviewMode === 'alanci' ? 'Alan İnceleme Paneli' : (reviewMode === 'dilci' ? 'Dil İnceleme Paneli' : 'İnceleme Paneli')}
+              </h1>
+              <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px] mt-2 flex items-center gap-2">
+                <SparklesIcon className="w-4 h-4 text-purple-500" /> Hoş Geldiniz, {user?.ad_soyad}
+              </p>
             </div>
           </div>
-        ) : (
-          <div className="space-y-8">
-            <div className="flex justify-between items-center">
-              <h1 className="text-3xl font-bold text-gray-800">İnceleme Paneli</h1>
+
+          {!reviewMode ? (
+            <div className="py-20 text-center space-y-4 bg-white rounded-[3rem] border-2 border-dashed border-gray-100">
+              <InformationCircleIcon className="w-16 h-16 text-gray-200 mx-auto" />
+              <p className="text-gray-400 font-black text-[11px] uppercase tracking-[0.2em]">İnceleme yetkisi bulunamadı</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="card bg-blue-600 text-white p-6">
-                <p className="text-blue-100 text-xs font-bold">TOPLAM EKİP</p>
-                <h3 className="text-4xl font-extrabold mt-1">{teamAggregates.length}</h3>
+          ) : (selectedBrans || urlMode) ? (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-[600px]">
+              {/* SOL PANEL - SORU LİSTESİ */}
+              <div className="lg:col-span-4 bg-gray-50/50 rounded-[3rem] p-8 border border-gray-100 shadow-inner overflow-y-auto max-h-[800px] custom-scrollbar">
+                {(selectedBrans || !urlMode) && (
+                  <button
+                    onClick={() => setSelectedBrans(null)}
+                    className="mb-6 flex items-center gap-2 text-[10px] font-black text-gray-400 hover:text-blue-600 uppercase tracking-widest transition-all group"
+                  >
+                    <span className="group-hover:-translate-x-1 transition-transform">←</span> Branşlara Dön
+                  </button>
+                )}
+
+                <div className="space-y-6">
+                  <div className="pb-4 border-b border-gray-200">
+                    <h2 className="text-xl font-black text-gray-900 leading-tight">
+                      {selectedBrans ? selectedBrans.brans_adi : (urlMode === 'alanci' ? 'Tüm Alan İncelemeleri' : 'Tüm Dil İncelemeleri')}
+                    </h2>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">İnceleme Akışı</p>
+                  </div>
+                  <IncelemeListesi
+                    bransId={selectedBrans?.id}
+                    bransAdi={selectedBrans?.brans_adi}
+                    reviewMode={reviewMode}
+                    filterGroup={selectedGroup || 'bekleyen'}
+                  />
+                </div>
               </div>
-              {canAlanInceleme && (
-                <div className="card bg-emerald-600 text-white p-6">
-                  <p className="text-emerald-100 text-xs font-bold">ALAN İNCELEME BEKLEYEN</p>
-                  <h3 className="text-4xl font-extrabold mt-1">{incelemeBransCounts.reduce((sum, b) => sum + (Number(b.alanci_bekleyen) || 0), 0)}</h3>
-                </div>
-              )}
-              {canDilInceleme && (
-                <div className="card bg-purple-600 text-white p-6">
-                  <p className="text-purple-100 text-xs font-bold">DİL İNCELEME BEKLEYEN</p>
-                  <h3 className="text-4xl font-extrabold mt-1">{incelemeBransCounts.reduce((sum, b) => sum + (Number(b.dilci_bekleyen) || 0), 0)}</h3>
-                </div>
-              )}
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {canAlanInceleme && <Link to="/?mode=alanci" className="p-6 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition font-bold text-blue-700">🔍 Alan İnceleme Girişi &rarr;</Link>}
-              {canDilInceleme && <Link to="/?mode=dilci" className="p-6 bg-purple-50 border border-purple-200 rounded-xl hover:bg-purple-100 transition font-bold text-purple-700">🔍 Dil İnceleme Girişi &rarr;</Link>}
+              {/* SAĞ PANEL - HOŞGELDİN / ÖNİZLEME ALANI */}
+              <div className="lg:col-span-8 bg-white rounded-[3rem] p-12 border border-black/5 shadow-xl shadow-gray-200/50 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-12 opacity-[0.02] pointer-events-none"><SparklesIcon className="w-64 h-64" /></div>
+                <div className="relative z-10 space-y-6 max-w-md">
+                  <div className="w-24 h-24 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto shadow-xl shadow-blue-500/10">
+                    <CursorArrowRaysIcon className="w-10 h-10" />
+                  </div>
+                  <h3 className="text-2xl font-black text-gray-900 tracking-tight">İnceleme Başlatın</h3>
+                  <p className="text-gray-500 text-sm font-medium leading-relaxed">
+                    Soldaki akıştan bir soru seçerek detayları görüntüleyebilir ve inceleme sürecini tamamlayabilirsiniz.
+                  </p>
+                  {!selectedBrans && urlMode && (
+                    <div className="mt-8 pt-6 border-t border-gray-100 italic text-[11px] text-gray-400">
+                      Branş bazlı özet için <Link to="/" className="text-blue-500 font-bold hover:underline">Ana Sayfa</Link>'ya dönebilirsiniz.
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        )
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* SECTION: BEKLEYENLER */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between px-2">
+                  <h2 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2 uppercase italic">
+                    <ClockIcon className="w-6 h-6 text-amber-500" /> İnceleme Bekleyenler
+                  </h2>
+                </div>
+
+                <div className="space-y-4">
+                  {Object.entries(reviewStatsByStatus.bekleyen).map(([bName, data]) => (
+                    <div
+                      key={bName}
+                      onClick={() => { setSelectedGroup('bekleyen'); setSelectedBrans({ id: data.id, brans_adi: bName }); }}
+                      className="group p-6 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl hover:bg-amber-50/50 hover:border-amber-200 transition-all cursor-pointer relative overflow-hidden"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <h4 className="text-lg font-black text-gray-800 line-clamp-1">{bName}</h4>
+                        <div className="bg-amber-500 text-white w-8 h-8 rounded-xl flex items-center justify-center font-black shadow-lg shadow-amber-500/20 group-hover:scale-110 transition-transform text-sm">
+                          {data.total}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(data.categories).map(([cat, count]) => (
+                          <span key={cat} className="px-2 py-1 bg-gray-50 text-[9px] font-black text-gray-500 rounded-lg border border-gray-100 group-hover:bg-white group-hover:text-amber-600 transition-colors uppercase tracking-widest leading-none">
+                            {cat}: {count}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {Object.keys(reviewStatsByStatus.bekleyen).length === 0 && (
+                    <div className="p-8 text-center bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-100 opacity-60">
+                      <CheckCircleIcon className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                      <p className="text-gray-400 font-bold text-[10px] uppercase tracking-widest">Bekleyen yok</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* SECTION: REVIZE ISTENENLER (NEW) */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between px-2">
+                  <h2 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2 uppercase italic">
+                    <ArrowPathIcon className="w-6 h-6 text-blue-500" /> Revize İstenenler
+                  </h2>
+                </div>
+
+                <div className="space-y-4">
+                  {Object.entries(reviewStatsByStatus.revize).map(([bName, data]) => (
+                    <div
+                      key={bName}
+                      onClick={() => { setSelectedGroup('revize'); setSelectedBrans({ id: data.id, brans_adi: bName }); }}
+                      className="group p-6 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl hover:bg-blue-50/50 hover:border-blue-200 transition-all cursor-pointer relative overflow-hidden"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <h4 className="text-lg font-black text-gray-800 line-clamp-1">{bName}</h4>
+                        <div className="bg-blue-500 text-white w-8 h-8 rounded-xl flex items-center justify-center font-black shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform text-sm">
+                          {data.total}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(data.categories).map(([cat, count]) => (
+                          <span key={cat} className="px-2 py-1 bg-gray-50 text-[9px] font-black text-gray-500 rounded-lg border border-gray-100 group-hover:bg-white group-hover:text-blue-600 transition-colors uppercase tracking-widest leading-none">
+                            {cat}: {count}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {Object.keys(reviewStatsByStatus.revize).length === 0 && (
+                    <div className="p-8 text-center bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-100 opacity-60">
+                      <CheckCircleIcon className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                      <p className="text-gray-400 font-bold text-[10px] uppercase tracking-widest">Revize yok</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* SECTION: TAMAMLANANLAR */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between px-2">
+                  <h2 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2 uppercase italic">
+                    <CheckCircleIcon className="w-6 h-6 text-emerald-500" /> İncelemesi Yapılanlar
+                  </h2>
+                </div>
+
+                <div className="space-y-4">
+                  {Object.entries(reviewStatsByStatus.tamamlanan).map(([bName, data]) => (
+                    <div
+                      key={bName}
+                      onClick={() => { setSelectedGroup('tamamlanan'); setSelectedBrans({ id: data.id, brans_adi: bName }); }}
+                      className="group p-6 bg-white/60 backdrop-blur-sm rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl hover:bg-emerald-50/50 hover:border-emerald-200 hover:opacity-100 opacity-80 transition-all cursor-pointer relative overflow-hidden"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <h4 className="text-lg font-black text-gray-800 line-clamp-1">{bName}</h4>
+                        <div className="bg-emerald-500 text-white w-8 h-8 rounded-xl flex items-center justify-center font-black shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform text-sm">
+                          {data.total}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(data.categories).map(([cat, count]) => (
+                          <span key={cat} className="px-2 py-1 bg-white text-[9px] font-black text-gray-400 rounded-lg border border-gray-100 group-hover:text-emerald-600 transition-colors uppercase tracking-widest leading-none">
+                            {cat}: {count}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {Object.keys(reviewStatsByStatus.tamamlanan).length === 0 && (
+                    <div className="p-8 text-center bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-100 opacity-60">
+                      <p className="text-gray-400 font-bold text-[10px] uppercase tracking-widest">Tamamlanan yok</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       ) : activeRole === 'soru_yazici' ? (
         <div className="space-y-8 animate-fade-in">
           <div className="bg-gradient-to-r from-blue-700 to-blue-600 p-8 rounded-2xl text-white shadow-xl">
             <h1 className="text-3xl font-bold">Hoş Geldiniz, {user?.ad_soyad}</h1>
-            <p className="mt-2 text-blue-100 uppercase font-black tracking-widest text-xs">{activeRole?.replace('_', ' ')} Paneli</p>
+            <p className="mt-2 text-blue-100 uppercase font-black tracking-widest text-xs">{translateKey(activeRole)} Paneli</p>
           </div>
 
           <div className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Link to="/brans-havuzu?tab=taslaklar" className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition text-center group">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+
+              <Link to="/brans-havuzu?durum=taslak_grubu" className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition text-center group">
                 <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest group-hover:text-amber-500">✍️ YAZILAN / TASLAK</p>
                 <h3 className="text-3xl font-black text-gray-800 mt-1">{(Number(stats?.beklemede) || 0) + (Number(stats?.revize_gerekli) || 0)}</h3>
                 <p className="text-[10px] text-gray-400 mt-1">Branş Biriminde Gönderilmeyi Bekleyenler</p>
               </Link>
-              <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100 shadow-sm text-center relative overflow-hidden">
-                <p className="text-blue-600 text-[10px] font-bold uppercase tracking-widest">⚙️ İŞLEMDE OLANLAR</p>
-                <h3 className="text-3xl font-black text-blue-700 mt-1">{(Number(stats?.dizgi_bekliyor) || 0) + (Number(stats?.dizgide) || 0) + (Number(stats?.inceleme_bekliyor) || 0)}</h3>
-                <p className="text-[10px] text-blue-500 mt-1">Dizgi veya İnceleme Birimlerinde</p>
-              </div>
-              <Link to="/brans-havuzu?tab=dizgi_sonrasi" className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100 shadow-sm hover:shadow-md transition text-center group">
-                <p className="text-emerald-600 text-[10px] font-bold uppercase tracking-widest">DİZGİ SONRASI</p>
+
+              <Link to="/brans-havuzu?durum=dizgi_grubu" className="bg-orange-50 p-6 rounded-2xl border border-orange-100 shadow-sm hover:shadow-md transition text-center group relative overflow-hidden">
+                <p className="text-orange-600 text-[10px] font-bold uppercase tracking-widest">⚙️ DİZGİDE</p>
+                <h3 className="text-3xl font-black text-orange-700 mt-1">{(Number(stats?.dizgi_bekliyor) || 0) + (Number(stats?.dizgide) || 0)}</h3>
+                <p className="text-[10px] text-orange-500 mt-1">Dizgi Biriminde</p>
+              </Link>
+
+              <Link to="/brans-havuzu?durum=dizgi_sonrasi" className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100 shadow-sm hover:shadow-md transition text-center group">
+                <p className="text-emerald-600 text-[10px] font-bold uppercase tracking-widest">TAMAMLANMAYAN</p>
                 <h3 className="text-3xl font-black text-emerald-700 mt-1">{stats?.dizgi_tamam || 0}</h3>
                 <p className="text-[10px] text-emerald-500 mt-1 font-bold">Onay Bekleyenler &rarr;</p>
               </Link>
+
+              <Link to="/brans-havuzu?durum=incelemede_grubu" className="bg-blue-50 p-6 rounded-2xl border border-blue-100 shadow-sm hover:shadow-md transition text-center group relative overflow-hidden">
+                <p className="text-blue-600 text-[10px] font-bold uppercase tracking-widest">🔍 İNCELEMEDE</p>
+                <h3 className="text-3xl font-black text-blue-700 mt-1">{(Number(stats?.inceleme_bekliyor) || 0) + (Number(stats?.alan_incelemede) || 0) + (Number(stats?.dil_incelemede) || 0)}</h3>
+                <p className="text-[10px] text-blue-500 mt-1">İnceleme Birimlerinde</p>
+              </Link>
+
               <Link to="/sorular?durum=tamamlandi" className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition text-center group">
                 <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest group-hover:text-green-500">TAMAMLANAN</p>
                 <h3 className="text-3xl font-black text-gray-800 mt-1">{stats?.tamamlandi || 0}</h3>
@@ -557,7 +869,7 @@ export default function Dashboard() {
         <div className="space-y-8 animate-fade-in">
           <div className="bg-gradient-to-r from-blue-700 to-blue-600 p-8 rounded-2xl text-white shadow-xl">
             <h1 className="text-3xl font-bold">Hoş Geldiniz, {user?.ad_soyad}</h1>
-            <p className="mt-2 text-blue-100 uppercase font-black tracking-widest text-xs">{activeRole?.replace('_', ' ')} Paneli</p>
+            <p className="mt-2 text-blue-100 uppercase font-black tracking-widest text-xs">{translateKey(activeRole)} Paneli</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-center">

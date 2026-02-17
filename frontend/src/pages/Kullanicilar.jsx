@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { userAPI, ekipAPI, bransAPI } from '../services/api';
+import useAuthStore from '../store/authStore';
 import {
   UserPlusIcon,
   UserIcon,
@@ -15,6 +16,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function Kullanicilar() {
+  const user = useAuthStore(state => state.user);
   const [kullanicilar, setKullanicilar] = useState([]);
   const [ekipler, setEkipler] = useState([]);
   const [branslar, setBranslar] = useState([]);
@@ -59,9 +61,9 @@ export default function Kullanicilar() {
   };
 
   const filteredUsers = useMemo(() => {
-    return kullanicilar.filter(u =>
-      u.ad_soyad.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase())
+    return (kullanicilar || []).filter(u =>
+      (u.ad_soyad || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [kullanicilar, searchTerm]);
 
@@ -71,11 +73,16 @@ export default function Kullanicilar() {
       ? kullanici.branslar.map(b => b.id)
       : (kullanici.brans_id ? [kullanici.brans_id] : []);
 
+    const mevcutEkipIds = kullanici.ekipler && Array.isArray(kullanici.ekipler)
+      ? kullanici.ekipler.map(e => e.id)
+      : (kullanici.ekip_id ? [kullanici.ekip_id] : []);
+
     setFormData({
       ad_soyad: kullanici.ad_soyad || '',
       email: kullanici.email || '',
       sifre: '',
       ekip_id: kullanici.ekip_id || '',
+      ekip_ids: mevcutEkipIds,
       brans_id: kullanici.brans_id || '',
       brans_ids: mevcutBransIds,
       rol: kullanici.rol,
@@ -93,6 +100,7 @@ export default function Kullanicilar() {
       email: '',
       sifre: '123456',
       ekip_id: '',
+      ekip_ids: [],
       brans_id: '',
       brans_ids: [],
       rol: 'soru_yazici',
@@ -110,6 +118,13 @@ export default function Kullanicilar() {
       if (payload.rol !== 'incelemeci') {
         payload.inceleme_alanci = false;
         payload.inceleme_dilci = false;
+      }
+      // Ensure primary team is in team list
+      if (payload.ekip_id) {
+        const eId = parseInt(payload.ekip_id);
+        if (!payload.ekip_ids.includes(eId)) {
+          payload.ekip_ids.push(eId);
+        }
       }
 
       if (editingUser) {
@@ -166,7 +181,7 @@ export default function Kullanicilar() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h1 className="text-4xl font-black text-gray-900 tracking-tight">Kullanıcı Yönetimi</h1>
-          <p className="mt-2 text-gray-500 font-medium">Sistemdeki tüm personelleri, rollerini ve yetkilerini yönetin.</p>
+          <p className="mt-2 text-gray-500 font-medium">Sistemdeki tüm kullanıcıları, rollerini ve yetkilerini yönetin.</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="relative group">
@@ -184,7 +199,7 @@ export default function Kullanicilar() {
             className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-6 py-4 font-black text-sm uppercase tracking-widest transition-all shadow-lg hover:shadow-blue-200 active:scale-95 flex items-center gap-2"
           >
             <UserPlusIcon className="w-5 h-5" />
-            Yeni Personel
+            Yeni Kullanıcı
           </button>
         </div>
       </div>
@@ -232,8 +247,20 @@ export default function Kullanicilar() {
                         <div className="text-xs font-black text-gray-700 uppercase tracking-wide">
                           {kullanici.rol === 'admin' ? <span className="text-purple-600">TÜM EKİPLER (ADMİN)</span> : (kullanici.ekip_adi || '-')}
                         </div>
+
+                        {/* Display multiple teams if INCELEMECI */}
+                        {kullanici.rol === 'incelemeci' && Array.isArray(kullanici.ekipler) && kullanici.ekipler.length > 1 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {kullanici.ekipler.filter(e => e.id !== kullanici.ekip_id).map(e => (
+                              <span key={e.id} className="px-2 py-0.5 bg-orange-50 text-orange-600 rounded-md text-[9px] font-bold border border-orange-100">
+                                + {e.ekip_adi}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
                         <div className="flex flex-wrap gap-1">
-                          {kullanici.branslar?.map(b => (
+                          {Array.isArray(kullanici.branslar) && kullanici.branslar.map(b => (
                             <span key={b.id} className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-lg text-[10px] font-bold group-hover:bg-white transition-colors">{b.brans_adi}</span>
                           ))}
                         </div>
@@ -241,7 +268,7 @@ export default function Kullanicilar() {
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap text-center">
                       <div className="flex justify-center">
-                        {kullanici.aktif ? (
+                        {kullanici?.aktif ? (
                           <div className="flex flex-col items-center">
                             <CheckBadgeIcon className="w-6 h-6 text-green-500" />
                             <span className="text-[10px] font-black text-green-600 uppercase mt-1">AKTİF</span>
@@ -292,7 +319,7 @@ export default function Kullanicilar() {
           <div className="bg-white rounded-[2.5rem] p-8 max-w-lg w-full shadow-2xl border border-gray-100 animate-scale-up max-h-[90vh] overflow-y-auto no-scrollbar">
             <div className="flex justify-between items-center mb-8">
               <div>
-                <h2 className="text-2xl font-black text-gray-900 tracking-tight">{editingUser ? 'Personel Düzenle' : 'Yeni Personel Kaydı'}</h2>
+                <h2 className="text-2xl font-black text-gray-900 tracking-tight">{editingUser ? 'Kullanıcı Düzenle' : 'Yeni Kullanıcı Kaydı'}</h2>
                 <p className="text-gray-400 text-sm font-medium mt-1">Sistem erişim yetkilerini belirleyin.</p>
               </div>
               <button onClick={() => setShowModal(false)} className="p-3 hover:bg-gray-100 rounded-2xl transition">
@@ -324,7 +351,7 @@ export default function Kullanicilar() {
                       required
                       type="email"
                       className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-12 pr-6 py-4 text-sm font-bold text-gray-700 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
-                      placeholder="personel@sistem.com"
+                      placeholder="kullanici@sistem.com"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     />
@@ -346,17 +373,27 @@ export default function Kullanicilar() {
                   </div>
                 )}
 
-                <div className="col-span-1">
-                  <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Bağlı Ekip</label>
-                  <select
-                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold text-gray-700 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                    value={formData.ekip_id}
-                    onChange={(e) => setFormData({ ...formData, ekip_id: e.target.value })}
-                  >
-                    <option value="">Ekip Seçin</option>
-                    {ekipler.map(e => <option key={e.id} value={e.id}>{e.ekip_adi}</option>)}
-                  </select>
-                </div>
+                {user?.rol === 'admin' && (
+                  <div className="col-span-1">
+                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Bağlı Ekip (Ana)</label>
+                    <select
+                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold text-gray-700 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                      value={formData.ekip_id}
+                      onChange={(e) => {
+                        const newId = e.target.value;
+                        const eIdNum = parseInt(newId);
+                        let newEkipIds = [...(formData.ekip_ids || [])];
+                        if (eIdNum && !newEkipIds.includes(eIdNum)) {
+                          newEkipIds.push(eIdNum);
+                        }
+                        setFormData({ ...formData, ekip_id: newId, ekip_ids: newEkipIds });
+                      }}
+                    >
+                      <option value="">Ekip Seçin</option>
+                      {Array.isArray(ekipler) && ekipler.map(e => <option key={e.id} value={e.id}>{e.ekip_adi}</option>)}
+                    </select>
+                  </div>
+                )}
 
                 <div className="col-span-1">
                   <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Sistem Rolü</label>
@@ -375,25 +412,62 @@ export default function Kullanicilar() {
                 </div>
               </div>
 
+              {/* ÇOKLU EKİP SEÇİMİ (SADECE İNCELEMECİ) */}
+              {user?.rol === 'admin' && formData.rol === 'incelemeci' && (
+                <div>
+                  <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 ml-1 flex justify-between">
+                    Yetkili Olduğu Diğer Ekipler
+                    <span className="text-blue-500">{formData.ekip_ids?.length || 0} seçili</span>
+                  </label>
+                  <div className="max-h-40 overflow-y-auto border border-gray-100 rounded-[1.5rem] p-4 grid grid-cols-2 gap-2 bg-gray-50/50">
+                    {Array.isArray(ekipler) && ekipler.map(e => (
+                      <label key={e.id} className={`flex items-center gap-3 cursor-pointer p-3 rounded-xl transition-all border ${(formData.ekip_ids || []).includes(e.id) ? 'bg-white border-blue-500 shadow-sm' : 'bg-transparent border-transparent'}`}>
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded-lg border-gray-300 text-blue-600 focus:ring-blue-500"
+                          checked={(formData.ekip_ids || []).includes(e.id)}
+                          onChange={evt => {
+                            const checked = evt.target.checked;
+                            let newIds = [...(formData.ekip_ids || [])];
+                            if (checked) {
+                              if (!newIds.includes(e.id)) newIds.push(e.id);
+                            } else {
+                              // Ana ekip seçiliyse, kaldırılmasına izin verme uyarısı yapabiliriz veya sadece kaldırmayız
+                              // Ama basitlik için kaldıralım, submit ederken ana ekip tekrar ekleniyor zaten.
+                              newIds = newIds.filter(id => id !== e.id);
+                            }
+                            setFormData({ ...formData, ekip_ids: newIds });
+                          }}
+                        />
+                        <span className={`text-xs font-black uppercase tracking-tight ${(formData.ekip_ids || []).includes(e.id) ? 'text-blue-600' : 'text-gray-400'}`}>
+                          {e.ekip_adi}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 ml-1 flex justify-between">
                   Yetkili Branşlar
                   <span className="text-blue-500">{formData.brans_ids.length} seçili</span>
                 </label>
                 <div className="max-h-40 overflow-y-auto border border-gray-100 rounded-[1.5rem] p-4 grid grid-cols-2 gap-2 bg-gray-50/50">
-                  {branslar.map(b => (
-                    <label key={b.id} className={`flex items-center gap-3 cursor-pointer p-3 rounded-xl transition-all border ${formData.brans_ids.includes(b.id) ? 'bg-white border-blue-500 shadow-sm' : 'bg-transparent border-transparent'
+                  {Array.isArray(branslar) && branslar.map(b => (
+                    <label key={b.id} className={`flex items-center gap-3 cursor-pointer p-3 rounded-xl transition-all border ${(formData.brans_ids || []).includes(b.id) ? 'bg-white border-blue-500 shadow-sm' : 'bg-transparent border-transparent'
                       }`}>
                       <input
                         type="checkbox"
                         className="w-4 h-4 rounded-lg border-gray-300 text-blue-600 focus:ring-blue-500"
-                        checked={formData.brans_ids.includes(b.id)}
+                        checked={(formData.brans_ids || []).includes(b.id)}
                         onChange={e => {
-                          const newIds = e.target.checked ? [...formData.brans_ids, b.id] : formData.brans_ids.filter(id => id !== b.id);
+                          const currentIds = Array.isArray(formData.brans_ids) ? formData.brans_ids : [];
+                          const newIds = e.target.checked ? [...currentIds, b.id] : currentIds.filter(id => id !== b.id);
                           setFormData({ ...formData, brans_ids: newIds, brans_id: newIds[0] || '' });
                         }}
                       />
-                      <span className={`text-xs font-black uppercase tracking-tight ${formData.brans_ids.includes(b.id) ? 'text-blue-600' : 'text-gray-400'}`}>
+                      <span className={`text-xs font-black uppercase tracking-tight ${(formData.brans_ids || []).includes(b.id) ? 'text-blue-600' : 'text-gray-400'}`}>
                         {b.brans_adi}
                       </span>
                     </label>
@@ -438,7 +512,7 @@ export default function Kullanicilar() {
                   type="submit"
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl hover:shadow-blue-200 active:scale-95"
                 >
-                  {editingUser ? 'Güncelle' : 'Personeli Kaydet'}
+                  {editingUser ? 'Güncelle' : 'Kullanıcıyı Kaydet'}
                 </button>
               </div>
             </form>

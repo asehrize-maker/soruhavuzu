@@ -226,6 +226,8 @@ const ensureTables = async () => {
                 planlanan_tarih DATE NOT NULL,
                 aciklama TEXT,
                 gorev_tipi VARCHAR(50) DEFAULT 'deneme',
+                brans_id INTEGER REFERENCES branslar(id) ON DELETE CASCADE,
+                ekip_id INTEGER REFERENCES ekipler(id) ON DELETE CASCADE,
                 aktif BOOLEAN DEFAULT true,
                 olusturan_id INTEGER REFERENCES kullanicilar(id),
                 olusturma_tarihi TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -233,8 +235,15 @@ const ensureTables = async () => {
         `);
         // We might also want to add the column if it doesn't exist, though migration handles it
         try {
-            await pool.query(`ALTER TABLE deneme_takvimi ADD COLUMN IF NOT EXISTS gorev_tipi VARCHAR(50) DEFAULT 'deneme'`);
-        } catch (colErr) { }
+            const cols = await pool.query(`SELECT column_name FROM information_schema.columns WHERE table_name = 'deneme_takvimi'`);
+            const colNames = cols.rows.map(r => r.column_name);
+
+            if (!colNames.includes('gorev_tipi')) await pool.query(`ALTER TABLE deneme_takvimi ADD COLUMN gorev_tipi VARCHAR(50) DEFAULT 'deneme'`);
+            if (!colNames.includes('brans_id')) await pool.query(`ALTER TABLE deneme_takvimi ADD COLUMN brans_id INTEGER REFERENCES branslar(id) ON DELETE CASCADE`);
+            if (!colNames.includes('ekip_id')) await pool.query(`ALTER TABLE deneme_takvimi ADD COLUMN ekip_id INTEGER REFERENCES ekipler(id) ON DELETE CASCADE`);
+        } catch (colErr) {
+            console.error('DEBUG: Column addition failed (maybe already exists):', colErr.message);
+        }
 
         await pool.query(`
             CREATE TABLE IF NOT EXISTS deneme_yuklemeleri (
@@ -267,31 +276,29 @@ const upload = multer({
     }
 });
 
-// 1. Yeni Deneme Planı Oluştur (SADECE ADMIN)
-router.post('/plan', authenticate, authorize('admin'), async (req, res, next) => {
+// 1. Yeni Deneme Planı Oluştur (Admin veya Koordinatör)
+router.post('/plan', authenticate, authorize(['admin', 'koordinator']), async (req, res, next) => {
     try {
-        // Failsafe execution
         await ensureTables();
+        const isKoordinator = req.user.rol === 'koordinator';
 
-        console.log('Deneme Plan Create Request:', req.body);
-        console.log('User:', req.user);
-
-        const { ad, planlanan_tarih, aciklama, gorev_tipi } = req.body;
+        const { ad, planlanan_tarih, aciklama, gorev_tipi, brans_id, ekip_id } = req.body;
         if (!ad || !planlanan_tarih) {
             throw new AppError('Deneme adı ve tarihi zorunludur', 400);
         }
 
-        const result = await pool.query(
-            `INSERT INTO deneme_takvimi (ad, planlanan_tarih, aciklama, olusturan_id, gorev_tipi) 
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-            [ad, planlanan_tarih, aciklama, req.user.id, gorev_tipi || 'deneme']
-        );
+        const p_brans_id = (brans_id && brans_id !== "" && brans_id !== "null") ? parseInt(brans_id) : null;
+        // Koordinatör sadece kendi ekibine plan yapabilir
+        const p_ekip_id = isKoordinator ? req.user.ekip_id : ((ekip_id && ekip_id !== "" && ekip_id !== "null") ? parseInt(ekip_id) : null);
 
-        console.log('Deneme Plan Created:', result.rows[0]);
+        const result = await pool.query(
+            `INSERT INTO deneme_takvimi (ad, planlanan_tarih, aciklama, olusturan_id, gorev_tipi, brans_id, ekip_id) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+            [ad, planlanan_tarih, aciklama, req.user.id, gorev_tipi || 'deneme', p_brans_id, p_ekip_id]
+        );
 
         res.status(201).json({ success: true, data: result.rows[0] });
     } catch (error) {
-        console.error('Deneme Plan Create Error:', error);
         next(error);
     }
 });
@@ -299,9 +306,9 @@ router.post('/plan', authenticate, authorize('admin'), async (req, res, next) =>
 // 2. Deneme Planlarını Listele (Tüm yetkili kullanıcılar)
 router.get('/', authenticate, async (req, res, next) => {
     try {
-        const { brans_id } = req.query; // Opsiyonel filtre
+        const isKoordinator = req.user.rol === 'koordinator';
+        const isAdmin = req.user.rol === 'admin';
 
-        // Ensure logic if table doesn't exist yet (first run)
         await ensureTables();
 
         let query = `
@@ -319,18 +326,23 @@ router.get('/', authenticate, async (req, res, next) => {
             query += `, NULL as my_upload_id, NULL as my_upload_url`;
         }
 
-        // Admin için tüm branşların yüklemelerini de getir
-        if (req.user.rol === 'admin') {
+        // Admin veya Koordinatör için yüklemeleri getir
+        if (isAdmin || isKoordinator) {
+            const pLimit = isKoordinator ? ' AND (dy.ekip_id = $2 OR dy.brans_id IN (SELECT id FROM branslar WHERE ekip_id = $2))' : '';
+            if (isKoordinator) params.push(req.user.ekip_id);
+
             query += `, (
                 SELECT json_agg(up) FROM (
                     SELECT DISTINCT ON (dy.brans_id)
                         dy.id,
                         COALESCE(b.brans_adi, 'Genel') as brans_adi,
                         dy.dosya_url,
-                        dy.yukleme_tarihi
+                        dy.yukleme_tarihi,
+                        k.ad_soyad as yukleyen_ad
                     FROM deneme_yuklemeleri dy
                     LEFT JOIN branslar b ON dy.brans_id = b.id
-                    WHERE dy.deneme_id = d.id
+                    LEFT JOIN kullanicilar k ON dy.yukleyen_id = k.id
+                    WHERE dy.deneme_id = d.id ${pLimit}
                     ORDER BY dy.brans_id, dy.yukleme_tarihi DESC
                 ) as up
             ) as all_uploads`;
@@ -338,7 +350,37 @@ router.get('/', authenticate, async (req, res, next) => {
             query += `, NULL as all_uploads`;
         }
 
-        query += ` FROM deneme_takvimi d WHERE d.aktif = true ORDER BY d.planlanan_tarih DESC`;
+        query += ` FROM deneme_takvimi d WHERE d.aktif = true`;
+
+        // Branş veya Ekip filtresi: Eğer kullanıcı admin değilse filtrele
+        if (req.user.rol !== 'admin') {
+            const conditions = [];
+
+            // 1. Genel Görevler (Branş ve Ekip yok)
+            conditions.push('(d.brans_id IS NULL AND d.ekip_id IS NULL)');
+
+            // 2. Branş Görevleri (Kullanıcının branşı ile eşleşen)
+            if (req.user.brans_id) {
+                conditions.push(`d.brans_id = ${parseInt(req.user.brans_id)}`);
+            }
+
+            // 3. Ekip Görevleri (Kullanıcının ekibi ile eşleşen - Branş farketmeksizin ekibe atanmışsa)
+            if (req.user.ekip_id) {
+                conditions.push(`d.ekip_id = ${parseInt(req.user.ekip_id)}`);
+            }
+
+            // Eğer koordinatör ise kendi ekibinin tüm işlerini görsün
+            if (isKoordinator && req.user.ekip_id) {
+                conditions.push(`d.ekip_id = ${parseInt(req.user.ekip_id)}`);
+            }
+
+            if (conditions.length > 0) {
+                // OR mantığı ile birleştir
+                query += ` AND (${conditions.map(c => `(${c})`).join(' OR ')})`;
+            }
+        }
+
+        query += ` ORDER BY (CASE WHEN d.planlanan_tarih >= CURRENT_DATE THEN 0 ELSE 1 END), (CASE WHEN d.planlanan_tarih >= CURRENT_DATE THEN d.planlanan_tarih END) ASC, d.planlanan_tarih DESC`;
 
         const result = await pool.query(query, params);
         res.json({ success: true, data: result.rows });
@@ -418,14 +460,47 @@ router.get('/ajanda', authenticate, async (req, res, next) => {
     try {
         await ensureTables();
 
-        // 1. Tüm aktif denemeleri çek
-        const denemeler = await pool.query('SELECT * FROM deneme_takvimi WHERE aktif = true ORDER BY planlanan_tarih DESC');
+        // 1. Tüm aktif denemeleri çek (Branş filtresi ile, Tarih ASC)
+        // 1. Tüm aktif denemeleri çek (Branş filtresi ile, Tarih ASC)
+        let denemeQuery = 'SELECT * FROM deneme_takvimi WHERE aktif = true';
+        const queryParams = [];
+
+        if (req.user.rol !== 'admin') {
+            // Branş öğretmeni veya koordinatör ise
+            const conditions = [];
+
+            // Herkes genel (branşsız ve ekipsiz) görevleri görür
+            conditions.push('(brans_id IS NULL AND ekip_id IS NULL)');
+
+            // Branşı varsa, o branşa atanmışları görür
+            if (req.user.brans_id) {
+                conditions.push(`brans_id = ${parseInt(req.user.brans_id)}`);
+            }
+
+            // Ekibi varsa, o ekibe atanmışları görür
+            if (req.user.ekip_id) {
+                conditions.push(`ekip_id = ${parseInt(req.user.ekip_id)}`);
+            }
+
+            if (conditions.length > 0) {
+                denemeQuery += ` AND (${conditions.join(' OR ')})`;
+            }
+        }
+
+        denemeQuery += ' ORDER BY (CASE WHEN planlanan_tarih >= CURRENT_DATE THEN 0 ELSE 1 END), (CASE WHEN planlanan_tarih >= CURRENT_DATE THEN planlanan_tarih END) ASC, planlanan_tarih DESC';
+
+        const denemeler = await pool.query(denemeQuery);
 
         // 2. Tüm branşları çek
         const branslar = await pool.query('SELECT * FROM branslar ORDER BY brans_adi');
 
-        // 3. Tüm yüklemeleri çek
-        const yuklemeler = await pool.query('SELECT * FROM deneme_yuklemeleri');
+        // 3. Tüm yüklemeleri çek (Yükleyen adını da çekerek)
+        const yuklemeler = await pool.query(`
+            SELECT y.*, k.ad_soyad as yukleyen_ad, b.brans_adi 
+            FROM deneme_yuklemeleri y
+            LEFT JOIN kullanicilar k ON y.yukleyen_id = k.id
+            LEFT JOIN branslar b ON y.brans_id = b.id
+        `);
 
         // 4. Matris oluştur
         const agenda = [];

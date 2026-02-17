@@ -50,6 +50,7 @@ export const authAPI = {
 // Kullanıcı API
 export const userAPI = {
   getAll: () => api.get('/users'),
+  getAuthors: () => api.get('/users/authors'),
   getById: (id) => api.get(`/users/${id}`),
   adminCreate: (data) => api.post('/users/admin-create', data),
   update: (id, data) => api.put(`/users/${id}`, data),
@@ -100,6 +101,7 @@ export const soruAPI = {
   }),
   delete: (id) => api.delete(`/sorular/${id}`),
   updateDurum: (id, data) => api.put(`/sorular/${id}/durum`, data),
+  geriAl: (id) => api.post(`/sorular/${id}/geri-al`),
   dizgiAl: (id) => api.post(`/sorular/${id}/dizgi-al`),
   dizgiTamamla: (id, data) => api.post(`/sorular/${id}/dizgi-tamamla`, data),
   dizgiTamamlaWithFile: (id, formData) => api.post(`/sorular/${id}/dizgi-tamamla`, formData, {
@@ -121,6 +123,7 @@ export const soruAPI = {
   uploadFinal: (id, formData) => api.put(`/sorular/${id}/final-upload`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  updateBulkUsage: (data) => api.post('/sorular/bulk-usage', data),
   adminCleanup: (data) => api.post('/sorular/admin-cleanup', data),
 };
 

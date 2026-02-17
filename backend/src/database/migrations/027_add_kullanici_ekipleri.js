@@ -1,66 +1,42 @@
-const pkg = require('../../package.json');
-const path = require('path');
+import pool from '../../config/database.js';
 
-module.exports = {
-    up: async (queryInterface, Sequelize) => {
+export const addKullaniciEkipleri = async (client) => {
+    // If client is not provided, use pool
+    const db = client || pool;
+
+    try {
+        console.log('🔄 Kullanıcı ekipleri tablosu kontrol ediliyor...');
+
         // 1. Tabloyu oluştur: kullanici_ekipleri
-        // (Eğer varsa hata vermesin diye IF NOT EXISTS otomatik olarak eklenemiyor raw query olmadığı sürece ama 
-        // sequelize migration'ı tablonun yokluğunu varsayar.)
-
-        await queryInterface.createTable('kullanici_ekipleri', {
-            id: {
-                type: Sequelize.INTEGER,
-                primaryKey: true,
-                autoIncrement: true
-            },
-            kullanici_id: {
-                type: Sequelize.INTEGER,
-                allowNull: false,
-                references: {
-                    model: 'kullanicilar',
-                    key: 'id'
-                },
-                onUpdate: 'CASCADE',
-                onDelete: 'CASCADE'
-            },
-            ekip_id: {
-                type: Sequelize.INTEGER,
-                allowNull: false,
-                references: {
-                    model: 'ekipler',
-                    key: 'id'
-                },
-                onUpdate: 'CASCADE',
-                onDelete: 'CASCADE'
-            },
-            olusturulma_tarihi: {
-                type: Sequelize.DATE,
-                allowNull: false,
-                defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
-            }
-        });
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS kullanici_ekipleri (
+                id SERIAL PRIMARY KEY,
+                kullanici_id INTEGER NOT NULL REFERENCES kullanicilar(id) ON DELETE CASCADE,
+                ekip_id INTEGER NOT NULL REFERENCES ekipler(id) ON DELETE CASCADE,
+                olusturulma_tarihi TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
 
         // 2. Unique index ekle (aynı kullanıcı aynı ekibe iki kez eklenemesin)
-        await queryInterface.addIndex('kullanici_ekipleri', ['kullanici_id', 'ekip_id'], {
-            unique: true,
-            name: 'unique_kullanici_ekip'
-        });
+        // Raw SQL'de IF NOT EXISTS index için özel syntax gerekebilir veya catch bloklarında yönetilebilir.
+        // PostgreSQL 9.5+ supports CREATE INDEX IF NOT EXISTS
+        await db.query(`
+            CREATE UNIQUE INDEX IF NOT EXISTS unique_kullanici_ekip 
+            ON kullanici_ekipleri(kullanici_id, ekip_id)
+        `);
 
         // 3. Mevcut 'ekip_id' kolonundaki verileri bu tabloya taşı
-        // Bu işlem için raw query kullanacağız
-        await queryInterface.sequelize.query(`
-      INSERT INTO kullanici_ekipleri (kullanici_id, ekip_id)
-      SELECT id, ekip_id FROM kullanicilar WHERE ekip_id IS NOT NULL
-      ON CONFLICT DO NOTHING
-    `);
+        const migrationResult = await db.query(`
+            INSERT INTO kullanici_ekipleri (kullanici_id, ekip_id)
+            SELECT id, ekip_id FROM kullanicilar WHERE ekip_id IS NOT NULL
+            ON CONFLICT (kullanici_id, ekip_id) DO NOTHING
+        `);
 
-        // Not: kullanicilar.ekip_id kolonunu silmiyoruz, backward compatibility için
-        // veya "Ana Ekip" olarak tutabiliriz. Ancak yeni mantıkta team isolation
-        // bu yeni tablo üzerinden yapılacaksa, oradaki veriyi sync etmek gerekecek.
-        // Şimdilik sadece multi-team desteği için tabloyu açıyoruz.
-    },
+        console.log(`✅ kullanici_ekipleri tablosu hazır. ${migrationResult.rowCount} mevcut kayıt aktarıldı/doğrulandı.`);
 
-    down: async (queryInterface, Sequelize) => {
-        await queryInterface.dropTable('kullanici_ekipleri');
+    } catch (error) {
+        console.error('❌ kullanici_ekipleri tablosu oluşturulurken hata:', error.message);
+        // Kritik hata ise fırlat, yoksa logla devam et (duruma göre)
+        throw error;
     }
 };

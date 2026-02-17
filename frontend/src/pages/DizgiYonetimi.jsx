@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { soruAPI } from '../services/api';
 import useAuthStore from '../store/authStore';
 import MesajKutusu from '../components/MesajKutusu';
-import { getDurumBadge } from '../utils/helpers';
+import { getDurumBadge, STATUS_LABELS } from '../utils/helpers';
 import html2canvas from 'html2canvas';
 import {
   PaintBrushIcon,
@@ -18,7 +18,10 @@ import {
   PhotoIcon,
   DocumentArrowUpIcon,
   BeakerIcon,
-  SparklesIcon
+  SparklesIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon as ChevronRightOutline,
+  InformationCircleIcon
 } from '@heroicons/react/24/outline';
 
 export default function DizgiYonetimi() {
@@ -35,10 +38,11 @@ export default function DizgiYonetimi() {
   const [loading, setLoading] = useState(true);
   const [selectedSoru, setSelectedSoru] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [showMesaj, setShowMesaj] = useState(null);
   const [revizeNotu, setRevizeNotu] = useState('');
-  const [completeData, setCompleteData] = useState({ notlar: '', finalPng: null });
+  const [revizeNotlari, setRevizeNotlari] = useState([]);
+  const [pendingIndex, setPendingIndex] = useState(0);
+  const [confirmData, setConfirmData] = useState(null); // { message, action }
   const questionRef = useRef(null);
 
   useEffect(() => {
@@ -46,15 +50,29 @@ export default function DizgiYonetimi() {
     loadBransCounts();
   }, []);
 
+  useEffect(() => {
+    if (selectedSoru) {
+      loadRevizeNotlari();
+    } else {
+      setRevizeNotlari([]);
+    }
+  }, [selectedSoru]);
+
   const loadSorular = async () => {
     setLoading(true);
     try {
       const response = await soruAPI.getAll({ role: 'dizgici' });
       const all = (response.data.data || []);
-      setPending(all.filter(s => s.durum === 'dizgi_bekliyor' || s.durum === 'revize_istendi'));
+      // Kuyrukta bekleyenleri yazım sırasına göre (eskiden yeniye) sırala
+      const pendingList = all.filter(s => s.durum === 'dizgi_bekliyor' || s.durum === 'revize_istendi')
+        .sort((a, b) => new Date(a.olusturulma_tarihi) - new Date(b.olusturulma_tarihi));
+
+      setPending(pendingList);
       setInProgress(all.filter(s => s.durum === 'dizgide'));
-      setCompleted(all.filter(s => s.durum === 'dizgi_tamam' || (s.durum === 'tamamlandi' && !s.final_png_url)));
       setSorular(all);
+
+      // Eğer seçili soru yoksa veya seçili soru artık listede değilse index'i sıfırla
+      setPendingIndex(0);
     } catch (error) {
       console.error('Sorular yüklenemedi');
     } finally {
@@ -70,6 +88,16 @@ export default function DizgiYonetimi() {
       }
     } catch (err) {
       console.error('Branş istatistikleri yüklenemedi', err);
+    }
+  };
+
+  const loadRevizeNotlari = async () => {
+    if (!selectedSoru) return;
+    try {
+      const res = await soruAPI.getRevizeNotlari(selectedSoru.id);
+      setRevizeNotlari(res.data.data || []);
+    } catch (e) {
+      console.error('Revize notları yüklenemedi');
     }
   };
 
@@ -89,7 +117,17 @@ export default function DizgiYonetimi() {
     }
   };
 
-  const handleDurumGuncelle = async (soruId, durum) => {
+  const handleDurumGuncelle = async (soruId, durum, confirmMsg = null, bypassConfirm = false) => {
+    if (confirmMsg && !confirmData && !bypassConfirm) {
+      setConfirmData({
+        message: confirmMsg,
+        action: () => handleDurumGuncelle(soruId, durum, null, true)
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    setConfirmData(null);
     try {
       const data = { yeni_durum: durum };
       if (durum === 'revize_gerekli' && revizeNotu) {
@@ -97,7 +135,6 @@ export default function DizgiYonetimi() {
       }
       await soruAPI.updateDurum(soruId, data);
       setShowModal(false);
-      setShowCompleteModal(false);
       setSelectedSoru(null);
       setRevizeNotu('');
       await loadSorular();
@@ -107,27 +144,7 @@ export default function DizgiYonetimi() {
     }
   };
 
-  const handleDizgiTamamla = async () => {
-    if (!selectedSoru) return;
-    try {
-      setLoading(true);
-      const fd = new FormData();
-      fd.append('notlar', completeData.notlar);
-      if (completeData.finalPng) {
-        fd.append('final_png', completeData.finalPng);
-      }
-      await soruAPI.dizgiTamamlaWithFile(selectedSoru.id, fd);
-      setShowCompleteModal(false);
-      setSelectedSoru(null);
-      setCompleteData({ notlar: '', finalPng: null });
-      await loadSorular();
-      loadBransCounts();
-    } catch (err) {
-      alert(err.response?.data?.error || 'Tamamlama işlemi başarısız');
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   const handleCapturePNG = async () => {
     if (!questionRef.current) return;
@@ -146,51 +163,107 @@ export default function DizgiYonetimi() {
     }
   };
 
-  const QuestionCard = ({ soru }) => (
-    <div
-      onClick={() => setSelectedSoru(soru)}
-      className={`p-5 rounded-3xl border transition-all cursor-pointer group flex flex-col gap-3 relative overflow-hidden ${selectedSoru?.id === soru.id
-        ? 'bg-blue-600 border-blue-600 shadow-xl shadow-blue-200 ring-4 ring-blue-500/10'
-        : 'bg-white border-gray-100 hover:border-blue-200 hover:shadow-lg shadow-sm hover:shadow-gray-200/50'
-        }`}
-    >
-      <div className="flex justify-between items-start relative z-10">
-        <div className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest ${selectedSoru?.id === soru.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'
-          }`}>
-          SORU
-        </div>
-        <div className={`text-[10px] font-black uppercase tracking-tighter ${selectedSoru?.id === soru.id ? 'text-blue-100' : 'text-blue-600'
-          }`}>
-          {soru.brans_adi}
-        </div>
-      </div>
+  const QuestionCard = ({ soru }) => {
+    const hasImage = soru.soru_metni?.includes('<img') || soru.fotograf_url || soru.final_png_url;
 
+    return (
       <div
-        className={`text-sm font-bold line-clamp-2 leading-relaxed h-[2.5rem] ${selectedSoru?.id === soru.id ? 'text-white' : 'text-gray-700'
+        onClick={() => setSelectedSoru(soru)}
+        className={`p-6 rounded-[2.5rem] border-2 transition-all cursor-pointer group flex flex-col gap-5 relative overflow-hidden ${selectedSoru?.id === soru.id
+          ? 'bg-blue-600 border-blue-600 shadow-2xl shadow-blue-200 ring-4 ring-blue-500/20'
+          : 'bg-white border-gray-100 hover:border-blue-400 hover:shadow-xl'
           }`}
-        dangerouslySetInnerHTML={{ __html: soru.soru_metni }}
-      />
+      >
+        {/* CARD HEADER */}
+        <div className="flex justify-between items-center z-10 relative">
+          <div className="flex items-center gap-2">
+            <div className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest ${selectedSoru?.id === soru.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'
+              }`}>
+              #{soru.id}
+            </div>
+            {soru.final_png_url && (
+              <div className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${selectedSoru?.id === soru.id ? 'bg-emerald-400/20 text-white' : 'bg-emerald-50 text-emerald-600'
+                }`}>
+                DİZGİLİ
+              </div>
+            )}
+          </div>
+          {hasImage && <PhotoIcon className={`w-5 h-5 ${selectedSoru?.id === soru.id ? 'text-blue-200' : 'text-gray-400'}`} />}
+        </div>
 
-      <div className="flex items-center justify-between mt-2 pt-3 border-t border-dashed border-gray-100/20">
-        <div className="flex -space-x-2">
-          <div className={`w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[8px] font-bold ${selectedSoru?.id === soru.id ? 'bg-blue-400 text-white' : 'bg-gray-200 text-gray-500'
-            }`}>
-            {soru.olusturan_ad?.charAt(0)}
+        {/* MINI PREVIEW AREA */}
+        <div className={`relative rounded-2xl overflow-hidden border transition-all duration-500 ${selectedSoru?.id === soru.id ? 'bg-white border-white/10' : 'bg-gray-50/50 border-gray-100 group-hover:bg-white'}`}>
+          <div className="p-5 max-h-[300px] overflow-hidden relative">
+            {soru.final_png_url ? (
+              <div className="flex justify-center">
+                <img src={soru.final_png_url} className="max-h-[180px] w-auto rounded-lg shadow-sm" alt="Dizgi Önizleme" />
+              </div>
+            ) : (
+              <div
+                className={`text-sm leading-relaxed transition-colors ${selectedSoru?.id === soru.id ? 'text-gray-900' : 'text-gray-700 font-medium'}`}
+                dangerouslySetInnerHTML={{
+                  __html: soru.soru_metni?.replace(/src="blob:[^"]+"/g, `src="${soru.fotograf_url || ''}"`)
+                    .replace(/<img/g, '<img style="max-height:180px; width:auto; border-radius:8px; margin: 10px 0;"')
+                }}
+              />
+            )}
+            {/* GRADIENT OVERLAY FOR PREVIEW CUTOFF */}
+            <div className={`absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${selectedSoru?.id === soru.id ? 'from-white' : 'from-gray-50/50 group-hover:from-white'}`}></div>
           </div>
         </div>
-        {soru.fotograf_url && <PhotoIcon className={`w-4 h-4 ${selectedSoru?.id === soru.id ? 'text-blue-200' : 'text-gray-300'}`} />}
-      </div>
 
-      {selectedSoru?.id === soru.id && (
-        <div className="absolute -bottom-1 -right-1 p-2 opacity-20">
-          <PaintBrushIcon className="w-12 h-12 text-white" />
+        {/* CARD FOOTER */}
+        <div className={`text-[10px] font-black uppercase tracking-widest flex items-center gap-2 mt-auto ${selectedSoru?.id === soru.id ? 'text-blue-100' : 'text-gray-400'}`}>
+          <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[9px] border shadow-sm ${selectedSoru?.id === soru.id ? 'border-white/20 bg-white/10' : 'border-gray-200 bg-white'}`}>
+            {soru.olusturan_ad?.charAt(0)}
+          </div>
+          {soru.olusturan_ad}
         </div>
-      )}
-    </div>
-  );
+      </div>
+    );
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-10 animate-fade-in pb-20">
+      {/* CUSTOM CONFIRM MODAL */}
+      {confirmData && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden animate-scale-up">
+            <div className="p-6 bg-emerald-600 text-white flex justify-between items-center px-8">
+              <h5 className="font-black text-xs uppercase tracking-[0.2em] flex items-center gap-2">
+                <InformationCircleIcon className="w-5 h-5" /> İşlem Onayı
+              </h5>
+              <button onClick={() => setConfirmData(null)} className="hover:bg-white/10 p-2 rounded-xl transition-all">
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-10 space-y-8">
+              <div className="flex flex-col items-center gap-4 text-center">
+                <div className="p-4 bg-emerald-50 rounded-full text-emerald-600">
+                  <InformationCircleIcon className="w-10 h-10" strokeWidth={2} />
+                </div>
+                <p className="text-base font-bold text-gray-700 leading-relaxed">
+                  {confirmData.message}
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmData(null)}
+                  className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
+                >
+                  İPTAL
+                </button>
+                <button
+                  onClick={confirmData.action}
+                  className="flex-[2] py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-emerald-100 transition-all active:scale-95"
+                >
+                  ONAYLA VE GÖNDER
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4">
         <div>
@@ -198,21 +271,8 @@ export default function DizgiYonetimi() {
             <PaintBrushIcon className="w-12 h-12 text-purple-600" strokeWidth={2.5} />
             <h1 className="text-4xl font-black text-gray-900 tracking-tight">Dizgi Laboratuvarı</h1>
           </div>
-          <p className="text-gray-500 font-medium tracking-tight">Soruları kontrol edin, LaTeX tasarımlarını yapın ve final çıktılarını sisteme yükleyin.</p>
         </div>
         <div className="flex items-center gap-4">
-          {bransCounts && bransCounts.filter(b => Number(b.dizgi_bekliyor) > 0).length > 0 && (
-            <div className="flex items-center gap-2 bg-purple-50 px-4 py-2.5 rounded-2xl border border-purple-100">
-              <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest leading-none">BEKLEYEN:</span>
-              <div className="flex -space-x-1">
-                {bransCounts.filter(b => Number(b.dizgi_bekliyor) > 0).slice(0, 3).map(b => (
-                  <span key={b.id} className="w-auto px-2 py-0.5 bg-purple-600 text-white rounded-lg text-[10px] font-black border border-white hover:z-10 transition-transform cursor-help" title={`${b.brans_adi}: ${b.dizgi_bekliyor}`}>
-                    {b.brans_adi}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
           <button onClick={loadSorular} className="p-4 bg-white border border-gray-100 rounded-2xl hover:bg-gray-50 transition-all shadow-sm active:scale-95">
             <ArrowPathIcon className={`w-5 h-5 text-gray-400 ${loading ? 'animate-spin' : ''}`} strokeWidth={2.5} />
           </button>
@@ -234,11 +294,36 @@ export default function DizgiYonetimi() {
                 <h3 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
                   <ClockIcon className="w-4 h-4 text-amber-500" strokeWidth={2.5} /> Kuyrukta Bekleyenler
                 </h3>
-                <span className="bg-amber-100 text-amber-600 px-3 py-1 rounded-xl text-[10px] font-black">{pending.length}</span>
+                <span className="bg-amber-100 text-amber-600 px-3 py-1 rounded-xl text-[10px] font-black">{pending.length === 0 ? 0 : `${pendingIndex + 1} / ${pending.length}`}</span>
               </div>
-              <div className="flex flex-col gap-4 max-h-[40vh] overflow-y-auto no-scrollbar pr-2">
-                {pending.map(soru => <QuestionCard key={soru.id} soru={soru} />)}
-                {pending.length === 0 && <div className="p-10 text-center border-2 border-dashed border-gray-100 rounded-3xl text-gray-300 font-bold uppercase tracking-widest text-xs italic">Kuyruk Boş</div>}
+
+              <div className="relative group">
+                {pending.length > 0 && (
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setPendingIndex(prev => Math.max(0, prev - 1))}
+                      disabled={pendingIndex === 0}
+                      className="p-2 bg-white border border-gray-100 rounded-xl shadow-sm hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
+                    >
+                      <ChevronLeftIcon className="w-6 h-6 text-gray-600" strokeWidth={2.5} />
+                    </button>
+
+                    <div className="flex-1 animate-fade-in-right" key={pending[pendingIndex]?.id}>
+                      <QuestionCard soru={pending[pendingIndex]} />
+                    </div>
+
+                    <button
+                      onClick={() => setPendingIndex(prev => Math.min(pending.length - 1, prev + 1))}
+                      disabled={pendingIndex === pending.length - 1}
+                      className="p-2 bg-white border border-gray-100 rounded-xl shadow-sm hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
+                    >
+                      <ChevronRightOutline className="w-6 h-6 text-gray-600" strokeWidth={2.5} />
+                    </button>
+                  </div>
+                )}
+                {pending.length === 0 && (
+                  <div className="p-10 text-center border-2 border-dashed border-gray-100 rounded-3xl text-gray-300 font-bold uppercase tracking-widest text-xs italic">Kuyruk Boş</div>
+                )}
               </div>
             </div>
 
@@ -250,23 +335,9 @@ export default function DizgiYonetimi() {
                 </h3>
                 <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-xl text-[10px] font-black">{inProgress.length}</span>
               </div>
-              <div className="flex flex-col gap-4 max-h-[40vh] overflow-y-auto no-scrollbar pr-2">
+              <div className="flex flex-col gap-4 overflow-y-auto no-scrollbar pr-2">
                 {inProgress.map(soru => <QuestionCard key={soru.id} soru={soru} />)}
                 {inProgress.length === 0 && <div className="p-10 text-center border-2 border-dashed border-gray-100 rounded-3xl text-gray-300 font-bold uppercase tracking-widest text-xs italic">Aktif işlem yok</div>}
-              </div>
-            </div>
-
-            {/* COLUMN: COMPLETED BUT WAITING FILE */}
-            <div className="space-y-6">
-              <div className="flex items-center justify-between px-4">
-                <h3 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <CheckCircleIcon className="w-4 h-4 text-emerald-500" strokeWidth={2.5} /> Onaya Hazır / Tamamlanan
-                </h3>
-                <span className="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-xl text-[10px] font-black">{completed.length}</span>
-              </div>
-              <div className="flex flex-col gap-4 max-h-[40vh] overflow-y-auto no-scrollbar pr-2">
-                {completed.map(soru => <QuestionCard key={soru.id} soru={soru} />)}
-                {completed.length === 0 && <div className="p-10 text-center border-2 border-dashed border-gray-100 rounded-3xl text-gray-300 font-bold uppercase tracking-widest text-xs italic">Tamamlanan iş bulunamadı</div>}
               </div>
             </div>
           </div>
@@ -285,7 +356,7 @@ export default function DizgiYonetimi() {
                           selectedSoru.durum.includes('dizgide') ? 'bg-blue-50 text-blue-600 border-blue-100' :
                             'bg-emerald-50 text-emerald-600 border-emerald-100'
                           }`}>
-                          {selectedSoru.durum.replace(/_/g, ' ')}
+                          {STATUS_LABELS[selectedSoru.durum] || selectedSoru.durum}
                         </div>
                       </div>
                       <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">
@@ -307,10 +378,6 @@ export default function DizgiYonetimi() {
                         <button onClick={() => handleDizgiAl(selectedSoru.id)} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-blue-100 active:scale-95 flex items-center gap-2">
                           <PaintBrushIcon className="w-4 h-4" strokeWidth={2.5} /> Dizgiye Al
                         </button>
-                      ) : selectedSoru.durum === 'dizgide' ? (
-                        <button onClick={() => setShowCompleteModal(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-emerald-100 active:scale-95 flex items-center gap-2">
-                          <CheckCircleIcon className="w-4 h-4" strokeWidth={2.5} /> Dizgiyi Bitir
-                        </button>
                       ) : null}
                     </div>
                   </div>
@@ -321,39 +388,185 @@ export default function DizgiYonetimi() {
                       <SparklesIcon className="w-4 h-4" />
                     </div>
                     <div className="p-10 bg-gray-50/50 rounded-[2.5rem] border border-gray-100 shadow-inner min-h-[15rem] relative" ref={questionRef}>
-                      <div className="text-gray-900 prose prose-xl max-w-none font-medium leading-relaxed" dangerouslySetInnerHTML={{ __html: selectedSoru.soru_metni }} />
-                      {selectedSoru.fotograf_url && (
-                        <div className="mt-10 p-4 bg-white rounded-3xl shadow-sm border border-gray-100 inline-block overflow-hidden max-w-full">
-                          <img src={selectedSoru.fotograf_url} className="max-w-full rounded-2xl mx-auto block hover:scale-[1.02] transition-transform duration-500" alt="Soru Görseli" />
+                      {/* ÖNCE FİNAL PNG'Yİ GÖSTER (EĞER VARSA LATEST STATE ODUR) */}
+                      {selectedSoru.final_png_url ? (
+                        <div className="flex flex-col items-center gap-6 w-full mb-10">
+                          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Mevcut Dizgi Çıktısı (En Son Kaydedilen)</p>
+                          <div className="flex justify-center w-full">
+                            <div className="relative shadow-2xl rounded-sm overflow-hidden group/img select-none leading-none bg-gray-900" style={{ display: 'inline-block', maxWidth: '100%' }}>
+                              <img src={selectedSoru.final_png_url} className="max-w-full max-h-[80vh] w-auto h-auto block" draggable={false} alt="Soru Dizgi Çıktısı" />
+                              {/* REVISION NOTES OVERLAY */}
+                              {revizeNotlari.map((not, i) => {
+                                if (!not.secilen_metin?.startsWith('IMG##')) return null;
+                                const meta = not.secilen_metin.replace('IMG##', '');
+                                const colorClass = not.inceleme_turu === 'alanci' ? 'blue' : 'emerald';
+                                const colorHex = not.inceleme_turu === 'alanci' ? '#2563eb' : '#059669';
+
+                                let shape = { type: 'point', x: 0, y: 0 };
+                                const parseCoords = (s) => s.split(',').map(v => parseFloat(v.trim()));
+
+                                if (meta.startsWith('BOX:')) {
+                                  const [x, y, w, h] = parseCoords(meta.replace('BOX:', ''));
+                                  shape = { type: 'box', x, y, w, h };
+                                } else if (meta.startsWith('LINE:')) {
+                                  const [x1, y1, x2, y2] = parseCoords(meta.replace('LINE:', ''));
+                                  shape = { type: 'line', x1, y1, x2, y2 };
+                                } else if (meta.startsWith('DRAW:')) {
+                                  const sets = meta.replace('DRAW:', '').split(';');
+                                  const points = sets.map(s => {
+                                    const [px, py] = parseCoords(s);
+                                    return { x: px, y: py };
+                                  });
+                                  if (points.length > 0) shape = { type: 'draw', points };
+                                } else {
+                                  const [x, y] = parseCoords(meta);
+                                  shape = { type: 'point', x, y };
+                                }
+
+                                return (
+                                  <div key={not.id} className="absolute inset-0 pointer-events-none">
+                                    {shape.type === 'draw' && shape.points && shape.points.length > 1 && (
+                                      <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                        <polyline points={shape.points.map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke={colorHex} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-sm" vectorEffect="non-scaling-stroke" />
+                                        <foreignObject x={shape.points[shape.points.length - 1].x} y={shape.points[shape.points.length - 1].y} width="30" height="30" style={{ overflow: 'visible' }}>
+                                          <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
+                                        </foreignObject>
+                                      </svg>
+                                    )}
+                                    {shape.type === 'box' && (
+                                      <div className={`absolute border-2 border-${colorClass}-500 bg-${colorClass}-500/10 z-10`} style={{ left: `${shape.x}%`, top: `${shape.y}%`, width: `${shape.w}%`, height: `${shape.h}%` }}>
+                                        <div className={`absolute -top-3 -right-3 w-6 h-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[10px] font-black shadow-sm`}>{i + 1}</div>
+                                      </div>
+                                    )}
+                                    {shape.type === 'line' && (
+                                      <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                        <line x1={shape.x1} y1={shape.y1} x2={shape.x2} y2={shape.y2} stroke={colorHex} strokeWidth="3" strokeLinecap="round" className="drop-shadow-sm" />
+                                        <circle cx={shape.x2} cy={shape.y2} r="1" fill={colorHex} />
+                                        <foreignObject x={shape.x2} y={shape.y2} width="30" height="30" style={{ overflow: 'visible' }}>
+                                          <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
+                                        </foreignObject>
+                                      </svg>
+                                    )}
+                                    {shape.type === 'point' && (
+                                      <div className="absolute w-12 h-12 -ml-6 -mt-6 flex items-center justify-center group/marker z-10 hover:z-30 pointer-events-auto" style={{ left: `${shape.x}%`, top: `${shape.y}%` }}>
+                                        <div className={`absolute inset-0 rounded-full bg-${colorClass}-400/30 mix-blend-multiply border border-${colorClass}-400/20 shadow-[0_0_10px_rgba(0,0,0,0.1)] transition-all group-hover/marker:bg-${colorClass}-400/50`}></div>
+                                        <div className={`absolute inset-0 rounded-full animate-ping opacity-20 bg-${colorClass}-400`} style={{ animationDuration: '3s' }}></div>
+                                        <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-full border border-white bg-${colorClass}-600 text-white shadow-md flex items-center justify-center text-[9px] font-black z-20 scale-90 group-hover/marker:scale-110 transition-transform`}>{i + 1}</div>
+                                        <div className="opacity-0 group-hover/marker:opacity-100 absolute bottom-full mb-3 bg-gray-900/95 backdrop-blur-md text-white text-xs p-3 rounded-2xl whitespace-nowrap shadow-2xl transition-all translate-y-2 group-hover/marker:translate-y-0 pointer-events-none z-[100] border border-white/10">
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <span className={`w-2 h-2 rounded-full bg-${colorClass}-400`}></span>
+                                            <span className="font-black opacity-60 text-[9px] uppercase tracking-widest">{not.inceleme_turu} UZMANI</span>
+                                          </div>
+                                          <p className="font-bold leading-relaxed">{not.not_metni}</p>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="relative overflow-hidden bg-white border border-gray-100 shadow-inner" style={{ width: '170mm', minHeight: '140mm', padding: '10mm', paddingTop: '15mm', margin: '0 auto' }}>
+                          <div className="prose max-w-none w-full relative z-0" style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}>
+                            <div
+                              className="text-gray-900 katex-left-align q-preview-container [&_img]:w-full [&_img]:max-w-full [&_img]:block [&_img]:my-5"
+                              dangerouslySetInnerHTML={{
+                                __html: selectedSoru.soru_metni?.replace(/src="blob:[^"]+"/g, `src="${selectedSoru.fotograf_url || ''}"`)
+                              }}
+                            />
+                          </div>
+                          {/* REVISION NOTES OVERLAY FOR ORIGINAL CONTENT */}
+                          {revizeNotlari.map((not, i) => {
+                            if (!not.secilen_metin?.startsWith('IMG##')) return null;
+                            const meta = not.secilen_metin.replace('IMG##', '');
+                            const colorClass = not.inceleme_turu === 'alanci' ? 'blue' : 'emerald';
+                            const colorHex = not.inceleme_turu === 'alanci' ? '#2563eb' : '#059669';
+
+                            let shape = { type: 'point', x: 0, y: 0 };
+                            const parseCoords = (s) => s.split(',').map(v => parseFloat(v.trim()));
+
+                            if (meta.startsWith('BOX:')) {
+                              const [x, y, w, h] = parseCoords(meta.replace('BOX:', ''));
+                              shape = { type: 'box', x, y, w, h };
+                            } else if (meta.startsWith('LINE:')) {
+                              const [x1, y1, x2, y2] = parseCoords(meta.replace('LINE:', ''));
+                              shape = { type: 'line', x1, y1, x2, y2 };
+                            } else if (meta.startsWith('DRAW:')) {
+                              const sets = meta.replace('DRAW:', '').split(';');
+                              const points = sets.map(s => {
+                                const [px, py] = parseCoords(s);
+                                return { x: px, y: py };
+                              });
+                              if (points.length > 0) shape = { type: 'draw', points };
+                            } else {
+                              const [x, y] = parseCoords(meta);
+                              shape = { type: 'point', x, y };
+                            }
+
+                            return (
+                              <div key={not.id} className="absolute inset-0 pointer-events-none">
+                                {shape.type === 'draw' && shape.points && shape.points.length > 1 && (
+                                  <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                    <polyline points={shape.points.map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke={colorHex} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-sm" vectorEffect="non-scaling-stroke" />
+                                    <foreignObject x={shape.points[shape.points.length - 1].x} y={shape.points[shape.points.length - 1].y} width="30" height="30" style={{ overflow: 'visible' }}>
+                                      <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
+                                    </foreignObject>
+                                  </svg>
+                                )}
+                                {shape.type === 'box' && (
+                                  <div className={`absolute border-2 border-${colorClass}-500 bg-${colorClass}-500/10 z-10`} style={{ left: `${shape.x}%`, top: `${shape.y}%`, width: `${shape.w}%`, height: `${shape.h}%` }}>
+                                    <div className={`absolute -top-3 -right-3 w-6 h-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[10px] font-black shadow-sm`}>{i + 1}</div>
+                                  </div>
+                                )}
+                                {shape.type === 'line' && (
+                                  <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                    <line x1={shape.x1} y1={shape.y1} x2={shape.x2} y2={shape.y2} stroke={colorHex} strokeWidth="3" strokeLinecap="round" className="drop-shadow-sm" />
+                                    <circle cx={shape.x2} cy={shape.y2} r="1" fill={colorHex} />
+                                    <foreignObject x={shape.x2} y={shape.y2} width="30" height="30" style={{ overflow: 'visible' }}>
+                                      <div className={`w-5 h-5 -mt-6 rounded-full bg-${colorClass}-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm mx-auto`}>{i + 1}</div>
+                                    </foreignObject>
+                                  </svg>
+                                )}
+                                {shape.type === 'point' && (
+                                  <div className="absolute w-12 h-12 -ml-6 -mt-6 flex items-center justify-center group/marker z-10 hover:z-30 pointer-events-auto" style={{ left: `${shape.x}%`, top: `${shape.y}%` }}>
+                                    <div className={`absolute inset-0 rounded-full bg-${colorClass}-400/30 mix-blend-multiply border border-${colorClass}-400/20 shadow-[0_0_10px_rgba(0,0,0,0.1)] transition-all group-hover/marker:bg-${colorClass}-400/50`}></div>
+                                    <div className={`absolute inset-0 rounded-full animate-ping opacity-20 bg-${colorClass}-400`} style={{ animationDuration: '3s' }}></div>
+                                    <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-full border border-white bg-${colorClass}-600 text-white shadow-md flex items-center justify-center text-[9px] font-black z-20 scale-90 group-hover/marker:scale-110 transition-transform`}>{i + 1}</div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
-                      <div className="absolute bottom-6 right-8 text-[9px] font-black text-gray-300 uppercase tracking-[0.3em]">PROBİS PREVIEW ENGINE</div>
+
+                      {/* ORİJİNAL DRAFT GÖRSELİ (SADECE METİN İÇİNDE YOKSA FALLBACK OLARAK VE FİNAL PNG YOKSA) */}
+                      {selectedSoru.fotograf_url && !selectedSoru.final_png_url && !selectedSoru.soru_metni?.includes('<img') && (
+                        <div className="mt-10 p-4 bg-white rounded-3xl shadow-sm border border-gray-100 inline-block overflow-hidden max-w-full">
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 text-center">Orijinal Taslak Görseli</p>
+                          <img src={selectedSoru.fotograf_url} className="max-w-full rounded-2xl mx-auto block opacity-60 hover:opacity-100 transition-opacity" alt="Soru Taslak Görseli" />
+                        </div>
+                      )}
+
                     </div>
                   </div>
 
-                  {/* ACTIONS FOR POST-COMPLETION */}
-                  {(selectedSoru.durum === 'tamamlandi' || selectedSoru.durum === 'dizgi_tamam') && (
-                    <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                      <button onClick={handleCapturePNG} className="flex-1 flex items-center justify-center gap-3 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.1em] transition-all shadow-sm active:scale-95">
-                        <PhotoIcon className="w-6 h-6" /> PNG ÇIKTISI AL (AUTO)
-                      </button>
+                  {/* ACTIONS FOR POST-COMPLETION OR IN PROGRESS */}
+                  {(selectedSoru.durum === 'tamamlandi' || selectedSoru.durum === 'dizgi_tamam' || selectedSoru.durum === 'dizgide') && (
+                    <div className="flex flex-col gap-4 pt-4">
+                      {selectedSoru.durum === 'dizgide' && (
+                        <button
+                          onClick={() => handleDurumGuncelle(selectedSoru.id, 'dizgi_tamam', 'Dizgiyi tamamlayıp soru yazarının onayına sunmak istediğinize emin misiniz?')}
+                          disabled={!selectedSoru.final_png_url}
+                          className={`w-full py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.1em] transition-all shadow-lg flex items-center justify-center gap-3 ${!selectedSoru.final_png_url ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-100 active:scale-95'}`}
+                        >
+                          <CheckCircleIcon className="w-6 h-6" />
+                          {!selectedSoru.final_png_url ? 'ÖNCE PNG YÜKLEYİNİZ' : 'DİZGİYİ TAMAMLA VE GÖNDER'}
+                        </button>
+                      )}
 
-                      <label className="flex-1 flex items-center justify-center gap-3 bg-purple-600 hover:bg-purple-700 text-white py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.1em] transition-all shadow-lg shadow-purple-100 active:scale-95 cursor-pointer">
-                        <DocumentArrowUpIcon className="w-6 h-6" /> MANUEL DOSYA YÜKLE
-                        <input type="file" className="hidden" accept="image/*,application/pdf" onChange={async (e) => {
-                          const file = e.target.files[0];
-                          if (!file) return;
-                          if (!confirm("Seçilen dosya yüklenecek ve soru güncellenecek. Emin misiniz?")) { e.target.value = null; return; }
-                          const fd = new FormData();
-                          fd.append('final_png', file);
-                          try {
-                            await soruAPI.uploadFinal(selectedSoru.id, fd);
-                            alert('Dosya yüklendi ve havuza aktarıldı');
-                            await loadSorular();
-                            loadBransCounts();
-                          } catch (err) { alert(err.response?.data?.error || 'Dosya yüklenemedi'); }
-                        }} />
-                      </label>
                     </div>
                   )}
 
@@ -390,67 +603,7 @@ export default function DizgiYonetimi() {
         </div>
       )}
 
-      {/* COMPLETE MODAL */}
-      {showCompleteModal && selectedSoru && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-6">
-          <div className="bg-white rounded-[3rem] p-10 max-w-xl w-full shadow-2xl border border-gray-50 animate-scale-up">
-            <div className="flex justify-between items-start mb-8">
-              <div>
-                <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                  <CheckCircleIcon className="w-8 h-8 text-emerald-500" /> Görevi Sonlandır
-                </h2>
-                <p className="text-gray-400 font-bold text-xs uppercase tracking-widest mt-1">Soru Final Çıktısı</p>
-              </div>
-              <button onClick={() => setShowCompleteModal(false)} className="p-3 hover:bg-gray-100 rounded-2xl transition">
-                <XMarkIcon className="w-7 h-7 text-gray-300" />
-              </button>
-            </div>
 
-            <div className="space-y-8">
-              <div className="relative">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 ml-1">Final PNG Yükle (LaTeX / Tasarım)</label>
-                <div className="flex items-center justify-center w-full">
-                  <label className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-[2rem] cursor-pointer transition-all ${completeData.finalPng ? 'bg-emerald-50 border-emerald-300' : 'bg-gray-50 border-gray-200 hover:bg-white hover:border-blue-400'
-                    }`}>
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
-                      {completeData.finalPng ? (
-                        <DocumentArrowUpIcon className="w-12 h-12 text-emerald-500 mb-3 animate-bounce-short" />
-                      ) : (
-                        <PhotoIcon className="w-12 h-12 text-gray-300 mb-3" />
-                      )}
-                      <p className={`text-xs font-black uppercase tracking-widest ${completeData.finalPng ? 'text-emerald-700' : 'text-gray-400'}`}>
-                        {completeData.finalPng ? 'DOSYA SEÇİLDİ' : 'GÖRSELİ BURAYA SÜRÜKLEYİN'}
-                      </p>
-                      <p className="mt-1 text-[10px] text-gray-400 font-medium italic">
-                        {completeData.finalPng ? completeData.finalPng.name : 'Veya buraya tıklayarak dosya seçin'}
-                      </p>
-                    </div>
-                    <input type="file" className="hidden" accept="image/png,image/jpeg" onChange={(e) => setCompleteData({ ...completeData, finalPng: e.target.files[0] })} />
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 ml-1">Eğitimci/Yazar Notu</label>
-                <textarea
-                  rows="4"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-[2rem] px-6 py-5 text-sm font-bold text-gray-700 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all outline-none"
-                  placeholder="Dizgi hakkında teknik detaylar, kullanılan fontlar vb. bilgiler ekleyebilirsiniz..."
-                  value={completeData.notlar}
-                  onChange={(e) => setCompleteData({ ...completeData, notlar: e.target.value })}
-                />
-              </div>
-
-              <div className="flex gap-4">
-                <button onClick={() => setShowCompleteModal(false)} className="flex-1 py-5 rounded-3xl text-[11px] font-black text-gray-400 uppercase tracking-widest hover:bg-gray-50 transition-colors">İPTAL</button>
-                <button onClick={handleDizgiTamamla} className="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white rounded-3xl py-5 font-black text-sm uppercase tracking-[0.1em] transition-all shadow-xl shadow-emerald-100 active:scale-95 flex items-center justify-center gap-2">
-                  GÖREVİ SİSTEME GÖNDER
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
 
     </div>

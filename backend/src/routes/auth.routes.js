@@ -191,9 +191,36 @@ router.get('/me', authenticate, async (req, res, next) => {
       WHERE k.id = $1
     `, [req.user.id]);
 
+    const user = result.rows[0];
+
+    // Otomatik giriş logu (1 saatte bir en fazla 1 kayıt)
+    // Şifre girmeden (token ile) girenleri de loglarda görmek için
+    try {
+      const lastLog = await pool.query(
+        'SELECT tarih FROM giris_loglari WHERE kullanici_id = $1 ORDER BY tarih DESC LIMIT 1',
+        [req.user.id]
+      );
+
+      const now = new Date();
+      const oneHourInMs = 1 * 60 * 60 * 1000;
+      const needsNewLog = lastLog.rows.length === 0 ||
+        (now - new Date(lastLog.rows[0].tarih)) > oneHourInMs;
+
+      if (needsNewLog) {
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        const userAgent = req.get('User-Agent');
+        await pool.query(
+          'INSERT INTO giris_loglari (kullanici_id, ip_adresi, user_agent) VALUES ($1, $2, $3)',
+          [req.user.id, ip, userAgent]
+        );
+      }
+    } catch (logError) {
+      console.warn('Otomatik giriş logu kaydedilemedi:', logError.message);
+    }
+
     res.json({
       success: true,
-      user: result.rows[0]
+      user: user
     });
   } catch (error) {
     next(error);

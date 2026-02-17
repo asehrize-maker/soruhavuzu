@@ -8,6 +8,7 @@ import {
     ArrowPathIcon,
     AdjustmentsHorizontalIcon
 } from '@heroicons/react/24/outline';
+import { translateKey } from '../utils/helpers';
 
 export default function Settings() {
     const [settings, setSettings] = useState([]);
@@ -67,9 +68,6 @@ export default function Settings() {
                     </div>
                     <p className="text-gray-500 font-medium">Sistem çekirdek ayarlarını, görünüm ve güvenlik tercihlerini buradan yapılandırın.</p>
                 </div>
-                <div className="flex bg-gray-100 p-1 rounded-2xl border border-gray-200 shadow-sm">
-                    <div className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400">Genel Konfigürasyon</div>
-                </div>
             </div>
 
             {loading ? (
@@ -85,7 +83,7 @@ export default function Settings() {
                                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                                         <div className="space-y-1">
                                             <label className="block text-xs font-black text-gray-400 uppercase tracking-widest group-hover:text-gray-900 transition-colors">
-                                                {setting.anahtar.replace(/_/g, ' ')}
+                                                {translateKey(setting.anahtar)}
                                             </label>
                                             <p className="text-xs text-gray-400 font-medium leading-relaxed italic pr-10">
                                                 {setting.aciklamalar}

@@ -6,15 +6,19 @@ import { AppError } from '../middleware/errorHandler.js';
 
 const router = express.Router();
 
-
-
-// Admin: yeni kullanıcı oluştur
-router.post('/admin-create', authenticate, authorize('admin'), async (req, res, next) => {
+// Admin veya Koordinatör: yeni kullanıcı oluştur
+router.post('/admin-create', authenticate, authorize(['admin', 'koordinator']), async (req, res, next) => {
   try {
-    const { ad_soyad, email, sifre, rol, ekip_id, brans_id, inceleme_alanci, inceleme_dilci, brans_ids } = req.body;
+    const isKoordinator = req.user.rol === 'koordinator';
+    const { ad_soyad, email, sifre, rol, ekip_id, brans_id, inceleme_alanci, inceleme_dilci, brans_ids, ekip_ids } = req.body;
 
     if (!ad_soyad || !email || !sifre || !rol) {
       throw new AppError('ad_soyad, email, sifre ve rol zorunludur', 400);
+    }
+
+    // Koordinatör admin oluşturamaz
+    if (isKoordinator && rol === 'admin') {
+      throw new AppError('Yetkiniz personeli admin yapmaya yetmiyor', 403);
     }
 
     const emailCheck = await pool.query('SELECT id FROM kullanicilar WHERE email = $1', [email]);
@@ -29,6 +33,9 @@ router.post('/admin-create', authenticate, authorize('admin'), async (req, res, 
     const flagAlan = isIncelemeci ? !!inceleme_alanci : false;
     const flagDil = isIncelemeci ? !!inceleme_dilci : false;
 
+    // Koordinatör sadece kendi ekibine ekleyebilir
+    const finalEkipId = isKoordinator ? req.user.ekip_id : (ekip_id ? parseInt(ekip_id) : null);
+
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -37,7 +44,7 @@ router.post('/admin-create', authenticate, authorize('admin'), async (req, res, 
         `INSERT INTO kullanicilar (ad_soyad, email, sifre, rol, ekip_id, brans_id, inceleme_alanci, inceleme_dilci)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING id`,
-        [ad_soyad, email, hashed, rol, ekip_id ? parseInt(ekip_id) : null, brans_id || null, flagAlan, flagDil]
+        [ad_soyad, email, hashed, rol, finalEkipId, brans_id || null, flagAlan, flagDil]
       );
 
       const userId = insert.rows[0].id;
@@ -52,6 +59,20 @@ router.post('/admin-create', authenticate, authorize('admin'), async (req, res, 
             );
           }
         }
+      }
+
+      // Çoklu ekip ataması
+      const teams_to_insert = new Set();
+      if (finalEkipId) teams_to_insert.add(parseInt(finalEkipId));
+      if (ekip_ids && Array.isArray(ekip_ids)) {
+        ekip_ids.forEach(id => { if (id) teams_to_insert.add(parseInt(id)); });
+      }
+
+      for (const eId of teams_to_insert) {
+        await client.query(
+          'INSERT INTO kullanici_ekipleri (kullanici_id, ekip_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+          [userId, eId]
+        );
       }
 
       await client.query('COMMIT');
@@ -72,10 +93,63 @@ router.post('/admin-create', authenticate, authorize('admin'), async (req, res, 
   }
 });
 
-// Tüm kullanıcıları getir (Sadece admin)
-router.get('/', authenticate, authorize('admin'), async (req, res, next) => {
+// Yazarları getir (Filtreleme için)
+router.get('/authors', authenticate, async (req, res, next) => {
   try {
-    const result = await pool.query(`
+    const isAdmin = req.user.rol === 'admin';
+    const isKoordinator = req.user.rol === 'koordinator';
+    const { ekip_id, brans_id, id } = req.user;
+
+    let query = `SELECT id, ad_soyad FROM kullanicilar WHERE 1=1`;
+    const params = [];
+
+    if (isAdmin) {
+      // Admin hepsini görür, filtreleme yok
+    } else if (isKoordinator) {
+      // Koordinatör sadece kendi ekibini görür
+      if (ekip_id) {
+        query += ` AND ekip_id = $1`;
+        params.push(ekip_id);
+      } else {
+        query += ` AND id = $1`;
+        params.push(id);
+      }
+    } else {
+      // Normal kullanıcı (Soru Yazarı, vs.)
+      // 1. Kendi ekibini görür
+      if (ekip_id) {
+        query += ` AND ekip_id = $1`;
+        params.push(ekip_id);
+
+        // 2. SADECE soru yazarlarını görür (Dizgici, İncelemeci GÖREMEZ)
+        query += ` AND rol = 'soru_yazici'`;
+
+        // 3. Varsa kendi branşını görür
+        if (brans_id) {
+          query += ` AND brans_id = $${params.length + 1}`;
+          params.push(brans_id);
+        }
+      } else {
+        // Ekibi yoksa sadece kendisini
+        query += ` AND id = $1`;
+        params.push(id);
+      }
+    }
+
+    query += ` ORDER BY ad_soyad ASC`;
+
+    const result = await pool.query(query, params);
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Tüm kullanıcıları getir (Admin veya Koordinatör)
+router.get('/', authenticate, authorize(['admin', 'koordinator']), async (req, res, next) => {
+  try {
+    const isKoordinator = req.user.rol === 'koordinator';
+    let query = `
       SELECT k.id, k.ad_soyad, k.email, k.rol, k.inceleme_alanci, k.inceleme_dilci, k.aktif,
              k.ekip_id, e.ekip_adi,
              k.brans_id, b.brans_adi,
@@ -90,8 +164,16 @@ router.get('/', authenticate, authorize('admin'), async (req, res, next) => {
       FROM kullanicilar k
       LEFT JOIN ekipler e ON k.ekip_id = e.id
       LEFT JOIN branslar b ON k.brans_id = b.id
-      ORDER BY k.olusturulma_tarihi DESC
-    `);
+    `;
+
+    const params = [];
+    if (isKoordinator) {
+      query += ' WHERE k.ekip_id = $1';
+      params.push(req.user.ekip_id);
+    }
+
+    query += ' ORDER BY k.olusturulma_tarihi DESC';
+    const result = await pool.query(query, params);
 
     res.json({
       success: true,
@@ -106,10 +188,13 @@ router.get('/', authenticate, authorize('admin'), async (req, res, next) => {
 router.get('/:id', authenticate, async (req, res, next) => {
   try {
     const { id } = req.params;
+    const isKoordinator = req.user.rol === 'koordinator';
 
-    // Admin değilse sadece kendi bilgisini görebilir
+    // Admin değilse sadece kendi bilgisini veya ekibindeki personeli görebilir
     if (req.user.rol !== 'admin' && req.user.id !== parseInt(id)) {
-      throw new AppError('Bu bilgilere erişim yetkiniz yok', 403);
+      if (!isKoordinator) {
+        throw new AppError('Bu bilgilere erişim yetkiniz yok', 403);
+      }
     }
 
     const result = await pool.query(`
@@ -134,39 +219,49 @@ router.get('/:id', authenticate, async (req, res, next) => {
       throw new AppError('Kullanıcı bulunamadı', 404);
     }
 
+    const targetUser = result.rows[0];
+    if (isKoordinator && targetUser.ekip_id !== req.user.ekip_id && req.user.id !== parseInt(id)) {
+      throw new AppError('Başka ekipten personeli görüntüleyemezsiniz', 403);
+    }
+
     res.json({
       success: true,
-      data: result.rows[0]
+      data: targetUser
     });
   } catch (error) {
     next(error);
   }
 });
 
-// Kullanıcı güncelle (Admin veya kendi bilgisi)
+// Kullanıcı güncelle (Admin, Koordinatör veya kendi bilgisi)
 router.put('/:id', authenticate, async (req, res, next) => {
   try {
     const { id } = req.params;
+    const isKoordinator = req.user.rol === 'koordinator';
 
-    // Admin değilse sadece kendi bilgisini güncelleyebilir
-    if (req.user.rol !== 'admin' && req.user.id !== parseInt(id)) {
+    if (req.user.rol !== 'admin' && req.user.id !== parseInt(id) && !isKoordinator) {
       throw new AppError('Bu işlem için yetkiniz yok', 403);
     }
 
-    const { ad_soyad, email, ekip_id, brans_id, brans_ids, aktif } = req.body;
+    const { ad_soyad, email, ekip_id, brans_id, brans_ids, ekip_ids, aktif } = req.body;
 
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
 
-      const currentUserRes = await client.query('SELECT rol, email FROM kullanicilar WHERE id = $1', [id]);
+      const currentUserRes = await client.query('SELECT rol, email, ekip_id FROM kullanicilar WHERE id = $1', [id]);
       if (currentUserRes.rows.length === 0) {
         throw new AppError('Kullanıcı bulunamadı', 404);
       }
-      const currentRole = currentUserRes.rows[0].rol;
-      const currentEmail = currentUserRes.rows[0].email;
 
-      // Super Admin Koruması
+      const targetUser = currentUserRes.rows[0];
+      const currentRole = targetUser.rol;
+      const currentEmail = targetUser.email;
+
+      if (isKoordinator && targetUser.ekip_id !== req.user.ekip_id && req.user.id !== parseInt(id)) {
+        throw new AppError('Sadece kendi ekibinizdeki personeli güncelleyebilirsiniz', 403);
+      }
+
       if (currentEmail === 'servetgenc@windowslive.com') {
         if (req.body.rol && req.body.rol !== 'admin') {
           throw new AppError('Bu kullanıcının yetkisi değiştirilemez (Süper Admin)', 403);
@@ -190,14 +285,16 @@ router.put('/:id', authenticate, async (req, res, next) => {
         values.push(email);
       }
 
-      if (req.user.rol === 'admin') {
-        if (ekip_id !== undefined) {
+      if (req.user.rol === 'admin' || isKoordinator) {
+        if (req.user.rol === 'admin' && ekip_id !== undefined) {
           updates.push(`ekip_id = $${paramCount++}`);
-          // Boş string gelirse null olarak kaydet, değilse integer'a çevir
           values.push((ekip_id === '' || ekip_id === null) ? null : parseInt(ekip_id));
         }
 
         if (req.body.rol) {
+          if (isKoordinator && req.body.rol === 'admin') {
+            throw new AppError('Koordinatör personeli admin yapamaz', 403);
+          }
           updates.push(`rol = $${paramCount++}`);
           values.push(req.body.rol);
         }
@@ -225,6 +322,7 @@ router.put('/:id', authenticate, async (req, res, next) => {
           values.push(aktif);
         }
 
+        // Branşları güncelle
         if (brans_ids !== undefined && Array.isArray(brans_ids)) {
           await client.query('DELETE FROM kullanici_branslari WHERE kullanici_id = $1', [id]);
           for (const bId of brans_ids) {
@@ -246,6 +344,26 @@ router.put('/:id', authenticate, async (req, res, next) => {
           updates.push(`brans_id = $${paramCount++}`);
           values.push(brans_id || null);
         }
+
+        /*
+        // Ekipleri güncelle (Çoklu ekip desteği)
+        if (ekip_ids !== undefined && Array.isArray(ekip_ids)) {
+          await client.query('DELETE FROM kullanici_ekipleri WHERE kullanici_id = $1', [id]);
+          const teams_to_insert = new Set();
+
+          const newPrimaryEkipId = (ekip_id !== undefined) ? ((ekip_id === '' || ekip_id === null) ? null : parseInt(ekip_id)) : targetUser.ekip_id;
+          if (newPrimaryEkipId) teams_to_insert.add(newPrimaryEkipId);
+
+          ekip_ids.forEach(eid => { if (eid) teams_to_insert.add(parseInt(eid)); });
+
+          for (const eId of teams_to_insert) {
+            await client.query(
+              'INSERT INTO kullanici_ekipleri (kullanici_id, ekip_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+              [id, eId]
+            );
+          }
+        }
+        */
       }
 
       let result;
@@ -269,6 +387,15 @@ router.put('/:id', authenticate, async (req, res, next) => {
         WHERE kb.kullanici_id = $1
       `, [id]);
 
+      /*
+      const ekipResult = await client.query(`
+        SELECT ke.ekip_id as id, e.ekip_adi
+        FROM kullanici_ekipleri ke
+        JOIN ekipler e ON ke.ekip_id = e.id
+        WHERE ke.kullanici_id = $1
+      `, [id]);
+      */
+
       await client.query('COMMIT');
 
       res.json({
@@ -289,28 +416,35 @@ router.put('/:id', authenticate, async (req, res, next) => {
   }
 });
 
-// Kullanıcı sil (Sadece admin)
-router.delete('/:id', authenticate, authorize('admin'), async (req, res, next) => {
+// Kullanıcı sil (Admin veya Koordinatör-Ekip)
+router.delete('/:id', authenticate, authorize(['admin', 'koordinator']), async (req, res, next) => {
   try {
     const { id } = req.params;
+    const isKoordinator = req.user.rol === 'koordinator';
 
-    // Silme koruması
-    const checkUser = await pool.query('SELECT email FROM kullanicilar WHERE id = $1', [id]);
-    if (checkUser.rows.length > 0 && checkUser.rows[0].email === 'servetgenc@windowslive.com') {
+    const checkUser = await pool.query('SELECT email, ekip_id FROM kullanicilar WHERE id = $1', [id]);
+    if (checkUser.rows.length === 0) {
+      throw new AppError('Kullanıcı bulunamadı', 404);
+    }
+
+    const targetUser = checkUser.rows[0];
+
+    if (targetUser.email === 'servetgenc@windowslive.com') {
       throw new AppError('Bu kullanıcı silinemez (Süper Admin)', 403);
     }
 
-    const result = await pool.query('DELETE FROM kullanicilar WHERE id = $1 RETURNING *', [id]);
-    if (result.rows.length === 0) {
-      throw new AppError('Kullanıcı bulunamadı', 404);
+    if (isKoordinator && targetUser.ekip_id !== req.user.ekip_id) {
+      throw new AppError('Sadece kendi ekibinizdeki personeli silebilirsiniz', 403);
     }
+
+    await pool.query('DELETE FROM kullanicilar WHERE id = $1', [id]);
     res.json({ success: true, message: 'Kullanıcı silindi' });
   } catch (error) {
     next(error);
   }
 });
 
-// Giriş loglarını getir (Sadece admin)
+// Bilgi loglarını getir (Sadece admin)
 router.get('/logs/login', authenticate, authorize('admin'), async (req, res, next) => {
   try {
     const result = await pool.query(`
@@ -326,38 +460,53 @@ router.get('/logs/login', authenticate, authorize('admin'), async (req, res, nex
   }
 });
 
-// Aktivite loglarını getir (Sadece admin)
-router.get('/logs/activity', authenticate, authorize('admin'), async (req, res, next) => {
+// Aktivite loglarını getir (Admin veya Koordinatör-Ekip)
+router.get('/logs/activity', authenticate, authorize(['admin', 'koordinator']), async (req, res, next) => {
   try {
-    const result = await pool.query(`
+    const isKoordinator = req.user.rol === 'koordinator';
+    let query = `
       SELECT a.*, k.ad_soyad, k.email, k.rol
       FROM aktivite_loglari a
       LEFT JOIN kullanicilar k ON a.kullanici_id = k.id
-      ORDER BY a.tarih DESC
-      LIMIT 200
-    `);
+    `;
+    const params = [];
+    if (isKoordinator) {
+      query += ' WHERE k.ekip_id = $1';
+      params.push(req.user.ekip_id);
+    }
+    query += ' ORDER BY a.tarih DESC LIMIT 200';
+
+    const result = await pool.query(query, params);
     res.json({ success: true, data: result.rows });
   } catch (error) {
     next(error);
   }
 });
 
-// Ajanda istatistiklerini getir (Sadece admin)
-router.get('/stats/agenda', authenticate, authorize('admin'), async (req, res, next) => {
+// Ajanda/Aktivite istatistiklerini getir
+router.get('/stats/agenda', authenticate, authorize(['admin', 'koordinator']), async (req, res, next) => {
   try {
-    const result = await pool.query(`
+    const isKoordinator = req.user.rol === 'koordinator';
+    let query = `
       SELECT 
-        DATE(tarih) as tarih,
-        COUNT(*) FILTER (WHERE islem_turu = 'soru_ekleme') as soru_ekleme,
-        COUNT(*) FILTER (WHERE islem_turu = 'durum_degisikligi') as durum_degisikligi,
-        COUNT(*) FILTER (WHERE islem_turu = 'dizgi_yukleme' OR islem_turu = 'dizgi_bitirme') as dizgi_isleri,
-        COUNT(*) FILTER (WHERE islem_turu = 'soru_silme') as soru_silme,
+        DATE(a.tarih) as tarih,
+        COUNT(*) FILTER (WHERE a.islem_turu = 'soru_ekleme') as soru_ekleme,
+        COUNT(*) FILTER (WHERE a.islem_turu = 'durum_degisikligi') as durum_degisikligi,
+        COUNT(*) FILTER (WHERE a.islem_turu = 'dizgi_yukleme' OR a.islem_turu = 'dizgi_bitirme') as dizgi_isleri,
+        COUNT(*) FILTER (WHERE a.islem_turu = 'soru_silme') as soru_silme,
         COUNT(*) as toplam_aktivite
-      FROM aktivite_loglari
-      WHERE tarih >= CURRENT_DATE - INTERVAL '30 days'
-      GROUP BY DATE(tarih)
-      ORDER BY DATE(tarih) DESC
-    `);
+      FROM aktivite_loglari a
+      LEFT JOIN kullanicilar k ON a.kullanici_id = k.id
+      WHERE a.tarih >= CURRENT_DATE - INTERVAL '30 days'
+    `;
+    const params = [];
+    if (isKoordinator) {
+      query += ' AND k.ekip_id = $1';
+      params.push(req.user.ekip_id);
+    }
+    query += ' GROUP BY DATE(a.tarih) ORDER BY DATE(a.tarih) DESC';
+
+    const result = await pool.query(query, params);
     res.json({ success: true, data: result.rows });
   } catch (error) {
     next(error);
@@ -377,12 +526,10 @@ router.get('/settings/all', authenticate, authorize('admin'), async (req, res, n
 // Sistem ayarlarını güncelle (Sadece admin)
 router.put('/settings/update', authenticate, authorize('admin'), async (req, res, next) => {
   try {
-    const { ayarlar } = req.body; // Array of { anahtar, deger }
-
+    const { ayarlar } = req.body;
     if (!Array.isArray(ayarlar)) {
       throw new AppError('Ayarlar listesi gerekli', 400);
     }
-
     const client = await pool.connect();
     try {
       await client.query('BEGIN');

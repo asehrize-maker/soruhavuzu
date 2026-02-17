@@ -6,7 +6,7 @@ import { addDosyaFields } from './migrations/005_dosya_ekleme.js';
 import { updateDurumConstraint } from './migrations/006_durum_constraint.js';
 import { addSoruDetaylari } from './migrations/007_soru_detaylari.js';
 import { addSoruIncelemeVeVersiyon } from './migrations/008_soru_inceleme_versiyon.js';
-import { seedSivasEkibi } from './migrations/009_sivas_ekibi_seed.js';
+// import { seedSivasEkibi } from './migrations/009_sivas_ekibi_seed.js'; // Disabled to prevent re-creation
 import { updateWorkflowStatus } from './migrations/010_update_workflow_status.js';
 import { doubleApprovalSystem } from './migrations/011_double_approval_system.js';
 import { incelemeciRolVeAltRoller } from './migrations/012_incelemeci_rol_altroller.js';
@@ -30,6 +30,8 @@ import { addSystemSettings } from './migrations/030_add_system_settings.js';
 import { addKategoriColumn } from './migrations/031_add_kategori_column.js';
 import createDenemelerTables from './migrations/032_add_denemeler.js';
 import { addGorevTipiToDenemeler } from './migrations/033_add_gorev_tipi.js';
+import { addKullanimAlanlari } from './migrations/034_add_kullanim_alanlari.js';
+import { addKullaniciEkipleri } from './migrations/027_add_kullanici_ekipleri.js';
 
 // En güncel durum listesi (workflow v2 + dizgi tamam)
 const ALLOWED_DURUMLAR = [
@@ -204,12 +206,14 @@ const createTables = async () => {
     // Soru inceleme ve versiyon sistemi
     await addSoruIncelemeVeVersiyon();
 
+    /* 
     // Sivas Ekibi ve Temel Branşları Seed Et
     try {
       await seedSivasEkibi();
     } catch (e) {
       console.warn('⚠️ Seed Sivas Ekibi skipped (likely already exists or minor DB issue):', e.message);
     }
+    */
 
     // İş akışı durumlarını güncelle (V2)
     // İş akışı durumlarını güncelle (V2)
@@ -255,6 +259,8 @@ const createTables = async () => {
     await addKategoriColumn();
     await createDenemelerTables(client);
     await addGorevTipiToDenemeler(client);
+    await addKullanimAlanlari(client);
+    await addKullaniciEkipleri(client);
 
   } catch (error) {
     await client.query('ROLLBACK');

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { soruAPI, bransAPI } from '../services/api';
 import useAuthStore from '../store/authStore';
+import useNotificationStore from '../store/notificationStore';
 import {
   PhotoIcon,
   DocumentTextIcon,
@@ -14,6 +15,9 @@ import {
   DeviceTabletIcon,
   DevicePhoneMobileIcon,
   CheckBadgeIcon,
+  XMarkIcon,
+  ChevronUpIcon,
+  ChevronDownIcon,
   ArrowRightIcon,
   ArrowPathIcon
 } from '@heroicons/react/24/outline';
@@ -25,14 +29,22 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 
 export default function SoruEkle() {
   const user = useAuthStore((state) => state.user);
+  const { showNotification } = useNotificationStore();
   const navigate = useNavigate();
   const [branslar, setBranslar] = useState([]);
   const [kazanims, setKazanims] = useState([]);
   const [kazanimLoading, setKazanimLoading] = useState(false);
 
-  const [metadata, setMetadata] = useState({ brans_id: '', dogruCevap: '', kazanim: '', zorluk: '3', kazanim_is_custom: false, kategori: 'deneme' });
+  const [metadata, setMetadata] = useState({
+    brans_id: '',
+    dogruCevap: '',
+    kazanim: '',
+    zorluk: '3',
+    kazanim_is_custom: false,
+    kategori: 'deneme'
+  });
   const [components, setComponents] = useState([]);
-  const [draggedItemIndex, setDraggedItemIndex] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [widthMode, setWidthMode] = useState('dar'); // dar (82mm) | genis (169mm)
 
   useEffect(() => {
@@ -80,20 +92,20 @@ export default function SoruEkle() {
 
   const addSecenekler = (mode = 'list') => {
     const existingSecenekler = components.filter(c => c.subtype === 'secenek');
+    const hasE = existingSecenekler.some(c => c.content.includes('E)'));
+    const count = hasE ? 5 : 4;
 
     let styleProps = { width: 100, float: 'none' };
-    if (mode === 'grid') { styleProps = { width: 48, float: 'left' }; }
-    else if (mode === 'yanyana') { styleProps = { width: 23, float: 'left' }; }
+    if (mode === 'grid') { styleProps = { width: count === 5 ? 31 : 48, float: 'left' }; }
+    else if (mode === 'yanyana') { styleProps = { width: count === 5 ? 18 : 23, float: 'left' }; }
 
     if (existingSecenekler.length > 0) {
-      // Mevcut şıkları güncelle
       setComponents(prev => prev.map(c =>
         c.subtype === 'secenek' ? { ...c, ...styleProps } : c
       ));
     } else {
-      // Yeni şıklar ekle
       const baseId = generateId();
-      const opts = ['A', 'B', 'C', 'D'];
+      const opts = hasE ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
       const newComps = opts.map((opt, idx) => ({
         id: baseId + idx,
         type: 'text', subtype: 'secenek', content: `<b>${opt})</b> `,
@@ -103,6 +115,39 @@ export default function SoruEkle() {
       }));
       setComponents(prev => [...prev, ...newComps]);
     }
+  };
+
+  const addOptionE = () => {
+    const existingSecenekler = components.filter(c => c.subtype === 'secenek');
+    const hasE = existingSecenekler.some(c => c.content.includes('E)'));
+    if (hasE) return;
+
+    let currentMode = 'list';
+    if (existingSecenekler.length > 0) {
+      const w = existingSecenekler[0].width;
+      if (w < 30) currentMode = 'yanyana';
+      else if (w < 60) currentMode = 'grid';
+    }
+
+    let styleProps = { width: 100, float: 'none' };
+    if (currentMode === 'grid') styleProps = { width: 31, float: 'left' };
+    else if (currentMode === 'yanyana') styleProps = { width: 18, float: 'left' };
+
+    // Update existing options width to match new 5-option layout
+    if (currentMode !== 'list') {
+      setComponents(prev => prev.map(c =>
+        c.subtype === 'secenek' ? { ...c, ...styleProps } : c
+      ));
+    }
+
+    const newComp = {
+      id: generateId(),
+      type: 'text', subtype: 'secenek', content: `<b>E)</b> `,
+      placeholder: ``,
+      label: `Seçenek E`,
+      ...styleProps
+    };
+    setComponents(prev => [...prev, newComp]);
   };
 
   const handleImageUpload = (e) => {
@@ -133,7 +178,7 @@ export default function SoruEkle() {
         else if (img.naturalHeight > img.naturalWidth) w = 60;  // Dikey
         else if (Math.abs(img.naturalHeight - img.naturalWidth) < 100) w = 70; // Kareye yakın
 
-        setComponents(prev => [...prev, { id: generateId(), type: 'image', content: objectUrl, file: file, width: w, height: 'auto', align: 'center' }]);
+        setComponents(prev => [{ id: generateId(), type: 'image', content: objectUrl, file: file, width: w, height: 'auto', align: 'center' }, ...prev]);
       };
     }
   };
@@ -141,21 +186,16 @@ export default function SoruEkle() {
   const updateComponent = (id, updates) => setComponents(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
   const removeComponent = (id) => setComponents(prev => prev.filter(c => c.id !== id));
 
-  const onDragStart = (e, index) => {
-    setDraggedItemIndex(index);
-    e.dataTransfer.effectAllowed = "move";
+  const moveComponent = (index, direction) => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === components.length - 1) return;
+
+    const newComponents = [...components];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    [newComponents[index], newComponents[targetIndex]] = [newComponents[targetIndex], newComponents[index]];
+    setComponents(newComponents);
   };
-  const onDragOver = (e, index) => {
-    e.preventDefault();
-    if (draggedItemIndex === null || draggedItemIndex === index) return;
-    const newComps = [...components];
-    const item = newComps[draggedItemIndex];
-    newComps.splice(draggedItemIndex, 1);
-    newComps.splice(index, 0, item);
-    setComponents(newComps);
-    setDraggedItemIndex(index);
-  };
-  const onDragEnd = () => setDraggedItemIndex(null);
+
   const execCmd = (cmd) => document.execCommand(cmd, false, null);
 
   const normalizeZorluk = (value) => {
@@ -165,12 +205,22 @@ export default function SoruEkle() {
   };
 
   const handleSave = async () => {
-    if (components.length === 0) return alert("Soru içeriği boş!");
-    if (!metadata.dogruCevap) return alert("Lütfen doğru cevabı seçiniz.");
-    if (!metadata.brans_id) return alert("Lütfen branş seçiniz!");
+    if (components.length === 0) {
+      showNotification('Soru içeriği boş!', 'error');
+      return;
+    }
+    if (!metadata.dogruCevap) {
+      showNotification('Lütfen doğru cevabı seçiniz.', 'error');
+      return;
+    }
+    if (!metadata.brans_id) {
+      showNotification('Lütfen branş seçiniz!', 'error');
+      return;
+    }
 
     try {
       const formData = new FormData();
+      const firstImage = components.find(c => c.type === 'image' && c.file);
       formData.append('dogru_cevap', metadata.dogruCevap);
       formData.append('brans_id', metadata.brans_id);
       formData.append('kazanim', metadata.kazanim || 'Genel');
@@ -204,16 +254,19 @@ export default function SoruEkle() {
 
       htmlContent += `<div style="clear: both;"></div>`;
       formData.append('soru_metni', htmlContent);
-      const firstImage = components.find(c => c.type === 'image' && c.file);
       if (firstImage) { formData.append('fotograf', firstImage.file); formData.append('fotograf_konumu', 'ust'); }
-      ['a', 'b', 'c', 'd'].forEach(opt => formData.append(`secenek_${opt}`, ''));
+      ['a', 'b', 'c', 'd', 'e'].forEach(opt => formData.append(`secenek_${opt}`, ''));
       await soruAPI.create(formData);
+      showNotification('Soru başarıyla oluşturuldu ve sisteme kaydedildi.', 'success');
       navigate('/brans-havuzu');
-    } catch (error) { alert("Hata: " + error.message); }
+    } catch (error) {
+      console.error(error);
+      showNotification('Hata: ' + (error.response?.data?.error || error.message), 'error');
+    }
   };
 
   const RibbonButton = ({ cmd, label, icon }) => (
-    <button onMouseDown={(e) => { e.preventDefault(); execCmd(cmd); }} className="w-9 h-9 flex items-center justify-center hover:bg-white hover:text-blue-600 rounded-xl transition-all shadow-sm active:scale-95">{icon || label}</button>
+    <button onMouseDown={(e) => { e.preventDefault(); execCmd(cmd); }} className="w-9 h-9 flex items-center justify-center text-white font-bold hover:bg-white hover:text-blue-600 rounded-xl transition-all shadow-sm active:scale-95">{icon || label}</button>
   );
 
   return (
@@ -246,49 +299,71 @@ export default function SoruEkle() {
         </div>
       </div>
 
-      <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 p-10 pt-16">
-        {/* LEFT TOOLBAR */}
-        <div className="lg:col-span-3 space-y-8">
-          <div className="bg-white p-8 rounded-[3rem] shadow-xl shadow-gray-200/50 border border-gray-50 flex flex-col gap-6">
-            <div className="space-y-1 px-2 mb-4">
-              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none">ARAÇ KUTUSU</h4>
-              <h3 className="text-xl font-black text-gray-900 tracking-tight">İçerik Ekle</h3>
-            </div>
+      <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 pt-10">
+        {/* LEFT TOOLBAR: TOOLS + OPTIONS */}
+        <div className="lg:col-span-3 space-y-6">
+          {/* CONTENT TOOLS */}
+          <div className="bg-white p-5 rounded-3xl shadow-lg border border-gray-100 flex flex-col gap-4">
+            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1">İÇERİK</h4>
 
-            <div className="grid grid-cols-1 gap-3">
-              <label className="group flex flex-col p-5 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-3xl cursor-pointer transition-all hover:shadow-xl hover:shadow-indigo-100 hover:-translate-y-1">
-                <div className="flex items-center gap-3 text-white font-black text-sm uppercase tracking-widest"><DocumentArrowUpIcon className="w-5 h-5" /> Soru PNG'si</div>
-
+            <div className="grid grid-cols-1 gap-2">
+              <label className="group flex flex-col p-4 bg-indigo-50 hover:bg-indigo-600 rounded-2xl cursor-pointer transition-all border border-indigo-100/50 hover:shadow-lg hover:shadow-indigo-200">
+                <div className="flex items-center gap-3 text-indigo-900 group-hover:text-white font-black text-xs uppercase tracking-widest">
+                  <DocumentArrowUpIcon className="w-5 h-5" />
+                  <span>Soru Resmi</span>
+                </div>
                 <input type="file" className="hidden" accept="image/*" onChange={handleReadyQuestionUpload} />
               </label>
 
-              <div className="grid grid-cols-2 gap-3">
-                <button onClick={addKoku} className="flex flex-col p-5 bg-gray-50 hover:bg-blue-600 group rounded-3xl border border-gray-100 transition-all hover:shadow-lg hover:shadow-blue-100 text-left">
-                  <Bars4Icon className="w-5 h-5 text-gray-400 group-hover:text-white mb-2" />
-                  <span className="text-[10px] font-black text-gray-600 group-hover:text-white uppercase tracking-widest">Soru Kökü</span>
-                </button>
-                <button onClick={addGovde} className="flex flex-col p-5 bg-gray-50 hover:bg-blue-600 group rounded-3xl border border-gray-100 transition-all hover:shadow-lg hover:shadow-blue-100 text-left">
-                  <DocumentTextIcon className="w-5 h-5 text-gray-400 group-hover:text-white mb-2" />
-                  <span className="text-[10px] font-black text-gray-600 group-hover:text-white uppercase tracking-widest">Metin</span>
-                </button>
-              </div>
+              <button onClick={addGovde} className="flex items-center gap-3 p-4 bg-gray-50 hover:bg-gray-800 group rounded-2xl border border-gray-100 transition-all text-left">
+                <DocumentTextIcon className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                <span className="text-[10px] font-black text-gray-600 group-hover:text-white uppercase tracking-widest">Metin</span>
+              </button>
 
+              <button onClick={addKoku} className="flex items-center gap-3 p-4 bg-gray-50 hover:bg-gray-800 group rounded-2xl border border-gray-100 transition-all text-left">
+                <Bars4Icon className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                <span className="text-[10px] font-black text-gray-600 group-hover:text-white uppercase tracking-widest">Soru Kökü</span>
+              </button>
 
-
-              <label className="flex flex-col p-5 bg-orange-50 hover:bg-orange-600 group rounded-3xl border border-orange-100 transition-all text-left cursor-pointer mt-2">
-                <div className="flex items-center gap-3 text-orange-700 group-hover:text-white font-black text-sm uppercase tracking-widest"><PhotoIcon className="w-5 h-5" /> Görsel Ekle</div>
-
+              <label className="flex items-center gap-3 p-4 bg-orange-50 hover:bg-orange-500 group rounded-2xl border border-orange-100 transition-all text-left cursor-pointer">
+                <PhotoIcon className="w-5 h-5 text-orange-400 group-hover:text-white" />
+                <span className="text-[10px] font-black text-orange-700 group-hover:text-white uppercase tracking-widest">Görsel</span>
                 <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
               </label>
             </div>
           </div>
 
-
+          {/* OPTION BUTTONS moved here */}
+          <div className="bg-white p-5 rounded-3xl shadow-lg border border-gray-100 flex flex-col gap-4">
+            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1">ŞIKLAR</h4>
+            <div className="grid grid-cols-1 gap-2">
+              <button onClick={() => addSecenekler('list')} className="w-full py-3 flex items-center justify-start px-4 gap-3 bg-emerald-50 hover:bg-emerald-500 text-emerald-700 hover:text-white rounded-2xl border border-emerald-100 transition-all group">
+                <QueueListIcon className="w-5 h-5" strokeWidth={2} />
+                <span className="text-[10px] font-black uppercase tracking-widest">LİSTE</span>
+              </button>
+              <button onClick={() => addSecenekler('grid')} className="w-full py-3 flex items-center justify-start px-4 gap-3 bg-teal-50 hover:bg-teal-500 text-teal-700 hover:text-white rounded-2xl border border-teal-100 transition-all group">
+                <Squares2X2Icon className="w-5 h-5" strokeWidth={2} />
+                <span className="text-[10px] font-black uppercase tracking-widest">IZGARA</span>
+              </button>
+              <button onClick={() => addSecenekler('yanyana')} className="w-full py-3 flex items-center justify-start px-4 gap-3 bg-cyan-50 hover:bg-cyan-500 text-cyan-700 hover:text-white rounded-2xl border border-cyan-100 transition-all group">
+                <div className="flex gap-0.5">
+                  <div className="w-1.5 h-3 border border-current rounded-[1px]"></div>
+                  <div className="w-1.5 h-3 border border-current rounded-[1px]"></div>
+                  <div className="w-1.5 h-3 border border-current rounded-[1px]"></div>
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest">YAN YANA</span>
+              </button>
+              <button onClick={addOptionE} className="w-full py-3 flex items-center justify-start px-4 gap-3 bg-indigo-50 hover:bg-indigo-500 text-indigo-700 hover:text-white rounded-2xl border border-indigo-100 transition-all group">
+                <span className="w-5 h-5 flex items-center justify-center font-black border-2 border-current rounded-lg text-xs">E</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">E ŞIKKI EKLE</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* CENTER EDITOR */}
-        <div className="lg:col-span-7 flex flex-col items-center gap-10">
-          <div className="bg-gray-800 p-2 rounded-3xl shadow-2xl flex items-center gap-1 border border-white/5 mx-auto">
+        <div className="lg:col-span-6 flex flex-col items-center gap-6">
+          <div className="bg-gray-800 p-2 rounded-2xl shadow-xl flex items-center gap-1 border border-white/5 mx-auto sticky top-24 z-40">
             <RibbonButton cmd="bold" label="B" />
             <RibbonButton cmd="italic" label="I" />
             <RibbonButton cmd="underline" label="U" />
@@ -296,37 +371,81 @@ export default function SoruEkle() {
             <RibbonButton cmd="superscript" label="x²" />
             <RibbonButton cmd="subscript" label="x₂" />
             <div className="w-px h-6 bg-white/10 mx-2"></div>
-            <button onMouseDown={(e) => { e.preventDefault(); execCmd('insertUnorderedList'); }} className="p-2 hover:bg-white/10 rounded-xl transition"><QueueListIcon className="w-5 h-5 text-gray-400" /></button>
+            <button onMouseDown={(e) => { e.preventDefault(); execCmd('insertUnorderedList'); }} className="p-2 hover:bg-white/10 rounded-xl transition"><QueueListIcon className="w-5 h-5 text-white/90" /></button>
           </div>
 
-          <div className="relative group/canvas perspective-1000">
+          <div className="relative group/canvas perspective-1000 w-full flex justify-center">
             <div
               className="bg-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-700 relative flex flex-col group min-h-[140mm] border border-gray-100"
               style={{
                 width: widthMode === 'dar' ? '82.4mm' : '169.6mm',
-                padding: '10mm',
-                paddingTop: '15mm',
+                padding: '1mm 1mm 1mm 6mm',
+                paddingTop: '1mm',
                 borderRadius: '2px'
               }}
             >
-              <div className="space-y-1 relative" style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}>
+              <div
+                className="space-y-0 relative"
+                style={{ fontFamily: '"Arial", sans-serif', fontSize: '10pt', lineHeight: '1.4' }}
+                onClick={(e) => {
+                  if (!e.target.closest('.delete-btn')) setConfirmDeleteId(null);
+                }}
+              >
                 {components.map((comp, index) => (
                   <div
                     key={comp.id}
-                    className={`relative group/item rounded px-2 transition-all duration-300 ${draggedItemIndex === index ? 'opacity-30 scale-95' : 'hover:bg-blue-50/30'}`}
+                    className={`relative group/item rounded p-0 pt-2 transition-all duration-300 ${confirmDeleteId === comp.id ? 'ring-2 ring-rose-500 bg-rose-50/50' : 'hover:bg-blue-50/10'}`}
                     style={{
                       float: comp.float || 'none',
                       width: comp.width && comp.subtype === 'secenek' ? `${comp.width}%` : 'auto',
-                      marginRight: comp.float === 'left' ? '2%' : '0'
+                      marginRight: comp.float === 'left' ? '2%' : '1%'
                     }}
-                    draggable="true"
-                    onDragStart={(e) => onDragStart(e, index)}
-                    onDragOver={(e) => onDragOver(e, index)}
-                    onDragEnd={onDragEnd}
                   >
-                    <div className="absolute -left-10 top-2 flex flex-col gap-2 opacity-0 group-hover/item:opacity-100 transition-all z-[60] w-8">
-                      <div title="Sürükle" className="p-2 bg-white rounded-xl shadow-sm border border-gray-100 text-gray-300 hover:text-blue-500 cursor-grab active:cursor-grabbing"><Bars4Icon className="w-4 h-4" strokeWidth={3} /></div>
-                      <button onClick={() => removeComponent(comp.id)} className="p-2 bg-white rounded-xl shadow-sm border border-gray-100 text-rose-300 hover:text-rose-600"><TrashIcon className="w-4 h-4" strokeWidth={3} /></button>
+                    {/* TOOLBAR - Top Right */}
+                    <div className={`absolute top-0 right-1 flex items-center gap-1 transition-all z-[60] pt-1 ${confirmDeleteId === comp.id ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100'}`}>
+                      {confirmDeleteId === comp.id ? (
+                        <div className="flex items-center gap-1 bg-rose-600 rounded-xl px-2 py-1 shadow-lg border border-rose-700 animate-fade-in text-white">
+                          <span className="text-[9px] font-black uppercase tracking-tighter mr-1">SİLİNSİN Mİ?</span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); removeComponent(comp.id); setConfirmDeleteId(null); }}
+                            className="delete-btn p-1.5 hover:bg-white/20 rounded-lg transition-all active:scale-90"
+                          >
+                            <CheckBadgeIcon className="w-4 h-4" strokeWidth={3} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
+                            className="delete-btn p-1.5 hover:bg-white/20 rounded-lg transition-all active:scale-90"
+                          >
+                            <XMarkIcon className="w-4 h-4" strokeWidth={3} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); moveComponent(index, 'up'); }}
+                            disabled={index === 0}
+                            className="p-1.5 bg-white/80 backdrop-blur rounded-lg shadow-sm border border-gray-100 text-gray-400 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all"
+                            title="Yukarı Taşı"
+                          >
+                            <ChevronUpIcon className="w-4 h-4" strokeWidth={3} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); moveComponent(index, 'down'); }}
+                            disabled={index === components.length - 1}
+                            className="p-1.5 bg-white/80 backdrop-blur rounded-lg shadow-sm border border-gray-100 text-gray-400 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all"
+                            title="Aşağı Taşı"
+                          >
+                            <ChevronDownIcon className="w-4 h-4" strokeWidth={3} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(comp.id); }}
+                            className="delete-btn p-1.5 bg-white/80 backdrop-blur rounded-lg shadow-sm border border-gray-100 text-rose-300 hover:text-rose-600 active:scale-90 transition-all"
+                            title="Sil"
+                          >
+                            <TrashIcon className="w-4 h-4" strokeWidth={3} />
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {comp.type === 'text' ? (
@@ -343,61 +462,33 @@ export default function SoruEkle() {
                     {comp.float === 'none' && <div style={{ clear: 'both' }}></div>}
                   </div>
                 ))}
-
-
                 <div style={{ clear: 'both' }}></div>
-              </div>
-            </div>
-          </div>
-
-          {/* METADATA FORM AREA */}
-          <div className="w-full xl:w-[169.6mm] animate-fade-in-up">
-            <div className="bg-white rounded-[3.5rem] shadow-xl shadow-gray-200/50 border border-gray-50 overflow-hidden">
-              <div className="p-8 border-b border-gray-50 flex items-center justify-between">
-                <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                  <SparklesIcon className="w-6 h-6 text-amber-500" /> Soru Künyesi ve Ayarlar
-                </h3>
-
-              </div>
-              <div className="p-4">
-                <MetadataForm
-                  values={metadata}
-                  onChange={setMetadata}
-                  branslar={branslar}
-                  kazanims={kazanims}
-                  kazanimLoading={kazanimLoading}
-                  allowManualKazanim={true}
-                  className="border-0 shadow-none bg-transparent"
-                />
               </div>
             </div>
           </div>
         </div>
 
-        {/* RIGHT TOOLBAR */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="sticky top-32">
-            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 text-center">ŞIK EKLE</h4>
-            <div className="flex flex-col gap-3">
-              <button onClick={() => addSecenekler('list')} className="w-full py-4 flex flex-col items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-3xl shadow-lg shadow-emerald-200 transition-all hover:scale-[1.02] active:scale-95 group">
-                <QueueListIcon className="w-6 h-6" strokeWidth={2} />
-                <span className="text-[10px] font-black uppercase tracking-widest">LİSTE</span>
-              </button>
-              <button onClick={() => addSecenekler('grid')} className="w-full py-4 flex flex-col items-center justify-center gap-2 bg-teal-600 hover:bg-teal-500 text-white rounded-3xl shadow-lg shadow-teal-200 transition-all hover:scale-[1.02] active:scale-95 group">
-                <Squares2X2Icon className="w-6 h-6" strokeWidth={2} />
-                <span className="text-[10px] font-black uppercase tracking-widest">IZGARA</span>
-              </button>
-              <button onClick={() => addSecenekler('yanyana')} className="w-full py-4 flex flex-col items-center justify-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-3xl shadow-lg shadow-cyan-200 transition-all hover:scale-[1.02] active:scale-95 group">
-                <div className="flex gap-0.5">
-                  <div className="w-2 h-4 border border-white/50 rounded-sm"></div>
-                  <div className="w-2 h-4 border border-white/50 rounded-sm"></div>
-                  <div className="w-2 h-4 border border-white/50 rounded-sm"></div>
-                  <div className="w-2 h-4 border border-white/50 rounded-sm"></div>
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-widest">YAN YANA</span>
-              </button>
+        {/* RIGHT METADATA PANEL */}
+        <div className="lg:col-span-3">
+          <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-50 overflow-hidden sticky top-32">
+            <div className="p-5 border-b border-gray-50 bg-gray-50/50">
+              <h3 className="text-sm font-black text-gray-900 tracking-tight flex items-center gap-2">
+                <SparklesIcon className="w-5 h-5 text-amber-500" /> KÜNYE
+              </h3>
             </div>
-
+            <div className="p-5">
+              <MetadataForm
+                values={metadata}
+                onChange={setMetadata}
+                branslar={branslar}
+                kazanims={kazanims}
+                kazanimLoading={kazanimLoading}
+                allowManualKazanim={true}
+                gridCols="grid-cols-1"
+                hideBrans={user?.rol !== 'admin'}
+                className="bg-transparent !p-0 !shadow-none gap-5"
+              />
+            </div>
           </div>
         </div>
       </div>

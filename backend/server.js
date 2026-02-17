@@ -61,7 +61,9 @@ app.get('/api/health', (req, res) => {
 // Error handler
 app.use(errorHandler);
 
-// --- START SERVER LOGIC ---
+
+
+// --- START SERVER LOGIC (Forced Rebuild Triggered - Attempt 2) ---
 const startServer = async () => {
   try {
     console.log('--- SUNUCU BAŞLATILIYOR (V4 - PROXY PDF MODE) ---');
@@ -74,9 +76,22 @@ const startServer = async () => {
     // 2. Arka Planda Veritabanı ve Kritik Hazırlıkları Yap
     (async () => {
       try {
+        // --- ACİL DURUM: KULLANIM TAKİP KOLONLARINI EN BAŞTA OLUŞTUR ---
+        try {
+          process.stdout.write('🚀 Kritik kullanım kolonları kontrol ediliyor... ');
+          await pool.query(`
+            ALTER TABLE sorular 
+            ADD COLUMN IF NOT EXISTS kullanildi BOOLEAN DEFAULT false,
+            ADD COLUMN IF NOT EXISTS kullanim_alani VARCHAR(255)
+          `);
+          await pool.query(`CREATE INDEX IF NOT EXISTS idx_sorular_kullanildi_v3 ON sorular(kullanildi)`);
+          console.log('✅ HAZIR');
+        } catch (colErr) {
+          console.error('⚠️ Sütun oluşturma uyarısı:', colErr.message);
+        }
+
         process.stdout.write('🔄 Veritabanı tabloları kuruluyor... ');
         await createTables();
-        console.log('✅ HAZIR');
 
         const allStatuses = [
           'beklemede', 'dizgi_bekliyor', 'dizgide', 'dizgi_tamam',
@@ -104,6 +119,7 @@ const startServer = async () => {
           await pool.query(`ALTER TABLE sorular DROP CONSTRAINT IF EXISTS "${row.conname}"`);
         }
         await pool.query(`ALTER TABLE sorular ADD CONSTRAINT sorular_durum_check_final CHECK (durum IN (${statusSqlList}))`);
+
         console.log('✅ TAMAMLANDI');
 
         console.log('🌟 TÜM SİSTEMLER ÇALIŞIR DURUMDA');
