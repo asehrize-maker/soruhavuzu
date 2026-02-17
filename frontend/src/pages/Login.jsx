@@ -132,7 +132,6 @@ export default function Login() {
               {loading ? 'Bağlanılıyor...' : 'Sisteme Giriş Yap'}
             </button>
 
-            {config?.kayit_acik === 'true' && (
               <div className="text-center pt-4">
                 <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">
                   Erişiminiz yok mu?{' '}
@@ -141,7 +140,6 @@ export default function Login() {
                   </Link>
                 </p>
               </div>
-            )}
           </form>
         </div>
 
